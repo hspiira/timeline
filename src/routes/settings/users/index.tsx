@@ -1,37 +1,45 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
 import {
   Loader2,
   Shield,
-  ChevronDown,
-  ChevronRight,
+  Plus,
   CheckCircle,
+  XCircle,
+  UserPlus,
+  Mail,
+  User,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal'
 import { FormError } from '@/components/ui/FormField'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
+import { DataTable } from '@/components/ui/DataTable'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/settings/users/')({
   component: UsersPage,
 })
 
+type UserResponse = components['schemas']['UserResponse']
 type RoleResponse = components['schemas']['RoleResponse']
 
 function UsersPage() {
   const authState = useRequireAuth()
-  const [tenantUsers, setTenantUsers] = useState<Array<{ id: string; username: string; email?: string }>>([])
+  const toast = useToast()
+  const [users, setUsers] = useState<UserResponse[]>([])
   const [roles, setRoles] = useState<RoleResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hasNoAccess, setHasNoAccess] = useState(false)
 
-  const [expandedUser, setExpandedUser] = useState<string | null>(null)
-  const [userRoles, setUserRoles] = useState<Record<string, RoleResponse[]>>({})
-  const [selectedRoles, setSelectedRoles] = useState<Record<string, Set<string>>>({})
-  const [editingUserId, setEditingUserId] = useState<string | null>(null)
-  const [savingUserId, setSavingUserId] = useState<string | null>(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [managingRolesUser, setManagingRolesUser] = useState<UserResponse | null>(null)
 
   useEffect(() => {
     if (authState.user) {
@@ -45,37 +53,35 @@ function UsersPage() {
     setHasNoAccess(false)
 
     try {
-      // Fetch roles
-      const { data: rolesData, error: rolesError } = await timelineApi.roles.list({
+      // Fetch users
+      const { data: usersData, error: usersError } = await timelineApi.users.list({
         skip: 0,
         limit: 100,
       })
 
-      if (rolesError) {
-        const errorStr = JSON.stringify(rolesError).toLowerCase()
+      if (usersError) {
+        const errorStr = JSON.stringify(usersError).toLowerCase()
         const isNoAccess =
           errorStr.includes('permission') ||
           errorStr.includes('401') ||
-          errorStr.includes('403')
+          errorStr.includes('403') ||
+          errorStr.includes('unauthorized')
         setHasNoAccess(isNoAccess)
         const errorMsg =
-          // @ts-expect-error
-          rolesError?.message || 'Unable to load roles'
+          (usersError as any)?.message || (isNoAccess ? 'No permission to view users' : 'Unable to load users')
         setError(errorMsg)
-      } else if (rolesData) {
-        setRoles(rolesData)
+      } else {
+        setUsers(usersData || [])
       }
 
-      // For now, we'll mock tenant users since the API doesn't have a list endpoint
-      // In a real scenario, you'd call: await timelineApi.users.list()
-      // For demo, we'll show the current user as a placeholder
-      setTenantUsers([
-        {
-          id: authState.user?.id || 'current-user',
-          username: authState.user?.username || 'Current User',
-          email: authState.user?.email || '',
-        },
-      ])
+      // Fetch roles for role assignment
+      const { data: rolesData } = await timelineApi.roles.list({
+        skip: 0,
+        limit: 100,
+      })
+      if (rolesData) {
+        setRoles(rolesData)
+      }
     } catch (err) {
       setError('An unexpected error occurred')
       console.error('Error:', err)
@@ -84,98 +90,116 @@ function UsersPage() {
     }
   }
 
-  const toggleUserExpanded = async (userId: string) => {
-    if (expandedUser === userId) {
-      setExpandedUser(null)
-    } else {
-      setExpandedUser(userId)
-      // Fetch user roles if not already loaded
-      if (!userRoles[userId]) {
-        try {
-          const { data, error: apiError } = await timelineApi.users.getRoles(userId)
-          if (!apiError && data) {
-            setUserRoles((prev) => ({
-              ...prev,
-              [userId]: data,
-            }))
-            setSelectedRoles((prev) => ({
-              ...prev,
-              [userId]: new Set(data.map((r) => r.id)),
-            }))
-          }
-        } catch (err) {
-          console.error('Error fetching user roles:', err)
-        }
-      }
-    }
-  }
-
-  const handleSaveRoles = async (userId: string) => {
-    setSavingUserId(userId)
-    setError(null)
-
-    try {
-      const currentRoleIds = userRoles[userId]?.map((r) => r.id) || []
-      const newRoleIds = Array.from(selectedRoles[userId] || new Set())
-
-      // Roles to assign
-      const toAssign = newRoleIds.filter((id) => !currentRoleIds.includes(id))
-      // Roles to remove
-      const toRemove = currentRoleIds.filter((id) => !newRoleIds.includes(id))
-
-      // Assign new roles
-      for (const roleId of toAssign) {
-        const { error: apiError } = await timelineApi.users.assignRole(userId, { role_id: roleId })
-        if (apiError) {
-          const errorMsg = // @ts-ignore
-            apiError?.message || 'Failed to assign role'
-          setError(errorMsg)
-          setSavingUserId(null)
-          return
-        }
-      }
-
-      // Remove roles
-      for (const roleId of toRemove) {
-        const { error: apiError } = await timelineApi.users.removeRole(userId, roleId)
-        if (apiError) {
-          const errorMsg = // @ts-ignore
-            apiError?.message || 'Failed to remove role'
-          setError(errorMsg)
-          setSavingUserId(null)
-          return
-        }
-      }
-
-      // Update local state
-      const updatedUserRoles = roles.filter((r) => newRoleIds.includes(r.id))
-      setUserRoles((prev) => ({
-        ...prev,
-        [userId]: updatedUserRoles,
-      }))
-      setEditingUserId(null)
-    } finally {
-      setSavingUserId(null)
-    }
-  }
-
   if (!authState.user) {
     return null
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Loading users...</span>
+  const columns: ColumnDef<UserResponse>[] = [
+    {
+      accessorKey: 'username',
+      header: 'Username',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+            <User className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <span className="font-semibold text-foreground">{row.original.username}</span>
+            {row.original.id === authState.user?.id && (
+              <span className="ml-2 text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">
+                You
+              </span>
+            )}
+          </div>
         </div>
-      </div>
-    )
-  }
+      ),
+    },
+    {
+      accessorKey: 'email',
+      header: 'Email',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Mail className="w-3.5 h-3.5" />
+          <span className="text-sm">{row.original.email}</span>
+        </div>
+      ),
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      cell: ({ row }) =>
+        row.original.is_active ? (
+          <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+            <CheckCircle className="w-3 h-3" />
+            <span className="text-xs">Active</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <XCircle className="w-3 h-3" />
+            <span className="text-xs">Inactive</span>
+          </div>
+        ),
+    },
+    {
+      accessorKey: 'created_at',
+      header: 'Created',
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">
+          {new Date(row.original.created_at).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => {
+        const user = row.original
+        return (
+          <div className="flex items-center justify-end gap-0.5">
+            <Button
+              onClick={() => setManagingRolesUser(user)}
+              disabled={hasNoAccess}
+              title={hasNoAccess ? 'No permission' : 'Manage roles'}
+              size="sm"
+              variant="ghost"
+            >
+              <Shield className="w-4 h-4" />
+            </Button>
+          </div>
+        )
+      },
+    },
+  ]
 
   return (
     <>
+      {/* Create User Modal */}
+      {showCreateModal && (
+        <CreateUserModal
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={(newUser) => {
+            setUsers((prev) => [...prev, newUser])
+            setShowCreateModal(false)
+            toast.success('User created', `${newUser.username} has been created`)
+          }}
+          onError={setError}
+        />
+      )}
+
+      {/* Manage Roles Modal */}
+      {managingRolesUser && (
+        <ManageUserRolesModal
+          user={managingRolesUser}
+          allRoles={roles}
+          onClose={() => setManagingRolesUser(null)}
+          onSuccess={() => {
+            setManagingRolesUser(null)
+            toast.success('Roles updated', `Roles for ${managingRolesUser.username} have been updated`)
+          }}
+          onError={setError}
+        />
+      )}
+
       {/* Error Alert */}
       {error && <FormError message={error} />}
 
@@ -187,204 +211,408 @@ function UsersPage() {
               Limited Access
             </h3>
             <p className="text-sm text-amber-800 dark:text-amber-200 mt-0.5">
-              You don't have permission to manage users. You can view but cannot modify.
+              You don't have permission to manage users. You can view but cannot create or modify.
             </p>
           </div>
         </div>
       )}
 
       {/* Header */}
-      <div>
-        <h1 className="text-lg font-bold text-foreground mb-1">Users</h1>
-        <p className="text-sm text-muted-foreground mb-3">Manage user roles and permissions</p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+        <div>
+          <h1 className="text-lg font-bold text-foreground">Users</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Manage tenant users and their roles</p>
+        </div>
+        {!hasNoAccess && (
+          <Button onClick={() => setShowCreateModal(true)} variant="primary">
+            <Plus className="w-4 h-4" />
+            User
+          </Button>
+        )}
       </div>
 
-      {/* Users List */}
-      {tenantUsers.length === 0 ? (
-        <div className="text-center py-8 bg-card/80 rounded-xs border border-border/50 p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-1">No users found</h3>
-          <p className="text-sm text-muted-foreground">No users in this tenant</p>
+      {/* Users Table */}
+      <DataTable
+        data={users}
+        columns={columns}
+        isLoading={loading}
+        isEmpty={users.length === 0}
+        compact={true}
+        enablePagination={true}
+        pageSize={10}
+        emptyState={{
+          title: 'No users found',
+          description: hasNoAccess
+            ? 'You do not have permission to view users.'
+            : 'Create your first user to get started',
+          action: !hasNoAccess ? (
+            <Button onClick={() => setShowCreateModal(true)} variant="primary">
+              <Plus className="w-4 h-4" />
+              Add User
+            </Button>
+          ) : undefined,
+        }}
+      />
+    </>
+  )
+}
+
+// Create User Modal
+function CreateUserModal({
+  onClose,
+  onSuccess,
+  onError,
+}: {
+  onClose: () => void
+  onSuccess: (user: UserResponse) => void
+  onError: (error: string) => void
+}) {
+  const authState = useRequireAuth()
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [tenantCode, setTenantCode] = useState<string | null>(null)
+
+  // Fetch tenant code on mount
+  useEffect(() => {
+    const fetchTenantCode = async () => {
+      if (!authState.user?.tenant_id) return
+
+      try {
+        const { data } = await timelineApi.tenants.get(authState.user.tenant_id)
+        if (data?.code) {
+          setTenantCode(data.code)
+        }
+      } catch (err) {
+        console.error('Failed to fetch tenant:', err)
+      }
+    }
+    fetchTenantCode()
+  }, [authState.user?.tenant_id])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    if (!username.trim()) {
+      setError('Username is required')
+      return
+    }
+    if (!email.trim()) {
+      setError('Email is required')
+      return
+    }
+    if (!password.trim()) {
+      setError('Password is required')
+      return
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters')
+      return
+    }
+    if (!tenantCode) {
+      setError('Unable to determine tenant. Please try again.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { data, error: apiError } = await timelineApi.auth.register({
+        tenant_code: tenantCode,
+        username: username.trim(),
+        email: email.trim(),
+        password: password,
+      })
+
+      if (apiError) {
+        const errorMsg = (apiError as any)?.message || (apiError as any)?.detail || 'Failed to create user'
+        setError(errorMsg)
+        onError(errorMsg)
+      } else if (data) {
+        onSuccess(data)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title="Create User"
+      maxWidth="max-w-lg"
+      closeButton={!loading}
+    >
+      {/* Error Alert */}
+      {error && <FormError message={error} />}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Username */}
+        <div>
+          <label className="block text-sm font-medium text-foreground/90 mb-2">
+            Username <span className="text-destructive">*</span>
+          </label>
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="johndoe"
+              className="w-full pl-10 pr-3 py-2 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              disabled={loading}
+            />
+          </div>
+        </div>
+
+        {/* Email */}
+        <div>
+          <label className="block text-sm font-medium text-foreground/90 mb-2">
+            Email <span className="text-destructive">*</span>
+          </label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="john@example.com"
+              className="w-full pl-10 pr-3 py-2 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              disabled={loading}
+            />
+          </div>
+        </div>
+
+        {/* Password */}
+        <div>
+          <label className="block text-sm font-medium text-foreground/90 mb-2">
+            Password <span className="text-destructive">*</span>
+          </label>
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Minimum 8 characters"
+              className="w-full px-3 py-2 pr-10 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              disabled={loading}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            User will use this password to log in
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-2 justify-end flex-col sm:flex-row pt-2">
+          <Button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full sm:w-auto"
+          >
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            <UserPlus className="w-4 h-4" />
+            Create User
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
+// Manage User Roles Modal
+function ManageUserRolesModal({
+  user,
+  allRoles,
+  onClose,
+  onSuccess,
+  onError,
+}: {
+  user: UserResponse
+  allRoles: RoleResponse[]
+  onClose: () => void
+  onSuccess: () => void
+  onError: (error: string) => void
+}) {
+  const [userRoles, setUserRoles] = useState<RoleResponse[]>([])
+  const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set())
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchUserRoles()
+  }, [user.id])
+
+  const fetchUserRoles = async () => {
+    setLoading(true)
+    try {
+      const { data, error: apiError } = await timelineApi.users.getRoles(user.id)
+      if (apiError) {
+        setError((apiError as any)?.message || 'Failed to load user roles')
+      } else if (data) {
+        setUserRoles(data)
+        setSelectedRoles(new Set(data.map((r) => r.id)))
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    setError(null)
+
+    try {
+      const currentRoleIds = userRoles.map((r) => r.id)
+      const newRoleIds = Array.from(selectedRoles)
+
+      // Roles to assign
+      const toAssign = newRoleIds.filter((id) => !currentRoleIds.includes(id))
+      // Roles to remove
+      const toRemove = currentRoleIds.filter((id) => !newRoleIds.includes(id))
+
+      // Assign new roles
+      for (const roleId of toAssign) {
+        const { error: apiError } = await timelineApi.users.assignRole(user.id, { role_id: roleId })
+        if (apiError) {
+          const errorMsg = (apiError as any)?.message || 'Failed to assign role'
+          setError(errorMsg)
+          onError(errorMsg)
+          return
+        }
+      }
+
+      // Remove roles
+      for (const roleId of toRemove) {
+        const { error: apiError } = await timelineApi.users.removeRole(user.id, roleId)
+        if (apiError) {
+          const errorMsg = (apiError as any)?.message || 'Failed to remove role'
+          setError(errorMsg)
+          onError(errorMsg)
+          return
+        }
+      }
+
+      onSuccess()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title="Manage User Roles"
+      maxWidth="max-w-lg"
+      closeButton={!saving}
+    >
+      <div className="flex items-center gap-2 mb-4 p-3 bg-muted rounded-xs">
+        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+          <User className="w-4 h-4 text-primary" />
+        </div>
+        <div>
+          <span className="font-medium text-foreground">{user.username}</span>
+          <p className="text-xs text-muted-foreground">{user.email}</p>
+        </div>
+      </div>
+
+      {/* Error Alert */}
+      {error && <FormError message={error} />}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="space-y-2">
-          {tenantUsers.map((user) => {
-            const isExpanded = expandedUser === user.id
-            const userRolesList = userRoles[user.id] || []
-            const isEditing = editingUserId === user.id
-            const isSaving = savingUserId === user.id
-            const userSelectedRoles = selectedRoles[user.id] || new Set()
-
-            return (
-              <div
-                key={user.id}
-                className="bg-card/80 rounded-xs border border-border/50 overflow-hidden"
-              >
-                {/* User Header */}
-                <button
-                  onClick={() => toggleUserExpanded(user.id)}
-                  disabled={hasNoAccess}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+        <>
+          {/* Roles List */}
+          <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
+            {allRoles.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No roles available</p>
+            ) : (
+              allRoles.map((role) => (
+                <label
+                  key={role.id}
+                  className="flex items-center gap-2 p-2 hover:bg-muted rounded-xs cursor-pointer transition-colors"
                 >
-                  {isExpanded ? (
-                    <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-foreground">{user.username}</div>
-                    {user.email && (
-                      <div className="text-sm text-muted-foreground truncate">{user.email}</div>
+                  <input
+                    type="checkbox"
+                    checked={selectedRoles.has(role.id)}
+                    onChange={(e) => {
+                      const newSelected = new Set(selectedRoles)
+                      if (e.target.checked) {
+                        newSelected.add(role.id)
+                      } else {
+                        newSelected.delete(role.id)
+                      }
+                      setSelectedRoles(newSelected)
+                    }}
+                    disabled={saving}
+                    className="w-4 h-4 rounded border-input"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">{role.name}</span>
+                      {role.is_system && (
+                        <span className="text-xs px-1.5 py-0.5 bg-primary/20 text-primary rounded-xs font-medium">
+                          SYSTEM
+                        </span>
+                      )}
+                    </div>
+                    {role.description && (
+                      <p className="text-xs text-muted-foreground">{role.description}</p>
                     )}
                   </div>
-                  <div className="flex-shrink-0">
-                    <span className="text-xs px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-xs font-mono">
-                      {userRolesList.length} role{userRolesList.length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                </button>
+                </label>
+              ))
+            )}
+          </div>
 
-                {/* User Roles Content */}
-                {isExpanded && (
-                  <div className="border-t border-border px-4 py-3 bg-muted/30">
-                    {isEditing ? (
-                      <div className="space-y-3">
-                        <h3 className="text-sm font-semibold text-foreground mb-2">
-                          Assign Roles to {user.username}
-                        </h3>
-                        <div className="space-y-2 max-h-64 overflow-y-auto">
-                          {roles.map((role) => (
-                            <label
-                              key={role.id}
-                              className="flex items-center gap-2 p-2 hover:bg-muted rounded cursor-pointer transition-colors"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={userSelectedRoles.has(role.id)}
-                                onChange={(e) => {
-                                  const newSelected = new Set(userSelectedRoles)
-                                  if (e.target.checked) {
-                                    newSelected.add(role.id)
-                                  } else {
-                                    newSelected.delete(role.id)
-                                  }
-                                  setSelectedRoles((prev) => ({
-                                    ...prev,
-                                    [user.id]: newSelected,
-                                  }))
-                                }}
-                                disabled={isSaving}
-                                className="w-4 h-4 rounded border-input"
-                              />
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-medium text-foreground">
-                                    {role.name}
-                                  </span>
-                                  {role.is_system && (
-                                    <span className="text-xs px-1.5 py-0.5 bg-primary/20 text-primary rounded-xs font-medium">
-                                      SYSTEM
-                                    </span>
-                                  )}
-                                </div>
-                                {role.description && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {role.description}
-                                  </p>
-                                )}
-                              </div>
-                            </label>
-                          ))}
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex gap-2 pt-2 border-t border-border flex-col sm:flex-row">
-                          <Button
-                            onClick={() => {
-                              setEditingUserId(null)
-                              setSelectedRoles((prev) => ({
-                                ...prev,
-                                [user.id]: new Set(userRolesList.map((r) => r.id)),
-                              }))
-                            }}
-                            disabled={isSaving}
-                            variant="outline"
-                            className="w-full sm:w-auto"
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            onClick={() => handleSaveRoles(user.id)}
-                            disabled={isSaving}
-                            className="w-full sm:w-auto flex items-center justify-center gap-2"
-                          >
-                            {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                            Save Roles
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {userRolesList.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">No roles assigned</p>
-                        ) : (
-                          <div className="space-y-1">
-                            {userRolesList.map((role) => (
-                              <div
-                                key={role.id}
-                                className="flex items-center gap-2 p-2 bg-muted rounded"
-                              >
-                                <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium text-foreground">
-                                      {role.name}
-                                    </span>
-                                    {role.is_system && (
-                                      <span className="text-xs px-1 py-0.5 bg-primary/20 text-primary rounded font-medium">
-                                        SYSTEM
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {!hasNoAccess && (
-                          <Button
-                            onClick={() => {
-                              setEditingUserId(user.id)
-                              if (!selectedRoles[user.id]) {
-                                setSelectedRoles((prev) => ({
-                                  ...prev,
-                                  [user.id]: new Set(userRolesList.map((r) => r.id)),
-                                }))
-                              }
-                            }}
-                            className="mt-3 w-full sm:w-auto flex items-center justify-center gap-2"
-                          >
-                            <Shield className="w-4 h-4" />
-                            Edit Roles
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
+          {/* Action Buttons */}
+          <div className="flex gap-2 justify-end flex-col sm:flex-row pt-4 border-t border-border">
+            <Button
+              type="button"
+              onClick={onClose}
+              disabled={saving}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="w-full sm:w-auto"
+            >
+              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+              Save Roles
+            </Button>
+          </div>
+        </>
       )}
-
-      {/* Note */}
-      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-700 rounded-xs">
-        <p className="text-xs text-blue-800 dark:text-blue-200">
-          Note: This shows tenant users. The user management panel integrates role-based access control
-          directly, allowing administrators to assign or revoke roles instantly.
-        </p>
-      </div>
-    </>
+    </Modal>
   )
 }

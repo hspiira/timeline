@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Calendar, Tag, AlertCircle, ChevronDown, ChevronRight, Activity, FileText, Shield } from 'lucide-react'
+import { Calendar, Tag, AlertCircle, Boxes, FileText, Shield } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useStore } from '@tanstack/react-store'
 import { timelineApi } from '@/lib/api-client'
@@ -7,9 +7,7 @@ import { authStore } from '@/lib/auth-store'
 import { DocumentUpload } from '@/components/documents/DocumentUpload'
 import { DocumentList } from '@/components/documents/DocumentList'
 import { DocumentViewer } from '@/components/documents/DocumentViewer'
-import { EventCard } from '@/components/events/EventCard'
-import { EventDetailsModal } from '@/components/events/EventDetailsModal'
-import { EventDocumentsModal } from '@/components/documents/EventDocumentsModal'
+import { EventBlockChain } from '@/components/events/EventBlock'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { SkeletonBreadcrumbs, SkeletonEventTimeline, Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -31,11 +29,8 @@ function SubjectDetailPage() {
   const [events, setEvents] = useState<EventResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set())
   const [activeTab, setActiveTab] = useState<Tab>('events')
   const [viewingDocument, setViewingDocument] = useState<{ id: string; filename: string; type: string } | null>(null)
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
-  const [detailsEventId, setDetailsEventId] = useState<string | null>(null)
   const [documentCounts, setDocumentCounts] = useState<Record<string, number>>({})
 
   // Redirect to login if not authenticated
@@ -112,32 +107,6 @@ function SubjectDetailPage() {
       setLoading(false)
     }
   }
-
-  const toggleDate = (date: string) => {
-    setCollapsedDates((prev) => {
-      const next = new Set(prev)
-      if (next.has(date)) {
-        next.delete(date)
-      } else {
-        next.add(date)
-      }
-      return next
-    })
-  }
-
-  // Group events by date
-  const eventsByDate = events.reduce((acc, event) => {
-    const date = new Date(event.event_time).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-    if (!acc[date]) {
-      acc[date] = []
-    }
-    acc[date].push(event)
-    return acc
-  }, {} as Record<string, EventResponse[]>)
 
   if (authState.isLoading) {
     return (
@@ -235,156 +204,116 @@ function SubjectDetailPage() {
           onClose={() => setViewingDocument(null)}
         />
       )}
-        {/* Breadcrumbs */}
-        <Breadcrumbs
-          items={[
-            { label: 'Subjects', href: '/subjects' },
-            { label: subject.id },
-          ]}
-        />
 
-        {/* Subject Header */}
-        <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50 mb-4">
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground mb-1">
-                {subject.id}
-              </h1>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[
+          { label: 'Subjects', href: '/subjects' },
+          { label: subject.id },
+        ]}
+      />
+
+      {/* Subject Header */}
+      <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50 mb-4">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground mb-1">
+              {subject.id}
+            </h1>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Tag className="w-3 h-3" />
+                <span className="font-medium">{subject.subject_type}</span>
+              </div>
+              {subject.external_ref && (
                 <div className="flex items-center gap-1">
-                  <Tag className="w-3 h-3" />
-                  <span className="font-medium">{subject.subject_type}</span>
+                  <span>Ref:</span>
+                  <span className="font-mono">{subject.external_ref}</span>
                 </div>
-                {subject.external_ref && (
-                  <div className="flex items-center gap-1">
-                    <span>Ref:</span>
-                    <span className="font-mono">{subject.external_ref}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  <span>Created {new Date(subject.created_at).toLocaleDateString()}</span>
-                </div>
+              )}
+              <div className="flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                <span>Created {new Date(subject.created_at).toLocaleDateString()}</span>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Total Events</p>
-              <p className="text-2xl font-bold text-foreground">
-                {events.length}
-              </p>
-            </div>
           </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2 pt-2 border-t border-border">
-            <Button
-              onClick={() => navigate({ to: `/verify/${subjectId}` })}
-              variant="primary"
-              size="sm"
-            >
-              <Shield className="w-4 h-4" />
-              Verify Chain
-            </Button>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">Total Blocks</p>
+            <p className="text-2xl font-bold text-foreground">
+              {events.length}
+            </p>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-3 border-b border-border">
-          <button
-            onClick={() => setActiveTab('events')}
-            className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-t-xs flex items-center gap-2 ${
-              activeTab === 'events'
-                ? 'bg-muted/40 border-primary text-foreground'
-                : 'bg-transparent border-transparent text-foreground/60 hover:bg-muted/20'
-            }`}
+        {/* Actions */}
+        <div className="flex items-center gap-2 pt-2 border-t border-border">
+          <Button
+            onClick={() => navigate({ to: `/verify/${subjectId}` })}
+            variant="primary"
+            size="sm"
           >
-            <Activity className="w-4 h-4" />
-            Events
-          </button>
-          <button
-            onClick={() => setActiveTab('documents')}
-            className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-t-xs flex items-center gap-2 ${
-              activeTab === 'documents'
-                ? 'bg-muted/40 border-primary text-foreground'
-                : 'bg-transparent border-transparent text-foreground/60 hover:bg-muted/20'
-            }`}
-          >
-            <FileText className="w-4 h-4" />
-            Documents
-          </button>
+            <Shield className="w-4 h-4" />
+            Verify Chain
+          </Button>
         </div>
+      </div>
 
-        {/* Content */}
-        {activeTab === 'events' && (
-        <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50">
-          <h2 className="text-sm font-semibold text-foreground mb-4">
-            Event Timeline
-          </h2>
+      {/* Tabs */}
+      <div className="flex gap-1 mb-3 border-b border-border">
+        <button
+          onClick={() => setActiveTab('events')}
+          className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-t-xs flex items-center gap-2 ${
+            activeTab === 'events'
+              ? 'bg-muted/40 border-primary text-foreground'
+              : 'bg-transparent border-transparent text-foreground/60 hover:bg-muted/20'
+          }`}
+        >
+          <Boxes className="w-4 h-4" />
+          Event Chain
+        </button>
+        <button
+          onClick={() => setActiveTab('documents')}
+          className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-t-xs flex items-center gap-2 ${
+            activeTab === 'documents'
+              ? 'bg-muted/40 border-primary text-foreground'
+              : 'bg-transparent border-transparent text-foreground/60 hover:bg-muted/20'
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          Documents
+        </button>
+      </div>
 
+      {/* Content */}
+      {activeTab === 'events' && (
+        <div>
           {events.length === 0 ? (
-            <EmptyState
-              icon={Calendar}
-              title="No events recorded"
-              description="Events for this subject will appear here once they are created"
-              action={{
-                label: 'Record First Event',
-                onClick: () => navigate({ to: '/events/create' }),
-              }}
-            />
-          ) : (
-            <div className="space-y-6">
-              {Object.entries(eventsByDate).map(([date, dateEvents]) => {
-                const isDateCollapsed = collapsedDates.has(date)
-
-                return (
-                  <div key={date}>
-                    {/* Date Header */}
-                    <Button
-                      onClick={() => toggleDate(date)}
-                      variant="ghost"
-                      size="sm"
-                    >
-                      {isDateCollapsed ? <ChevronRight /> : <ChevronDown />}
-                      <span className="font-semibold">{date}</span>
-                      <span className="text-xs text-muted-foreground">
-                        ({dateEvents.length})
-                      </span>
-                    </Button>
-
-                    {/* Events for this date */}
-                    {!isDateCollapsed && (
-                      <div className="ml-6 space-y-2">
-                        {dateEvents.map((event) => {
-                          const docCount = documentCounts[event.id] || 0
-                          return (
-                            <EventCard
-                              key={event.id}
-                              event={event}
-                              documentCount={docCount}
-                              onViewDetails={() => setDetailsEventId(event.id)}
-                              onViewDocuments={() => setSelectedEventId(event.id)}
-                            />
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+            <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50">
+              <EmptyState
+                icon={Boxes}
+                title="No events recorded"
+                description="Events for this subject will appear here once created"
+                action={{
+                  label: 'Record First Event',
+                  onClick: () => navigate({ to: '/events/create' }),
+                }}
+              />
             </div>
+          ) : (
+            <EventBlockChain events={events} documentCounts={documentCounts} />
           )}
         </div>
-        )}
+      )}
 
-        {/* Documents Tab */}
-        {activeTab === 'documents' && (
+      {/* Documents Tab */}
+      {activeTab === 'documents' && (
         <div className="space-y-4">
           {/* Documents List */}
           <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50">
             <h2 className="text-sm font-semibold text-foreground mb-4">Documents</h2>
             <DocumentList
               subjectId={subjectId}
-              onError={(error) => console.error('Documents error:', error)}
+              onError={(err) => console.error('Documents error:', err)}
             />
           </div>
 
@@ -393,39 +322,11 @@ function SubjectDetailPage() {
             <h2 className="text-sm font-semibold text-foreground mb-4">Upload New Document</h2>
             <DocumentUpload
               subjectId={subjectId}
-              onError={(error) => console.error('Upload error:', error)}
+              onError={(err) => console.error('Upload error:', err)}
             />
           </div>
         </div>
-        )}
-
-        {/* Event Details Modal */}
-        {detailsEventId && events.length > 0 && (() => {
-          const event = events.find(e => e.id === detailsEventId)
-          return event ? (
-            <EventDetailsModal
-              event={event}
-              onClose={() => setDetailsEventId(null)}
-            />
-          ) : null
-        })()}
-
-        {/* Event Documents Modal */}
-        {selectedEventId && events.length > 0 && (() => {
-          const event = events.find(e => e.id === selectedEventId)
-          return event ? (
-            <EventDocumentsModal
-              eventId={event.id}
-              subjectId={event.subject_id}
-              eventType={event.event_type}
-              onClose={() => setSelectedEventId(null)}
-              onDocumentsUpdated={() => {
-                setSelectedEventId(null)
-                fetchData()
-              }}
-            />
-          ) : null
-        })()}
+      )}
     </>
   )
 }

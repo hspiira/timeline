@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { ActivityFeedByDate } from '@/components/activity/ActivityFeed'
+import { MinimalActivityFeed } from '@/components/dashboard/MinimalActivityFeed'
 import { StatsGrid } from '@/components/dashboard/StatsGrid'
 import { timelineApi } from '@/lib/api-client'
 import { Loader2, AlertCircle } from 'lucide-react'
@@ -224,12 +224,8 @@ function HomePage() {
           <h2 className="text-sm font-semibold text-foreground mb-3">
             Recent Activity
           </h2>
-          <div className="bg-card/80 backdrop-blur-sm rounded-xs border border-indigo-100/40 dark:border-indigo-900/30 p-4">
-            <ActivityFeedByDate
-              limit={50}
-              enableNotifications={true}
-              showAnalytics={true}
-            />
+          <div className="bg-card/80 backdrop-blur-sm rounded-xs border border-border/50">
+            <MinimalActivityFeed limit={8} />
           </div>
         </div>
     </>

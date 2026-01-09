@@ -1,7 +1,6 @@
 import { createFileRoute, Outlet, useLocation, useNavigate } from '@tanstack/react-router'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { Shield, Database, Zap, Users } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Shield, Database, Zap, Users, KeyRound } from 'lucide-react'
 
 export const Route = createFileRoute('/settings')({
   component: SettingsLayout,
@@ -50,12 +49,18 @@ function SettingsLayout() {
       icon: Zap,
       description: 'Automation & triggers',
     },
+    {
+      path: '/settings/oauth-providers',
+      label: 'OAuth Providers',
+      icon: KeyRound,
+      description: 'Email OAuth credentials',
+    },
   ]
 
   return (
     <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-start">
       {/* Sidebar */}
-      <div className="w-full lg:w-64 lg:flex-shrink-0">
+      <div className="w-full lg:w-64 lg:shrink-0">
         <div className="p-3 lg:p-4 lg:sticky lg:top-16 lg:h-fit rounded-xs border border-border">
           <h2 className="text-md font-semibold text-foreground mb-4">Settings</h2>
           <nav className="space-y-1">
@@ -72,7 +77,7 @@ function SettingsLayout() {
                       : 'hover:bg-muted border border-transparent'
                   }`}
                 >
-                  <Icon className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+                  <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
                   <div className="flex-1 min-w-0">
                     <div className={`text-sm font-medium ${active ? 'text-foreground' : 'text-foreground/80'}`}>
                       {item.label}

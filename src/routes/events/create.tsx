@@ -44,10 +44,20 @@ function CreateEventPage() {
   const [apiError, setApiError] = useState<string | null>(null)
 
   // Initialize event time after hydration (must be deterministic for SSR)
+  // Format for datetime-local input: YYYY-MM-DDTHH:MM in local time
   useEffect(() => {
+    const now = new Date()
+    // Create local datetime string for the input
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const hours = String(now.getHours()).padStart(2, '0')
+    const minutes = String(now.getMinutes()).padStart(2, '0')
+    const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`
+
     setState((prev) => ({
       ...prev,
-      eventTime: new Date().toISOString().slice(0, 16),
+      eventTime: localDateTime,
     }))
   }, [])
 

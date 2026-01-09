@@ -96,7 +96,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     authActions.logout()
-    navigate({ to: '/login' })
+    navigate({ to: '/login', search: { tenant: '' } })
   }
 
   return (
@@ -154,11 +154,15 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             </header>
           )}
 
-          <main className={`${authState.user ? 'pt-8' : ''} min-h-[calc(100vh-4rem)] bg-background`}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-              {children}
-            </div>
-          </main>
+          {authState.user ? (
+            <main className="pt-8 min-h-[calc(100vh-4rem)] bg-background">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                {children}
+              </div>
+            </main>
+          ) : (
+            children
+          )}
 
           <ToastContainer />
 

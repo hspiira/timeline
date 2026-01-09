@@ -17,6 +17,8 @@ export interface paths {
          * Login
          * @description Generate JWT access token for authenticated user.
          *
+         *     Rate limit: 5 requests per minute per IP
+         *
          *     Token contains:
          *     - sub: user_id (subject)
          *     - tenant_id: tenant the user belongs to
@@ -25,6 +27,195 @@ export interface paths {
          *     This prevents tenant isolation bypass via header spoofing.
          */
         post: operations["login_auth_token_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Provider Configs
+         * @description List all OAuth provider configurations for tenant
+         */
+        get: operations["list_provider_configs_api_oauth_providers_get"];
+        put?: never;
+        /**
+         * Create Provider Config
+         * @description Register new OAuth provider configuration.
+         *
+         *     Requires admin role. Creates initial version (v1) of provider config.
+         *     Client credentials are encrypted using envelope encryption.
+         */
+        post: operations["create_provider_config_api_oauth_providers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth-providers/{config_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Provider Config
+         * @description Get specific OAuth provider configuration
+         */
+        get: operations["get_provider_config_api_oauth_providers__config_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Provider Config
+         * @description Soft delete OAuth provider configuration.
+         *
+         *     Existing email accounts will continue to work with their bound version.
+         */
+        delete: operations["delete_provider_config_api_oauth_providers__config_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Provider Config
+         * @description Update OAuth provider configuration.
+         *
+         *     Note: Updating client_id or client_secret creates a new version.
+         *     Use POST /{id}/rotate for explicit credential rotation.
+         */
+        patch: operations["update_provider_config_api_oauth_providers__config_id__patch"];
+        trace?: never;
+    };
+    "/api/oauth-providers/{provider}/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Authorize Provider
+         * @description Initiate OAuth authorization flow.
+         *
+         *     Returns authorization URL for user to visit. After consent,
+         *     user will be redirected to callback endpoint with authorization code.
+         */
+        post: operations["authorize_provider_api_oauth_providers__provider__authorize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth-providers/{provider}/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Oauth Callback
+         * @description Handle OAuth callback from provider.
+         *
+         *     Exchanges authorization code for tokens and creates EmailAccount.
+         *     Redirects to frontend return_url with result as query parameters.
+         */
+        get: operations["oauth_callback_api_oauth_providers__provider__callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth-providers/{config_id}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate Credentials
+         * @description Rotate OAuth credentials (create new version).
+         *
+         *     Existing EmailAccounts remain bound to old version and continue working.
+         *     New connections will use the new credentials.
+         */
+        post: operations["rotate_credentials_api_oauth_providers__config_id__rotate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth-providers/{config_id}/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check Provider Health
+         * @description Check OAuth provider health status
+         */
+        get: operations["check_provider_health_api_oauth_providers__config_id__health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth-providers/{config_id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Audit History
+         * @description Get audit history for provider configuration
+         */
+        get: operations["get_audit_history_api_oauth_providers__config_id__audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth-providers/metadata/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Available Providers
+         * @description List all available OAuth providers and their metadata
+         */
+        get: operations["list_available_providers_api_oauth_providers_metadata_providers_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -292,6 +483,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/events/verify/tenant/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Verify Tenant Chains
+         * @description Verify cryptographic integrity of all event chains for current tenant.
+         *
+         *     Validates all events across all subjects for tenant.
+         *     Use limit parameter to control scope (default 1000 events).
+         *
+         *     Returns aggregated verification report.
+         */
+        get: operations["verify_tenant_chains_events_verify_tenant_all_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/events/verify/{subject_id}": {
         parameters: {
             query?: never;
@@ -319,31 +535,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/events/verify/tenant/all": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Verify Tenant Chains
-         * @description Verify cryptographic integrity of all event chains for current tenant.
-         *
-         *     Validates all events across all subjects for tenant.
-         *     Use limit parameter to control scope (default 1000 events).
-         *
-         *     Returns aggregated verification report.
-         */
-        get: operations["verify_tenant_chains_events_verify_tenant_all_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/event-schemas/": {
         parameters: {
             query?: never;
@@ -363,6 +554,12 @@ export interface paths {
          *
          *     The version number is auto-incremented based on existing versions for this event_type.
          *     New schemas are automatically activated, and the previous active schema is deactivated.
+         *
+         *     Note on schema activation:
+         *     - Deactivating previous schemas ensures new events use the latest schema for data quality
+         *     - Clients that cached the old active schema will get a validation error and must retry
+         *     - This is transactional, so race conditions are minimized
+         *     - Events can only be created with active schemas to maintain data integrity
          */
         post: operations["create_event_schema_event_schemas__post"];
         delete?: never;
@@ -1008,6 +1205,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/email-accounts/{account_id}/sync-background": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync Email Account Background
+         * @description Trigger email sync in background.
+         *
+         *     The sync runs asynchronously while the user continues working.
+         *     Returns immediately with 202 Accepted status.
+         */
+        post: operations["sync_email_account_background_email_accounts__account_id__sync_background_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/email-accounts/{account_id}/webhook": {
         parameters: {
             query?: never;
@@ -1052,7 +1272,19 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Health Check */
+        /**
+         * Health Check
+         * @description Health check endpoint for load balancers and monitoring.
+         *
+         *     Validates:
+         *     - API is responsive
+         *     - Database connectivity
+         *     - Redis cache availability (optional)
+         *
+         *     Returns:
+         *     - 200 OK if healthy
+         *     - 503 Service Unavailable if unhealthy
+         */
         get: operations["health_check_health_get"];
         put?: never;
         post?: never;
@@ -1182,6 +1414,11 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
             /** Created By */
             created_by: string | null;
             /** Deleted At */
@@ -1283,6 +1520,23 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /** Oauth Status */
+            oauth_status?: string | null;
+            /**
+             * Oauth Error Count
+             * @default 0
+             */
+            oauth_error_count: number;
+            /** Oauth Next Retry At */
+            oauth_next_retry_at?: string | null;
+            /** Last Auth Error */
+            last_auth_error?: string | null;
+            /** Last Auth Error At */
+            last_auth_error_at?: string | null;
+            /** Token Last Refreshed At */
+            token_last_refreshed_at?: string | null;
+            /** Granted Scopes */
+            granted_scopes?: string[] | null;
         };
         /**
          * EmailAccountUpdate
@@ -1343,7 +1597,24 @@ export interface components {
                 [key: string]: unknown;
             };
         };
-        /** EventResponse */
+        /**
+         * EventResponse
+         * @example {
+         *       "created_at": "2024-01-01T12:00:00Z",
+         *       "event_time": "2024-01-01T12:00:00Z",
+         *       "event_type": "user_action",
+         *       "hash": "sha256_hash_here",
+         *       "id": "clh1234567890abcdef",
+         *       "payload": {
+         *         "action": "login",
+         *         "ip": "192.168.1.1"
+         *       },
+         *       "previous_hash": "previous_sha256_hash",
+         *       "schema_version": 1,
+         *       "subject_id": "subject_456",
+         *       "tenant_id": "tenant_123"
+         *     }
+         */
         EventResponse: {
             /** Id */
             id: string;
@@ -1461,6 +1732,259 @@ export interface components {
             detail?: components["schemas"]["ValidationError"][];
         };
         /**
+         * OAuthAuditLogResponse
+         * @description Schema for OAuth audit log responses
+         */
+        OAuthAuditLogResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Provider Config Id */
+            provider_config_id: string;
+            /** Actor User Id */
+            actor_user_id: string;
+            /** Action */
+            action: string;
+            /**
+             * Timestamp
+             * Format: date-time
+             */
+            timestamp: string;
+            /** Changes */
+            changes: {
+                [key: string]: string;
+            };
+            /** Reason */
+            reason: string | null;
+            /** Ip Address */
+            ip_address: string | null;
+        };
+        /**
+         * OAuthAuthorizeRequest
+         * @description Schema for initiating OAuth flow
+         */
+        OAuthAuthorizeRequest: {
+            /**
+             * Return Url
+             * @description URL to redirect user after OAuth completion
+             */
+            return_url?: string | null;
+        };
+        /**
+         * OAuthAuthorizeResponse
+         * @description Schema for OAuth authorization URL response
+         */
+        OAuthAuthorizeResponse: {
+            /**
+             * Auth Url
+             * @description URL to redirect user for OAuth consent
+             */
+            auth_url: string;
+            /**
+             * State
+             * @description OAuth state parameter (for callback)
+             */
+            state: string;
+            /**
+             * Expires At
+             * Format: date-time
+             * @description When the state expires
+             */
+            expires_at: string;
+            /**
+             * Provider
+             * @description Provider type
+             */
+            provider: string;
+        };
+        /**
+         * OAuthProviderConfigCreate
+         * @description Schema for creating OAuth provider configuration
+         */
+        OAuthProviderConfigCreate: {
+            /**
+             * Provider Type
+             * @description Provider identifier (gmail, outlook, yahoo)
+             */
+            provider_type: string;
+            /**
+             * Client Id
+             * @description OAuth client ID from provider console
+             */
+            client_id: string;
+            /**
+             * Client Secret
+             * @description OAuth client secret from provider console
+             */
+            client_secret: string;
+            /**
+             * Redirect Uri
+             * @description OAuth redirect URI (must match provider console)
+             */
+            redirect_uri: string;
+            /**
+             * Scopes
+             * @description Custom scopes (uses provider defaults if not specified)
+             */
+            scopes?: string[] | null;
+        };
+        /**
+         * OAuthProviderConfigResponse
+         * @description Schema for OAuth provider configuration responses (secrets excluded)
+         */
+        OAuthProviderConfigResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Provider Type */
+            provider_type: string;
+            /** Display Name */
+            display_name: string;
+            /** Version */
+            version: number;
+            /** Is Active */
+            is_active: boolean;
+            /** Superseded By Id */
+            superseded_by_id: string | null;
+            /** Redirect Uri */
+            redirect_uri: string;
+            /** Redirect Uri Whitelist */
+            redirect_uri_whitelist: string[];
+            /** Allowed Scopes */
+            allowed_scopes: string[];
+            /** Default Scopes */
+            default_scopes: string[];
+            /** Tenant Configured Scopes */
+            tenant_configured_scopes: string[];
+            /** Health Status */
+            health_status: string;
+            /** Last Health Check At */
+            last_health_check_at: string | null;
+            /** Rate Limit Connections Per Hour */
+            rate_limit_connections_per_hour: number | null;
+            /** Current Hour Connections */
+            current_hour_connections: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Created By */
+            created_by: string | null;
+        };
+        /**
+         * OAuthProviderConfigUpdate
+         * @description Schema for updating OAuth provider configuration
+         */
+        OAuthProviderConfigUpdate: {
+            /** Client Id */
+            client_id?: string | null;
+            /** Client Secret */
+            client_secret?: string | null;
+            /** Redirect Uri */
+            redirect_uri?: string | null;
+            /** Scopes */
+            scopes?: string[] | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Rate Limit Connections Per Hour */
+            rate_limit_connections_per_hour?: number | null;
+        };
+        /**
+         * OAuthProviderHealthCheck
+         * @description Schema for provider health check
+         */
+        OAuthProviderHealthCheck: {
+            /** Provider Type */
+            provider_type: string;
+            /** Health Status */
+            health_status: string;
+            /** Last Check At */
+            last_check_at: string | null;
+            /** Last Error */
+            last_error: string | null;
+            /** Is Operational */
+            is_operational: boolean;
+        };
+        /**
+         * OAuthProviderListResponse
+         * @description Schema for listing OAuth providers
+         */
+        OAuthProviderListResponse: {
+            /** Providers */
+            providers: components["schemas"]["OAuthProviderConfigResponse"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * OAuthProviderMetadata
+         * @description Schema for provider metadata
+         */
+        OAuthProviderMetadata: {
+            /** Provider Type */
+            provider_type: string;
+            /** Provider Name */
+            provider_name: string;
+            /** Authorization Endpoint */
+            authorization_endpoint: string;
+            /** Token Endpoint */
+            token_endpoint: string;
+            /** Supports Pkce */
+            supports_pkce: boolean;
+            /** Default Scopes */
+            default_scopes: string[];
+        };
+        /**
+         * OAuthRotateCredentialsRequest
+         * @description Schema for rotating OAuth credentials
+         */
+        OAuthRotateCredentialsRequest: {
+            /**
+             * New Client Id
+             * @description New OAuth client ID
+             */
+            new_client_id: string;
+            /**
+             * New Client Secret
+             * @description New OAuth client secret
+             */
+            new_client_secret: string;
+            /**
+             * Reason
+             * @description Reason for rotation
+             */
+            reason?: string | null;
+        };
+        /**
+         * OAuthRotateCredentialsResponse
+         * @description Schema for credential rotation response
+         */
+        OAuthRotateCredentialsResponse: {
+            /** Old Version */
+            old_version: number;
+            /** New Version */
+            new_version: number;
+            /** Provider Config Id */
+            provider_config_id: string;
+            /**
+             * Migration Required
+             * @description Whether existing connections need migration
+             */
+            migration_required: boolean;
+            /**
+             * Affected Accounts
+             * @description Number of email accounts using old version
+             */
+            affected_accounts: number;
+        };
+        /**
          * PermissionCreate
          * @description Schema for creating a permission
          */
@@ -1515,11 +2039,6 @@ export interface components {
             id: string;
             /** Tenant Id */
             tenant_id: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
         };
         /**
          * RoleCreate
@@ -1545,7 +2064,7 @@ export interface components {
              * Permission Codes
              * @description List of permission codes to assign to this role
              */
-            permission_codes?: string[] | null;
+            permission_codes?: string[];
         };
         /**
          * RolePermissionAssign
@@ -1692,15 +2211,13 @@ export interface components {
         };
         /**
          * TenantCreate
-         * @description Schema for creating a tenant
+         * @description Schema for creating a tenant - status is always ACTIVE by default
          */
         TenantCreate: {
             /** Code */
             code: string;
             /** Name */
             name: string;
-            /** @default active */
-            status: components["schemas"]["TenantStatus"];
         };
         /**
          * TenantCreateResponse
@@ -1950,6 +2467,11 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /**
          * WorkflowResponse
@@ -1982,6 +2504,10 @@ export interface components {
             execution_order: number;
             /** Created By */
             created_by: string | null;
+            /** Updated By */
+            updated_by: string | null;
+            /** Deleted By */
+            deleted_by: string | null;
             /**
              * Created At
              * Format: date-time
@@ -1992,6 +2518,8 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /** Deleted At */
+            deleted_at: string | null;
         };
         /**
          * WorkflowUpdate
@@ -2055,6 +2583,363 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_provider_configs_api_oauth_providers_get: {
+        parameters: {
+            query?: {
+                /** @description Include inactive configs */
+                include_inactive?: boolean;
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthProviderListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_provider_config_api_oauth_providers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthProviderConfigCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthProviderConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_provider_config_api_oauth_providers__config_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthProviderConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_provider_config_api_oauth_providers__config_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_provider_config_api_oauth_providers__config_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthProviderConfigUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthProviderConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    authorize_provider_api_oauth_providers__provider__authorize_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthAuthorizeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthAuthorizeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_callback_api_oauth_providers__provider__callback_get: {
+        parameters: {
+            query: {
+                /** @description Authorization code from provider */
+                code?: string;
+                /** @description OAuth state parameter */
+                state: string;
+                /** @description Error from provider */
+                error?: string | null;
+                /** @description Error description from provider */
+                error_description?: string | null;
+            };
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rotate_credentials_api_oauth_providers__config_id__rotate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthRotateCredentialsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthRotateCredentialsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_provider_health_api_oauth_providers__config_id__health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthProviderHealthCheck"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_audit_history_api_oauth_providers__config_id__audit_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthAuditLogResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_available_providers_api_oauth_providers_metadata_providers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthProviderMetadata"][];
                 };
             };
         };
@@ -2690,13 +3575,14 @@ export interface operations {
             };
         };
     };
-    verify_subject_chain_events_verify__subject_id__get: {
+    verify_tenant_chains_events_verify_tenant_all_get: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                subject_id: string;
+            query?: {
+                /** @description Max events to verify */
+                limit?: number;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -2721,14 +3607,13 @@ export interface operations {
             };
         };
     };
-    verify_tenant_chains_events_verify_tenant_all_get: {
+    verify_subject_chain_events_verify__subject_id__get: {
         parameters: {
-            query?: {
-                /** @description Max events to verify */
-                limit?: number;
-            };
+            query?: never;
             header?: never;
-            path?: never;
+            path: {
+                subject_id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -3994,7 +4879,9 @@ export interface operations {
     list_email_accounts_email_accounts__get: {
         parameters: {
             query?: {
+                /** @description Number of records to skip */
                 skip?: number;
+                /** @description Max records to return */
                 limit?: number;
             };
             header?: never;
@@ -4173,6 +5060,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmailSyncResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_email_account_background_email_accounts__account_id__sync_background_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailSyncRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

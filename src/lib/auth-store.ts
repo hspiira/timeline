@@ -69,26 +69,23 @@ export const authActions = {
     }
   },
 
-  async register(data: {
-    username: string
-    email: string
-    password: string
-    tenant_code: string
-  }) {
+  async registerTenant(data: { code: string; name: string }) {
     authStore.setState((state) => ({ ...state, isLoading: true, error: null }))
 
     try {
-      const response = await timelineApi.auth.register(data)
+      const response = await timelineApi.tenants.create(data)
 
       if (response.error) {
-        throw new Error('Registration failed')
+        const errorDetail =
+          (response.error as { detail?: string })?.detail || 'Tenant creation failed'
+        throw new Error(errorDetail)
       }
 
       authStore.setState((state) => ({ ...state, isLoading: false }))
       return response.data
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Registration failed'
+        error instanceof Error ? error.message : 'Tenant creation failed'
       authStore.setState((state) => ({
         ...state,
         isLoading: false,

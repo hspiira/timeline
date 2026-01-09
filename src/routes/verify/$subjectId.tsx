@@ -220,9 +220,7 @@ function VerifyPage() {
             <div className="bg-card/80 rounded-xs border border-border/50 p-3 mb-3">
               <h2 className="text-sm font-semibold text-foreground mb-2">Visual Chain Overview</h2>
               <ChainVisualization
-                events={verification.event_results?.map((event, index) => {
-                  const prevEvent = index > 0 ? verification.event_results?.[index - 1] : null
-                  return {
+                events={verification.event_results?.map((event) => ({
                     id: event.event_id,
                     tenant_id: verification.tenant_id,
                     subject_id: verification.subject_id || subjectId,
@@ -231,13 +229,12 @@ function VerifyPage() {
                     event_time: event.event_time,
                     payload: {},
                     hash: event.actual_hash || event.expected_hash || '',
-                    previous_hash: prevEvent ? (prevEvent.actual_hash || prevEvent.expected_hash || null) : null,
+                    previous_hash: event.previous_hash || null,
                     created_at: event.event_time,
                     verified: event.is_valid,
                     expected_hash: event.expected_hash || '',
                     actual_hash: event.actual_hash || '',
-                  }
-                }) || []}
+                  })) || []}
                 tamperedIndices={verification.event_results
                   ?.map((event, index) => (!event.is_valid ? index : -1))
                   .filter((i) => i !== -1) || []}

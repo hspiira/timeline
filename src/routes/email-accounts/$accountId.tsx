@@ -13,6 +13,9 @@ import {
   Calendar,
   Clock,
   Trash2,
+  AlertTriangle,
+  Shield,
+  Key,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
@@ -22,6 +25,59 @@ import type { EmailAccountResponse } from '@/lib/types'
 export const Route = createFileRoute('/email-accounts/$accountId')({
   component: EmailAccountDetailPage,
 })
+
+// Helper to get OAuth status display info
+function getOAuthStatusInfo(status: string | null | undefined): {
+  label: string
+  color: string
+  icon: React.ElementType
+  description: string
+} {
+  switch (status) {
+    case 'active':
+      return {
+        label: 'Active',
+        color: 'text-green-600 dark:text-green-400',
+        icon: CheckCircle,
+        description: 'OAuth connection is healthy',
+      }
+    case 'refresh_failed':
+      return {
+        label: 'Refresh Failed',
+        color: 'text-amber-600 dark:text-amber-400',
+        icon: AlertTriangle,
+        description: 'Token refresh failed. Re-authentication may be required.',
+      }
+    case 'consent_denied':
+      return {
+        label: 'Consent Denied',
+        color: 'text-red-600 dark:text-red-400',
+        icon: XCircle,
+        description: 'User denied access. Re-authentication required.',
+      }
+    case 'revoked':
+      return {
+        label: 'Revoked',
+        color: 'text-red-600 dark:text-red-400',
+        icon: XCircle,
+        description: 'Access was revoked. Re-authentication required.',
+      }
+    case 'expired':
+      return {
+        label: 'Expired',
+        color: 'text-amber-600 dark:text-amber-400',
+        icon: Clock,
+        description: 'Token has expired. Re-authentication required.',
+      }
+    default:
+      return {
+        label: 'Unknown',
+        color: 'text-muted-foreground',
+        icon: Shield,
+        description: 'OAuth status unknown',
+      }
+  }
+}
 
 function EmailAccountDetailPage() {
   const { accountId } = Route.useParams()
@@ -268,6 +324,107 @@ function EmailAccountDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* OAuth Status - Only show for OAuth providers */}
+      {(account.provider_type === 'gmail' || account.provider_type === 'outlook') && (
+        <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-xs p-4 mb-6">
+          <h2 className="text-base font-semibold text-foreground mb-3">OAuth Status</h2>
+          <div className="space-y-4">
+            {/* OAuth Status Badge */}
+            {(() => {
+              const statusInfo = getOAuthStatusInfo(account.oauth_status)
+              const StatusIcon = statusInfo.icon
+              return (
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`p-2 rounded-xs ${
+                      account.oauth_status === 'active'
+                        ? 'bg-green-100 dark:bg-green-900/30'
+                        : account.oauth_status === 'refresh_failed' || account.oauth_status === 'expired'
+                          ? 'bg-amber-100 dark:bg-amber-900/30'
+                          : 'bg-red-100 dark:bg-red-900/30'
+                    }`}
+                  >
+                    <StatusIcon className={`w-5 h-5 ${statusInfo.color}`} />
+                  </div>
+                  <div>
+                    <p className={`font-semibold ${statusInfo.color}`}>{statusInfo.label}</p>
+                    <p className="text-sm text-muted-foreground">{statusInfo.description}</p>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Token Health Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border/50">
+              {account.token_last_refreshed_at && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Last Token Refresh</label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Key className="w-4 h-4 text-muted-foreground" />
+                    <p className="text-foreground text-sm">
+                      {new Date(account.token_last_refreshed_at).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {account.granted_scopes && account.granted_scopes.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Granted Scopes</label>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {account.granted_scopes.map((scope, idx) => (
+                      <span
+                        key={idx}
+                        className="text-[10px] px-1.5 py-0.5 bg-secondary text-muted-foreground rounded font-mono"
+                        title={scope}
+                      >
+                        {scope.split('/').pop()}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Error Info */}
+            {account.last_auth_error && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-red-800 dark:text-red-200">Authentication Error</p>
+                    <p className="text-xs text-red-700 dark:text-red-300 mt-1">{account.last_auth_error}</p>
+                    {account.last_auth_error_at && (
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                        {new Date(account.last_auth_error_at).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Re-authenticate Button for failed states */}
+            {account.oauth_status &&
+              ['refresh_failed', 'consent_denied', 'revoked', 'expired'].includes(account.oauth_status) && (
+                <Button
+                  onClick={() => navigate({ to: '/email-accounts/create' })}
+                  variant="primary"
+                  size="md"
+                  className="w-full sm:w-auto"
+                >
+                  <Key className="w-4 h-4" />
+                  Re-authenticate
+                </Button>
+              )}
+          </div>
+        </div>
+      )}
 
       {/* Sync Options */}
       <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-xs p-4 mb-6">

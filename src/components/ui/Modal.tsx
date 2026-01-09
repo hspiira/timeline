@@ -100,12 +100,10 @@ export function Modal({
     <div
       className="modal-backdrop-animate fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-(--z-index)"
       style={{ '--z-index': zIndex } as any}
-      onClick={onClose}
       role="presentation"
     >
       <div
         className={`modal-content-animate bg-background border border-border rounded-xs ${maxWidth} w-full max-h-[90vh] overflow-auto p-4 sm:p-6 shadow-2xl`}
-        onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}

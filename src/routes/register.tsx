@@ -1,22 +1,41 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useStore } from '@tanstack/react-store'
+import { CheckCircle, AlertTriangle, Copy, Check } from 'lucide-react'
 import { authStore, authActions } from '@/lib/auth-store'
 import { useRedirectIfAuthenticated } from '@/lib/hooks'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
 export const Route = createFileRoute('/register')({
-  component: RegisterPage,
+  component: RegisterTenantPage,
 })
 
-function RegisterPage() {
+interface TenantCreationResult {
+  tenant: {
+    id: string
+    code: string
+    name: string
+  }
+  admin_username: string
+  admin_password: string
+}
+
+function RegisterTenantPage() {
   const navigate = useNavigate()
   const authState = useStore(authStore)
-  const [username, setUsername] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [tenantCode, setTenantCode] = useState('')
+  const [tenantName, setTenantName] = useState('')
+  const [createdTenant, setCreatedTenant] = useState<TenantCreationResult | null>(null)
+  const [copiedPassword, setCopiedPassword] = useState(false)
+
+  const copyPassword = () => {
+    if (createdTenant) {
+      navigator.clipboard.writeText(createdTenant.admin_password)
+      setCopiedPassword(true)
+      setTimeout(() => setCopiedPassword(false), 2000)
+    }
+  }
 
   // Redirect if already logged in
   const isAuthenticated = useRedirectIfAuthenticated()
@@ -26,23 +45,101 @@ function RegisterPage() {
     authActions.clearError()
 
     try {
-      await authActions.register({
-        username,
-        email,
-        password,
-        tenant_code: tenantCode,
+      const result = await authActions.registerTenant({
+        code: tenantCode,
+        name: tenantName,
       })
 
-      // Redirect to login after successful registration
-      navigate({ to: '/login' })
+      // Show the admin credentials
+      setCreatedTenant(result)
     } catch (error) {
-      console.error('Registration failed:', error)
+      console.error('Tenant registration failed:', error)
+    }
+  }
+
+  const handleContinueToLogin = () => {
+    if (createdTenant) {
+      // Navigate to login with the tenant code pre-filled
+      navigate({
+        to: '/login',
+        search: { tenant: createdTenant.tenant.code },
+      })
     }
   }
 
   // Show nothing while redirecting
   if (isAuthenticated) {
     return null
+  }
+
+  // Show success screen with admin credentials
+  if (createdTenant) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background py-12">
+        <div className="w-full max-w-md">
+          <div className="bg-card shadow-xl rounded-xs p-8 border">
+            {/* Logo */}
+            <div className="flex justify-center mb-6">
+              <img src="/logo.svg" alt="Timeline" className="w-16 h-16" />
+            </div>
+
+            {/* Success Header */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-foreground">Tenant Created</h1>
+                <p className="text-sm text-muted-foreground">{createdTenant.tenant.name}</p>
+              </div>
+            </div>
+
+            {/* Tenant Details */}
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center justify-between py-2 border-b border-border">
+                <span className="text-sm text-muted-foreground">Tenant Code</span>
+                <code className="text-sm font-mono text-foreground">{createdTenant.tenant.code}</code>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-border">
+                <span className="text-sm text-muted-foreground">Admin Username</span>
+                <code className="text-sm font-mono text-foreground">{createdTenant.admin_username}</code>
+              </div>
+            </div>
+
+            {/* Password with Warning */}
+            <div className="bg-muted/50 border border-border rounded-xs p-4 mb-6">
+              <div className="flex items-start gap-2 mb-3">
+                <AlertTriangle className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  Save this password now. It won't be shown again.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-sm font-mono text-foreground bg-card px-3 py-2 rounded-xs border border-border break-all">
+                  {createdTenant.admin_password}
+                </code>
+                <button
+                  onClick={copyPassword}
+                  className="p-2 hover:bg-muted rounded-xs transition-colors shrink-0"
+                  title="Copy password"
+                >
+                  {copiedPassword ? (
+                    <Check className="w-4 h-4 text-primary" />
+                  ) : (
+                    <Copy className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Continue Button */}
+            <Button onClick={handleContinueToLogin} className="w-full">
+              Continue to Login
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -55,21 +152,42 @@ function RegisterPage() {
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl font-bold text-center mb-6 text-foreground">
-            Create Account
+          <h1 className="text-2xl font-bold text-center mb-2 text-foreground">
+            Create Your Organization
           </h1>
+          <p className="text-center text-muted-foreground mb-6">
+            Set up a new tenant for your team
+          </p>
 
           {/* Error Message */}
           {authState.error && (
             <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-xs">
-              <p className="text-sm text-destructive">
-                {authState.error}
-              </p>
+              <p className="text-sm text-destructive">{authState.error}</p>
             </div>
           )}
 
           {/* Register Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label
+                htmlFor="tenant-name"
+                className="block text-sm font-medium text-foreground mb-1.5"
+              >
+                Organization Name
+              </label>
+              <Input
+                id="tenant-name"
+                type="text"
+                value={tenantName}
+                onChange={(e) => setTenantName(e.target.value)}
+                required
+                placeholder="Acme Corporation"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Display name for your organization
+              </p>
+            </div>
+
             <div>
               <label
                 htmlFor="tenant-code"
@@ -81,62 +199,17 @@ function RegisterPage() {
                 id="tenant-code"
                 type="text"
                 value={tenantCode}
-                onChange={(e) => setTenantCode(e.target.value)}
+                onChange={(e) =>
+                  setTenantCode(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))
+                }
                 required
                 placeholder="acme-corp"
+                pattern="[a-z0-9-]+"
+                title="Lowercase letters, numbers, and hyphens only"
               />
-            </div>
-
-            <div>
-              <label
-                htmlFor="username"
-                className="block text-sm font-medium text-foreground mb-1.5"
-              >
-                Username
-              </label>
-              <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                placeholder="username"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-foreground mb-1.5"
-              >
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="your@email.com"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-foreground mb-1.5"
-              >
-                Password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-                placeholder="Min. 8 characters"
-              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Unique identifier for your organization (lowercase, no spaces)
+              </p>
             </div>
 
             <Button
@@ -145,7 +218,7 @@ function RegisterPage() {
               isLoading={authState.isLoading}
               className="w-full"
             >
-              {authState.isLoading ? 'Creating account...' : 'Create Account'}
+              {authState.isLoading ? 'Creating organization...' : 'Create Organization'}
             </Button>
           </form>
 
@@ -155,6 +228,7 @@ function RegisterPage() {
               Already have an account?{' '}
               <Link
                 to="/login"
+                search={{ tenant: '' }}
                 className="text-foreground font-semibold hover:underline"
               >
                 Sign in

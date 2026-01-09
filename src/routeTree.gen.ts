@@ -26,9 +26,12 @@ import { Route as SettingsUsersIndexRouteImport } from './routes/settings/users/
 import { Route as SettingsSchemasIndexRouteImport } from './routes/settings/schemas/index'
 import { Route as SettingsRolesIndexRouteImport } from './routes/settings/roles/index'
 import { Route as SettingsPermissionsIndexRouteImport } from './routes/settings/permissions/index'
+import { Route as SettingsOauthProvidersIndexRouteImport } from './routes/settings/oauth-providers/index'
 import { Route as AdminRolesIndexRouteImport } from './routes/admin/roles/index'
 import { Route as AdminPermissionsIndexRouteImport } from './routes/admin/permissions/index'
 import { Route as EventsSubjectSubjectIdRouteImport } from './routes/events/subject.$subjectId'
+import { Route as EmailAccountsOauthCallbackRouteImport } from './routes/email-accounts/oauth/callback'
+import { Route as SubjectsSubjectIdEventsEventIdRouteImport } from './routes/subjects/$subjectId_/events/$eventId'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -116,6 +119,12 @@ const SettingsPermissionsIndexRoute =
     path: '/permissions/',
     getParentRoute: () => SettingsRoute,
   } as any)
+const SettingsOauthProvidersIndexRoute =
+  SettingsOauthProvidersIndexRouteImport.update({
+    id: '/oauth-providers/',
+    path: '/oauth-providers/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
 const AdminRolesIndexRoute = AdminRolesIndexRouteImport.update({
   id: '/admin/roles/',
   path: '/admin/roles/',
@@ -131,6 +140,18 @@ const EventsSubjectSubjectIdRoute = EventsSubjectSubjectIdRouteImport.update({
   path: '/events/subject/$subjectId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmailAccountsOauthCallbackRoute =
+  EmailAccountsOauthCallbackRouteImport.update({
+    id: '/email-accounts/oauth/callback',
+    path: '/email-accounts/oauth/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const SubjectsSubjectIdEventsEventIdRoute =
+  SubjectsSubjectIdEventsEventIdRouteImport.update({
+    id: '/subjects/$subjectId_/events/$eventId',
+    path: '/subjects/$subjectId/events/$eventId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -145,14 +166,17 @@ export interface FileRoutesByFullPath {
   '/email-accounts': typeof EmailAccountsIndexRoute
   '/events': typeof EventsIndexRoute
   '/subjects': typeof SubjectsIndexRoute
+  '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
   '/admin/permissions': typeof AdminPermissionsIndexRoute
   '/admin/roles': typeof AdminRolesIndexRoute
+  '/settings/oauth-providers': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions': typeof SettingsPermissionsIndexRoute
   '/settings/roles': typeof SettingsRolesIndexRoute
   '/settings/schemas': typeof SettingsSchemasIndexRoute
   '/settings/users': typeof SettingsUsersIndexRoute
   '/settings/workflows': typeof SettingsWorkflowsIndexRoute
+  '/subjects/$subjectId/events/$eventId': typeof SubjectsSubjectIdEventsEventIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -167,14 +191,17 @@ export interface FileRoutesByTo {
   '/email-accounts': typeof EmailAccountsIndexRoute
   '/events': typeof EventsIndexRoute
   '/subjects': typeof SubjectsIndexRoute
+  '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
   '/admin/permissions': typeof AdminPermissionsIndexRoute
   '/admin/roles': typeof AdminRolesIndexRoute
+  '/settings/oauth-providers': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions': typeof SettingsPermissionsIndexRoute
   '/settings/roles': typeof SettingsRolesIndexRoute
   '/settings/schemas': typeof SettingsSchemasIndexRoute
   '/settings/users': typeof SettingsUsersIndexRoute
   '/settings/workflows': typeof SettingsWorkflowsIndexRoute
+  '/subjects/$subjectId/events/$eventId': typeof SubjectsSubjectIdEventsEventIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -190,14 +217,17 @@ export interface FileRoutesById {
   '/email-accounts/': typeof EmailAccountsIndexRoute
   '/events/': typeof EventsIndexRoute
   '/subjects/': typeof SubjectsIndexRoute
+  '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
   '/admin/permissions/': typeof AdminPermissionsIndexRoute
   '/admin/roles/': typeof AdminRolesIndexRoute
+  '/settings/oauth-providers/': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions/': typeof SettingsPermissionsIndexRoute
   '/settings/roles/': typeof SettingsRolesIndexRoute
   '/settings/schemas/': typeof SettingsSchemasIndexRoute
   '/settings/users/': typeof SettingsUsersIndexRoute
   '/settings/workflows/': typeof SettingsWorkflowsIndexRoute
+  '/subjects/$subjectId_/events/$eventId': typeof SubjectsSubjectIdEventsEventIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -214,14 +244,17 @@ export interface FileRouteTypes {
     | '/email-accounts'
     | '/events'
     | '/subjects'
+    | '/email-accounts/oauth/callback'
     | '/events/subject/$subjectId'
     | '/admin/permissions'
     | '/admin/roles'
+    | '/settings/oauth-providers'
     | '/settings/permissions'
     | '/settings/roles'
     | '/settings/schemas'
     | '/settings/users'
     | '/settings/workflows'
+    | '/subjects/$subjectId/events/$eventId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -236,14 +269,17 @@ export interface FileRouteTypes {
     | '/email-accounts'
     | '/events'
     | '/subjects'
+    | '/email-accounts/oauth/callback'
     | '/events/subject/$subjectId'
     | '/admin/permissions'
     | '/admin/roles'
+    | '/settings/oauth-providers'
     | '/settings/permissions'
     | '/settings/roles'
     | '/settings/schemas'
     | '/settings/users'
     | '/settings/workflows'
+    | '/subjects/$subjectId/events/$eventId'
   id:
     | '__root__'
     | '/'
@@ -258,14 +294,17 @@ export interface FileRouteTypes {
     | '/email-accounts/'
     | '/events/'
     | '/subjects/'
+    | '/email-accounts/oauth/callback'
     | '/events/subject/$subjectId'
     | '/admin/permissions/'
     | '/admin/roles/'
+    | '/settings/oauth-providers/'
     | '/settings/permissions/'
     | '/settings/roles/'
     | '/settings/schemas/'
     | '/settings/users/'
     | '/settings/workflows/'
+    | '/subjects/$subjectId_/events/$eventId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -281,9 +320,11 @@ export interface RootRouteChildren {
   EmailAccountsIndexRoute: typeof EmailAccountsIndexRoute
   EventsIndexRoute: typeof EventsIndexRoute
   SubjectsIndexRoute: typeof SubjectsIndexRoute
+  EmailAccountsOauthCallbackRoute: typeof EmailAccountsOauthCallbackRoute
   EventsSubjectSubjectIdRoute: typeof EventsSubjectSubjectIdRoute
   AdminPermissionsIndexRoute: typeof AdminPermissionsIndexRoute
   AdminRolesIndexRoute: typeof AdminRolesIndexRoute
+  SubjectsSubjectIdEventsEventIdRoute: typeof SubjectsSubjectIdEventsEventIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -407,6 +448,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsPermissionsIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/oauth-providers/': {
+      id: '/settings/oauth-providers/'
+      path: '/oauth-providers'
+      fullPath: '/settings/oauth-providers'
+      preLoaderRoute: typeof SettingsOauthProvidersIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/admin/roles/': {
       id: '/admin/roles/'
       path: '/admin/roles'
@@ -428,10 +476,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsSubjectSubjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/email-accounts/oauth/callback': {
+      id: '/email-accounts/oauth/callback'
+      path: '/email-accounts/oauth/callback'
+      fullPath: '/email-accounts/oauth/callback'
+      preLoaderRoute: typeof EmailAccountsOauthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subjects/$subjectId_/events/$eventId': {
+      id: '/subjects/$subjectId_/events/$eventId'
+      path: '/subjects/$subjectId/events/$eventId'
+      fullPath: '/subjects/$subjectId/events/$eventId'
+      preLoaderRoute: typeof SubjectsSubjectIdEventsEventIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface SettingsRouteChildren {
+  SettingsOauthProvidersIndexRoute: typeof SettingsOauthProvidersIndexRoute
   SettingsPermissionsIndexRoute: typeof SettingsPermissionsIndexRoute
   SettingsRolesIndexRoute: typeof SettingsRolesIndexRoute
   SettingsSchemasIndexRoute: typeof SettingsSchemasIndexRoute
@@ -440,6 +503,7 @@ interface SettingsRouteChildren {
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsOauthProvidersIndexRoute: SettingsOauthProvidersIndexRoute,
   SettingsPermissionsIndexRoute: SettingsPermissionsIndexRoute,
   SettingsRolesIndexRoute: SettingsRolesIndexRoute,
   SettingsSchemasIndexRoute: SettingsSchemasIndexRoute,
@@ -464,9 +528,11 @@ const rootRouteChildren: RootRouteChildren = {
   EmailAccountsIndexRoute: EmailAccountsIndexRoute,
   EventsIndexRoute: EventsIndexRoute,
   SubjectsIndexRoute: SubjectsIndexRoute,
+  EmailAccountsOauthCallbackRoute: EmailAccountsOauthCallbackRoute,
   EventsSubjectSubjectIdRoute: EventsSubjectSubjectIdRoute,
   AdminPermissionsIndexRoute: AdminPermissionsIndexRoute,
   AdminRolesIndexRoute: AdminRolesIndexRoute,
+  SubjectsSubjectIdEventsEventIdRoute: SubjectsSubjectIdEventsEventIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

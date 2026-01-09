@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
-import { ArrowLeft, Mail, Lock, Server, CheckCircle, Cloud, Inbox } from 'lucide-react'
+import { ArrowLeft, Mail, Lock, Server, CheckCircle, Cloud, Inbox, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
 import type { components } from '@/lib/timeline-api'
@@ -11,6 +11,8 @@ import type { components } from '@/lib/timeline-api'
 export const Route = createFileRoute('/email-accounts/create')({
   component: CreateEmailAccountPage,
 })
+
+type OAuthProviderConfig = components['schemas']['OAuthProviderConfigResponse']
 
 type EmailProvider = 'gmail' | 'outlook' | 'imap' | 'icloud' | 'yahoo'
 type EmailAccountCreate = components['schemas']['EmailAccountCreate']
@@ -73,12 +75,38 @@ function CreateEmailAccountPage() {
   const [testingConnection, setTestingConnection] = useState(false)
   const [connectionTested, setConnectionTested] = useState(false)
 
+  // OAuth provider configs from backend
+  const [oauthConfigs, setOauthConfigs] = useState<OAuthProviderConfig[]>([])
+  const [loadingOAuth, setLoadingOAuth] = useState(true)
+
   // Form state for IMAP
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [imapServer, setImapServer] = useState('')
   const [imapPort, setImapPort] = useState('993')
   const [useSsl, setUseSsl] = useState(true)
+
+  // Fetch available OAuth providers on mount
+  useEffect(() => {
+    const fetchOAuthProviders = async () => {
+      try {
+        const { data } = await timelineApi.oauthProviders.list({ include_inactive: false })
+        if (data?.providers) {
+          setOauthConfigs(data.providers)
+        }
+      } catch (err) {
+        console.error('Failed to fetch OAuth providers:', err)
+      } finally {
+        setLoadingOAuth(false)
+      }
+    }
+    fetchOAuthProviders()
+  }, [])
+
+  // Check if OAuth is configured for a provider
+  const isOAuthConfigured = (provider: 'gmail' | 'outlook'): boolean => {
+    return oauthConfigs.some((config) => config.provider_type === provider && config.is_active)
+  }
 
   if (!authState.user) {
     return null
@@ -101,19 +129,41 @@ function CreateEmailAccountPage() {
   }
 
   const handleOAuthConnect = async (provider: 'gmail' | 'outlook') => {
+    // Check if OAuth is configured for this provider
+    if (!isOAuthConfigured(provider)) {
+      setError(
+        `OAuth for ${PROVIDERS[provider].name} is not configured. Please contact your administrator to set up OAuth credentials, or use IMAP authentication.`
+      )
+      return
+    }
+
     setLoading(true)
     setError(null)
     try {
-      // For OAuth, we would typically redirect to the OAuth flow
-      // For now, show a message that OAuth needs to be implemented
-      toast.info('OAuth Flow', `OAuth integration for ${provider} needs to be configured with your OAuth credentials`)
-      setError(`OAuth flow for ${provider} is not yet configured. Please use IMAP authentication or contact your administrator.`)
+      // Get the current URL as the return URL after OAuth completes
+      const returnUrl = `${window.location.origin}/email-accounts/oauth/callback`
+
+      const { data, error: apiError } = await timelineApi.oauthProviders.authorize(provider, {
+        return_url: returnUrl,
+      })
+
+      if (apiError) {
+        const errorObj = apiError as { detail?: string }
+        throw new Error(errorObj?.detail || 'Failed to initiate OAuth flow')
+      }
+
+      if (data?.auth_url) {
+        // Redirect user to the OAuth provider's authorization page
+        window.location.href = data.auth_url
+      } else {
+        throw new Error('No authorization URL returned')
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to initiate OAuth flow'
       setError(errorMsg)
-    } finally {
       setLoading(false)
     }
+    // Note: Don't set loading to false on success - we're redirecting away
   }
 
   const handleTestConnection = async () => {
@@ -249,42 +299,66 @@ function CreateEmailAccountPage() {
       {/* Step 1: Provider Selection */}
       {step === 'select' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {(Object.keys(PROVIDERS) as EmailProvider[]).map((provider) => {
-            const config = PROVIDERS[provider]
-            const IconComponent = config.icon
-            return (
-              <button
-                key={provider}
-                onClick={() => handleProviderSelect(provider)}
-                className="p-4 bg-card/80 backdrop-blur-sm border border-border/50 rounded-xs hover:border-primary/50 hover:bg-card transition-all text-left group"
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`p-2 rounded-xs bg-accent ${config.iconColor}`}>
-                    <IconComponent className="w-6 h-6" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                      {config.name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-1">{config.description}</p>
-                    <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-                      {config.authType === 'oauth' ? (
-                        <>
-                          <Lock className="w-3 h-3" />
-                          <span>OAuth 2.0</span>
-                        </>
-                      ) : (
-                        <>
-                          <Server className="w-3 h-3" />
-                          <span>IMAP</span>
-                        </>
-                      )}
+          {loadingOAuth ? (
+            <div className="col-span-2 flex items-center justify-center py-8">
+              <LoadingIcon className="w-6 h-6" />
+              <span className="ml-2 text-muted-foreground">Loading providers...</span>
+            </div>
+          ) : (
+            (Object.keys(PROVIDERS) as EmailProvider[]).map((provider) => {
+              const config = PROVIDERS[provider]
+              const IconComponent = config.icon
+              const oauthAvailable =
+                config.authType === 'oauth' && isOAuthConfigured(provider as 'gmail' | 'outlook')
+              const oauthNotConfigured = config.authType === 'oauth' && !oauthAvailable
+
+              return (
+                <button
+                  key={provider}
+                  onClick={() => handleProviderSelect(provider)}
+                  className="p-4 bg-card/80 backdrop-blur-sm border border-border/50 rounded-xs hover:border-primary/50 hover:bg-card transition-all text-left group"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-xs bg-accent ${config.iconColor}`}>
+                      <IconComponent className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                          {config.name}
+                        </h3>
+                        {oauthAvailable && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
+                            OAuth Ready
+                          </span>
+                        )}
+                        {oauthNotConfigured && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded">
+                            Not Configured
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">{config.description}</p>
+                      <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                        {config.authType === 'oauth' ? (
+                          <>
+                            <Lock className="w-3 h-3" />
+                            <span>OAuth 2.0</span>
+                            {oauthAvailable && <ExternalLink className="w-3 h-3 ml-1" />}
+                          </>
+                        ) : (
+                          <>
+                            <Server className="w-3 h-3" />
+                            <span>IMAP</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </button>
-            )
-          })}
+                </button>
+              )
+            })
+          )}
         </div>
       )}
 
@@ -412,11 +486,24 @@ function CreateEmailAccountPage() {
 
             {/* OAuth Notice */}
             {PROVIDERS[selectedProvider].authType === 'oauth' && (
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xs">
-                <p className="text-sm text-blue-900 dark:text-blue-200">
-                  Clicking "Connect" will redirect you to {PROVIDERS[selectedProvider].name} to authorize access to your
-                  email account.
-                </p>
+              <div
+                className={`p-3 rounded-xs border ${
+                  isOAuthConfigured(selectedProvider as 'gmail' | 'outlook')
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                    : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
+                }`}
+              >
+                {isOAuthConfigured(selectedProvider as 'gmail' | 'outlook') ? (
+                  <p className="text-sm text-blue-900 dark:text-blue-200">
+                    Clicking "Connect" will redirect you to {PROVIDERS[selectedProvider].name} to authorize access to
+                    your email account. You'll be returned here after granting permission.
+                  </p>
+                ) : (
+                  <p className="text-sm text-amber-900 dark:text-amber-200">
+                    OAuth for {PROVIDERS[selectedProvider].name} is not configured by your administrator. Please contact
+                    them to set up OAuth credentials, or choose a different provider.
+                  </p>
+                )}
               </div>
             )}
 
