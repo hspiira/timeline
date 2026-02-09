@@ -53,8 +53,9 @@ class Settings(BaseSettings):
     # Tenant
     tenant_header_name: str = "X-Tenant-ID"
 
-    # Firebase / Firestore (optional; set path to enable)
-    firebase_service_account_path: str | None = None
+    # Firebase / Firestore: use key (env) or path (file). For Vercel, use key.
+    firebase_service_account_key: str | None = None  # Full JSON string (e.g. FIREBASE_SERVICE_ACCOUNT_KEY)
+    firebase_service_account_path: str | None = None  # Path to JSON file
 
     # Redis Cache
     redis_enabled: bool = True
@@ -96,10 +97,10 @@ class Settings(BaseSettings):
                     "Set in environment or .env file."
                 )
         elif self.database_backend == "firestore":
-            if not self.firebase_service_account_path:
+            if not self.firebase_service_account_key and not self.firebase_service_account_path:
                 raise ValueError(
-                    "FIREBASE_SERVICE_ACCOUNT_PATH is required when database_backend is 'firestore'. "
-                    "Set to the path of your Firebase service account JSON key."
+                    "When database_backend is 'firestore', set FIREBASE_SERVICE_ACCOUNT_KEY (full JSON string) "
+                    "or FIREBASE_SERVICE_ACCOUNT_PATH (path to JSON file)."
                 )
         else:
             raise ValueError(
