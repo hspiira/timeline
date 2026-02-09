@@ -4,11 +4,13 @@ from fastapi import FastAPI
 
 from app.api.v1 import api_router
 from app.core.config import settings
+from app.infrastructure.firebase import init_firebase
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    init_firebase()
     yield
     # Shutdown
 

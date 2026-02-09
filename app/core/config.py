@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     # Tenant
     tenant_header_name: str = "X-Tenant-ID"
 
+    # Firebase / Firestore (optional; set path to enable)
+    firebase_service_account_path: str | None = None
+
     # Redis Cache
     redis_enabled: bool = True
     redis_host: str = "localhost"

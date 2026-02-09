@@ -74,6 +74,9 @@ class AuditAction(str, Enum):
     ACTIVATED = "activated"
     DEACTIVATED = "deactivated"
     ARCHIVED = "archived"
+    STATUS_CHANGED = "status_changed"
+    ASSIGNED = "assigned"
+    UNASSIGNED = "unassigned"
 
     @classmethod
     def values(cls) -> list[str]:

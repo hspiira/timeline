@@ -7,5 +7,22 @@ wheels/
 docs/
 *.egg-info
 
+# Environment files (never commit)
+.env
+.env.*
+!/.env.example
+!/.env.local
+!/.env.development
+!/.env.production
+!/.env.test
+!/.env.test.local
+!/.env.test.development
+!/.env.test.production
 # Virtual environments
 .venv
+
+# Firebase service account keys (never commit)
+serviceAccountKey*.json
+*-firebase-adminsdk-*.json
+
+# Secrets (never commit)
