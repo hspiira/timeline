@@ -1,20 +1,5 @@
 {
-    "version": 2,
-    "buildCommand": "pip install uv && uv sync --frozen",
-    "installCommand": "pip install uv && uv sync --frozen",
-    "builds": [
-      {
-        "src": "app/main.py",
-        "use": "@vercel/python",
-        "config": {
-          "maxLambdaSize": "50mb"
-        }
-      }
-    ],
-    "routes": [
-      {
-        "src": "/(.*)",
-        "dest": "app/main.py"
-      }
-    ]
-  }  
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && $HOME/.local/bin/uv sync --frozen",
+  "framework": "fastapi"
+}

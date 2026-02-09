@@ -21,8 +21,13 @@ docs/
 # Virtual environments
 .venv
 
+# Vercel
+.vercel/
+
 # Firebase service account keys (never commit)
 serviceAccountKey*.json
 *-firebase-adminsdk-*.json
 
 # Secrets (never commit)
+.vercel
+.env*.local

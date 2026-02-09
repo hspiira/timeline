@@ -22,8 +22,7 @@ dependencies = [
     "cryptography>=46.0.3",
     "nh3>=0.2.0",
     "python-jose>=3.5.0",
-    # Firebase / Firestore
-    "firebase-admin>=6.6.0",
+    # Firebase / Firestore (REST + google-auth; no firebase-admin to keep Vercel bundle <250MB)
     # Email Integration
     "aioimaplib>=2.0.1",
     "google-api-python-client>=2.187.0",
