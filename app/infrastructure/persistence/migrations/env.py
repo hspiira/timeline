@@ -1,6 +1,11 @@
-"""Alembic env. Uses app.core.config and app.infrastructure.persistence.database."""
+"""Alembic env. Uses app.core.config and app.infrastructure.persistence.database.
+
+When database_backend is 'firestore', migrations are skipped (Firestore has no
+SQL schema). Run Alembic only when using PostgreSQL.
+"""
 
 import asyncio
+import sys
 from logging.config import fileConfig
 
 from alembic import context
@@ -11,11 +16,20 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from app.core.config import get_settings
 from app.infrastructure.persistence.database import Base
 
+settings = get_settings()
+if settings.database_backend != "postgres":
+    print(
+        "Alembic: database_backend is not 'postgres' (current: %r). "
+        "Firestore has no SQL schema; skipping migrations."
+        % (settings.database_backend,),
+        file=sys.stderr,
+    )
+    sys.exit(0)
+
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-settings = get_settings()
 config.set_main_option("sqlalchemy.url", settings.database_url)
 target_metadata = Base.metadata
 

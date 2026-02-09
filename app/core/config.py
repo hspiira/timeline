@@ -24,7 +24,8 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
     debug: bool = False
 
-    # Database
+    # Database: "postgres" (SQLAlchemy + Alembic) or "firestore" (Firestore only)
+    database_backend: str = "firestore"
     database_url: str = ""
     database_echo: bool = False
 
@@ -85,12 +86,25 @@ class Settings(BaseSettings):
     def validate_required_and_storage(self) -> "Settings":
         """Validate required env and storage backend.
 
-        Raises:
-            ValueError: If DATABASE_URL, SECRET_KEY, or ENCRYPTION_SALT
-                is missing, or storage_backend is invalid.
+        - Postgres: DATABASE_URL required.
+        - Firestore: FIREBASE_SERVICE_ACCOUNT_PATH required; Alembic not used.
         """
-        if not self.database_url:
-            raise ValueError("DATABASE_URL is required. Set in environment or .env file.")
+        if self.database_backend == "postgres":
+            if not self.database_url:
+                raise ValueError(
+                    "DATABASE_URL is required when database_backend is 'postgres'. "
+                    "Set in environment or .env file."
+                )
+        elif self.database_backend == "firestore":
+            if not self.firebase_service_account_path:
+                raise ValueError(
+                    "FIREBASE_SERVICE_ACCOUNT_PATH is required when database_backend is 'firestore'. "
+                    "Set to the path of your Firebase service account JSON key."
+                )
+        else:
+            raise ValueError(
+                f"database_backend must be 'postgres' or 'firestore', got: {self.database_backend!r}"
+            )
         if not self.secret_key:
             raise ValueError("SECRET_KEY is required. Generate with: openssl rand -hex 32")
         if not self.encryption_salt:
