@@ -2,6 +2,8 @@
 
 ## Run
 
+Copy `.env.example` to `.env` and set at least `DATABASE_URL`, `SECRET_KEY`, and `ENCRYPTION_SALT` (required for config validation).
+
 ```bash
 uv run uvicorn app.main:app --reload
 ```
