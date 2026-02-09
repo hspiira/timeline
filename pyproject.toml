@@ -1,0 +1,10 @@
+[project]
+name = "new-timeline"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.128.6",
+    "pydantic-settings>=2.0.0",
+]
