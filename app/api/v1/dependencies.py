@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import Depends, Request
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.services.authorization_service import AuthorizationService
@@ -23,8 +24,12 @@ from app.infrastructure.persistence.database import get_db, get_db_transactional
 from app.application.use_cases.subjects import SubjectService
 from app.infrastructure.persistence.repositories import (
     DocumentRepository,
+    EmailAccountRepository,
     EventRepository,
     EventSchemaRepository,
+    OAuthProviderConfigRepository,
+    PermissionRepository,
+    RoleRepository,
     SubjectRepository,
     TenantRepository,
     UserRepository,
@@ -169,3 +174,77 @@ async def get_workflow_repo_for_write(
 ) -> WorkflowRepository:
     """Workflow repository for create (transactional)."""
     return WorkflowRepository(db, audit_service=None)
+
+
+async def get_role_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> RoleRepository:
+    """Role repository for read operations (list, get by id)."""
+    return RoleRepository(db, audit_service=None)
+
+
+async def get_permission_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PermissionRepository:
+    """Permission repository for read operations and user/role assignment."""
+    return PermissionRepository(db, audit_service=None)
+
+
+async def get_permission_repo_for_write(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> PermissionRepository:
+    """Permission repository for assign/remove role and permission (transactional)."""
+    return PermissionRepository(db, audit_service=None)
+
+
+async def get_oauth_provider_config_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> OAuthProviderConfigRepository:
+    """OAuth provider config repository for read operations."""
+    return OAuthProviderConfigRepository(db, audit_service=None)
+
+
+async def get_email_account_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> EmailAccountRepository:
+    """Email account repository for read operations (list, get by id)."""
+    return EmailAccountRepository(db)
+
+
+# ---- Auth (current user from JWT) ----
+
+_http_bearer = HTTPBearer(auto_error=False)
+
+
+async def get_current_user_optional(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_http_bearer)],
+    user_repo: Annotated[UserRepository, Depends(get_user_repo)],
+):
+    """Return current user from JWT if present; else None. Use for optional auth routes."""
+    if not credentials:
+        return None
+    try:
+        from app.infrastructure.security.jwt import verify_token
+
+        payload = verify_token(credentials.credentials)
+        user_id = payload.get("sub")
+        tenant_id = payload.get("tenant_id")
+        if not user_id or not tenant_id:
+            return None
+        user = await user_repo.get_by_id_and_tenant(user_id, tenant_id)
+        if not user or not user.is_active:
+            return None
+        return user
+    except (ValueError, KeyError):
+        return None
+
+
+async def get_current_user(
+    current_user: Annotated[object | None, Depends(get_current_user_optional)],
+):
+    """Return current user from JWT; raise 401 if missing or invalid."""
+    from fastapi import HTTPException
+
+    if current_user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return current_user

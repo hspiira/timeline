@@ -7,7 +7,10 @@ serverless bundle limit.
 """
 
 import json
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from app.core.config import get_settings
 from app.infrastructure.firebase._rest_client import (
@@ -39,23 +42,30 @@ def init_firebase() -> bool:
 
     Uses FIREBASE_SERVICE_ACCOUNT_KEY (full JSON string) if set, otherwise
     FIREBASE_SERVICE_ACCOUNT_PATH (file path). Safe to call when neither is set
-    (no-op). Idempotent if already initialized.
+    (no-op). Idempotent if already initialized. On invalid/malformed credentials
+    or any initialization error, logs the exception and returns False so the app
+    can start without Firebase.
 
     Returns:
-        True if Firestore was initialized, False if disabled or already init.
+        True if Firestore was initialized, False if disabled or on error.
     """
     global _firestore_client
-    key_dict = _load_key_dict()
-    if not key_dict:
+    try:
+        key_dict = _load_key_dict()
+        if not key_dict:
+            return False
+
+        project_id = key_dict.get("project_id")
+        if not project_id:
+            logger.error("Firebase service account JSON missing 'project_id'")
+            return False
+
+        cred = _get_credentials(key_dict)
+        _firestore_client = FirestoreRESTClient(project_id, cred)
+        return True
+    except Exception:
+        logger.exception("Firebase initialization failed")
         return False
-
-    project_id = key_dict.get("project_id")
-    if not project_id:
-        raise ValueError("Service account JSON must contain 'project_id'")
-
-    cred = _get_credentials(key_dict)
-    _firestore_client = FirestoreRESTClient(project_id, cred)
-    return True
 
 
 def get_firestore_client() -> FirestoreRESTClient | None:

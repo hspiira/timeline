@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -8,11 +9,17 @@ from app.core.config import settings
 from app.infrastructure.firebase import init_firebase
 from app.pages import render_root_page
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    init_firebase()
+    fb_initialized = init_firebase()
+    logger.info("Firebase initialized: %s", fb_initialized)
+    from app.api.websocket import ConnectionManager
+
+    app.state.ws_manager = ConnectionManager()
     if settings.redis_enabled:
         from app.infrastructure.cache.redis_cache import CacheService
 

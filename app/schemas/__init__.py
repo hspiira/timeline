@@ -5,9 +5,12 @@ from app.schemas.event_schema import EventSchemaCreateRequest, EventSchemaRespon
 from app.schemas.subject import SubjectCreateRequest, SubjectResponse
 from app.schemas.tenant import TenantCreateRequest, TenantCreateResponse
 from app.schemas.user import UserCreateRequest, UserResponse
+from app.schemas.auth import LoginRequest, TokenResponse
 from app.schemas.workflow import WorkflowCreateRequest, WorkflowResponse
 
 __all__ = [
+    "LoginRequest",
+    "TokenResponse",
     "EventCreate",
     "EventSchemaCreateRequest",
     "EventSchemaResponse",

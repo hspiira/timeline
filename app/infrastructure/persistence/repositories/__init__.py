@@ -3,6 +3,9 @@
 from app.infrastructure.persistence.repositories.auditable_repo import AuditableRepository
 from app.infrastructure.persistence.repositories.base import BaseRepository
 from app.infrastructure.persistence.repositories.document_repo import DocumentRepository
+from app.infrastructure.persistence.repositories.email_account_repo import (
+    EmailAccountRepository,
+)
 from app.infrastructure.persistence.repositories.event_repo import EventRepository
 from app.infrastructure.persistence.repositories.event_schema_repo import (
     EventSchemaRepository,
@@ -23,6 +26,7 @@ __all__ = [
     "AuditableRepository",
     "BaseRepository",
     "DocumentRepository",
+    "EmailAccountRepository",
     "EventRepository",
     "EventSchemaRepository",
     "OAuthProviderConfigRepository",
