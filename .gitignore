@@ -4,18 +4,16 @@ __pycache__/
 build/
 dist/
 wheels/
-docs/
+/docs/
 *.egg-info
 
 # Environment files (never commit)
 .env
 .env.*
 !/.env.example
-!/.env.local
 !/.env.development
 !/.env.production
 !/.env.test
-!/.env.test.local
 !/.env.test.development
 !/.env.test.production
 # Virtual environments
@@ -31,3 +29,5 @@ serviceAccountKey*.json
 # Secrets (never commit)
 .vercel
 .env*.local
+!/.env.local
+!/.env.test.local
