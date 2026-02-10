@@ -48,6 +48,18 @@ class OAuthProviderConfigRepository(AuditableRepository[OAuthProviderConfig]):
             "health_status": obj.health_status,
         }
 
+    async def get_by_id_and_tenant(
+        self, config_id: str, tenant_id: str
+    ) -> OAuthProviderConfig | None:
+        """Return OAuth provider config by id if it belongs to tenant."""
+        result = await self.db.execute(
+            select(OAuthProviderConfig).where(
+                OAuthProviderConfig.id == config_id,
+                OAuthProviderConfig.tenant_id == tenant_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def get_active_config(
         self, tenant_id: str, provider_type: str
     ) -> OAuthProviderConfig | None:

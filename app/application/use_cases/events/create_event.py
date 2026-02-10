@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 import jsonschema
 
@@ -32,13 +32,20 @@ class EventService:
         hash_service: IHashService,
         subject_repo: ISubjectRepository,
         schema_repo: IEventSchemaRepository | None = None,
-        workflow_engine: "IWorkflowEngine | None" = None,
+        workflow_engine_provider: Callable[[], "IWorkflowEngine | None"] | None = None,
     ) -> None:
         self.event_repo = event_repo
         self.hash_service = hash_service
         self.subject_repo = subject_repo
         self.schema_repo = schema_repo
-        self.workflow_engine = workflow_engine
+        self._workflow_engine_provider = workflow_engine_provider
+
+    @property
+    def workflow_engine(self) -> "IWorkflowEngine | None":
+        """Resolve workflow engine lazily to avoid circular init."""
+        if self._workflow_engine_provider is None:
+            return None
+        return self._workflow_engine_provider()
 
     async def create_event(
         self,

@@ -14,6 +14,17 @@ class EventSchemaCreateRequest(BaseModel):
     created_by: str | None = None
 
 
+class EventSchemaListItem(BaseModel):
+    """Event schema list item (no schema_definition)."""
+
+    id: str
+    tenant_id: str
+    event_type: str
+    version: int
+    is_active: bool
+    created_by: str | None
+
+
 class EventSchemaResponse(BaseModel):
     """Event schema response."""
 

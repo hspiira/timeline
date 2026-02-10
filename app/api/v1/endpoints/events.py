@@ -2,49 +2,37 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.v1.dependencies import get_event_repo, get_event_service
+from app.api.v1.dependencies import get_event_repo, get_event_service, get_tenant_id
 from app.application.use_cases.events import EventService
-from app.core.config import get_settings
 from app.infrastructure.persistence.repositories.event_repo import EventRepository
-from app.schemas.event import EventCreate
+from app.schemas.event import EventCreate, EventListResponse, EventResponse
 
 router = APIRouter()
 
 
-def _tenant_id(x_tenant_id: str | None = Header(None)) -> str:
-    """Resolve tenant ID from header; raise 400 if missing."""
-    name = get_settings().tenant_header_name
-    if not x_tenant_id:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Missing required header: {name}",
-        )
-    return x_tenant_id
-
-
-@router.post("", status_code=201)
+@router.post("", response_model=EventResponse, status_code=201)
 async def create_event(
     body: EventCreate,
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     event_svc: Annotated[EventService, Depends(get_event_service)],
 ):
     """Create a single event (hash chaining, optional schema validation, workflows)."""
     try:
         created = await event_svc.create_event(tenant_id, body)
-        return {"id": created.id, "event_type": created.event_type}
+        return EventResponse.model_validate(created)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-@router.get("")
+@router.get("", response_model=list[EventListResponse])
 async def list_events(
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    event_repo: Annotated[EventRepository, Depends(get_event_repo)],
     subject_id: str | None = None,
     skip: int = 0,
     limit: int = 100,
-    event_repo: EventRepository = Depends(get_event_repo),
 ):
     """List events for tenant; optionally filter by subject_id."""
     if subject_id:
@@ -60,33 +48,17 @@ async def list_events(
             skip=skip,
             limit=limit,
         )
-    return [
-        {
-            "id": e.id,
-            "subject_id": e.subject_id,
-            "event_type": e.event_type,
-            "event_time": e.event_time.isoformat(),
-        }
-        for e in events
-    ]
+    return [EventListResponse.model_validate(e) for e in events]
 
 
-@router.get("/{event_id}")
+@router.get("/{event_id}", response_model=EventResponse)
 async def get_event(
     event_id: str,
-    tenant_id: Annotated[str, Depends(_tenant_id)],
-    event_repo: EventRepository = Depends(get_event_repo),
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    event_repo: Annotated[EventRepository, Depends(get_event_repo)],
 ):
     """Get event by id (tenant-scoped)."""
     event = await event_repo.get_by_id_and_tenant(event_id, tenant_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    return {
-        "id": event.id,
-        "subject_id": event.subject_id,
-        "event_type": event.event_type,
-        "schema_version": event.schema_version,
-        "event_time": event.event_time.isoformat(),
-        "payload": event.payload,
-        "hash": event.hash,
-    }
+    return EventResponse.model_validate(event)

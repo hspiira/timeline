@@ -144,6 +144,21 @@ class SystemAuditService:
         }
 
     @staticmethod
+    def _sanitize_value(value: Any) -> Any:
+        """Recursively sanitize a value (dict, list, tuple, or scalar)."""
+        if isinstance(value, dict):
+            return SystemAuditService._sanitize_entity_data(value)
+        if isinstance(value, (list, tuple)):
+            return type(value)(
+                SystemAuditService._sanitize_value(item) for item in value
+            )
+        if isinstance(value, datetime):
+            return value.isoformat()
+        if hasattr(value, "__dict__") and not isinstance(value, (dict, list, tuple)):
+            return str(value)
+        return value
+
+    @staticmethod
     def _sanitize_entity_data(data: dict[str, Any]) -> dict[str, Any]:
         sensitive = {
             "password",
@@ -162,10 +177,6 @@ class SystemAuditService:
         for key, value in data.items():
             if key.lower() in sensitive:
                 out[key] = "[REDACTED]"
-            elif isinstance(value, datetime):
-                out[key] = value.isoformat()
-            elif hasattr(value, "__dict__") and not isinstance(value, dict):
-                out[key] = str(value)
             else:
-                out[key] = value
+                out[key] = SystemAuditService._sanitize_value(value)
         return out

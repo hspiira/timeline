@@ -110,6 +110,22 @@ class TenantNotFoundException(TimelineException):
         )
 
 
+class TenantAlreadyExistsError(TimelineException):
+    """Raised when creating a tenant whose code already exists."""
+
+    def __init__(self, code: str) -> None:
+        """Initialize with the duplicate tenant code.
+
+        Args:
+            code: The tenant code that already exists.
+        """
+        super().__init__(
+            f"Tenant with code '{code}' already exists",
+            "TENANT_ALREADY_EXISTS",
+            {"code": code},
+        )
+
+
 class ResourceNotFoundException(TimelineException):
     """Raised when a requested resource is not found."""
 
@@ -160,6 +176,22 @@ class SchemaValidationException(TimelineException):
             "SCHEMA_VALIDATION_ERROR",
             {"schema_type": schema_type, "errors": validation_errors},
         )
+
+
+class DuplicateAssignmentError(TimelineException):
+    """Raised when assigning a role/permission that is already assigned (unique constraint)."""
+
+    def __init__(self, message: str, assignment_type: str, details_extra: dict[str, Any] | None = None) -> None:
+        """Initialize with message and assignment context.
+
+        Args:
+            message: Human-readable description (e.g. 'Permission already assigned to role').
+            assignment_type: 'role_permission' or 'user_role'.
+            details_extra: Optional extra keys (e.g. role_id, permission_id).
+        """
+        details = details_extra or {}
+        details["assignment_type"] = assignment_type
+        super().__init__(message, "DUPLICATE_ASSIGNMENT", details)
 
 
 class PermissionDeniedError(TimelineException):

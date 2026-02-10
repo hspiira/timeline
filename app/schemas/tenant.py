@@ -18,10 +18,10 @@ class TenantCreateRequest(BaseModel):
 
 
 class TenantCreateResponse(BaseModel):
-    """Response after tenant creation (admin password returned only once)."""
+    """Response after tenant creation. Admin password is never serialized in API output."""
 
     tenant_id: str
     tenant_code: str
     tenant_name: str
     admin_username: str
-    admin_password: str
+    admin_password: str = Field(..., exclude=True)

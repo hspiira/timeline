@@ -15,6 +15,9 @@ from app.infrastructure.persistence.repositories.auditable_repo import (
 from app.infrastructure.security.password import get_password_hash, verify_password
 from app.shared.enums import AuditAction
 
+# Valid bcrypt hash for constant-time comparison when user is not found (timing-attack mitigation)
+_DUMMY_HASH = get_password_hash("not-a-real-password")
+
 if TYPE_CHECKING:
     from app.infrastructure.services.system_audit_service import SystemAuditService
 
@@ -73,11 +76,11 @@ class UserRepository(AuditableRepository[User]):
     ) -> User | None:
         user = await self.get_by_username_and_tenant(username, tenant_id)
         if not user:
-            verify_password(password, "$2b$12$dummy.hash.to.prevent.timing.attacks")
+            await asyncio.to_thread(verify_password, password, _DUMMY_HASH)
             return None
         if not user.is_active:
             return None
-        if not verify_password(password, user.hashed_password):
+        if not await asyncio.to_thread(verify_password, password, user.hashed_password):
             return None
         return user
 
@@ -102,24 +105,24 @@ class UserRepository(AuditableRepository[User]):
         user = await self.get_by_id(user_id)
         if not user:
             return None
-        user.hashed_password = get_password_hash(new_password)
+        user.hashed_password = await asyncio.to_thread(get_password_hash, new_password)
         return await self.update(user)
 
-    async def deactivate(self, user_id: str) -> User | None:
-        user = await self.get_by_id(user_id)
+    async def deactivate(self, user_id: str, tenant_id: str) -> User | None:
+        user = await self.get_by_id_and_tenant(user_id, tenant_id)
         if not user:
             return None
         user.is_active = False
-        updated = await self.update(user)
+        updated = await self.update_without_audit(user)
         await self.emit_custom_audit(updated, AuditAction.DEACTIVATED)
         return updated
 
-    async def activate(self, user_id: str) -> User | None:
-        user = await self.get_by_id(user_id)
+    async def activate(self, user_id: str, tenant_id: str) -> User | None:
+        user = await self.get_by_id_and_tenant(user_id, tenant_id)
         if not user:
             return None
         user.is_active = True
-        updated = await self.update(user)
+        updated = await self.update_without_audit(user)
         await self.emit_custom_audit(updated, AuditAction.ACTIVATED)
         return updated
 

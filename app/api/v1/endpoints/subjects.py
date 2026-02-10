@@ -2,32 +2,20 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.v1.dependencies import get_subject_service
+from app.api.v1.dependencies import get_subject_service, get_tenant_id
 from app.application.use_cases.subjects import SubjectService
-from app.core.config import get_settings
 from app.domain.exceptions import ResourceNotFoundException
 from app.schemas.subject import SubjectCreateRequest, SubjectResponse
 
 router = APIRouter()
 
 
-def _tenant_id(x_tenant_id: str | None = Header(None)) -> str:
-    """Resolve tenant ID from header; raise 400 if missing."""
-    name = get_settings().tenant_header_name
-    if not x_tenant_id:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Missing required header: {name}",
-        )
-    return x_tenant_id
-
-
 @router.post("", response_model=SubjectResponse, status_code=201)
 async def create_subject(
     body: SubjectCreateRequest,
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_svc: SubjectService = Depends(get_subject_service),
 ):
     """Create a subject (tenant-scoped)."""
@@ -47,7 +35,7 @@ async def create_subject(
 @router.get("/{subject_id}", response_model=SubjectResponse)
 async def get_subject(
     subject_id: str,
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_svc: SubjectService = Depends(get_subject_service),
 ):
     """Get subject by id (tenant-scoped)."""
@@ -68,7 +56,7 @@ async def get_subject(
 
 @router.get("")
 async def list_subjects(
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     skip: int = 0,
     limit: int = 100,
     subject_type: str | None = None,

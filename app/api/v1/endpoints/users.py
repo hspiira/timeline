@@ -2,31 +2,19 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.v1.dependencies import get_user_repo, get_user_repo_for_write
-from app.core.config import get_settings
+from app.api.v1.dependencies import get_user_repo, get_user_repo_for_write, get_tenant_id
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
 from app.schemas.user import UserCreateRequest, UserResponse
 
 router = APIRouter()
 
 
-def _tenant_id(x_tenant_id: str | None = Header(None)) -> str:
-    """Resolve tenant ID from header; raise 400 if missing."""
-    name = get_settings().tenant_header_name
-    if not x_tenant_id:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Missing required header: {name}",
-        )
-    return x_tenant_id
-
-
 @router.post("", response_model=UserResponse, status_code=201)
 async def create_user(
     body: UserCreateRequest,
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     user_repo: UserRepository = Depends(get_user_repo_for_write),
 ):
     """Create a user (tenant-scoped)."""
@@ -51,7 +39,7 @@ async def create_user(
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: str,
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     user_repo: UserRepository = Depends(get_user_repo),
 ):
     """Get user by id (tenant-scoped)."""
@@ -69,7 +57,7 @@ async def get_user(
 
 @router.get("")
 async def list_users(
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     skip: int = 0,
     limit: int = 100,
     user_repo: UserRepository = Depends(get_user_repo),

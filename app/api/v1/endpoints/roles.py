@@ -5,26 +5,18 @@ Uses only injected get_role_repo; no manual repo construction.
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.v1.dependencies import get_role_repo
-from app.core.config import get_settings
+from app.api.v1.dependencies import get_role_repo, get_tenant_id
 from app.infrastructure.persistence.repositories.role_repo import RoleRepository
+from app.schemas.role import RoleResponse
 
 router = APIRouter()
 
 
-def _tenant_id(x_tenant_id: str | None = Header(None)) -> str:
-    """Resolve tenant ID from header; raise 400 if missing."""
-    name = get_settings().tenant_header_name
-    if not x_tenant_id:
-        raise HTTPException(status_code=400, detail=f"Missing required header: {name}")
-    return x_tenant_id
-
-
-@router.get("")
+@router.get("", response_model=list[RoleResponse])
 async def list_roles(
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     skip: int = 0,
     limit: int = 100,
     include_inactive: bool = False,
@@ -37,36 +29,17 @@ async def list_roles(
         limit=limit,
         include_inactive=include_inactive,
     )
-    return [
-        {
-            "id": r.id,
-            "tenant_id": r.tenant_id,
-            "code": r.code,
-            "name": r.name,
-            "description": r.description,
-            "is_system": r.is_system,
-            "is_active": r.is_active,
-        }
-        for r in roles
-    ]
+    return [RoleResponse.model_validate(r) for r in roles]
 
 
 @router.get("/{role_id}")
 async def get_role(
     role_id: str,
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     role_repo: RoleRepository = Depends(get_role_repo),
 ):
     """Get role by id (tenant-scoped)."""
-    role = await role_repo.get_by_id(role_id)
-    if not role or role.tenant_id != tenant_id:
+    role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
+    if not role:
         raise HTTPException(status_code=404, detail="Role not found")
-    return {
-        "id": role.id,
-        "tenant_id": role.tenant_id,
-        "code": role.code,
-        "name": role.name,
-        "description": role.description,
-        "is_system": role.is_system,
-        "is_active": role.is_active,
-    }
+    return RoleResponse.model_validate(role)

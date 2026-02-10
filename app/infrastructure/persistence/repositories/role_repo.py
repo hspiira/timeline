@@ -51,6 +51,12 @@ class RoleRepository(AuditableRepository[Role]):
         )
         return result.scalar_one_or_none()
 
+    async def get_by_id_and_tenant(self, role_id: str, tenant_id: str) -> Role | None:
+        result = await self.db.execute(
+            select(Role).where(Role.id == role_id, Role.tenant_id == tenant_id)
+        )
+        return result.scalar_one_or_none()
+
     async def get_by_tenant(
         self,
         tenant_id: str,

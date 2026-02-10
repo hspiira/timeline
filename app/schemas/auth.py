@@ -12,7 +12,7 @@ class LoginRequest(BaseModel):
         description="Tenant code (e.g. org slug) to identify the tenant",
     )
     username: str = Field(..., min_length=1)
-    password: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=8, description="Password (min 8 characters)")
 
 
 class TokenResponse(BaseModel):

@@ -6,73 +6,55 @@ Integration metadata for Gmail, Outlook, IMAP.
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.v1.dependencies import get_email_account_repo
-from app.core.config import get_settings
+from app.api.v1.dependencies import (
+    get_current_user,
+    get_email_account_repo,
+    get_tenant_id,
+)
 from app.infrastructure.persistence.repositories.email_account_repo import (
     EmailAccountRepository,
 )
+from app.schemas.email_account import EmailAccountResponse
 
 router = APIRouter()
 
 
-def _tenant_id(x_tenant_id: str | None = Header(None)) -> str:
-    """Resolve tenant ID from header; raise 400 if missing."""
-    name = get_settings().tenant_header_name
-    if not x_tenant_id:
-        raise HTTPException(status_code=400, detail=f"Missing required header: {name}")
-    return x_tenant_id
-
-
-@router.get("")
+@router.get("", response_model=list[EmailAccountResponse])
 async def list_email_accounts(
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    current_user: Annotated[object, Depends(get_current_user)],
+    email_account_repo: Annotated[
+        EmailAccountRepository, Depends(get_email_account_repo)
+    ],
     skip: int = 0,
     limit: int = 100,
-    email_account_repo: EmailAccountRepository = Depends(get_email_account_repo),
 ):
-    """List email accounts for tenant (paginated)."""
+    """List email accounts for tenant (paginated). Requires authentication."""
+    if getattr(current_user, "tenant_id", None) != tenant_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
     accounts = await email_account_repo.get_by_tenant(
         tenant_id=tenant_id,
         skip=skip,
         limit=limit,
     )
-    return [
-        {
-            "id": a.id,
-            "tenant_id": a.tenant_id,
-            "subject_id": a.subject_id,
-            "provider_type": a.provider_type,
-            "email_address": a.email_address,
-            "is_active": a.is_active,
-            "sync_status": a.sync_status,
-            "last_sync_at": a.last_sync_at.isoformat() if a.last_sync_at else None,
-        }
-        for a in accounts
-    ]
+    return [EmailAccountResponse.model_validate(a) for a in accounts]
 
 
-@router.get("/{account_id}")
+@router.get("/{account_id}", response_model=EmailAccountResponse)
 async def get_email_account(
     account_id: str,
-    tenant_id: Annotated[str, Depends(_tenant_id)],
-    email_account_repo: EmailAccountRepository = Depends(get_email_account_repo),
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    current_user: Annotated[object, Depends(get_current_user)],
+    email_account_repo: Annotated[
+        EmailAccountRepository, Depends(get_email_account_repo)
+    ],
 ):
-    """Get email account by id (tenant-scoped)."""
+    """Get email account by id (tenant-scoped). Requires authentication."""
+    if getattr(current_user, "tenant_id", None) != tenant_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
     account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
     if not account:
         raise HTTPException(status_code=404, detail="Email account not found")
-    return {
-        "id": account.id,
-        "tenant_id": account.tenant_id,
-        "subject_id": account.subject_id,
-        "provider_type": account.provider_type,
-        "email_address": account.email_address,
-        "is_active": account.is_active,
-        "sync_status": account.sync_status,
-        "last_sync_at": (
-            account.last_sync_at.isoformat() if account.last_sync_at else None
-        ),
-        "oauth_status": getattr(account, "oauth_status", None),
-    }
+    return EmailAccountResponse.model_validate(account)

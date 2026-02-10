@@ -5,9 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.enums import TenantStatus
+from app.domain.exceptions import TenantAlreadyExistsError
 from app.infrastructure.cache.cache_protocol import CacheProtocol
 from app.infrastructure.cache.keys import tenant_code_key, tenant_key
 from app.infrastructure.persistence.models.tenant import Tenant
@@ -60,9 +62,15 @@ class TenantRepository(AuditableRepository[Tenant]):
         return tenant
 
     async def create_tenant(self, code: str, name: str, status: str) -> Tenant:
-        """Create tenant from code/name/status; return created entity."""
+        """Create tenant from code/name/status; return created entity.
+
+        Raises TenantAlreadyExistsError on unique constraint violation (e.g. duplicate code).
+        """
         tenant = Tenant(code=code, name=name, status=status)
-        return await self.create(tenant)
+        try:
+            return await self.create(tenant)
+        except IntegrityError:
+            raise TenantAlreadyExistsError(code)
 
     async def get_by_code(self, code: str) -> Tenant | None:
         """Get tenant by unique code, from cache if available."""

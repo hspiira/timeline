@@ -4,7 +4,6 @@ import logging
 
 from fastapi import FastAPI
 from opentelemetry import trace
-from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
@@ -84,11 +83,13 @@ class TelemetryConfig:
                 )
                 logger.info("Using OTLP span exporter: %s", otlp_endpoint)
             elif exporter_type == "jaeger" and jaeger_endpoint:
-                exporter = JaegerExporter(
-                    agent_host_name=jaeger_endpoint,
-                    agent_port=6831,
+                # Jaeger accepts OTLP on port 4317 (gRPC); use OTLP instead of deprecated Jaeger exporter
+                endpoint = f"{jaeger_endpoint}:4317"
+                exporter = OTLPSpanExporter(
+                    endpoint=endpoint,
+                    insecure=True,
                 )
-                logger.info("Using Jaeger span exporter: %s:6831", jaeger_endpoint)
+                logger.info("Using OTLP span exporter for Jaeger: %s", endpoint)
             elif exporter_type == "none":
                 logger.info("Telemetry enabled but no exporter configured")
                 trace.set_tracer_provider(self.tracer_provider)

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import Depends, Request
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,7 +35,23 @@ from app.infrastructure.persistence.repositories import (
     UserRepository,
     WorkflowRepository,
 )
-from app.infrastructure.services import TenantInitializationService, WorkflowEngine
+from app.infrastructure.services import (
+    PermissionResolver,
+    TenantInitializationService,
+    WorkflowEngine,
+)
+
+
+def get_tenant_id(request: Request) -> str:
+    """Resolve tenant ID from configured header; raise 400 if missing."""
+    name = get_settings().tenant_header_name
+    value = request.headers.get(name)
+    if not value:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required header: {name}",
+        )
+    return value
 
 
 async def get_event_service(
@@ -44,17 +60,16 @@ async def get_event_service(
     """Build EventService with hash chaining, schema validation, and workflow engine."""
     event_repo = EventRepository(db)
     hash_service = HashService()
-    subject_repo = SubjectRepository(db)
-    schema_repo = EventSchemaRepository(db)
+    subject_repo = SubjectRepository(db, audit_service=None)
+    schema_repo = EventSchemaRepository(db, cache_service=None, audit_service=None)
     event_service = EventService(
         event_repo=event_repo,
         hash_service=hash_service,
         subject_repo=subject_repo,
         schema_repo=schema_repo,
-        workflow_engine=None,
+        workflow_engine_provider=lambda: workflow_engine,
     )
     workflow_engine = WorkflowEngine(db, event_service)
-    event_service.workflow_engine = workflow_engine
     return event_service
 
 
@@ -95,8 +110,6 @@ async def get_authorization_service(
     Cache is set in app lifespan (app.state.cache) when Redis is enabled;
     otherwise cache is None and permission checks hit the DB only.
     """
-    from app.infrastructure.services import PermissionResolver
-
     settings = get_settings()
     permission_resolver = PermissionResolver(db)
     cache = getattr(request.app.state, "cache", None)
@@ -241,8 +254,6 @@ async def get_current_user(
     current_user: Annotated[object | None, Depends(get_current_user_optional)],
 ):
     """Return current user from JWT; raise 401 if missing or invalid."""
-    from fastapi import HTTPException
-
     if current_user is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return current_user

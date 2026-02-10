@@ -2,36 +2,29 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.v1.dependencies import (
     get_event_schema_repo,
     get_event_schema_repo_for_write,
+    get_tenant_id,
 )
-from app.core.config import get_settings
 from app.infrastructure.persistence.repositories.event_schema_repo import (
     EventSchemaRepository,
 )
-from app.schemas.event_schema import EventSchemaCreateRequest, EventSchemaResponse
+from app.schemas.event_schema import (
+    EventSchemaCreateRequest,
+    EventSchemaListItem,
+    EventSchemaResponse,
+)
 
 router = APIRouter()
-
-
-def _tenant_id(x_tenant_id: str | None = Header(None)) -> str:
-    """Resolve tenant ID from header; raise 400 if missing."""
-    name = get_settings().tenant_header_name
-    if not x_tenant_id:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Missing required header: {name}",
-        )
-    return x_tenant_id
 
 
 @router.post("", response_model=EventSchemaResponse, status_code=201)
 async def create_event_schema(
     body: EventSchemaCreateRequest,
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     schema_repo: EventSchemaRepository = Depends(get_event_schema_repo_for_write),
 ):
     """Create a new event schema version (tenant-scoped)."""
@@ -53,7 +46,7 @@ async def create_event_schema(
             created_by=schema.created_by,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/{schema_id}", response_model=EventSchemaResponse)
@@ -76,9 +69,9 @@ async def get_event_schema(
     )
 
 
-@router.get("")
+@router.get("", response_model=list[EventSchemaListItem])
 async def list_event_schemas(
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     event_type: str,
     schema_repo: EventSchemaRepository = Depends(get_event_schema_repo),
 ):
@@ -88,13 +81,13 @@ async def list_event_schemas(
         event_type=event_type,
     )
     return [
-        {
-            "id": s.id,
-            "tenant_id": s.tenant_id,
-            "event_type": s.event_type,
-            "version": s.version,
-            "is_active": s.is_active,
-            "created_by": s.created_by,
-        }
+        EventSchemaListItem(
+            id=s.id,
+            tenant_id=s.tenant_id,
+            event_type=s.event_type,
+            version=s.version,
+            is_active=s.is_active,
+            created_by=s.created_by,
+        )
         for s in schemas
     ]

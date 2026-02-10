@@ -5,28 +5,21 @@ Uses only injected get_permission_repo; no manual repo construction.
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.v1.dependencies import get_permission_repo
-from app.core.config import get_settings
+from app.api.v1.dependencies import get_current_user, get_permission_repo, get_tenant_id
 from app.infrastructure.persistence.repositories.permission_repo import (
     PermissionRepository,
 )
+from app.schemas.permission import PermissionResponse
 
 router = APIRouter()
 
 
-def _tenant_id(x_tenant_id: str | None = Header(None)) -> str:
-    """Resolve tenant ID from header; raise 400 if missing."""
-    name = get_settings().tenant_header_name
-    if not x_tenant_id:
-        raise HTTPException(status_code=400, detail=f"Missing required header: {name}")
-    return x_tenant_id
-
-
-@router.get("")
+@router.get("", response_model=list[PermissionResponse])
 async def list_permissions(
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    current_user: Annotated[object, Depends(get_current_user)],
     skip: int = 0,
     limit: int = 200,
     permission_repo: PermissionRepository = Depends(get_permission_repo),
@@ -37,14 +30,4 @@ async def list_permissions(
         skip=skip,
         limit=limit,
     )
-    return [
-        {
-            "id": p.id,
-            "tenant_id": p.tenant_id,
-            "code": p.code,
-            "resource": p.resource,
-            "action": p.action,
-            "description": p.description,
-        }
-        for p in perms
-    ]
+    return [PermissionResponse.model_validate(p) for p in perms]

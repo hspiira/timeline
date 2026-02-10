@@ -2,6 +2,29 @@
 
 Multi-tenant event sourcing API with FastAPI.
 
+## Install
+
+Base install (API, auth, DB, cache, Firestore, observability):
+
+```bash
+uv sync
+```
+
+Optional extras (install when you use these features):
+
+| Extra | Use when |
+|-------|----------|
+| `email` | Gmail/Outlook/IMAP integration (`aioimaplib`, `google-api-python-client`, `msal`) |
+| `storage` | Local/S3 file storage (`aiofiles`, `boto3`) |
+| `dev` | Tests, lint, type-checking |
+
+Examples:
+
+```bash
+uv sync --extra email --extra storage   # Email + storage
+uv sync --all-extras                   # Everything including dev
+```
+
 ## Required environment variables
 
 Copy `.env.example` to `.env` and set:
@@ -82,6 +105,7 @@ This deploys a preview and will fail at build time if the bundle is too large or
 
 ## Development
 
+- **Guidelines for contributors and agents:** [docs/AGENT_GUIDELINES.md](docs/AGENT_GUIDELINES.md)
 - **Run:** `uv run uvicorn app.main:app --reload`
 - **Tests:** `uv run pytest tests/ -v` (requires `uv sync --all-extras` or `--extra dev` for pytest, httpx, pytest-asyncio)
 - **Scripts:** `uv run python -m scripts.create_test_user <tenant_code> <username> [password]`, `scripts.seed_rbac <tenant_id_or_code>`, `scripts.reset_password <user_id> <new_password>`. Scripts require Postgres (`DATABASE_BACKEND=postgres`).

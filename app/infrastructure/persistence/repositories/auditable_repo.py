@@ -10,6 +10,8 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, TypeVar
 
+from sqlalchemy.orm import object_session
+
 from app.infrastructure.persistence.database import Base
 from app.infrastructure.persistence.repositories.base import BaseRepository
 from app.shared.context import get_current_actor_id, get_current_actor_type
@@ -127,6 +129,14 @@ class AuditableRepository(BaseRepository[ModelType]):
     async def _on_before_delete(self, obj: ModelType) -> None:
         await super()._on_before_delete(obj)
         await self._emit_audit_event(AuditAction.DELETED, obj)
+
+    async def update_without_audit(self, obj: ModelType) -> ModelType:
+        """Persist update without emitting UPDATED audit (e.g. before emit_custom_audit)."""
+        if object_session(obj) is None:
+            obj = await self.db.merge(obj)
+        await self.db.flush()
+        await self.db.refresh(obj)
+        return obj
 
     async def emit_custom_audit(
         self,

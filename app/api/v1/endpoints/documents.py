@@ -1,31 +1,20 @@
 """Document API: thin routes delegating to DocumentService."""
 
+from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
-from app.api.v1.dependencies import get_document_service
+from app.api.v1.dependencies import get_document_service, get_tenant_id
 from app.application.use_cases.documents import DocumentService
-from app.core.config import get_settings
 from app.domain.exceptions import ResourceNotFoundException
 
 router = APIRouter()
 
 
-def _tenant_id(x_tenant_id: str | None = Header(None)) -> str:
-    """Resolve tenant ID from header; raise 400 if missing."""
-    name = get_settings().tenant_header_name
-    if not x_tenant_id:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Missing required header: {name}",
-        )
-    return x_tenant_id
-
-
 @router.post("", status_code=201)
 async def upload_document(
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_id: str = Form(...),
     document_type: str = Form(...),
     file: UploadFile = File(...),
@@ -51,16 +40,16 @@ async def upload_document(
             created_by=created_by,
             parent_document_id=parent_document_id,
         )
-        return {"id": getattr(created, "id", created), "filename": file.filename}
+        return {"id": created.id, "filename": file.filename}
     except ResourceNotFoundException as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("")
 async def list_documents(
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_id: str,
     doc_svc: DocumentService = Depends(get_document_service),
 ):
@@ -72,13 +61,11 @@ async def list_documents(
 @router.get("/{document_id}/download-url")
 async def get_document_download_url(
     document_id: str,
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     expires_in_hours: int = 1,
     doc_svc: DocumentService = Depends(get_document_service),
 ):
     """Get temporary download URL for document (tenant-scoped). Defined before /{document_id} for route precedence."""
-    from datetime import timedelta
-
     try:
         url = await doc_svc.get_download_url(
             tenant_id=tenant_id,
@@ -86,14 +73,14 @@ async def get_document_download_url(
             expiration=timedelta(hours=expires_in_hours),
         )
         return {"url": url, "expires_in_hours": expires_in_hours}
-    except ResourceNotFoundException:
-        raise HTTPException(status_code=404, detail="Document not found")
+    except ResourceNotFoundException as e:
+        raise HTTPException(status_code=404, detail="Document not found") from e
 
 
 @router.get("/{document_id}")
 async def get_document(
     document_id: str,
-    tenant_id: Annotated[str, Depends(_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     doc_svc: DocumentService = Depends(get_document_service),
 ):
     """Get document metadata by id (tenant-scoped)."""
@@ -103,5 +90,5 @@ async def get_document(
             document_id=document_id,
         )
         return meta
-    except ResourceNotFoundException:
-        raise HTTPException(status_code=404, detail="Document not found")
+    except ResourceNotFoundException as e:
+        raise HTTPException(status_code=404, detail="Document not found") from e

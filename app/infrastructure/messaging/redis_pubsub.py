@@ -10,13 +10,13 @@ import json
 import logging
 from collections.abc import AsyncIterator
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
 import redis.asyncio as redis
 
 from app.core.config import get_settings
+from app.shared.utils.datetime import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -59,19 +59,21 @@ class SyncProgressEvent:
         return cls(**data)
 
 
-class SyncProgressPublisher:
-    """Publishes sync progress events to Redis per-tenant channel."""
+class _RedisPubSubBase:
+    """Shared Redis connection and channel logic for sync progress pub/sub."""
 
     CHANNEL_PREFIX = "sync_progress"
 
     def __init__(self, redis_client: redis.Redis | None = None) -> None:
-        """Initialize publisher. Pass redis_client for DI/testing."""
+        """Initialize. Pass redis_client for DI/testing."""
         self.redis = redis_client
         self.settings = get_settings()
-        self._connected = False
+        self._connected = redis_client is not None
 
     async def connect(self) -> None:
         """Establish Redis connection. Call on app startup."""
+        if self._connected:
+            return
         if self.redis is None:
             try:
                 self.redis = redis.Redis(
@@ -84,7 +86,7 @@ class SyncProgressPublisher:
                 )
                 await self.redis.ping()
                 self._connected = True
-                logger.info("Redis pub/sub publisher connected")
+                logger.info("Redis pub/sub connected")
             except (redis.ConnectionError, redis.TimeoutError) as e:
                 logger.warning("Redis pub/sub connection failed: %s", e)
                 self._connected = False
@@ -95,7 +97,7 @@ class SyncProgressPublisher:
         if self.redis:
             await self.redis.close()
             self._connected = False
-            logger.info("Redis pub/sub publisher disconnected")
+            logger.info("Redis pub/sub disconnected")
 
     def is_available(self) -> bool:
         """Return True if Redis is connected."""
@@ -104,6 +106,10 @@ class SyncProgressPublisher:
     def _get_channel(self, tenant_id: str) -> str:
         """Channel name for tenant."""
         return f"{self.CHANNEL_PREFIX}:{tenant_id}"
+
+
+class SyncProgressPublisher(_RedisPubSubBase):
+    """Publishes sync progress events to Redis per-tenant channel."""
 
     async def publish(self, tenant_id: str, event: SyncProgressEvent) -> bool:
         """Publish sync progress event to tenant channel.
@@ -125,10 +131,11 @@ class SyncProgressPublisher:
             logger.debug(
                 "Published sync progress to %s: %s", channel, event.stage.value
             )
-            return True
-        except Exception as e:
-            logger.error("Failed to publish sync progress: %s", e)
+        except Exception:
+            logger.exception("Failed to publish sync progress")
             return False
+        else:
+            return True
 
     async def publish_started(
         self,
@@ -142,7 +149,7 @@ class SyncProgressPublisher:
             email_address=email_address,
             stage=SyncStage.STARTED,
             message="Sync started",
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=utc_now().isoformat(),
         )
         return await self.publish(tenant_id, event)
 
@@ -158,7 +165,7 @@ class SyncProgressPublisher:
             email_address=email_address,
             stage=SyncStage.FETCHING,
             message="Fetching messages from provider",
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=utc_now().isoformat(),
         )
         return await self.publish(tenant_id, event)
 
@@ -175,7 +182,7 @@ class SyncProgressPublisher:
             email_address=email_address,
             stage=SyncStage.PROCESSING,
             message=f"Processing {messages_fetched} messages",
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=utc_now().isoformat(),
             messages_fetched=messages_fetched,
         )
         return await self.publish(tenant_id, event)
@@ -194,7 +201,7 @@ class SyncProgressPublisher:
             email_address=email_address,
             stage=SyncStage.SAVING,
             message=f"Saving {events_created} new events",
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=utc_now().isoformat(),
             messages_fetched=messages_fetched,
             events_created=events_created,
         )
@@ -214,7 +221,7 @@ class SyncProgressPublisher:
             email_address=email_address,
             stage=SyncStage.COMPLETED,
             message="Sync completed successfully",
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=utc_now().isoformat(),
             messages_fetched=messages_fetched,
             events_created=events_created,
         )
@@ -233,61 +240,18 @@ class SyncProgressPublisher:
             email_address=email_address,
             stage=SyncStage.FAILED,
             message="Sync failed",
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=utc_now().isoformat(),
             error=error,
         )
         return await self.publish(tenant_id, event)
 
 
-class SyncProgressSubscriber:
-    """Subscribes to sync progress events from Redis."""
+class SyncProgressSubscriber(_RedisPubSubBase):
+    """Subscribes to sync progress events from Redis.
 
-    CHANNEL_PREFIX = "sync_progress"
-
-    def __init__(self, redis_client: redis.Redis | None = None) -> None:
-        """Initialize subscriber. Pass redis_client for DI/testing."""
-        self.redis = redis_client
-        self.settings = get_settings()
-        self._connected = False
-        self._pubsub: redis.client.PubSub | None = None
-
-    async def connect(self) -> None:
-        """Establish Redis connection."""
-        if self.redis is None:
-            try:
-                self.redis = redis.Redis(
-                    host=self.settings.redis_host,
-                    port=self.settings.redis_port,
-                    db=self.settings.redis_db,
-                    password=self.settings.redis_password or None,
-                    decode_responses=True,
-                    socket_connect_timeout=5,
-                )
-                await self.redis.ping()
-                self._connected = True
-                logger.info("Redis pub/sub subscriber connected")
-            except (redis.ConnectionError, redis.TimeoutError) as e:
-                logger.warning("Redis pub/sub connection failed: %s", e)
-                self._connected = False
-                self.redis = None
-
-    async def disconnect(self) -> None:
-        """Close Redis and pubsub. Call on shutdown."""
-        if self._pubsub:
-            await self._pubsub.close()
-            self._pubsub = None
-        if self.redis:
-            await self.redis.close()
-            self._connected = False
-            logger.info("Redis pub/sub subscriber disconnected")
-
-    def is_available(self) -> bool:
-        """Return True if Redis is connected."""
-        return self._connected and self.redis is not None
-
-    def _get_channel(self, tenant_id: str) -> str:
-        """Channel name for tenant."""
-        return f"{self.CHANNEL_PREFIX}:{tenant_id}"
+    subscribe() is reentrant: each call uses a locally-scoped PubSub that is
+    closed in finally, so multiple tenants or concurrent subscriptions are safe.
+    """
 
     async def subscribe(self, tenant_id: str) -> AsyncIterator[SyncProgressEvent]:
         """Subscribe to sync progress for a tenant. Yields events as they arrive."""
@@ -295,23 +259,23 @@ class SyncProgressSubscriber:
             logger.warning("Redis not available for subscription")
             return
         channel = self._get_channel(tenant_id)
-        self._pubsub = self.redis.pubsub()
+        pubsub = self.redis.pubsub()
         try:
-            await self._pubsub.subscribe(channel)
+            await pubsub.subscribe(channel)
             logger.info("Subscribed to %s", channel)
-            async for message in self._pubsub.listen():
+            async for message in pubsub.listen():
                 if message["type"] == "message":
                     try:
                         data = json.loads(message["data"])
                         yield SyncProgressEvent.from_dict(data)
-                    except (json.JSONDecodeError, KeyError, TypeError) as e:
-                        logger.error("Failed to parse sync progress message: %s", e)
-        except Exception as e:
-            logger.error("Subscription error: %s", e)
+                    except (json.JSONDecodeError, KeyError, TypeError):
+                        logger.exception("Failed to parse sync progress message")
+        except Exception:
+            logger.exception("Subscription error")
         finally:
-            if self._pubsub:
-                await self._pubsub.unsubscribe(channel)
-                logger.info("Unsubscribed from %s", channel)
+            await pubsub.unsubscribe(channel)
+            await pubsub.close()
+            logger.info("Unsubscribed from %s", channel)
 
 
 _publisher: SyncProgressPublisher | None = None

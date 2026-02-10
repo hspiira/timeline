@@ -6,7 +6,7 @@ repo construction. JWT created via infrastructure security.
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import (
     get_current_user,
@@ -16,6 +16,7 @@ from app.api.v1.dependencies import (
 from app.infrastructure.persistence.repositories.tenant_repo import TenantRepository
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
 from app.infrastructure.security.jwt import create_access_token
+from app.core.limiter import limiter
 from app.schemas.auth import LoginRequest, TokenResponse
 from app.schemas.user import UserResponse
 
@@ -23,7 +24,9 @@ router = APIRouter()
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("10/minute")
 async def login(
+    request: Request,
     body: LoginRequest,
     user_repo: UserRepository = Depends(get_user_repo),
     tenant_repo: TenantRepository = Depends(get_tenant_repo),

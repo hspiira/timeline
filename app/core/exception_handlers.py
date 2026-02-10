@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 _ERROR_CODE_STATUS: dict[str, int] = {
     "RESOURCE_NOT_FOUND": 404,
     "TENANT_NOT_FOUND": 404,
+    "TENANT_ALREADY_EXISTS": 409,
     "AUTHENTICATION_ERROR": 401,
     "AUTHORIZATION_ERROR": 403,
     "VALIDATION_ERROR": 400,

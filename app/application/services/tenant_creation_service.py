@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from app.application.interfaces.repositories import ITenantRepository, IUserRepository
 from app.application.interfaces.services import ITenantInitializationService
 from app.domain.enums import TenantStatus
+from app.domain.exceptions import TenantAlreadyExistsError
 
 
 @dataclass
@@ -41,7 +42,16 @@ class TenantCreationService:
         name: str,
         admin_password: str | None = None,
     ) -> TenantCreationResult:
-        """Create tenant, init RBAC, create admin user, assign admin role."""
+        """Create tenant, init RBAC, create admin user, assign admin role.
+
+        Caller must run this within a single DB transaction (e.g. use a
+        transactional session dependency) so that tenant creation, RBAC init,
+        user creation and role assignment are atomic.
+        """
+        existing = await self.tenant_repo.get_by_code(code)
+        if existing:
+            raise TenantAlreadyExistsError(code)
+
         created_tenant = await self.tenant_repo.create_tenant(
             code=code,
             name=name,
@@ -78,6 +88,24 @@ class TenantCreationService:
 
     @staticmethod
     def _generate_secure_password(length: int = 16) -> str:
-        """Generate cryptographically secure password."""
-        alphabet = string.ascii_letters + string.digits + "!@#$%^&*-_=+"
-        return "".join(secrets.choice(alphabet) for _ in range(length))
+        """Generate cryptographically secure password with guaranteed complexity.
+
+        Ensures at least one lowercase, one uppercase, one digit, and one
+        special character; remaining positions filled from full alphabet,
+        then shuffled.
+        """
+        special = "!@#$%^&*-_=+"
+        alphabet = string.ascii_letters + string.digits + special
+        rng = secrets.SystemRandom()
+        # Guarantee one of each required class
+        chars = [
+            rng.choice(string.ascii_lowercase),
+            rng.choice(string.ascii_uppercase),
+            rng.choice(string.digits),
+            rng.choice(special),
+        ]
+        # Fill the rest from full alphabet
+        remaining = max(0, length - 4)
+        chars.extend(rng.choice(alphabet) for _ in range(remaining))
+        rng.shuffle(chars)
+        return "".join(chars)

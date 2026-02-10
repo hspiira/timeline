@@ -7,12 +7,12 @@ No business logic here (SRP). See app.core.lifespan and app.core.exception_handl
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
 from app.api.v1 import api_router
 from app.core.config import settings
+from app.core.limiter import limiter
 from app.core.exception_handlers import register_exception_handlers
 from app.core.lifespan import create_lifespan
 from app.middleware import (
@@ -23,8 +23,6 @@ from app.middleware import (
     TimeoutMiddleware,
 )
 from app.pages import render_root_page
-
-limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
     title=settings.app_name,

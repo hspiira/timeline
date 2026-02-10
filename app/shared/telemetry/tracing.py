@@ -3,9 +3,50 @@
 import asyncio
 from collections.abc import Callable
 from functools import wraps
+from typing import Any, TypeVar
 
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
+
+T = TypeVar("T")
+
+
+def _setup_span(
+    span: trace.Span,
+    attributes: dict[str, str | int | float | bool] | None,
+    kwargs: dict[str, Any],
+) -> None:
+    """Set optional attributes and safe kwargs on the current span."""
+    if attributes:
+        for key, value in attributes.items():
+            span.set_attribute(key, value)
+    _set_safe_span_attrs(span, kwargs)
+
+
+def _run_in_span_sync(span: trace.Span, run: Callable[[], T]) -> T:
+    """Run a sync callable, set span status, and record exceptions. Centralized for sync_wrapper."""
+    try:
+        result = run()
+    except Exception as e:
+        span.set_status(Status(StatusCode.ERROR, str(e)))
+        span.record_exception(e)
+        raise
+    else:
+        span.set_status(Status(StatusCode.OK))
+        return result
+
+
+async def _run_in_span_async(span: trace.Span, run: Callable[[], Any]) -> Any:
+    """Run an async callable, set span status, and record exceptions. Centralized for async_wrapper."""
+    try:
+        result = await run()
+    except Exception as e:
+        span.set_status(Status(StatusCode.ERROR, str(e)))
+        span.record_exception(e)
+        raise
+    else:
+        span.set_status(Status(StatusCode.OK))
+        return result
 
 
 def traced(
@@ -23,41 +64,24 @@ def traced(
     """
 
     def decorator(func: Callable) -> Callable:
-        @wraps(func)
-        async def async_wrapper(*args, **kwargs):
-            tracer = trace.get_tracer(__name__)
-            span_name = operation_name or f"{func.__module__}.{func.__name__}"
-            with tracer.start_as_current_span(span_name) as span:
-                if attributes:
-                    for key, value in attributes.items():
-                        span.set_attribute(key, value)
-                _set_safe_span_attrs(span, kwargs)
-                try:
-                    result = await func(*args, **kwargs)
-                    span.set_status(Status(StatusCode.OK))
-                    return result
-                except Exception as e:
-                    span.set_status(Status(StatusCode.ERROR, str(e)))
-                    span.record_exception(e)
-                    raise
+        tracer = trace.get_tracer(__name__)
+        span_name = operation_name or f"{func.__module__}.{func.__name__}"
 
         @wraps(func)
-        def sync_wrapper(*args, **kwargs):
-            tracer = trace.get_tracer(__name__)
-            span_name = operation_name or f"{func.__module__}.{func.__name__}"
+        async def async_wrapper(
+            *args: Any, **kwargs: Any
+        ) -> Any:
             with tracer.start_as_current_span(span_name) as span:
-                if attributes:
-                    for key, value in attributes.items():
-                        span.set_attribute(key, value)
-                _set_safe_span_attrs(span, kwargs)
-                try:
-                    result = func(*args, **kwargs)
-                    span.set_status(Status(StatusCode.OK))
-                    return result
-                except Exception as e:
-                    span.set_status(Status(StatusCode.ERROR, str(e)))
-                    span.record_exception(e)
-                    raise
+                _setup_span(span, attributes, kwargs)
+                return await _run_in_span_async(
+                    span, lambda: func(*args, **kwargs)
+                )
+
+        @wraps(func)
+        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
+            with tracer.start_as_current_span(span_name) as span:
+                _setup_span(span, attributes, kwargs)
+                return _run_in_span_sync(span, lambda: func(*args, **kwargs))
 
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
@@ -66,11 +90,19 @@ def traced(
     return decorator
 
 
+# Allowlist of known-safe kwarg names for span attributes (case-insensitive).
+# Only these are recorded; any other key is skipped to avoid leaking secrets.
+_SAFE_SPAN_ATTR_KEYS = frozenset({
+    "id", "ids", "name", "names", "count", "limit", "offset", "page", "page_size",
+    "status", "type", "types", "kind", "code", "slug", "tenant_id", "user_id",
+    "entity_type", "entity_id", "action", "dry_run", "skip", "include",
+})
+
+
 def _set_safe_span_attrs(span: trace.Span, kwargs: dict) -> None:
-    """Set span attributes from kwargs, excluding sensitive keys."""
-    sensitive = {"password", "token", "secret"}
+    """Set span attributes from kwargs; only allowlisted keys are recorded."""
     for key, value in kwargs.items():
-        if not key.startswith("_") and key not in sensitive:
+        if not key.startswith("_") and key.lower() in _SAFE_SPAN_ATTR_KEYS:
             span.set_attribute(f"arg.{key}", str(value))
 
 

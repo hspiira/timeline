@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 480  # 8 hours
     encryption_salt: str = ""
+    # Optional KDF salt for envelope encryption: set ENCRYPTION_KDF_SALT (base64) or
+    # ENCRYPTION_KDF_SALT_PATH (file path); if unset, a default path under storage_root is used.
+    encryption_kdf_salt: str = ""
+    encryption_kdf_salt_path: str = ""
 
     # CORS
     allowed_origins: str = "http://localhost:3000,http://localhost:8080"

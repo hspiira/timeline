@@ -6,10 +6,13 @@ import base64
 import hashlib
 import hmac
 import json
+import os
 import secrets
 from typing import Any, cast
 
 from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 from app.core.config import get_settings
 from app.shared.telemetry.logging import get_logger
@@ -28,13 +31,42 @@ class EnvelopeEncryptor:
         self.settings = get_settings()
         self._master_key = self._derive_master_key()
 
+    def _get_or_create_kdf_salt(self) -> bytes:
+        """Return persisted KDF salt; if missing, generate and persist.
+
+        Prefer ENCRYPTION_KDF_SALT (base64) from settings. Else read from
+        ENCRYPTION_KDF_SALT_PATH or default path under storage_root; create
+        file with a new random salt if missing.
+        """
+        if self.settings.encryption_kdf_salt:
+            return base64.urlsafe_b64decode(self.settings.encryption_kdf_salt)
+        path = self.settings.encryption_kdf_salt_path or os.path.join(
+            self.settings.storage_root, ".encryption_kdf_salt"
+        )
+        if os.path.isfile(path):
+            with open(path, "rb") as f:
+                raw = f.read().strip()
+            if raw:
+                return base64.urlsafe_b64decode(raw)
+        salt_bytes = secrets.token_bytes(32)
+        encoded = base64.urlsafe_b64encode(salt_bytes).decode()
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        with open(path, "w") as f:
+            f.write(encoded)
+        logger.info(
+            "Generated and persisted new KDF salt at %s (use ENCRYPTION_KDF_SALT or ENCRYPTION_KDF_SALT_PATH in production)",
+            path,
+        )
+        return salt_bytes
+
     def _derive_master_key(self) -> bytes:
-        """Derive master key from ENCRYPTION_SALT (use KMS in production)."""
-        salt_bytes = self.settings.encryption_salt.encode()
+        """Derive master key from ENCRYPTION_SALT and a persisted KDF salt (use KMS in production)."""
+        password = self.settings.encryption_salt.encode()
+        salt = self._get_or_create_kdf_salt()
         key = hashlib.pbkdf2_hmac(
             "sha256",
-            salt_bytes,
-            b"timeline_oauth_master_key",
+            password,
+            salt,
             100000,
         )
         return base64.urlsafe_b64encode(key)
@@ -73,15 +105,17 @@ class EnvelopeEncryptor:
             fernet_dek = Fernet(dek)
             encrypted_data = fernet_dek.encrypt(data_str.encode())
             encrypted_dek = self._encrypt_dek(dek)
-            enc_dek_b64 = base64.urlsafe_b64encode(encrypted_dek).decode()
-            enc_data_b64 = base64.urlsafe_b64encode(encrypted_data).decode()
-            envelope = f"{key_id}:{enc_dek_b64}:{enc_data_b64}"
+            # Fernet tokens are already url-safe base64; store as ASCII.
+            enc_dek = encrypted_dek.decode()
+            enc_data = encrypted_data.decode()
+            envelope = f"{key_id}:{enc_dek}:{enc_data}"
             signature = self._sign_payload(envelope)
             logger.debug("Encrypted data with key_id: %s", key_id)
-            return f"{envelope}:{signature}"
         except Exception as e:
-            logger.error("Encryption failed: %s", e, exc_info=True)
-            raise ValueError(f"Encryption failed: {e}") from e
+            logger.exception("Encryption failed: %s", e)
+            raise ValueError("Encryption failed") from e
+        else:
+            return f"{envelope}:{signature}"
 
     def decrypt(self, encrypted_envelope: str) -> str | dict[str, Any]:
         """Decrypt envelope; returns dict if JSON else string.
@@ -93,12 +127,12 @@ class EnvelopeEncryptor:
             parts = encrypted_envelope.split(":")
             if len(parts) != 4:
                 raise ValueError("Invalid envelope format")
-            key_id, enc_dek_b64, enc_data_b64, signature = parts
-            envelope = f"{key_id}:{enc_dek_b64}:{enc_data_b64}"
+            key_id, enc_dek, enc_data, signature = parts
+            envelope = f"{key_id}:{enc_dek}:{enc_data}"
             if not self._verify_signature(envelope, signature):
                 raise ValueError("Invalid signature - data may be tampered")
-            encrypted_dek = base64.urlsafe_b64decode(enc_dek_b64)
-            encrypted_data = base64.urlsafe_b64decode(enc_data_b64)
+            encrypted_dek = enc_dek.encode()
+            encrypted_data = enc_data.encode()
             dek = self._decrypt_dek(encrypted_dek)
             data_bytes = Fernet(dek).decrypt(encrypted_data)
             data_str = data_bytes.decode()
@@ -111,9 +145,11 @@ class EnvelopeEncryptor:
                 )
             except json.JSONDecodeError:
                 return data_str
+        except ValueError:
+            raise
         except Exception as e:
-            logger.error("Decryption failed: %s", e, exc_info=True)
-            raise ValueError(f"Decryption failed: {e}") from e
+            logger.exception("Decryption failed: %s", e)
+            raise ValueError("Decryption failed") from e
 
     def rotate_key(self, encrypted_envelope: str) -> str:
         """Re-encrypt with new DEK (does not rotate MEK)."""
@@ -128,12 +164,26 @@ class EnvelopeEncryptor:
         return parts[0]
 
 
+# Domain-separation context for OAuth state signing key derivation.
+_OAUTH_STATE_KEY_INFO = b"oauth-state-signing"
+
+
 class OAuthStateManager:
     """Signed OAuth state (state_id:signature) for CSRF protection."""
 
     def __init__(self) -> None:
         self.settings = get_settings()
-        self._signing_key = self.settings.secret_key.encode()
+        self._signing_key = self._derive_signing_key()
+
+    def _derive_signing_key(self) -> bytes:
+        """Derive a purpose-specific HMAC key from the master secret (domain separation)."""
+        hkdf = HKDF(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=None,
+            info=_OAUTH_STATE_KEY_INFO,
+        )
+        return hkdf.derive(self.settings.secret_key.encode())
 
     def create_signed_state(self, state_id: str) -> str:
         """Return state_id:signature."""
@@ -143,10 +193,12 @@ class OAuthStateManager:
     def verify_and_extract(self, signed_state: str) -> str:
         """Verify signature and return state_id.
 
+        Splits on the last colon so state_id may contain colons.
+
         Raises:
             ValueError: Invalid format or signature.
         """
-        parts = signed_state.split(":")
+        parts = signed_state.rsplit(":", 1)
         if len(parts) != 2:
             raise ValueError("Invalid state format")
         state_id, signature = parts
