@@ -1,6 +1,6 @@
 # new-timeline
 
-Multi-tenant event sourcing API with FastAPI. All code uses the `app` package; see **Migration** and **Development** below.
+Multi-tenant event sourcing API with FastAPI.
 
 ## Required environment variables
 
@@ -79,15 +79,6 @@ vercel
 ```
 
 This deploys a preview and will fail at build time if the bundle is too large or the build breaks.
-
-## Migration
-
-This project follows a phased migration plan and docstring standard:
-
-- **Phase plan:** [docs/MIGRATION_PHASE_PLAN.md](docs/MIGRATION_PHASE_PLAN.md) — domain, infrastructure, application, presentation, main app, scripts/tests/deploy.
-- **Docstrings:** [docs/DOCSTRING_STANDARD.md](docs/DOCSTRING_STANDARD.md) (or the docstring section in the phase plan) — Google-style; all public modules, classes, and functions documented.
-
-Imports use the `app` package only (no `src.*`).
 
 ## Development
 
