@@ -7,10 +7,12 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.persistence.models.workflow import Workflow
+from app.infrastructure.persistence.models.workflow import Workflow, WorkflowExecution
 from app.infrastructure.persistence.repositories.auditable_repo import (
     AuditableRepository,
 )
+from app.shared.enums import AuditAction
+from app.shared.utils.datetime import utc_now
 
 if TYPE_CHECKING:
     from app.infrastructure.services.system_audit_service import SystemAuditService
@@ -113,3 +115,50 @@ class WorkflowRepository(AuditableRepository[Workflow]):
             execution_order=execution_order,
         )
         return await self.create(workflow)
+
+    async def soft_delete(self, workflow_id: str, tenant_id: str) -> Workflow | None:
+        """Soft-delete workflow (set deleted_at). Returns updated workflow or None."""
+        workflow = await self.get_by_id_and_tenant(workflow_id, tenant_id)
+        if not workflow:
+            return None
+        workflow.deleted_at = utc_now()
+        updated = await self.update_without_audit(workflow)
+        await self.emit_custom_audit(updated, AuditAction.DELETED)
+        return updated
+
+
+class WorkflowExecutionRepository:
+    """Repository for WorkflowExecution (read-only for API)."""
+
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    async def get_by_id(
+        self, execution_id: str, tenant_id: str
+    ) -> WorkflowExecution | None:
+        result = await self.db.execute(
+            select(WorkflowExecution).where(
+                WorkflowExecution.id == execution_id,
+                WorkflowExecution.tenant_id == tenant_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def get_by_workflow(
+        self,
+        workflow_id: str,
+        tenant_id: str,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[WorkflowExecution]:
+        result = await self.db.execute(
+            select(WorkflowExecution)
+            .where(
+                WorkflowExecution.workflow_id == workflow_id,
+                WorkflowExecution.tenant_id == tenant_id,
+            )
+            .order_by(WorkflowExecution.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        return list(result.scalars().all())

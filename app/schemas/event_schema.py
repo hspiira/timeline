@@ -27,6 +27,13 @@ class EventSchemaListItem(BaseModel):
     created_by: str | None
 
 
+class EventSchemaUpdate(BaseModel):
+    """Request body for PATCH (partial update)."""
+
+    schema_definition: dict[str, Any] | None = None
+    is_active: bool | None = None
+
+
 class EventSchemaResponse(BaseModel):
     """Event schema response."""
 

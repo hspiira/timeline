@@ -132,12 +132,13 @@ class DocumentRepository(AuditableRepository[Document]):
         return result.rowcount == 1
 
     async def update(self, document: DocumentResult) -> DocumentResult:
-        """Update document from DTO (e.g. is_latest_version); return updated DTO."""
+        """Update document from DTO (e.g. is_latest_version, document_type); return updated DTO."""
         orm = await self._get_orm_by_id(document.id)
         if not orm:
             raise ValueError(f"Document {document.id} not found")
         orm.is_latest_version = document.is_latest_version
         orm.deleted_at = document.deleted_at
+        orm.document_type = document.document_type
         updated = await super().update(orm)
         return _document_to_result(updated)
 
@@ -157,7 +158,10 @@ class DocumentRepository(AuditableRepository[Document]):
         result = await self.db.execute(q)
         return [_document_to_result(d) for d in result.scalars().all()]
 
-    async def get_by_event(self, event_id: str, tenant_id: str) -> list[Document]:
+    async def get_by_event(
+        self, event_id: str, tenant_id: str
+    ) -> list[DocumentResult]:
+        """Return documents linked to an event (tenant-scoped, exclude deleted)."""
         result = await self.db.execute(
             select(Document)
             .where(
@@ -169,7 +173,27 @@ class DocumentRepository(AuditableRepository[Document]):
             )
             .order_by(Document.created_at.desc())
         )
-        return list(result.scalars().all())
+        return [_document_to_result(d) for d in result.scalars().all()]
+
+    async def get_versions(
+        self, document_id: str, tenant_id: str
+    ) -> list[DocumentResult]:
+        """Return this document plus all documents with parent_document_id = document_id (version chain)."""
+        doc = await self.get_by_id(document_id)
+        if not doc or doc.tenant_id != tenant_id:
+            return []
+        result = await self.db.execute(
+            select(Document)
+            .where(
+                and_(
+                    Document.parent_document_id == document_id,
+                    Document.tenant_id == tenant_id,
+                )
+            )
+            .order_by(Document.version.asc())
+        )
+        children = [_document_to_result(d) for d in result.scalars().all()]
+        return [doc] + children
 
     async def get_by_checksum(
         self, tenant_id: str, checksum: str

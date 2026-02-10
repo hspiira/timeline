@@ -1,13 +1,22 @@
-"""Document API: thin routes delegating to DocumentService."""
+"""Document API: thin routes delegating to DocumentService and DocumentRepository."""
 
 from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
-from app.api.v1.dependencies import get_document_service, get_tenant_id
+from app.api.v1.dependencies import (
+    get_document_repo,
+    get_document_repo_for_write,
+    get_document_service,
+    get_tenant_id,
+)
 from app.application.use_cases.documents import DocumentService
 from app.domain.exceptions import ResourceNotFoundException
+from app.infrastructure.persistence.repositories.document_repo import (
+    DocumentRepository,
+)
+from app.schemas.document import DocumentUpdate
 
 router = APIRouter()
 
@@ -58,6 +67,51 @@ async def list_documents(
     return items
 
 
+@router.get("/event/{event_id}")
+async def list_documents_by_event(
+    event_id: str,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    document_repo: DocumentRepository = Depends(get_document_repo),
+):
+    """List documents linked to an event (tenant-scoped)."""
+    docs = await document_repo.get_by_event(event_id=event_id, tenant_id=tenant_id)
+    return [
+        {
+            "id": d.id,
+            "filename": d.filename,
+            "mime_type": d.mime_type,
+            "file_size": d.file_size,
+            "version": d.version,
+        }
+        for d in docs
+    ]
+
+
+@router.get("/{document_id}/versions")
+async def get_document_versions(
+    document_id: str,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    document_repo: DocumentRepository = Depends(get_document_repo),
+):
+    """Get this document and its version chain (tenant-scoped)."""
+    doc = await document_repo.get_by_id(document_id)
+    if not doc or doc.tenant_id != tenant_id:
+        raise HTTPException(status_code=404, detail="Document not found")
+    versions = await document_repo.get_versions(document_id, tenant_id)
+    return [
+        {
+            "id": d.id,
+            "tenant_id": d.tenant_id,
+            "subject_id": d.subject_id,
+            "filename": d.filename,
+            "mime_type": d.mime_type,
+            "file_size": d.file_size,
+            "version": d.version,
+        }
+        for d in versions
+    ]
+
+
 @router.get("/{document_id}/download-url")
 async def get_document_download_url(
     document_id: str,
@@ -92,3 +146,45 @@ async def get_document(
         return meta
     except ResourceNotFoundException as e:
         raise HTTPException(status_code=404, detail="Document not found") from e
+
+
+@router.put("/{document_id}")
+async def update_document(
+    document_id: str,
+    body: DocumentUpdate,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    document_repo: DocumentRepository = Depends(get_document_repo_for_write),
+):
+    """Update document metadata (e.g. document_type). Tenant-scoped."""
+    doc = await document_repo.get_by_id(document_id)
+    if not doc or doc.tenant_id != tenant_id:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if doc.deleted_at:
+        raise HTTPException(status_code=410, detail="Document has been deleted")
+    if body.document_type is not None:
+        doc.document_type = body.document_type
+    updated = await document_repo.update(doc)
+    return {
+        "id": updated.id,
+        "tenant_id": updated.tenant_id,
+        "subject_id": updated.subject_id,
+        "filename": updated.filename,
+        "mime_type": updated.mime_type,
+        "file_size": updated.file_size,
+        "version": updated.version,
+    }
+
+
+@router.delete("/{document_id}", status_code=204)
+async def delete_document(
+    document_id: str,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    document_repo: DocumentRepository = Depends(get_document_repo_for_write),
+):
+    """Soft-delete document. Tenant-scoped."""
+    doc = await document_repo.get_by_id(document_id)
+    if not doc or doc.tenant_id != tenant_id:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if doc.deleted_at:
+        raise HTTPException(status_code=410, detail="Document already deleted")
+    await document_repo.soft_delete(document_id, tenant_id)

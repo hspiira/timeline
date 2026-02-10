@@ -63,6 +63,10 @@ class TenantRepository(AuditableRepository[Tenant]):
     def _serialize_for_audit(self, obj: Tenant) -> dict[str, Any]:
         return {"id": obj.id, "code": obj.code, "name": obj.name, "status": obj.status}
 
+    async def get_entity_by_id(self, tenant_id: str) -> Tenant | None:
+        """Get tenant ORM by ID for update/delete (bypasses cache, reads from DB)."""
+        return await super().get_by_id(tenant_id)
+
     async def get_by_id(self, tenant_id: str) -> TenantResult | None:
         """Get tenant by ID, from cache if available."""
         if self.cache and self.cache.is_available():

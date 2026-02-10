@@ -38,3 +38,30 @@ class EventResponse(BaseModel):
     event_time: AwareDatetime
     payload: dict[str, Any]
     hash: str
+
+
+class EventVerificationResult(BaseModel):
+    """Result of verifying a single event (hash + chain)."""
+
+    event_id: str
+    event_type: str
+    event_time: AwareDatetime
+    sequence: int
+    is_valid: bool
+    error_type: str | None = None
+    error_message: str | None = None
+    expected_hash: str | None = None
+    actual_hash: str | None = None
+
+
+class ChainVerificationResponse(BaseModel):
+    """Result of verifying a subject or tenant event chain."""
+
+    subject_id: str | None
+    tenant_id: str
+    total_events: int
+    valid_events: int
+    invalid_events: int
+    is_chain_valid: bool
+    verified_at: AwareDatetime
+    event_results: list[EventVerificationResult] = []

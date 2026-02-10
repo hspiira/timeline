@@ -85,6 +85,10 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
         )
         return (r.scalar() or 0) + 1
 
+    async def get_entity_by_id(self, schema_id: str) -> EventSchema | None:
+        """Get schema ORM by id for update/delete."""
+        return await super().get_by_id(schema_id)
+
     async def get_by_id(self, schema_id: str) -> EventSchemaResult | None:
         result = await self.db.execute(select(EventSchema).where(EventSchema.id == schema_id))
         row = result.scalar_one_or_none()

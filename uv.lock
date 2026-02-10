@@ -2222,6 +2222,7 @@ name = "timeline"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "aiofiles" },
     { name = "alembic" },
     { name = "asyncpg" },
     { name = "bcrypt" },
@@ -2266,13 +2267,12 @@ email = [
     { name = "msal" },
 ]
 storage = [
-    { name = "aiofiles" },
     { name = "boto3" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "aiofiles", marker = "extra == 'storage'", specifier = ">=25.1.0" },
+    { name = "aiofiles", specifier = ">=25.1.0" },
     { name = "aioimaplib", marker = "extra == 'email'", specifier = ">=2.0.1" },
     { name = "alembic", specifier = ">=1.14.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },

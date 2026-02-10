@@ -1,13 +1,11 @@
-"""User-roles API: list roles for user, assign/remove role.
-
-Uses only injected get_permission_repo and get_role_repo; no manual construction.
-"""
+"""User-roles API: list roles for user (including /me/roles), assign/remove role."""
 
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.v1.dependencies import (
+    get_current_user,
     get_permission_repo,
     get_permission_repo_for_write,
     get_role_repo,
@@ -22,6 +20,18 @@ from app.infrastructure.persistence.repositories.user_repo import UserRepository
 from app.schemas.role import RoleResponse
 
 router = APIRouter()
+
+
+@router.get("/me/roles", response_model=list[RoleResponse])
+async def list_my_roles(
+    current_user: Annotated[object, Depends(get_current_user)],
+    permission_repo: PermissionRepository = Depends(get_permission_repo),
+):
+    """List roles assigned to the current authenticated user."""
+    roles = await permission_repo.get_user_roles(
+        user_id=current_user.id, tenant_id=current_user.tenant_id
+    )
+    return [RoleResponse.model_validate(r) for r in roles]
 
 
 @router.get("/{user_id}/roles", response_model=list[RoleResponse])

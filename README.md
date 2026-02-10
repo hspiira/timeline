@@ -1,4 +1,4 @@
-# new-timeline
+# timeline
 
 Multi-tenant event sourcing API with FastAPI.
 
@@ -15,7 +15,7 @@ Optional extras (install when you use these features):
 | Extra | Use when |
 |-------|----------|
 | `email` | Gmail/Outlook/IMAP integration (`aioimaplib`, `google-api-python-client`, `msal`) |
-| `storage` | Local/S3 file storage (`aiofiles`, `boto3`) |
+| `storage` | **S3** document storage (`boto3`). Default `local` backend uses `aiofiles` (in main deps). |
 | `dev` | Tests, lint, type-checking |
 
 Examples:

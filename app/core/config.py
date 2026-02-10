@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     """
 
     # App
-    app_name: str = "new-timeline"
+    app_name: str = "timeline"
     app_version: str = "1.0.0"
     debug: bool = False
 

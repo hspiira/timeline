@@ -27,13 +27,15 @@ class StorageFactory:
             ValueError: Unknown backend or missing required config.
         """
         from app.core.config import get_settings
-        from app.infrastructure.external.storage.local_storage import LocalStorageService
-        from app.infrastructure.external.storage.s3_storage import S3StorageService
 
         s = settings or get_settings()
         backend = s.storage_backend.lower()
 
         if backend == "local":
+            from app.infrastructure.external.storage.local_storage import (
+                LocalStorageService,
+            )
+
             if not s.storage_root:
                 raise ValueError("STORAGE_ROOT required for local backend")
             return LocalStorageService(
@@ -43,6 +45,14 @@ class StorageFactory:
         if backend == "s3":
             if not s.s3_bucket:
                 raise ValueError("S3_BUCKET required for s3 backend")
+            try:
+                from app.infrastructure.external.storage.s3_storage import (
+                    S3StorageService,
+                )
+            except ImportError as e:
+                raise ValueError(
+                    "S3 backend requires boto3. Install with: uv sync --extra storage"
+                ) from e
             return S3StorageService(
                 bucket=s.s3_bucket,
                 region=s.s3_region,

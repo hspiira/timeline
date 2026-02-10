@@ -5,7 +5,10 @@ from app.infrastructure.external.email.envelope_encryption import (
     EnvelopeEncryptor,
     OAuthStateManager,
 )
-from app.infrastructure.external.email.factory import EmailProviderFactory
+try:
+    from app.infrastructure.external.email.factory import EmailProviderFactory
+except ModuleNotFoundError:
+    EmailProviderFactory = None  # type: ignore[misc, assignment]
 from app.infrastructure.external.email.oauth_drivers import (
     GmailDriver,
     OAuthDriver,

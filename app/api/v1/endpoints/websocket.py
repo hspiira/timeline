@@ -1,12 +1,20 @@
-"""WebSocket endpoint: single /ws that uses the connection manager from app.state.
+"""WebSocket endpoint: single /ws and GET /status.
 
-Uses only the injected ConnectionManager (set in lifespan); no manual construction.
+Uses only the ConnectionManager on app.state (set in lifespan); no manual construction.
 Requires a valid JWT via query param ?token=... before registering the connection.
 """
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 
 router = APIRouter()
+
+
+@router.get("/status")
+async def websocket_status(request: Request):
+    """Return WebSocket connection status for monitoring."""
+    manager = getattr(request.app.state, "ws_manager", None)
+    total_connections = manager.connection_count if manager else 0
+    return {"total_connections": total_connections}
 
 
 async def _reject_websocket(websocket: WebSocket, reason: str, code: int = 1008) -> None:

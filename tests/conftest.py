@@ -1,4 +1,4 @@
-"""Pytest configuration and fixtures for new-timeline.
+"""Pytest configuration and fixtures for timeline.
 
 Uses app.main:app for HTTP tests and app.infrastructure.persistence.database
 for DB-dependent fixtures. All imports use app.*.

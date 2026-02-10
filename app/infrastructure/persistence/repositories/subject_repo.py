@@ -52,6 +52,17 @@ class SubjectRepository(AuditableRepository[Subject]):
             "external_ref": obj.external_ref,
         }
 
+    async def get_entity_by_id_and_tenant(
+        self, subject_id: str, tenant_id: str
+    ) -> Subject | None:
+        """Get subject ORM by id and tenant for update/delete."""
+        result = await self.db.execute(
+            select(Subject).where(
+                Subject.id == subject_id, Subject.tenant_id == tenant_id
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def get_by_id(self, subject_id: str) -> SubjectResult | None:
         result = await self.db.execute(select(Subject).where(Subject.id == subject_id))
         row = result.scalar_one_or_none()

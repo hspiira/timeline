@@ -10,6 +10,12 @@ class SubjectCreateRequest(BaseModel):
     external_ref: str | None = Field(default=None, max_length=255)
 
 
+class SubjectUpdate(BaseModel):
+    """Request body for updating a subject (partial)."""
+
+    external_ref: str | None = Field(default=None, max_length=255)
+
+
 class SubjectResponse(BaseModel):
     """Subject response (minimal)."""
 
