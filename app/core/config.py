@@ -132,11 +132,13 @@ class Settings(BaseSettings):
             )
         if not self.secret_key:
             raise ValueError(
-                "SECRET_KEY is required. Generate with: openssl rand -hex 32"
+                "SECRET_KEY is required. Generate with: openssl rand -hex 32. "
+                "On Vercel: set in Project → Settings → Environment Variables."
             )
         if not self.encryption_salt:
             raise ValueError(
-                "ENCRYPTION_SALT is required. Generate with: openssl rand -hex 16"
+                "ENCRYPTION_SALT is required. Generate with: openssl rand -hex 16. "
+                "On Vercel: set in Project → Settings → Environment Variables."
             )
         if self.storage_backend == "s3":
             if not self.s3_bucket:

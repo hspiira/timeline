@@ -21,7 +21,7 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Upgrade schema."""
     op.create_table(
-        "user",
+        "app_user",
         sa.Column("id", sa.String(), nullable=False),
         sa.Column("tenant_id", sa.String(), nullable=False),
         sa.Column("username", sa.String(), nullable=False),
@@ -40,18 +40,17 @@ def upgrade() -> None:
             "updated_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
-            onupdate=sa.text("now()"),
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenant.id"], ondelete="CASCADE"),
         sa.UniqueConstraint("tenant_id", "username", name="uq_tenant_username"),
-        sa.UniqueConstraint("email", name="uq_user_email"),
+        sa.UniqueConstraint("email", name="uq_app_user_email"),
     )
-    op.create_index("ix_user_tenant_id", "user", ["tenant_id"])
+    op.create_index("ix_app_user_tenant_id", "app_user", ["tenant_id"])
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.drop_index("ix_user_tenant_id", table_name="user")
-    op.drop_table("user")
+    op.drop_index("ix_app_user_tenant_id", table_name="app_user")
+    op.drop_table("app_user")

@@ -33,7 +33,7 @@ def upgrade() -> None:
     op.create_foreign_key(
         "fk_event_schema_created_by_user",
         "event_schema",
-        "user",
+        "app_user",
         ["created_by"],
         ["id"],
     )

@@ -40,6 +40,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["subject_id"],
             ["subject.id"],
+            ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(
             ["tenant_id"],
@@ -61,6 +62,12 @@ def upgrade() -> None:
     )
     op.create_index(
         op.f("ix_email_account_tenant_id"), "email_account", ["tenant_id"], unique=False
+    )
+    op.create_index(
+        "ix_email_account_tenant_id_email_address",
+        "email_account",
+        ["tenant_id", "email_address"],
+        unique=True,
     )
     op.alter_column(
         "workflow",
@@ -217,6 +224,10 @@ def downgrade() -> None:
         comment=None,
         existing_comment="Event type that triggers this workflow",
         existing_nullable=False,
+    )
+    op.drop_index(
+        "ix_email_account_tenant_id_email_address",
+        table_name="email_account",
     )
     op.drop_index(op.f("ix_email_account_tenant_id"), table_name="email_account")
     op.drop_index(op.f("ix_email_account_subject_id"), table_name="email_account")

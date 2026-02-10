@@ -50,7 +50,7 @@ def upgrade() -> None:
         None, "document", "tenant", ["tenant_id"], ["id"], ondelete="CASCADE"
     )
     op.create_foreign_key(
-        None, "document", "user", ["created_by"], ["id"], ondelete="SET NULL"
+        None, "document", "app_user", ["created_by"], ["id"], ondelete="SET NULL"
     )
     op.alter_column(
         "email_account",
@@ -92,7 +92,7 @@ def upgrade() -> None:
         op.f("fk_event_schema_created_by_user"), "event_schema", type_="foreignkey"
     )
     op.create_foreign_key(
-        None, "event_schema", "user", ["created_by"], ["id"], ondelete="SET NULL"
+        None, "event_schema", "app_user", ["created_by"], ["id"], ondelete="SET NULL"
     )
     op.drop_column("permission", "created_at")
     op.alter_column(
@@ -146,7 +146,7 @@ def upgrade() -> None:
         op.f("user_role_assigned_by_fkey"), "user_role", type_="foreignkey"
     )
     op.create_foreign_key(
-        None, "user_role", "user", ["assigned_by"], ["id"], ondelete="SET NULL"
+        None, "user_role", "app_user", ["assigned_by"], ["id"], ondelete="SET NULL"
     )
     op.add_column("workflow", sa.Column("updated_by", sa.String(), nullable=True))
     op.add_column("workflow", sa.Column("deleted_by", sa.String(), nullable=True))
@@ -157,13 +157,13 @@ def upgrade() -> None:
         op.f("ix_workflow_deleted_at"), "workflow", ["deleted_at"], unique=False
     )
     op.create_foreign_key(
-        None, "workflow", "user", ["updated_by"], ["id"], ondelete="SET NULL"
+        None, "workflow", "app_user", ["updated_by"], ["id"], ondelete="SET NULL"
     )
     op.create_foreign_key(
-        None, "workflow", "user", ["created_by"], ["id"], ondelete="SET NULL"
+        None, "workflow", "app_user", ["created_by"], ["id"], ondelete="SET NULL"
     )
     op.create_foreign_key(
-        None, "workflow", "user", ["deleted_by"], ["id"], ondelete="SET NULL"
+        None, "workflow", "app_user", ["deleted_by"], ["id"], ondelete="SET NULL"
     )
     op.add_column(
         "workflow_execution",
@@ -199,7 +199,7 @@ def downgrade() -> None:
     op.drop_column("workflow", "updated_by")
     op.drop_constraint(None, "user_role", type_="foreignkey")
     op.create_foreign_key(
-        op.f("user_role_assigned_by_fkey"), "user_role", "user", ["assigned_by"], ["id"]
+        op.f("user_role_assigned_by_fkey"), "user_role", "app_user", ["assigned_by"], ["id"]
     )
     op.alter_column(
         "user_role",
@@ -271,7 +271,7 @@ def downgrade() -> None:
     op.create_foreign_key(
         op.f("fk_event_schema_created_by_user"),
         "event_schema",
-        "user",
+        "app_user",
         ["created_by"],
         ["id"],
     )

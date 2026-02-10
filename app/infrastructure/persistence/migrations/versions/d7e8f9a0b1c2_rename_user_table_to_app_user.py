@@ -19,8 +19,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.rename_table("user", "app_user")
+    # Table created as app_user in e86ff0b3330d to avoid PostgreSQL reserved word "user".
+    pass
 
 
 def downgrade() -> None:
-    op.rename_table("app_user", "user")
+    # Table was always app_user; no rename to revert.
+    pass

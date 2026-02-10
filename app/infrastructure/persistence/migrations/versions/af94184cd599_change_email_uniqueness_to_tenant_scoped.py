@@ -20,16 +20,16 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Upgrade schema - change email uniqueness from global to tenant-scoped."""
     # Drop global email unique constraint
-    op.drop_constraint("uq_user_email", "user", type_="unique")
+    op.drop_constraint("uq_app_user_email", "app_user", type_="unique")
 
     # Add tenant-scoped email unique constraint
-    op.create_unique_constraint("uq_tenant_email", "user", ["tenant_id", "email"])
+    op.create_unique_constraint("uq_tenant_email", "app_user", ["tenant_id", "email"])
 
 
 def downgrade() -> None:
     """Downgrade schema - revert to global email uniqueness."""
     # Drop tenant-scoped email constraint
-    op.drop_constraint("uq_tenant_email", "user", type_="unique")
+    op.drop_constraint("uq_tenant_email", "app_user", type_="unique")
 
     # Restore global email unique constraint
-    op.create_unique_constraint("uq_user_email", "user", ["email"])
+    op.create_unique_constraint("uq_app_user_email", "app_user", ["email"])
