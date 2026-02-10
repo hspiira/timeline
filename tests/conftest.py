@@ -1,0 +1,24 @@
+"""Pytest configuration and fixtures for new-timeline.
+
+Uses app.main:app for HTTP tests and app.infrastructure.persistence.database
+for DB-dependent fixtures. All imports use app.*.
+"""
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+
+from app.main import app
+
+
+@pytest.fixture
+def anyio_backend() -> str:
+    """Use asyncio for pytest-asyncio."""
+    return "asyncio"
+
+
+@pytest.fixture
+async def client() -> AsyncClient:
+    """Async HTTP client against the FastAPI app (ASGI)."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac

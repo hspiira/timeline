@@ -4,7 +4,30 @@ __pycache__/
 build/
 dist/
 wheels/
+/docs/
 *.egg-info
 
+# Environment files (never commit)
+.env
+.env.*
+!/.env.example
+!/.env.development
+!/.env.production
+!/.env.test
+!/.env.test.development
+!/.env.test.production
 # Virtual environments
 .venv
+
+# Vercel
+.vercel/
+
+# Firebase service account keys (never commit)
+serviceAccountKey*.json
+*-firebase-adminsdk-*.json
+
+# Secrets (never commit)
+.vercel
+.env*.local
+!/.env.local
+!/.env.test.local

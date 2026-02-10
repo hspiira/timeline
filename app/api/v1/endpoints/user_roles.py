@@ -1,0 +1,75 @@
+"""User-roles API: list roles for user, assign/remove role.
+
+Uses only injected get_permission_repo and get_role_repo; no manual construction.
+"""
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException
+
+from app.api.v1.dependencies import (
+    get_permission_repo,
+    get_permission_repo_for_write,
+    get_role_repo,
+    get_user_repo,
+    get_tenant_id,
+)
+from app.infrastructure.persistence.repositories.permission_repo import (
+    PermissionRepository,
+)
+from app.infrastructure.persistence.repositories.role_repo import RoleRepository
+from app.infrastructure.persistence.repositories.user_repo import UserRepository
+from app.schemas.role import RoleResponse
+
+router = APIRouter()
+
+
+@router.get("/{user_id}/roles", response_model=list[RoleResponse])
+async def list_user_roles(
+    user_id: str,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    permission_repo: PermissionRepository = Depends(get_permission_repo),
+):
+    """List roles assigned to a user (tenant-scoped)."""
+    roles = await permission_repo.get_user_roles(user_id=user_id, tenant_id=tenant_id)
+    return [RoleResponse.model_validate(r) for r in roles]
+
+
+@router.post("/{user_id}/roles/{role_id}", status_code=204)
+async def assign_role_to_user(
+    user_id: str,
+    role_id: str,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    user_repo: UserRepository = Depends(get_user_repo),
+    role_repo: RoleRepository = Depends(get_role_repo),
+    permission_repo: PermissionRepository = Depends(get_permission_repo_for_write),
+):
+    """Assign a role to a user (tenant-scoped). Verifies user and role exist and belong to tenant."""
+    user = await user_repo.get_by_id_and_tenant(user_id, tenant_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    role = await role_repo.get_by_id(role_id)
+    if not role or role.tenant_id != tenant_id:
+        raise HTTPException(status_code=404, detail="Role not found")
+    await permission_repo.assign_role_to_user(
+        user_id=user_id,
+        role_id=role_id,
+        tenant_id=tenant_id,
+    )
+    return None
+
+
+@router.delete("/{user_id}/roles/{role_id}", status_code=204)
+async def remove_role_from_user(
+    user_id: str,
+    role_id: str,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    permission_repo: PermissionRepository = Depends(get_permission_repo_for_write),
+):
+    """Remove a role from a user (tenant-scoped)."""
+    removed = await permission_repo.remove_role_from_user(
+        user_id=user_id, role_id=role_id, tenant_id=tenant_id
+    )
+    if not removed:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+    return None

@@ -1,0 +1,43 @@
+---
+description: Architecture, DI, config, and conventions for the Timeline project
+alwaysApply: true
+---
+
+# Timeline project guidelines
+
+**Full reference:** [docs/AGENT_GUIDELINES.md](docs/AGENT_GUIDELINES.md). Follow it for all edits, features, and refactors.
+
+## Design principles (DRY, SOLID, OOP)
+
+- **DRY**: Single source of truth; reuse via use cases/repos, not copy-paste.
+- **SOLID**: SRP (one reason to change), O/CL (extend via new impls, protocols), L (substitutable impls), I (small interfaces), D (depend on abstractions; composition root in `dependencies.py`).
+- **OOP**: Composition over inheritance; tell-don’t-ask; stable abstractions.
+
+## Must follow
+
+1. **Layers**
+   - **Domain** (`app/domain/`): entities, value objects, enums, domain exceptions. No infra imports.
+   - **Application** (`app/application/`): use cases, DTOs, interfaces (Protocols). Depends only on domain; use `TYPE_CHECKING` for infra types.
+   - **Infrastructure** (`app/infrastructure/`): implements application interfaces; persistence, external services, security, cache.
+   - **Presentation** (`app/api/`, `app/schemas/`): thin routes; all dependencies from `app.api.v1.dependencies` via `Depends(get_*)`. No manual repo/service construction in routes.
+
+2. **Dependency injection**
+   - Single composition root: `app.api.v1.dependencies`. Add new `get_*` there for new use cases/repos.
+   - Routes use only `Depends(get_*)`. Use `get_db_transactional` for writes, `get_db` for reads.
+
+3. **Config**
+   - All settings in `app.core.config.Settings`; use `get_settings()` or `settings`. No direct `os.environ` in app/infra code.
+
+4. **Exceptions**
+   - Domain errors: raise `TimelineException` (or subclasses) with `error_code`. Add mapping in `app.core.exception_handlers` if new code.
+
+5. **Style**
+   - Google-style docstrings (see `docs/DOCSTRING_STANDARD.md`). Type hints on public signatures. Lint with black, isort, flake8 (see `.flake8`).
+
+6. **README**
+   - Project-only; no migration or internal process docs in README.
+
+7. **Database**
+   - Alembic is a main dependency (migrations run in production). Scripts assume Postgres unless documented otherwise.
+
+When in doubt, open **docs/AGENT_GUIDELINES.md** and apply the relevant section.

@@ -1,0 +1,39 @@
+"""Event schema (payload validation) API schemas."""
+
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+
+class EventSchemaCreateRequest(BaseModel):
+    """Request body for creating an event schema version.
+
+    created_by is set server-side from the authenticated user; not accepted from the client.
+    """
+
+    event_type: str = Field(..., min_length=1, max_length=128)
+    schema_definition: dict[str, Any] = Field(...)
+    is_active: bool = False
+
+
+class EventSchemaListItem(BaseModel):
+    """Event schema list item (no schema_definition)."""
+
+    id: str
+    tenant_id: str
+    event_type: str
+    version: int
+    is_active: bool
+    created_by: str | None
+
+
+class EventSchemaResponse(BaseModel):
+    """Event schema response."""
+
+    id: str
+    tenant_id: str
+    event_type: str
+    version: int
+    is_active: bool
+    schema_definition: dict[str, Any]
+    created_by: str | None
