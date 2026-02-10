@@ -34,6 +34,8 @@ dependencies = [
     "cuid2>=2.0.1",
     "jsonschema>=4.25.1",
     "slowapi>=0.1.9",
+    # Database Migrations
+    "alembic>=1.14.0",
     # Observability
     "opentelemetry-api>=1.39.1",
     "opentelemetry-sdk>=1.39.1",
@@ -62,6 +64,4 @@ dev = [
     "autoflake>=2.3.1",
     "flake8>=7.0.0",
     "mypy>=1.11.0",
-    # Database Migrations
-    "alembic>=1.14.0",
 ]
