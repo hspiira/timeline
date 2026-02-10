@@ -1,4 +1,8 @@
-"""OpenTelemetry distributed tracing configuration."""
+"""OpenTelemetry distributed tracing configuration.
+
+Uses OTLP exporter only (no deprecated Jaeger Thrift exporter).
+Jaeger is supported via its OTLP endpoint (port 4317).
+"""
 
 import logging
 
@@ -12,6 +16,7 @@ from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.sdk.resources import SERVICE_NAME, SERVICE_VERSION, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 logger = logging.getLogger(__name__)
@@ -54,7 +59,7 @@ class TelemetryConfig:
         Args:
             exporter_type: "console", "otlp", "jaeger", or "none".
             otlp_endpoint: OTLP gRPC endpoint (e.g. http://localhost:4317).
-            jaeger_endpoint: Jaeger agent host (port 6831).
+            jaeger_endpoint: Jaeger OTLP host (we use gRPC on port 4317).
             sample_rate: Sampling rate 0.0–1.0.
 
         Returns:
@@ -71,7 +76,8 @@ class TelemetryConfig:
                     "deployment.environment": "development",
                 }
             )
-            self.tracer_provider = TracerProvider(resource=resource)
+            sampler = TraceIdRatioBased(sample_rate)
+            self.tracer_provider = TracerProvider(resource=resource, sampler=sampler)
 
             if exporter_type == "console":
                 exporter = ConsoleSpanExporter()

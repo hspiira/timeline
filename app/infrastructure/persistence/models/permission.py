@@ -16,8 +16,8 @@ class Permission(CuidMixin, TenantMixin, Base):
     __tablename__ = "permission"
 
     code: Mapped[str] = mapped_column(String, nullable=False)
-    resource: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    action: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    resource: Mapped[str] = mapped_column(String, nullable=False)
+    action: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     __table_args__ = (
@@ -27,7 +27,7 @@ class Permission(CuidMixin, TenantMixin, Base):
 
 
 class RolePermission(CuidMixin, TenantMixin, Base):
-    """Many-to-many role–permission. Table: role_permission."""
+    """Many-to-many role-permission. Table: role_permission."""
 
     __tablename__ = "role_permission"
 
@@ -45,18 +45,18 @@ class RolePermission(CuidMixin, TenantMixin, Base):
 
 
 class UserRole(CuidMixin, TenantMixin, Base):
-    """Many-to-many user–role. Table: user_role."""
+    """Many-to-many user-role. Table: user_role."""
 
     __tablename__ = "user_role"
 
     user_id: Mapped[str] = mapped_column(
-        String, ForeignKey("user.id", ondelete="CASCADE"), nullable=False
+        String, ForeignKey("app_user.id", ondelete="CASCADE"), nullable=False
     )
     role_id: Mapped[str] = mapped_column(
         String, ForeignKey("role.id", ondelete="CASCADE"), nullable=False
     )
     assigned_by: Mapped[str | None] = mapped_column(
-        String, ForeignKey("user.id", ondelete="SET NULL"), nullable=True
+        String, ForeignKey("app_user.id", ondelete="SET NULL"), nullable=True
     )
     assigned_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

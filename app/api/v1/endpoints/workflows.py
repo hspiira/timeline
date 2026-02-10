@@ -23,7 +23,7 @@ async def create_workflow(
             tenant_id=tenant_id,
             name=body.name,
             trigger_event_type=body.trigger_event_type,
-            actions=body.actions,
+            actions=[a.model_dump() for a in body.actions],
             description=body.description,
             is_active=body.is_active,
             trigger_conditions=body.trigger_conditions,

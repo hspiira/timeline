@@ -5,6 +5,7 @@ from __future__ import annotations
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.interfaces.services import IPermissionResolver
 from app.infrastructure.persistence.models.permission import (
     Permission,
     RolePermission,
@@ -13,7 +14,7 @@ from app.infrastructure.persistence.models.permission import (
 from app.infrastructure.persistence.models.role import Role
 
 
-class PermissionResolver:
+class PermissionResolver(IPermissionResolver):
     """Resolves user permissions by querying roles and role_permissions."""
 
     def __init__(self, db: AsyncSession) -> None:
@@ -22,7 +23,7 @@ class PermissionResolver:
     async def get_user_permissions(self, user_id: str, tenant_id: str) -> set[str]:
         """Return set of permission codes for user in tenant (active roles, not expired)."""
         query = (
-            select(Permission.code)
+            select(Permission.code).distinct()
             .select_from(UserRole)
             .join(RolePermission, RolePermission.role_id == UserRole.role_id)
             .join(Permission, Permission.id == RolePermission.permission_id)

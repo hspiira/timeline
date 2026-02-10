@@ -61,6 +61,7 @@ class WorkflowRepository(AuditableRepository[Workflow]):
         tenant_id: str,
         skip: int = 0,
         limit: int = 100,
+        *,
         include_inactive: bool = False,
     ) -> list[Workflow]:
         q = select(Workflow).where(
@@ -92,6 +93,7 @@ class WorkflowRepository(AuditableRepository[Workflow]):
         name: str,
         trigger_event_type: str,
         actions: list[dict[str, Any]],
+        *,
         description: str | None = None,
         is_active: bool = True,
         trigger_conditions: dict[str, Any] | None = None,

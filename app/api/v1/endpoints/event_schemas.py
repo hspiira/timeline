@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.v1.dependencies import (
+    get_current_user,
     get_event_schema_repo,
     get_event_schema_repo_for_write,
     get_tenant_id,
@@ -25,16 +26,17 @@ router = APIRouter()
 async def create_event_schema(
     body: EventSchemaCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
+    current_user: Annotated[object, Depends(get_current_user)],
     schema_repo: EventSchemaRepository = Depends(get_event_schema_repo_for_write),
 ):
-    """Create a new event schema version (tenant-scoped)."""
+    """Create a new event schema version (tenant-scoped). created_by is set from the authenticated user."""
     try:
         schema = await schema_repo.create_schema(
             tenant_id=tenant_id,
             event_type=body.event_type,
             schema_definition=body.schema_definition,
             is_active=body.is_active,
-            created_by=body.created_by,
+            created_by=getattr(current_user, "id", None),
         )
         return EventSchemaResponse(
             id=schema.id,

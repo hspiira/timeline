@@ -129,10 +129,17 @@ class TenantInitializationService:
 
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
-        self._role_map: dict[str, str] = {}
+        self._role_map: dict[str, dict[str, str]] = {}  # tenant_id -> {role_code -> role_id}
 
     async def initialize_tenant_infrastructure(self, tenant_id: str) -> None:
         """Create audit schema/subject, permissions, roles, role-permissions. Call before user creation."""
+        # Idempotency: skip if tenant already has permissions (and thus roles/schema)
+        existing = await self.db.execute(
+            select(Permission.id).where(Permission.tenant_id == tenant_id).limit(1)
+        )
+        if existing.scalar_one_or_none() is not None:
+            return  # Already initialized
+
         audit_schema = self._build_audit_schema(tenant_id, created_by=None)
         audit_subject = self._build_audit_subject(tenant_id)
         self.db.add(audit_schema)
@@ -141,7 +148,7 @@ class TenantInitializationService:
 
         permissions, permission_map = self._build_permissions(tenant_id)
         roles, role_permissions, role_map = self._build_roles(tenant_id, permission_map)
-        self._role_map = role_map
+        self._role_map[tenant_id] = role_map
 
         self.db.add_all(permissions)
         await self.db.flush()
@@ -152,7 +159,8 @@ class TenantInitializationService:
 
     async def assign_admin_role(self, tenant_id: str, admin_user_id: str) -> None:
         """Assign admin role to user. Call after user creation."""
-        if "admin" not in self._role_map:
+        tenant_roles = self._role_map.get(tenant_id, {})
+        if "admin" not in tenant_roles:
             result = await self.db.execute(
                 select(Role.id).where(Role.tenant_id == tenant_id, Role.code == "admin")
             )
@@ -160,7 +168,7 @@ class TenantInitializationService:
             if not admin_role_id:
                 raise ValueError(f"Admin role not found for tenant {tenant_id}")
         else:
-            admin_role_id = self._role_map["admin"]
+            admin_role_id = tenant_roles["admin"]
 
         user_role = self._build_admin_assignment(
             tenant_id, admin_user_id, admin_role_id
@@ -226,6 +234,9 @@ class TenantInitializationService:
     def _resolve_permission_pattern(
         pattern: str, permission_map: dict[str, str]
     ) -> list[str]:
+        # "*:*" is a reserved literal permission code for universal access. We do not
+        # expand it to individual permissions; AuthorizationService treats it as
+        # special (e.g. checks for "*:*" in permissions) and grants full access.
         if pattern.endswith(":*"):
             prefix = pattern[:-2]
             return [

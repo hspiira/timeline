@@ -71,6 +71,12 @@ class DocumentRepository(AuditableRepository[Document]):
             "version": obj.version,
         }
 
+    def _should_audit(self, action: AuditAction, obj: Document) -> bool:
+        """Skip UPDATED when document is soft-deleted so only DELETED is emitted."""
+        if action == AuditAction.UPDATED and obj.deleted_at is not None:
+            return False
+        return super()._should_audit(action, obj)
+
     async def get_by_id(self, document_id: str) -> DocumentResult | None:
         result = await self.db.execute(
             select(Document).where(Document.id == document_id)
@@ -79,9 +85,21 @@ class DocumentRepository(AuditableRepository[Document]):
         return _document_to_result(row) if row else None
 
     async def _get_orm_by_id(self, document_id: str) -> Document | None:
-        """Return ORM Document by id (for internal use by update/soft_delete)."""
+        """Return ORM Document by id (for internal use by update)."""
         result = await self.db.execute(
             select(Document).where(Document.id == document_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def _get_orm_by_id_and_tenant(
+        self, document_id: str, tenant_id: str
+    ) -> Document | None:
+        """Return ORM Document by id and tenant_id (tenant-scoped lookup)."""
+        result = await self.db.execute(
+            select(Document).where(
+                Document.id == document_id,
+                Document.tenant_id == tenant_id,
+            )
         )
         return result.scalar_one_or_none()
 
@@ -168,8 +186,11 @@ class DocumentRepository(AuditableRepository[Document]):
         row = result.scalar_one_or_none()
         return _document_to_result(row) if row else None
 
-    async def soft_delete(self, document_id: str) -> DocumentResult | None:
-        orm = await self._get_orm_by_id(document_id)
+    async def soft_delete(
+        self, document_id: str, tenant_id: str
+    ) -> DocumentResult | None:
+        """Soft-delete document by id; returns None if not found in tenant."""
+        orm = await self._get_orm_by_id_and_tenant(document_id, tenant_id)
         if not orm:
             return None
         orm.deleted_at = utc_now()

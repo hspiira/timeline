@@ -3,7 +3,17 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text
+import sqlalchemy as sa
+from sqlalchemy import (
+    CheckConstraint,
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.persistence.database import Base
@@ -11,6 +21,7 @@ from app.infrastructure.persistence.models.mixins import (
     AuditedMultiTenantModel,
     MultiTenantModel,
 )
+from app.shared.enums import WorkflowExecutionStatus
 
 
 class Workflow(AuditedMultiTenantModel, Base):
@@ -20,14 +31,18 @@ class Workflow(AuditedMultiTenantModel, Base):
 
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=sa.text("true")
+    )
     trigger_event_type: Mapped[str] = mapped_column(String, nullable=False, index=True)
     trigger_conditions: Mapped[dict[str, Any] | None] = mapped_column(
         JSON, nullable=True
     )
     actions: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
     max_executions_per_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    execution_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    execution_order: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default=sa.text("0")
+    )
 
 
 class WorkflowExecution(MultiTenantModel, Base):
@@ -47,7 +62,12 @@ class WorkflowExecution(MultiTenantModel, Base):
     triggered_by_subject_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("subject.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
+    status: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default=WorkflowExecutionStatus.PENDING.value,
+        index=True,
+    )
     started_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
@@ -60,3 +80,15 @@ class WorkflowExecution(MultiTenantModel, Base):
         JSON, nullable=True
     )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ({})".format(
+                ", ".join(
+                    "'{}'".format(v.replace("'", "''"))
+                    for v in WorkflowExecutionStatus.values()
+                )
+            ),
+            name="workflow_execution_status_check",
+        ),
+    )

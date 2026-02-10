@@ -21,6 +21,12 @@ class Tenant(CuidMixin, TimestampMixin, Base):
 
     __table_args__ = (
         CheckConstraint(
-            f"status IN {tuple(TenantStatus.values())}", name="tenant_status_check"
+            "status IN ({})".format(
+                ", ".join(
+                    "'{}'".format(v.replace("'", "''"))
+                    for v in TenantStatus.values()
+                )
+            ),
+            name="tenant_status_check",
         ),
     )

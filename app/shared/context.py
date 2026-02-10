@@ -52,7 +52,12 @@ def set_current_user(
         actor_type: Who is performing the action (USER, SYSTEM, EXTERNAL).
         ip_address: Optional client IP.
         user_agent: Optional client user agent.
+
+    Raises:
+        ValueError: If actor_type is USER and user_id is None or empty.
     """
+    if actor_type == ActorType.USER and not user_id:
+        raise ValueError("user_id is required when actor_type is USER")
     _current_user_id.set(user_id)
     _current_actor_type.set(actor_type)
     _current_ip_address.set(ip_address)

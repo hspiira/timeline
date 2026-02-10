@@ -63,6 +63,7 @@ class SubjectRepository(AuditableRepository[Subject]):
         result = await self.db.execute(
             select(Subject)
             .where(Subject.tenant_id == tenant_id)
+            .order_by(Subject.created_at.desc())
             .offset(skip)
             .limit(limit)
         )

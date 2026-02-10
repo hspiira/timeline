@@ -2,19 +2,27 @@
 
 from __future__ import annotations
 
-from typing import Any
+from datetime import UTC, datetime, timedelta
+from typing import Any, Protocol
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.interfaces.services import IEventService
 from app.infrastructure.persistence.models.workflow import Workflow, WorkflowExecution
+from app.infrastructure.persistence.repositories.workflow_repo import WorkflowRepository
 from app.schemas.event import EventCreate
 from app.shared.enums import WorkflowExecutionStatus
 from app.shared.telemetry.logging import get_logger
 from app.shared.utils.datetime import utc_now
 
 logger = get_logger(__name__)
+
+
+class _EventLike(Protocol):
+    """Minimal event shape for condition evaluation (payload only)."""
+
+    payload: dict[str, Any]
 
 
 class WorkflowEngine:
@@ -24,9 +32,11 @@ class WorkflowEngine:
         self,
         db: AsyncSession,
         event_service: IEventService,
+        workflow_repo: WorkflowRepository,
     ) -> None:
         self.db = db
         self.event_service = event_service
+        self.workflow_repo = workflow_repo
 
     async def process_event_triggers(
         self, event: Any, tenant_id: str
@@ -46,26 +56,26 @@ class WorkflowEngine:
     async def _find_matching_workflows(
         self, event_type: str, tenant_id: str
     ) -> list[Workflow]:
-        result = await self.db.execute(
-            select(Workflow)
-            .where(
-                Workflow.tenant_id == tenant_id,
-                Workflow.trigger_event_type == event_type,
-                Workflow.is_active.is_(True),
-                Workflow.deleted_at.is_(None),
-            )
-            .order_by(Workflow.execution_order.asc())
-        )
-        return list(result.scalars().all())
+        return await self.workflow_repo.get_by_trigger(tenant_id, event_type)
 
-    def _evaluate_conditions(self, workflow: Workflow, event: Any) -> bool:
+    def _evaluate_conditions(
+        self, workflow: Workflow, event: _EventLike
+    ) -> bool:
         if not workflow.trigger_conditions:
             return True
         for key, expected_value in workflow.trigger_conditions.items():
             if key.startswith("payload."):
                 field = key.replace("payload.", "")
-                if getattr(event, "payload", {}).get(field) != expected_value:
+                payload = getattr(event, "payload", None) or {}
+                if payload.get(field) != expected_value:
                     return False
+            else:
+                logger.warning(
+                    "Unknown trigger condition key '%s' in workflow %s — failing closed",
+                    key,
+                    workflow.id,
+                )
+                return False
         return True
 
     async def _execute_workflow(
@@ -81,6 +91,32 @@ class WorkflowEngine:
         )
         self.db.add(execution)
         await self.db.flush()
+
+        if workflow.max_executions_per_day is not None:
+            now = utc_now()
+            day_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
+            day_end = day_start + timedelta(days=1)
+            result = await self.db.execute(
+                select(func.count(WorkflowExecution.id)).where(
+                    WorkflowExecution.workflow_id == workflow.id,
+                    WorkflowExecution.tenant_id == workflow.tenant_id,
+                    WorkflowExecution.started_at >= day_start,
+                    WorkflowExecution.started_at < day_end,
+                )
+            )
+            count = result.scalar_one() or 0
+            if count > workflow.max_executions_per_day:
+                execution.status = WorkflowExecutionStatus.FAILED.value
+                execution.error_message = (
+                    f"Rate limit exceeded: max_executions_per_day "
+                    f"({workflow.max_executions_per_day}) reached for today"
+                )
+                execution.completed_at = utc_now()
+                execution.actions_executed = 0
+                execution.actions_failed = 0
+                execution.execution_log = []
+                await self.db.flush()
+                return execution
 
         execution_log: list[dict[str, Any]] = []
         actions_executed = 0
@@ -127,6 +163,12 @@ class WorkflowEngine:
                     )
             execution.status = WorkflowExecutionStatus.COMPLETED.value
         except Exception as e:
+            logger.exception(
+                "Workflow %s execution failed (tenant_id=%s, triggered_by_event_id=%s)",
+                workflow.id,
+                workflow.tenant_id,
+                getattr(triggered_by, "id", None),
+            )
             execution.status = WorkflowExecutionStatus.FAILED.value
             execution.error_message = str(e)
 

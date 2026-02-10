@@ -6,12 +6,14 @@ from pydantic import BaseModel, Field
 
 
 class EventSchemaCreateRequest(BaseModel):
-    """Request body for creating an event schema version."""
+    """Request body for creating an event schema version.
+
+    created_by is set server-side from the authenticated user; not accepted from the client.
+    """
 
     event_type: str = Field(..., min_length=1, max_length=128)
     schema_definition: dict[str, Any] = Field(...)
     is_active: bool = False
-    created_by: str | None = None
 
 
 class EventSchemaListItem(BaseModel):

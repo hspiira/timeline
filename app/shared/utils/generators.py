@@ -12,5 +12,8 @@ def generate_cuid() -> str:
         A new CUID string.
     """
     result = cuid_generator()
-    assert isinstance(result, str)
+    if not isinstance(result, str):
+        raise TypeError(
+            f"Expected str from cuid_generator, got {type(result).__name__}"
+        )
     return result

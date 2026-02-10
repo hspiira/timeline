@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import select
@@ -26,6 +27,15 @@ if TYPE_CHECKING:
 def _tenant_to_result(t: Tenant) -> TenantResult:
     """Map ORM Tenant to application TenantResult."""
     return TenantResult(id=t.id, code=t.code, name=t.name, status=t.status)
+
+
+def _tenant_from_cached(cached: dict[str, Any]) -> Tenant:
+    """Build a Tenant from a cache dict; deserializes ISO datetime fields."""
+    data = dict(cached)
+    for dt_field in ("created_at", "updated_at"):
+        if data.get(dt_field) is not None:
+            data[dt_field] = datetime.fromisoformat(data[dt_field])
+    return Tenant(**data)
 
 
 class TenantRepository(AuditableRepository[Tenant]):
@@ -58,21 +68,23 @@ class TenantRepository(AuditableRepository[Tenant]):
         if self.cache and self.cache.is_available():
             cached = await self.cache.get(tenant_key(tenant_id))
             if cached is not None:
-                tenant = Tenant(**cached)
-                self.db.add(tenant)
-                return _tenant_to_result(tenant)
+                tenant = _tenant_from_cached(cached)
+                merged = await self.db.merge(tenant)
+                return _tenant_to_result(merged)
         tenant = await super().get_by_id(tenant_id)
         if tenant and self.cache and self.cache.is_available():
             d = _tenant_to_dict(tenant)
             await self.cache.set(tenant_key(tenant_id), d, ttl=self.cache_ttl)
         return _tenant_to_result(tenant) if tenant else None
 
-    async def create_tenant(self, code: str, name: str, status: str) -> TenantResult:
+    async def create_tenant(
+        self, code: str, name: str, status: TenantStatus
+    ) -> TenantResult:
         """Create tenant from code/name/status; return created entity.
 
         Raises TenantAlreadyExistsError on unique constraint violation (e.g. duplicate code).
         """
-        tenant = Tenant(code=code, name=name, status=status)
+        tenant = Tenant(code=code, name=name, status=status.value)
         try:
             created = await self.create(tenant)
             return _tenant_to_result(created)
@@ -84,9 +96,9 @@ class TenantRepository(AuditableRepository[Tenant]):
         if self.cache and self.cache.is_available():
             cached = await self.cache.get(tenant_code_key(code))
             if cached is not None:
-                tenant = Tenant(**cached)
-                self.db.add(tenant)
-                return _tenant_to_result(tenant)
+                tenant = _tenant_from_cached(cached)
+                merged = await self.db.merge(tenant)
+                return _tenant_to_result(merged)
         result = await self.db.execute(select(Tenant).where(Tenant.code == code))
         tenant = result.scalar_one_or_none()
         if tenant and self.cache and self.cache.is_available():
@@ -108,13 +120,14 @@ class TenantRepository(AuditableRepository[Tenant]):
     async def update_status(
         self, tenant_id: str, status: TenantStatus
     ) -> Tenant | None:
-        """Update tenant status and emit status_changed audit."""
+        """Update tenant status and emit status_changed audit (no generic UPDATED)."""
         tenant = await super().get_by_id(tenant_id)
         if not tenant:
             return None
         old_status = tenant.status
         tenant.status = status.value
-        updated = await self.update(tenant)
+        updated = await self.update_without_audit(tenant)
+        await _invalidate_tenant_cache(self.cache, updated.id, updated.code)
         await self.emit_custom_audit(
             updated,
             AuditAction.STATUS_CHANGED,

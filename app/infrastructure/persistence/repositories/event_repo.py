@@ -30,11 +30,17 @@ class EventRepository(BaseRepository[Event]):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(db, Event)
 
+    async def update(self, obj: Event) -> Event:
+        raise NotImplementedError("Events are immutable and cannot be updated")
+
+    async def delete(self, obj: Event) -> None:
+        raise NotImplementedError("Events are immutable and cannot be deleted")
+
     async def get_last_hash(self, subject_id: str, tenant_id: str) -> str | None:
         result = await self.db.execute(
             select(Event.hash)
             .where(Event.subject_id == subject_id, Event.tenant_id == tenant_id)
-            .order_by(desc(Event.event_time))
+            .order_by(desc(Event.event_time), desc(Event.id))
             .limit(1)
         )
         return result.scalar_one_or_none()
@@ -43,7 +49,7 @@ class EventRepository(BaseRepository[Event]):
         result = await self.db.execute(
             select(Event)
             .where(Event.subject_id == subject_id, Event.tenant_id == tenant_id)
-            .order_by(desc(Event.event_time))
+            .order_by(desc(Event.event_time), desc(Event.id))
             .limit(1)
         )
         row = result.scalar_one_or_none()
@@ -79,7 +85,7 @@ class EventRepository(BaseRepository[Event]):
         result = await self.db.execute(
             select(Event)
             .where(Event.subject_id == subject_id, Event.tenant_id == tenant_id)
-            .order_by(Event.event_time.desc())
+            .order_by(desc(Event.event_time), desc(Event.id))
             .offset(skip)
             .limit(limit)
         )
@@ -118,7 +124,7 @@ class EventRepository(BaseRepository[Event]):
         result = await self.db.execute(
             select(Event)
             .where(Event.tenant_id == tenant_id)
-            .order_by(Event.created_at.desc())
+            .order_by(desc(Event.event_time), desc(Event.id))
             .offset(skip)
             .limit(limit)
         )

@@ -62,6 +62,7 @@ async def get_event_service(
     hash_service = HashService()
     subject_repo = SubjectRepository(db, audit_service=None)
     schema_repo = EventSchemaRepository(db, cache_service=None, audit_service=None)
+    workflow_repo = WorkflowRepository(db, audit_service=None)
     event_service = EventService(
         event_repo=event_repo,
         hash_service=hash_service,
@@ -69,7 +70,7 @@ async def get_event_service(
         schema_repo=schema_repo,
         workflow_engine_provider=lambda: workflow_engine,
     )
-    workflow_engine = WorkflowEngine(db, event_service)
+    workflow_engine = WorkflowEngine(db, event_service, workflow_repo)
     return event_service
 
 

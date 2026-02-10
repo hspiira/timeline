@@ -1,9 +1,8 @@
 """Event API schemas. Minimal for Phase 3; full validation in Phase 6."""
 
-from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import AwareDatetime, BaseModel, ConfigDict
 
 
 class EventCreate(BaseModel):
@@ -12,7 +11,7 @@ class EventCreate(BaseModel):
     subject_id: str
     event_type: str
     schema_version: int
-    event_time: datetime
+    event_time: AwareDatetime
     payload: dict[str, Any]
 
 
@@ -24,7 +23,7 @@ class EventListResponse(BaseModel):
     id: str
     subject_id: str
     event_type: str
-    event_time: datetime
+    event_time: AwareDatetime
 
 
 class EventResponse(BaseModel):
@@ -36,6 +35,6 @@ class EventResponse(BaseModel):
     subject_id: str
     event_type: str
     schema_version: int
-    event_time: datetime
+    event_time: AwareDatetime
     payload: dict[str, Any]
     hash: str

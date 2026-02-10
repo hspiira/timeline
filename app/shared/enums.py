@@ -8,20 +8,24 @@ in app.domain.enums.
 from enum import Enum
 
 
-class ActorType(str, Enum):
+class _ValuesMixin:
+    """Mixin that adds a values() classmethod to str Enums."""
+
+    @classmethod
+    def values(cls) -> list[str]:
+        """Return all valid values as strings."""
+        return [member.value for member in cls]
+
+
+class ActorType(_ValuesMixin, str, Enum):
     """Actor type for event and audit tracking (who performed the action)."""
 
     USER = "user"
     SYSTEM = "system"
     EXTERNAL = "external"
 
-    @classmethod
-    def values(cls) -> list[str]:
-        """Return all valid values as strings."""
-        return [actor.value for actor in cls]
 
-
-class DocumentAccessLevel(str, Enum):
+class DocumentAccessLevel(_ValuesMixin, str, Enum):
     """Document access level for storage and authorization."""
 
     PUBLIC = "public"
@@ -29,13 +33,8 @@ class DocumentAccessLevel(str, Enum):
     RESTRICTED = "restricted"
     CONFIDENTIAL = "confidential"
 
-    @classmethod
-    def values(cls) -> list[str]:
-        """Return all valid values as strings."""
-        return [level.value for level in cls]
 
-
-class OAuthStatus(str, Enum):
+class OAuthStatus(_ValuesMixin, str, Enum):
     """OAuth account / token status."""
 
     ACTIVE = "active"
@@ -45,13 +44,8 @@ class OAuthStatus(str, Enum):
     EXPIRED = "expired"
     UNKNOWN = "unknown"
 
-    @classmethod
-    def values(cls) -> list[str]:
-        """Return all valid values as strings."""
-        return [status.value for status in cls]
 
-
-class WorkflowExecutionStatus(str, Enum):
+class WorkflowExecutionStatus(_ValuesMixin, str, Enum):
     """Workflow execution lifecycle status."""
 
     PENDING = "pending"
@@ -59,13 +53,8 @@ class WorkflowExecutionStatus(str, Enum):
     COMPLETED = "completed"
     FAILED = "failed"
 
-    @classmethod
-    def values(cls) -> list[str]:
-        """Return all valid values as strings."""
-        return [status.value for status in cls]
 
-
-class AuditAction(str, Enum):
+class AuditAction(_ValuesMixin, str, Enum):
     """Audit action types for system event tracking."""
 
     CREATED = "created"
@@ -77,8 +66,3 @@ class AuditAction(str, Enum):
     STATUS_CHANGED = "status_changed"
     ASSIGNED = "assigned"
     UNASSIGNED = "unassigned"
-
-    @classmethod
-    def values(cls) -> list[str]:
-        """Return all valid values as strings."""
-        return [action.value for action in cls]

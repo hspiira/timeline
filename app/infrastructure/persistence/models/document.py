@@ -44,7 +44,7 @@ class Document(MultiTenantModel, Base):
         Boolean, nullable=False, default=True
     )
     created_by: Mapped[str | None] = mapped_column(
-        String, ForeignKey("user.id", ondelete="SET NULL"), nullable=True, index=True
+        String, ForeignKey("app_user.id", ondelete="SET NULL"), nullable=True, index=True
     )
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, index=True

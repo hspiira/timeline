@@ -116,6 +116,7 @@ class AuditableRepository(BaseRepository[ModelType]):
                 self._get_entity_type(),
                 action.value,
                 str(e),
+                exc_info=True,
             )
 
     async def _on_after_create(self, obj: ModelType) -> None:

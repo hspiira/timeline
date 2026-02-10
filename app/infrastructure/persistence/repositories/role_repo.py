@@ -62,6 +62,7 @@ class RoleRepository(AuditableRepository[Role]):
         tenant_id: str,
         skip: int = 0,
         limit: int = 100,
+        *,
         include_inactive: bool = False,
     ) -> list[Role]:
         q = select(Role).where(Role.tenant_id == tenant_id)
@@ -75,6 +76,8 @@ class RoleRepository(AuditableRepository[Role]):
         role = await self.get_by_id(role_id)
         if not role:
             return None
+        if role.is_system:
+            return None
         role.is_active = False
         updated = await self.update(role)
         await self.emit_custom_audit(updated, AuditAction.DEACTIVATED)
@@ -83,6 +86,8 @@ class RoleRepository(AuditableRepository[Role]):
     async def activate(self, role_id: str) -> Role | None:
         role = await self.get_by_id(role_id)
         if not role:
+            return None
+        if role.is_system:
             return None
         role.is_active = True
         updated = await self.update(role)

@@ -8,7 +8,7 @@ MultiTenantModel, AuditedMultiTenantModel, FullyAuditedMultiTenantModel.
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, text
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 from sqlalchemy.sql import func
 
@@ -47,6 +47,9 @@ class TimestampMixin:
 
     @declared_attr
     def updated_at(cls) -> Mapped[datetime]:
+        # onupdate=func.now() is ORM-only: SQLAlchemy sets it on flush. Bulk SQL,
+        # raw UPDATEs, or out-of-ORM writes will not set updated_at; add a DB
+        # trigger (e.g. BEFORE UPDATE SET updated_at = now()) if that matters.
         return mapped_column(
             DateTime(timezone=True),
             server_default=func.now(),
@@ -64,13 +67,13 @@ class SoftDeleteMixin:
 
 
 class UserAuditMixin(TimestampMixin, SoftDeleteMixin):
-    """Mixin for user audit: created_by, updated_by, deleted_by (FK to user.id)."""
+    """Mixin for user audit: created_by, updated_by, deleted_by (FK to app_user.id)."""
 
     @declared_attr
     def created_by(cls) -> Mapped[str | None]:
         return mapped_column(
             String,
-            ForeignKey("user.id", ondelete="SET NULL"),
+            ForeignKey("app_user.id", ondelete="SET NULL"),
             nullable=True,
             index=True,
         )
@@ -78,13 +81,13 @@ class UserAuditMixin(TimestampMixin, SoftDeleteMixin):
     @declared_attr
     def updated_by(cls) -> Mapped[str | None]:
         return mapped_column(
-            String, ForeignKey("user.id", ondelete="SET NULL"), nullable=True
+            String, ForeignKey("app_user.id", ondelete="SET NULL"), nullable=True
         )
 
     @declared_attr
     def deleted_by(cls) -> Mapped[str | None]:
         return mapped_column(
-            String, ForeignKey("user.id", ondelete="SET NULL"), nullable=True
+            String, ForeignKey("app_user.id", ondelete="SET NULL"), nullable=True
         )
 
 
@@ -93,7 +96,9 @@ class VersionedMixin:
 
     @declared_attr
     def version(cls) -> Mapped[int]:
-        return mapped_column(Integer, default=1, nullable=False)
+        return mapped_column(
+            Integer, default=1, server_default=text("1"), nullable=False
+        )
 
 
 class FullAuditMixin(UserAuditMixin, VersionedMixin):

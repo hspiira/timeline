@@ -21,7 +21,7 @@ class EventSchema(MultiTenantModel, Base):
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_by: Mapped[str | None] = mapped_column(
-        String, ForeignKey("user.id", ondelete="SET NULL"), nullable=True, index=True
+        String, ForeignKey("app_user.id", ondelete="SET NULL"), nullable=True, index=True
     )
 
     __table_args__ = (

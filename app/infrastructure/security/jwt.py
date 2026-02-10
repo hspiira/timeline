@@ -4,7 +4,7 @@ Uses app.core.config for secret and algorithm; app.shared.utils for UTC time.
 """
 
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from jose import JWTError, jwt
 
@@ -38,12 +38,14 @@ def create_access_token(
         settings.secret_key,
         algorithm=settings.algorithm,
     )
-    assert isinstance(encoded, str)
-    return encoded
+    return cast(str, encoded)
 
 
 def verify_token(token: str) -> dict[str, Any]:
     """Verify and decode a JWT. Returns the payload.
+
+    Enforces presence of exp and sub. Raises ValueError if the token is
+    invalid, expired, or missing required claims.
 
     Args:
         token: JWT string (e.g. from Authorization header).
@@ -52,7 +54,7 @@ def verify_token(token: str) -> dict[str, Any]:
         Decoded payload dict.
 
     Raises:
-        ValueError: If token is invalid or expired.
+        ValueError: If token is invalid, expired, or missing required claims.
     """
     settings = get_settings()
     try:
@@ -60,7 +62,10 @@ def verify_token(token: str) -> dict[str, Any]:
             token,
             settings.secret_key,
             algorithms=[settings.algorithm],
+            options={"require_exp": True, "require_sub": True},
         )
-        return payload
     except JWTError as e:
         raise ValueError(f"Invalid token: {e!s}") from e
+    if "sub" not in payload:
+        raise ValueError("Token missing required claim: sub")
+    return payload

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import and_, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.event_schema import EventSchemaResult
@@ -96,18 +98,30 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
         is_active: bool = False,
         created_by: str | None = None,
     ) -> EventSchemaResult:
-        """Create event schema with next version; return created entity."""
-        version = await self.get_next_version(tenant_id, event_type)
-        schema = EventSchema(
-            tenant_id=tenant_id,
-            event_type=event_type,
-            schema_definition=schema_definition,
-            version=version,
-            is_active=is_active,
-            created_by=created_by,
-        )
-        created = await self.create(schema)
-        return _event_schema_to_result(created)
+        """Create event schema with next version; return created entity.
+
+        Retries on IntegrityError (e.g. concurrent insert for same version).
+        """
+        max_attempts = 5
+        for attempt in range(max_attempts):
+            try:
+                version = await self.get_next_version(tenant_id, event_type)
+                schema = EventSchema(
+                    tenant_id=tenant_id,
+                    event_type=event_type,
+                    schema_definition=schema_definition,
+                    version=version,
+                    is_active=is_active,
+                    created_by=created_by,
+                )
+                created = await self.create(schema)
+                return _event_schema_to_result(created)
+            except IntegrityError:
+                await self.db.rollback()
+                if attempt == max_attempts - 1:
+                    raise
+                # Retry with fresh version on next iteration
+        raise RuntimeError("create_schema exhausted retries")  # unreachable
 
     async def get_active_schema(
         self, tenant_id: str, event_type: str
@@ -115,9 +129,15 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
         if self.cache and self.cache.is_available():
             cached = await self.cache.get(schema_active_key(tenant_id, event_type))
             if cached is not None:
+                # Parse ISO datetime strings so the model receives datetime objects
+                cached = dict(cached)
+                cached.setdefault("created_by", None)
+                for key in ("created_at", "updated_at"):
+                    if cached.get(key) and isinstance(cached[key], str):
+                        cached[key] = datetime.fromisoformat(cached[key])
                 schema = EventSchema(**cached)
-                self.db.add(schema)
-                return _event_schema_to_result(schema)
+                merged = self.db.merge(schema)
+                return _event_schema_to_result(merged)
         result = await self.db.execute(
             select(EventSchema)
             .where(
@@ -132,6 +152,7 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
         )
         schema = result.scalar_one_or_none()
         if schema and self.cache and self.cache.is_available():
+            # Store datetimes as ISO strings; cache read path parses with datetime.fromisoformat()
             d = {
                 "id": schema.id,
                 "tenant_id": schema.tenant_id,
@@ -139,6 +160,7 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
                 "version": schema.version,
                 "schema_definition": schema.schema_definition,
                 "is_active": schema.is_active,
+                "created_by": schema.created_by,
                 "created_at": (
                     schema.created_at.isoformat() if schema.created_at else None
                 ),
@@ -194,6 +216,22 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
         schema = await super().get_by_id(schema_id)
         if not schema:
             return None
+        # Deactivate any currently active schema for the same (tenant_id, event_type)
+        result = await self.db.execute(
+            select(EventSchema).where(
+                and_(
+                    EventSchema.tenant_id == schema.tenant_id,
+                    EventSchema.event_type == schema.event_type,
+                    EventSchema.is_active.is_(True),
+                    EventSchema.id != schema.id,
+                )
+            )
+        )
+        current_active = result.scalar_one_or_none()
+        if current_active:
+            current_active.is_active = False
+            await self.update(current_active)
+            await self.emit_custom_audit(current_active, AuditAction.DEACTIVATED)
         schema.is_active = True
         updated = await self.update(schema)
         await self.emit_custom_audit(updated, AuditAction.ACTIVATED)

@@ -55,7 +55,7 @@ class TenantCreationService:
         created_tenant = await self.tenant_repo.create_tenant(
             code=code,
             name=name,
-            status=TenantStatus.ACTIVE.value,
+            status=TenantStatus.ACTIVE,
         )
         tenant_id = created_tenant.id
 

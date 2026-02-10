@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Protocol
 
+from app.domain.enums import TenantStatus
+
 if TYPE_CHECKING:
     from app.application.dtos.document import DocumentResult
     from app.application.dtos.event import EventResult, EventToPersist
@@ -150,7 +152,9 @@ class ITenantRepository(Protocol):
         """Return tenant by code."""
         ...
 
-    async def create_tenant(self, code: str, name: str, status: str) -> TenantResult:
+    async def create_tenant(
+        self, code: str, name: str, status: TenantStatus
+    ) -> TenantResult:
         """Create tenant; return created entity with id."""
         ...
 
@@ -210,4 +214,10 @@ class IDocumentRepository(Protocol):
 
     async def update(self, document: DocumentResult) -> DocumentResult:
         """Update document (e.g. is_latest_version)."""
+        ...
+
+    async def soft_delete(
+        self, document_id: str, tenant_id: str
+    ) -> DocumentResult | None:
+        """Soft-delete document by id; returns None if not found in tenant."""
         ...
