@@ -7,27 +7,23 @@ wheels/
 /docs/
 *.egg-info
 
-# Environment files (never commit)
+# Environment files (never commit). Only .env.example is safe to track.
 .env
 .env.*
-!/.env.example
-!/.env.development
-!/.env.production
-!/.env.test
-!/.env.test.development
-!/.env.test.production
+!.env.example
 # Virtual environments
 .venv
 
 # Vercel
 .vercel/
 
-# Firebase service account keys (never commit)
+# Secrets directory and key files (never commit)
+secrets/
 serviceAccountKey*.json
 *-firebase-adminsdk-*.json
-
-# Secrets (never commit)
-.vercel
+# Common GCP/Google key file names
+**/credentials.json
+**/gcp-key*.json
+**/google-credentials*.json
+**/*-service-account-*.json
 .env*.local
-!/.env.local
-!/.env.test.local

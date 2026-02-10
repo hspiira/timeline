@@ -39,6 +39,13 @@ Copy `.env.example` to `.env` and set:
 
 Optional: `REDIS_*` (cache), `ALLOWED_ORIGINS`, `REQUEST_TIMEOUT_SECONDS`, storage and telemetry settings. See `.env.example` and `app.core.config`.
 
+## Secrets and keys (do not commit)
+
+- **Never commit** `.env`, `.env.local`, `.env.development`, `.env.production`, or any file under `secrets/`.
+- For Firestore, use **`FIREBASE_SERVICE_ACCOUNT_KEY`** (full JSON in env) or **`FIREBASE_SERVICE_ACCOUNT_PATH`** pointing to a file **outside the repo** (e.g. `~/.config` or CI secret mount).
+- The repo’s `.gitignore` ignores `secrets/`, `*-firebase-adminsdk-*.json`, `serviceAccountKey*.json`, and common GCP key filenames. Only `.env.example` is tracked.
+- **If a key was ever pushed to GitHub:** revoke/rotate it in Google Cloud Console immediately and use a new key.
+
 ## Run
 
 ```bash
