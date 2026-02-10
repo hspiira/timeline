@@ -5,6 +5,7 @@ Jaeger is supported via its OTLP endpoint (port 4317).
 """
 
 import logging
+import threading
 
 from fastapi import FastAPI
 from opentelemetry import trace
@@ -34,6 +35,7 @@ class TelemetryConfig:
         service_name: str,
         service_version: str,
         enabled: bool = True,
+        environment: str = "development",
     ) -> None:
         """Initialize telemetry config.
 
@@ -41,10 +43,12 @@ class TelemetryConfig:
             service_name: Service name for resource attributes.
             service_version: Version for resource attributes.
             enabled: Whether tracing is enabled.
+            environment: Deployment environment (e.g. development, staging, production).
         """
         self.service_name = service_name
         self.service_version = service_version
         self.enabled = enabled
+        self.environment = environment
         self.tracer_provider: TracerProvider | None = None
 
     def setup_telemetry(
@@ -73,7 +77,7 @@ class TelemetryConfig:
                 attributes={
                     SERVICE_NAME: self.service_name,
                     SERVICE_VERSION: self.service_version,
-                    "deployment.environment": "development",
+                    "deployment.environment": self.environment,
                 }
             )
             sampler = TraceIdRatioBased(sample_rate)
@@ -131,7 +135,7 @@ class TelemetryConfig:
             )
             logger.info("FastAPI instrumentation enabled")
         except Exception as e:
-            logger.error("Failed to instrument FastAPI: %s", e)
+            logger.exception("Failed to instrument FastAPI: %s", e)
 
     def instrument_sqlalchemy(self, engine: AsyncEngine) -> None:
         """Instrument SQLAlchemy (queries, duration)."""
@@ -145,7 +149,7 @@ class TelemetryConfig:
             )
             logger.info("SQLAlchemy instrumentation enabled")
         except Exception as e:
-            logger.error("Failed to instrument SQLAlchemy: %s", e)
+            logger.exception("Failed to instrument SQLAlchemy: %s", e)
 
     def instrument_redis(self) -> None:
         """Instrument Redis client (commands, duration)."""
@@ -155,7 +159,7 @@ class TelemetryConfig:
             RedisInstrumentor().instrument(tracer_provider=self.tracer_provider)
             logger.info("Redis instrumentation enabled")
         except Exception as e:
-            logger.error("Failed to instrument Redis: %s", e)
+            logger.exception("Failed to instrument Redis: %s", e)
 
     def instrument_logging(self) -> None:
         """Instrument Python logging with trace context (trace_id, span_id)."""
@@ -168,7 +172,7 @@ class TelemetryConfig:
             )
             logger.info("Logging instrumentation enabled")
         except Exception as e:
-            logger.error("Failed to instrument logging: %s", e)
+            logger.exception("Failed to instrument logging: %s", e)
 
     def shutdown(self) -> None:
         """Shutdown tracer provider and flush remaining spans."""
@@ -177,21 +181,31 @@ class TelemetryConfig:
                 self.tracer_provider.shutdown()
                 logger.info("Telemetry shutdown complete")
             except Exception as e:
-                logger.error("Error during telemetry shutdown: %s", e)
+                logger.exception("Error during telemetry shutdown: %s", e)
 
 
 _telemetry: TelemetryConfig | None = None
+_telemetry_lock = threading.RLock()
 
 
 def get_telemetry() -> TelemetryConfig | None:
-    """Return the global telemetry instance (set at startup)."""
-    return _telemetry
+    """Return the global telemetry instance (set at startup).
+
+    Thread-safe: reads are protected by a module-level RLock.
+    """
+    with _telemetry_lock:
+        return _telemetry
 
 
 def set_telemetry(telemetry: TelemetryConfig) -> None:
-    """Set the global telemetry instance."""
+    """Set the global telemetry instance.
+
+    Thread-safe: writes are protected by a module-level RLock.
+    Typically called once at startup before any concurrent access.
+    """
     global _telemetry
-    _telemetry = telemetry
+    with _telemetry_lock:
+        _telemetry = telemetry
 
 
 def get_tracer(name: str) -> trace.Tracer:

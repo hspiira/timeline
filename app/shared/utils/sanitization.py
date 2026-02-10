@@ -164,7 +164,9 @@ def sanitize_input(
         return InputSanitizer.sanitize_dict(value, max_depth=max_depth)
     if isinstance(value, list):
         return InputSanitizer.sanitize_list(value, max_depth=max_depth)
-    return value
+    raise TypeError(
+        f"sanitize_input expected str|dict|list, got {type(value)!r}"
+    )
 
 
 def validate_identifier(value: str) -> str:

@@ -84,6 +84,7 @@ class OAuthProviderConfigRepository(AuditableRepository[OAuthProviderConfig]):
                     OAuthProviderConfig.tenant_id == tenant_id,
                     OAuthProviderConfig.provider_type == provider_type,
                     OAuthProviderConfig.version == version,
+                    OAuthProviderConfig.deleted_at.is_(None),
                 )
             )
         )

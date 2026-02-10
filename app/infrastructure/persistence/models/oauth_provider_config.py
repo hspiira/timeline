@@ -6,6 +6,7 @@ from sqlalchemy import (
     JSON,
     Boolean,
     DateTime,
+    ForeignKey,
     Index,
     Integer,
     String,
@@ -13,6 +14,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql import func
 
 from app.infrastructure.persistence.database import Base
 from app.infrastructure.persistence.models.mixins import AuditedMultiTenantModel
@@ -78,13 +80,31 @@ class OAuthState(Base):
     __tablename__ = "oauth_state"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    tenant_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    user_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    provider_config_id: Mapped[str] = mapped_column(String, nullable=False)
+    tenant_id: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey("tenant.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    user_id: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey("app_user.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    provider_config_id: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey("oauth_provider_config.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     nonce: Mapped[str] = mapped_column(String, nullable=False)
     signature: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, index=True
+        DateTime(timezone=True),
+        nullable=False,
+        index=True,
+        server_default=func.now(),
     )
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, index=True
@@ -104,7 +124,13 @@ class OAuthState(Base):
 
 
 class OAuthAuditLog(Base):
-    """Audit log for OAuth config changes. Table: oauth_audit_log."""
+    """Audit log for OAuth config changes. Table: oauth_audit_log.
+
+    PII fields ip_address and user_agent are nullable and subject to
+    data retention: run the OAuth audit PII purge job (see
+    purge_oauth_audit_pii) after the configured retention period to
+    anonymize (set to NULL) for GDPR compliance.
+    """
 
     __tablename__ = "oauth_audit_log"
 
@@ -114,10 +140,14 @@ class OAuthAuditLog(Base):
     actor_user_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     action: Mapped[str] = mapped_column(String, nullable=False, index=True)
     timestamp: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, index=True
+        DateTime(timezone=True),
+        nullable=False,
+        index=True,
+        server_default=func.now(),
     )
     changes: Mapped[dict[str, str]] = mapped_column(JSON, nullable=False)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # PII: subject to retention purge (anonymize after oauth_audit_pii_retention_days).
     ip_address: Mapped[str | None] = mapped_column(String, nullable=True)
     user_agent: Mapped[str | None] = mapped_column(String, nullable=True)
 

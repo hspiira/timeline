@@ -63,6 +63,10 @@ class Settings(BaseSettings):
     # Tenant
     tenant_header_name: str = "X-Tenant-ID"
 
+    # OAuth audit PII retention (GDPR): days to keep ip_address/user_agent before purge.
+    # Run purge_oauth_audit_pii (e.g. via cron) to anonymize after this period.
+    oauth_audit_pii_retention_days: int = 90
+
     # Request / middleware
     request_timeout_seconds: int = 60
     request_id_header: str = "X-Request-ID"

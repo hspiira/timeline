@@ -52,6 +52,7 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
             service_name=settings.app_name,
             service_version=settings.app_version,
             enabled=True,
+            environment=settings.telemetry_environment,
         )
         telemetry.setup_telemetry(
             exporter_type=settings.telemetry_exporter,
