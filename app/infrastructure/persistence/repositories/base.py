@@ -2,10 +2,9 @@
 
 from typing import Any
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, inspect as sa_inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import object_session
-from sqlalchemy.orm import inspect as sa_inspect
 
 from app.domain.exceptions import ResourceNotFoundException
 from app.infrastructure.persistence.database import Base
