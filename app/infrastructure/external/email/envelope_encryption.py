@@ -57,9 +57,7 @@ class EnvelopeEncryptor:
 
     def _sign_payload(self, payload: str) -> str:
         """HMAC signature of payload."""
-        return hmac.new(
-            self._master_key, payload.encode(), hashlib.sha256
-        ).hexdigest()
+        return hmac.new(self._master_key, payload.encode(), hashlib.sha256).hexdigest()
 
     def _verify_signature(self, payload: str, signature: str) -> bool:
         """Verify HMAC signature."""
@@ -106,7 +104,11 @@ class EnvelopeEncryptor:
             data_str = data_bytes.decode()
             try:
                 result = json.loads(data_str)
-                return cast(dict[str, Any], result) if isinstance(result, dict) else data_str
+                return (
+                    cast(dict[str, Any], result)
+                    if isinstance(result, dict)
+                    else data_str
+                )
             except json.JSONDecodeError:
                 return data_str
         except Exception as e:

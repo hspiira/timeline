@@ -9,7 +9,9 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 
 from app.api.v1.dependencies import get_permission_repo
 from app.core.config import get_settings
-from app.infrastructure.persistence.repositories.permission_repo import PermissionRepository
+from app.infrastructure.persistence.repositories.permission_repo import (
+    PermissionRepository,
+)
 
 router = APIRouter()
 

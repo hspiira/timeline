@@ -99,7 +99,9 @@ class OAuthDriver(ABC):
         """Provider-specific auth params."""
         ...
 
-    async def exchange_code_for_tokens(self, code: str, **extra_params: Any) -> OAuthTokens:
+    async def exchange_code_for_tokens(
+        self, code: str, **extra_params: Any
+    ) -> OAuthTokens:
         """Exchange authorization code for tokens."""
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
@@ -114,7 +116,9 @@ class OAuthDriver(ABC):
                 },
             )
             if response.status_code != 200:
-                logger.error("%s token exchange failed: %s", self.provider_name, response.text)
+                logger.error(
+                    "%s token exchange failed: %s", self.provider_name, response.text
+                )
                 raise ValueError(
                     f"Token exchange failed: {response.status_code} {response.text}"
                 )
@@ -134,7 +138,9 @@ class OAuthDriver(ABC):
                 },
             )
             if response.status_code != 200:
-                logger.error("%s token refresh failed: %s", self.provider_name, response.text)
+                logger.error(
+                    "%s token refresh failed: %s", self.provider_name, response.text
+                )
                 raise ValueError(
                     f"Token refresh failed: {response.status_code} {response.text}"
                 )
@@ -210,7 +216,9 @@ class OutlookDriver(OAuthDriver):
 
     PROVIDER_NAME = "Microsoft 365"
     PROVIDER_TYPE = "outlook"
-    AUTHORIZATION_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+    AUTHORIZATION_ENDPOINT = (
+        "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+    )
     TOKEN_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 
     def _get_authorization_params(self) -> dict[str, Any]:

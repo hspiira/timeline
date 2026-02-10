@@ -79,7 +79,9 @@ class TelemetryConfig:
                 logger.info("Using Console span exporter (development mode)")
             elif exporter_type == "otlp" and otlp_endpoint:
                 use_insecure = otlp_endpoint.startswith("http://")
-                exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=use_insecure)
+                exporter = OTLPSpanExporter(
+                    endpoint=otlp_endpoint, insecure=use_insecure
+                )
                 logger.info("Using OTLP span exporter: %s", otlp_endpoint)
             elif exporter_type == "jaeger" and jaeger_endpoint:
                 exporter = JaegerExporter(
@@ -92,7 +94,9 @@ class TelemetryConfig:
                 trace.set_tracer_provider(self.tracer_provider)
                 return self.tracer_provider
             else:
-                logger.warning("Unknown exporter type '%s', using console", exporter_type)
+                logger.warning(
+                    "Unknown exporter type '%s', using console", exporter_type
+                )
                 exporter = ConsoleSpanExporter()
 
             self.tracer_provider.add_span_processor(BatchSpanProcessor(exporter))

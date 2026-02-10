@@ -18,4 +18,6 @@ class Role(MultiTenantModel, Base):
     is_system: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
-    __table_args__ = (UniqueConstraint("tenant_id", "code", name="uq_role_tenant_code"),)
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "code", name="uq_role_tenant_code"),
+    )

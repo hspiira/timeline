@@ -6,10 +6,7 @@ import secrets
 import string
 from dataclasses import dataclass
 
-from app.application.interfaces.repositories import (
-    ITenantRepository,
-    IUserRepository,
-)
+from app.application.interfaces.repositories import ITenantRepository, IUserRepository
 from app.application.interfaces.services import ITenantInitializationService
 from app.domain.enums import TenantStatus
 

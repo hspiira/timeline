@@ -13,7 +13,6 @@ Performance improvement: ~10-50x faster for JSON containment queries.
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -35,12 +34,10 @@ def upgrade() -> None:
     # This dramatically improves email sync duplicate detection:
     # Before: Sequential scan O(n)
     # After: Index scan O(log n)
-    op.execute(
-        """
+    op.execute("""
         CREATE INDEX IF NOT EXISTS ix_event_payload_gin
         ON event USING GIN (payload jsonb_path_ops)
-        """
-    )
+        """)
 
 
 def downgrade() -> None:

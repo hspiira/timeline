@@ -1,5 +1,10 @@
 """Root landing page for Timeline with onboarding and API links."""
 
+_FONTS_CSS_URL = (
+    "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400"
+    "&family=JetBrains+Mono:wght@400;500&display=swap"
+)
+
 
 def render_root_page(app_name: str) -> str:
     """Return HTML for the root landing page."""
@@ -12,7 +17,7 @@ def render_root_page(app_name: str) -> str:
     <title>Timeline</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="{_FONTS_CSS_URL}" rel="stylesheet">
     <style>
         * {{ box-sizing: border-box; }}
         body {{
@@ -148,11 +153,13 @@ def render_root_page(app_name: str) -> str:
 
         <section class="card" aria-labelledby="new-here-heading">
             <h2 id="new-here-heading">New here?</h2>
-            <p>This is the Timeline API server. Use the base URL below for all requests. API routes live under <code>/api/v1</code>.</p>
+            <p>This is the Timeline API server. Use the base URL below for all requests.
+            API routes live under <code>/api/v1</code>.</p>
             <div class="code" id="api-base">—</div>
             <p>Run locally with:</p>
             <div class="code">uv run uvicorn app.main:app <span class="muted">--reload</span></div>
-            <p>Copy <code>.env.example</code> to <code>.env</code> and set your database (Firestore or Postgres) and secrets before starting.</p>
+            <p>Copy <code>.env.example</code> to <code>.env</code> and set your database
+            (Firestore or Postgres) and secrets before starting.</p>
             <div class="links">
                 <a href="/docs" class="btn primary">Open API docs (Swagger)</a>
                 <a href="/redoc" class="btn">ReDoc</a>

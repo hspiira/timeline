@@ -61,7 +61,12 @@ async def list_events(
             limit=limit,
         )
     return [
-        {"id": e.id, "subject_id": e.subject_id, "event_type": e.event_type, "event_time": e.event_time.isoformat()}
+        {
+            "id": e.id,
+            "subject_id": e.subject_id,
+            "event_type": e.event_type,
+            "event_time": e.event_time.isoformat(),
+        }
         for e in events
     ]
 

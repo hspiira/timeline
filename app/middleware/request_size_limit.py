@@ -27,7 +27,10 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
                         content={
                             "error": "PAYLOAD_TOO_LARGE",
                             "message": f"Request body must be at most {self.max_bytes} bytes",
-                            "details": {"max_bytes": self.max_bytes, "content_length": length},
+                            "details": {
+                                "max_bytes": self.max_bytes,
+                                "content_length": length,
+                            },
                         },
                     )
             except ValueError:

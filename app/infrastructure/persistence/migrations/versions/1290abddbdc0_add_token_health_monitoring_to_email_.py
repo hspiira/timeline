@@ -28,14 +28,22 @@ def upgrade() -> None:
     )
     op.add_column(
         "email_account",
-        sa.Column("token_refresh_count", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column(
+            "token_refresh_count", sa.Integer(), nullable=False, server_default="0"
+        ),
     )
     op.add_column(
         "email_account",
-        sa.Column("token_refresh_failures", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column(
+            "token_refresh_failures", sa.Integer(), nullable=False, server_default="0"
+        ),
     )
-    op.add_column("email_account", sa.Column("last_auth_error", sa.String(), nullable=True))
-    op.add_column("email_account", sa.Column("last_auth_error_at", sa.DateTime(), nullable=True))
+    op.add_column(
+        "email_account", sa.Column("last_auth_error", sa.String(), nullable=True)
+    )
+    op.add_column(
+        "email_account", sa.Column("last_auth_error_at", sa.DateTime(), nullable=True)
+    )
 
 
 def downgrade() -> None:

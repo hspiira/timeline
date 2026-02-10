@@ -122,7 +122,9 @@ class SyncProgressPublisher:
             channel = self._get_channel(tenant_id)
             message = json.dumps(event.to_dict())
             await self.redis.publish(channel, message)
-            logger.debug("Published sync progress to %s: %s", channel, event.stage.value)
+            logger.debug(
+                "Published sync progress to %s: %s", channel, event.stage.value
+            )
             return True
         except Exception as e:
             logger.error("Failed to publish sync progress: %s", e)

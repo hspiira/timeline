@@ -8,7 +8,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.persistence.models.subject import Subject
-from app.infrastructure.persistence.repositories.auditable_repo import AuditableRepository
+from app.infrastructure.persistence.repositories.auditable_repo import (
+    AuditableRepository,
+)
 
 if TYPE_CHECKING:
     from app.infrastructure.services.system_audit_service import SystemAuditService
@@ -43,7 +45,10 @@ class SubjectRepository(AuditableRepository[Subject]):
         self, tenant_id: str, skip: int = 0, limit: int = 100
     ) -> list[Subject]:
         result = await self.db.execute(
-            select(Subject).where(Subject.tenant_id == tenant_id).offset(skip).limit(limit)
+            select(Subject)
+            .where(Subject.tenant_id == tenant_id)
+            .offset(skip)
+            .limit(limit)
         )
         return list(result.scalars().all())
 
@@ -77,7 +82,9 @@ class SubjectRepository(AuditableRepository[Subject]):
         )
         return result.scalar_one_or_none()
 
-    async def get_by_id_and_tenant(self, subject_id: str, tenant_id: str) -> Subject | None:
+    async def get_by_id_and_tenant(
+        self, subject_id: str, tenant_id: str
+    ) -> Subject | None:
         result = await self.db.execute(
             select(Subject).where(
                 Subject.id == subject_id,

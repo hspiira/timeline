@@ -19,9 +19,7 @@ class PermissionResolver:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def get_user_permissions(
-        self, user_id: str, tenant_id: str
-    ) -> set[str]:
+    async def get_user_permissions(self, user_id: str, tenant_id: str) -> set[str]:
         """Return set of permission codes for user in tenant (active roles, not expired)."""
         query = (
             select(Permission.code)

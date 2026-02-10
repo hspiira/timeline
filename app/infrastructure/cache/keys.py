@@ -21,7 +21,9 @@ def tenant_code_key(code: str) -> str:
 
 def permission_key(tenant_id: str, user_id: str) -> str:
     """Cache key for user permissions (tenant + user)."""
-    return f"{CACHE_PREFIX_PERMISSION}{CACHE_KEY_SEP}{tenant_id}{CACHE_KEY_SEP}{user_id}"
+    return (
+        f"{CACHE_PREFIX_PERMISSION}{CACHE_KEY_SEP}{tenant_id}{CACHE_KEY_SEP}{user_id}"
+    )
 
 
 def schema_key(tenant_id: str, event_type: str, version: int) -> str:

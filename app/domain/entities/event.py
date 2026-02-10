@@ -40,7 +40,9 @@ class EventEntity:
         """
         now = datetime.now(UTC)
         event_time = (
-            self.event_time if self.event_time.tzinfo else self.event_time.replace(tzinfo=UTC)
+            self.event_time
+            if self.event_time.tzinfo
+            else self.event_time.replace(tzinfo=UTC)
         )
         if event_time > now:
             raise ValueError("Event time cannot be in the future")

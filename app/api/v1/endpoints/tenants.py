@@ -41,7 +41,10 @@ async def list_tenants(
 ):
     """List active tenants (paginated)."""
     tenants = await tenant_repo.get_active_tenants(skip=skip, limit=limit)
-    return [{"id": t.id, "code": t.code, "name": t.name, "status": t.status} for t in tenants]
+    return [
+        {"id": t.id, "code": t.code, "name": t.name, "status": t.status}
+        for t in tenants
+    ]
 
 
 @router.get("/{tenant_id}")
@@ -53,4 +56,9 @@ async def get_tenant(
     tenant = await tenant_repo.get_by_id(tenant_id)
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
-    return {"id": tenant.id, "code": tenant.code, "name": tenant.name, "status": tenant.status}
+    return {
+        "id": tenant.id,
+        "code": tenant.code,
+        "name": tenant.name,
+        "status": tenant.status,
+    }

@@ -87,6 +87,7 @@ class S3StorageService:
         metadata: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Upload with checksum validation. Idempotent if same checksum."""
+
         def _upload() -> dict[str, Any]:
             try:
                 try:
@@ -149,6 +150,7 @@ class S3StorageService:
 
     async def download(self, storage_ref: str) -> AsyncIterator[bytes]:
         """Stream object content."""
+
         def _get() -> bytes:
             try:
                 resp = self._client.get_object(Bucket=self.bucket, Key=storage_ref)
@@ -173,6 +175,7 @@ class S3StorageService:
 
     async def delete(self, storage_ref: str) -> bool:
         """Delete object. Returns True if deleted."""
+
         def _delete() -> bool:
             try:
                 self._client.head_object(Bucket=self.bucket, Key=storage_ref)
@@ -190,6 +193,7 @@ class S3StorageService:
 
     async def exists(self, storage_ref: str) -> bool:
         """Return True if object exists."""
+
         def _exists() -> bool:
             try:
                 self._client.head_object(Bucket=self.bucket, Key=storage_ref)
@@ -201,15 +205,14 @@ class S3StorageService:
 
     async def get_metadata(self, storage_ref: str) -> dict[str, Any]:
         """Return size, content_type, checksum, last_modified, custom."""
+
         def _head() -> dict[str, Any]:
             try:
                 head = self._client.head_object(Bucket=self.bucket, Key=storage_ref)
                 meta = head.get("Metadata") or {}
                 return {
                     "size": head["ContentLength"],
-                    "content_type": head.get(
-                        "ContentType", "application/octet-stream"
-                    ),
+                    "content_type": head.get("ContentType", "application/octet-stream"),
                     "checksum": meta.get("sha256"),
                     "last_modified": head["LastModified"].isoformat(),
                     "custom": meta,
@@ -232,6 +235,7 @@ class S3StorageService:
         expiration: timedelta = timedelta(hours=1),
     ) -> str:
         """Return presigned GET URL."""
+
         def _presign() -> str:
             try:
                 self._client.head_object(Bucket=self.bucket, Key=storage_ref)

@@ -16,7 +16,7 @@ from app.application.services.system_audit_schema import (
 )
 from app.infrastructure.persistence.models.event import Event
 from app.infrastructure.persistence.models.subject import Subject
-from app.shared.enums import ActorType, AuditAction
+from app.shared.enums import ActorType
 from app.shared.telemetry.logging import get_logger
 from app.shared.utils.datetime import utc_now
 
@@ -146,9 +146,17 @@ class SystemAuditService:
     @staticmethod
     def _sanitize_entity_data(data: dict[str, Any]) -> dict[str, Any]:
         sensitive = {
-            "password", "hashed_password", "secret", "api_key", "token",
-            "credentials", "credentials_encrypted", "client_secret",
-            "client_secret_encrypted", "refresh_token", "access_token",
+            "password",
+            "hashed_password",
+            "secret",
+            "api_key",
+            "token",
+            "credentials",
+            "credentials_encrypted",
+            "client_secret",
+            "client_secret_encrypted",
+            "refresh_token",
+            "access_token",
         }
         out = {}
         for key, value in data.items():

@@ -3,14 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from app.application.interfaces.repositories import IEventRepository
 from app.application.interfaces.services import IHashService
 from app.shared.utils.datetime import utc_now
-
-if TYPE_CHECKING:
-    from app.infrastructure.persistence.models.event import Event
 
 
 class VerificationResult:
@@ -121,9 +118,7 @@ class VerificationService:
         self, tenant_id: str, limit: int | None = None
     ) -> ChainVerificationResult:
         """Verify all event chains for a tenant (grouped by subject)."""
-        events = await self.event_repo.get_by_tenant(
-            tenant_id, limit=limit or 100
-        )
+        events = await self.event_repo.get_by_tenant(tenant_id, limit=limit or 100)
         if not events:
             return ChainVerificationResult(
                 subject_id=None,

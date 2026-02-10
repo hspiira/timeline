@@ -22,6 +22,7 @@ class CorrelationIDMiddleware(BaseHTTPMiddleware):
             correlation_id = request.state.request_id
         if not correlation_id:
             import uuid
+
             correlation_id = str(uuid.uuid4())
         request.state.correlation_id = correlation_id
         response = await call_next(request)

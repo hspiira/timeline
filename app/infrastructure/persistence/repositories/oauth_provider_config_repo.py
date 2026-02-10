@@ -7,8 +7,12 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.persistence.models.oauth_provider_config import OAuthProviderConfig
-from app.infrastructure.persistence.repositories.auditable_repo import AuditableRepository
+from app.infrastructure.persistence.models.oauth_provider_config import (
+    OAuthProviderConfig,
+)
+from app.infrastructure.persistence.repositories.auditable_repo import (
+    AuditableRepository,
+)
 
 if TYPE_CHECKING:
     from app.infrastructure.services.system_audit_service import SystemAuditService
@@ -24,7 +28,9 @@ class OAuthProviderConfigRepository(AuditableRepository[OAuthProviderConfig]):
         *,
         enable_audit: bool = True,
     ) -> None:
-        super().__init__(db, OAuthProviderConfig, audit_service, enable_audit=enable_audit)
+        super().__init__(
+            db, OAuthProviderConfig, audit_service, enable_audit=enable_audit
+        )
 
     def _get_entity_type(self) -> str:
         return "oauth_provider"

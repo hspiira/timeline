@@ -15,13 +15,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.services.authorization_service import AuthorizationService
 from app.application.services.hash_service import HashService
+from app.application.services.tenant_creation_service import TenantCreationService
 from app.application.use_cases.documents import DocumentService
 from app.application.use_cases.events import EventService
-from app.application.services.tenant_creation_service import TenantCreationService
+from app.application.use_cases.subjects import SubjectService
 from app.core.config import get_settings
 from app.infrastructure.external.storage.factory import StorageFactory
 from app.infrastructure.persistence.database import get_db, get_db_transactional
-from app.application.use_cases.subjects import SubjectService
 from app.infrastructure.persistence.repositories import (
     DocumentRepository,
     EmailAccountRepository,
@@ -35,10 +35,7 @@ from app.infrastructure.persistence.repositories import (
     UserRepository,
     WorkflowRepository,
 )
-from app.infrastructure.services import (
-    TenantInitializationService,
-    WorkflowEngine,
-)
+from app.infrastructure.services import TenantInitializationService, WorkflowEngine
 
 
 async def get_event_service(
@@ -111,6 +108,7 @@ async def get_authorization_service(
 
 
 # ---- Read-only repo / service dependencies (get_db for reads) ----
+
 
 async def get_event_repo(
     db: Annotated[AsyncSession, Depends(get_db)],

@@ -11,7 +11,9 @@ from app.domain.enums import TenantStatus
 from app.infrastructure.cache.cache_protocol import CacheProtocol
 from app.infrastructure.cache.keys import tenant_code_key, tenant_key
 from app.infrastructure.persistence.models.tenant import Tenant
-from app.infrastructure.persistence.repositories.auditable_repo import AuditableRepository
+from app.infrastructure.persistence.repositories.auditable_repo import (
+    AuditableRepository,
+)
 from app.shared.enums import AuditAction
 
 if TYPE_CHECKING:

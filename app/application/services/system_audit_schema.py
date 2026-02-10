@@ -10,14 +10,32 @@ SYSTEM_AUDIT_SUBJECT_TYPE = "system_audit"
 SYSTEM_AUDIT_SUBJECT_REF = "_system_audit_trail"
 SYSTEM_AUDIT_SCHEMA_VERSION = 1
 
-AUDITABLE_ENTITIES = frozenset({
-    "subject", "event_schema", "workflow", "user", "role", "permission",
-    "document", "tenant", "email_account", "oauth_provider",
-})
-AUDIT_ACTIONS = frozenset({
-    "created", "updated", "deleted", "activated", "deactivated",
-    "assigned", "unassigned", "status_changed",
-})
+AUDITABLE_ENTITIES = frozenset(
+    {
+        "subject",
+        "event_schema",
+        "workflow",
+        "user",
+        "role",
+        "permission",
+        "document",
+        "tenant",
+        "email_account",
+        "oauth_provider",
+    }
+)
+AUDIT_ACTIONS = frozenset(
+    {
+        "created",
+        "updated",
+        "deleted",
+        "activated",
+        "deactivated",
+        "assigned",
+        "unassigned",
+        "status_changed",
+    }
+)
 ACTOR_TYPES = frozenset({"user", "system", "external", "api_key", "webhook"})
 
 

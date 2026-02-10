@@ -71,6 +71,8 @@ async def get_email_account(
         "email_address": account.email_address,
         "is_active": account.is_active,
         "sync_status": account.sync_status,
-        "last_sync_at": account.last_sync_at.isoformat() if account.last_sync_at else None,
+        "last_sync_at": (
+            account.last_sync_at.isoformat() if account.last_sync_at else None
+        ),
         "oauth_status": getattr(account, "oauth_status", None),
     }

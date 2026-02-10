@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-from app.application.interfaces.services import (
-    ICacheService,
-    IPermissionResolver,
-)
+from app.application.interfaces.services import ICacheService, IPermissionResolver
 from app.domain.exceptions import PermissionDeniedError
 
 
@@ -22,9 +19,7 @@ class AuthorizationService:
         self.cache = cache
         self.cache_ttl = cache_ttl
 
-    async def get_user_permissions(
-        self, user_id: str, tenant_id: str
-    ) -> set[str]:
+    async def get_user_permissions(self, user_id: str, tenant_id: str) -> set[str]:
         """Return set of permission codes (e.g. event:create, subject:read). Uses cache if available."""
         key = f"permission:{tenant_id}:{user_id}"
         if self.cache and self.cache.is_available():
@@ -63,17 +58,13 @@ class AuthorizationService:
         action: str,
     ) -> None:
         """Raise PermissionDeniedError if user lacks permission."""
-        if not await self.check_permission(
-            user_id, tenant_id, resource, action
-        ):
+        if not await self.check_permission(user_id, tenant_id, resource, action):
             raise PermissionDeniedError(
                 resource=resource,
                 action=action,
             )
 
-    async def invalidate_user_cache(
-        self, user_id: str, tenant_id: str
-    ) -> None:
+    async def invalidate_user_cache(self, user_id: str, tenant_id: str) -> None:
         """Invalidate cached permissions for one user."""
         if self.cache and self.cache.is_available():
             key = f"permission:{tenant_id}:{user_id}"

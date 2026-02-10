@@ -6,7 +6,11 @@ from pydantic import BaseModel, Field
 class LoginRequest(BaseModel):
     """Request body for login. Users identify tenant by code (e.g. org slug), not internal tenant_id."""
 
-    tenant_code: str = Field(..., min_length=1, description="Tenant code (e.g. org slug) to identify the tenant")
+    tenant_code: str = Field(
+        ...,
+        min_length=1,
+        description="Tenant code (e.g. org slug) to identify the tenant",
+    )
     username: str = Field(..., min_length=1)
     password: str = Field(..., min_length=1)
 

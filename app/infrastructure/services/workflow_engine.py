@@ -8,10 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.interfaces.services import IEventService
-from app.infrastructure.persistence.models.workflow import (
-    Workflow,
-    WorkflowExecution,
-)
+from app.infrastructure.persistence.models.workflow import Workflow, WorkflowExecution
 from app.schemas.event import EventCreate
 from app.shared.enums import WorkflowExecutionStatus
 from app.shared.telemetry.logging import get_logger
@@ -108,7 +105,11 @@ class WorkflowEngine:
                             trigger_workflows=False,
                         )
                         execution_log.append(
-                            {"action": action_type, "status": "success", "event_id": created.id}
+                            {
+                                "action": action_type,
+                                "status": "success",
+                                "event_id": created.id,
+                            }
                         )
                         actions_executed += 1
                     except Exception as e:
@@ -118,7 +119,11 @@ class WorkflowEngine:
                         actions_failed += 1
                 else:
                     execution_log.append(
-                        {"action": action_type, "status": "skipped", "reason": f"Unknown: {action_type}"}
+                        {
+                            "action": action_type,
+                            "status": "skipped",
+                            "reason": f"Unknown: {action_type}",
+                        }
                     )
             execution.status = WorkflowExecutionStatus.COMPLETED.value
         except Exception as e:

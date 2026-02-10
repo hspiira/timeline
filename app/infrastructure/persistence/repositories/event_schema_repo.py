@@ -10,7 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.cache.cache_protocol import CacheProtocol
 from app.infrastructure.cache.keys import schema_active_key
 from app.infrastructure.persistence.models.event_schema import EventSchema
-from app.infrastructure.persistence.repositories.auditable_repo import AuditableRepository
+from app.infrastructure.persistence.repositories.auditable_repo import (
+    AuditableRepository,
+)
 from app.shared.enums import AuditAction
 
 if TYPE_CHECKING:
@@ -117,8 +119,12 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
                 "version": schema.version,
                 "schema_definition": schema.schema_definition,
                 "is_active": schema.is_active,
-                "created_at": schema.created_at.isoformat() if schema.created_at else None,
-                "updated_at": schema.updated_at.isoformat() if schema.updated_at else None,
+                "created_at": (
+                    schema.created_at.isoformat() if schema.created_at else None
+                ),
+                "updated_at": (
+                    schema.updated_at.isoformat() if schema.updated_at else None
+                ),
             }
             await self.cache.set(
                 schema_active_key(tenant_id, event_type), d, ttl=self.cache_ttl

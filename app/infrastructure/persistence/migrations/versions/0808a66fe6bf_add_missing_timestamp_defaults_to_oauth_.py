@@ -21,7 +21,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.alter_column("oauth_provider_config", "created_at", server_default=sa.text("now()"))
+    op.alter_column(
+        "oauth_provider_config", "created_at", server_default=sa.text("now()")
+    )
     op.alter_column(
         "oauth_provider_config",
         "updated_at",

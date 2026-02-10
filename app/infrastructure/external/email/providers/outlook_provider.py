@@ -6,7 +6,10 @@ from typing import Any
 import httpx
 from msal import ConfidentialClientApplication
 
-from app.infrastructure.external.email.protocols import EmailMessage, EmailProviderConfig
+from app.infrastructure.external.email.protocols import (
+    EmailMessage,
+    EmailProviderConfig,
+)
 from app.shared.telemetry.logging import get_logger
 from app.shared.utils.datetime import utc_now
 
@@ -108,8 +111,7 @@ class OutlookProvider:
         ts = item["receivedDateTime"].replace("Z", "+00:00")
         timestamp = datetime.fromisoformat(ts)
         to_addresses = [
-            r["emailAddress"]["address"]
-            for r in item.get("toRecipients", [])
+            r["emailAddress"]["address"] for r in item.get("toRecipients", [])
         ]
         return EmailMessage(
             message_id=item["id"],

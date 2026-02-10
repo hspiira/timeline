@@ -27,9 +27,7 @@ class SubjectService:
             external_ref=external_ref,
         )
 
-    async def get_subject(
-        self, tenant_id: str, subject_id: str
-    ) -> Any:
+    async def get_subject(self, tenant_id: str, subject_id: str) -> Any:
         """Return subject by id if it belongs to tenant; else raise ResourceNotFoundException."""
         subject = await self.subject_repo.get_by_id_and_tenant(
             subject_id=subject_id,

@@ -19,6 +19,7 @@ def _encode_value(v: Any) -> dict:
         return {"stringValue": v}
     if isinstance(v, bytes):
         import base64
+
         return {"bytesValue": base64.standard_b64encode(v).decode("ascii")}
     if isinstance(v, list):
         return {"arrayValue": {"values": [_encode_value(x) for x in v]}}
@@ -47,6 +48,7 @@ def _decode_value(obj: dict) -> Any:
         return obj["stringValue"]
     if "bytesValue" in obj:
         import base64
+
         return base64.standard_b64decode(obj["bytesValue"])
     if "arrayValue" in obj:
         vals = obj.get("arrayValue", {}).get("values") or []

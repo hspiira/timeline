@@ -89,7 +89,9 @@ class AuthorizationException(TimelineException):
             action: Action that was attempted (e.g. 'create', 'read').
         """
         message = f"Permission denied: {action} on {resource}"
-        super().__init__(message, "AUTHORIZATION_ERROR", {"resource": resource, "action": action})
+        super().__init__(
+            message, "AUTHORIZATION_ERROR", {"resource": resource, "action": action}
+        )
 
 
 class TenantNotFoundException(TimelineException):

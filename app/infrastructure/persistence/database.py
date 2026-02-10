@@ -5,11 +5,7 @@ When database_backend is 'firestore', the SQL engine is not created; use
 get_firestore_client() from app.infrastructure.firebase.client instead.
 """
 
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
 from app.core.config import get_settings

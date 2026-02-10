@@ -18,8 +18,12 @@ _current_user_id: ContextVar[str | None] = ContextVar("current_user_id", default
 _current_actor_type: ContextVar[ActorType] = ContextVar(
     "current_actor_type", default=ActorType.SYSTEM
 )
-_current_ip_address: ContextVar[str | None] = ContextVar("current_ip_address", default=None)
-_current_user_agent: ContextVar[str | None] = ContextVar("current_user_agent", default=None)
+_current_ip_address: ContextVar[str | None] = ContextVar(
+    "current_ip_address", default=None
+)
+_current_user_agent: ContextVar[str | None] = ContextVar(
+    "current_user_agent", default=None
+)
 
 
 @dataclass(frozen=True)

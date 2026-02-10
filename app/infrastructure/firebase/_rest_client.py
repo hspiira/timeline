@@ -73,12 +73,18 @@ class DocumentReference:
         out = _request(url, access_token=self._client._token())
         if not out:
             return None
-        return DocumentSnapshot(self._path.split("/")[-1], decode_document(out.get("fields")))
+        return DocumentSnapshot(
+            self._path.split("/")[-1], decode_document(out.get("fields"))
+        )
 
     def delete(self) -> None:
         """Delete the document."""
         url = f"{_BASE}/{self._path}"
-        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {self._client._token()}"}, method="DELETE")
+        req = urllib.request.Request(
+            url,
+            headers={"Authorization": f"Bearer {self._client._token()}"},
+            method="DELETE",
+        )
         urllib.request.urlopen(req, timeout=30)
 
 

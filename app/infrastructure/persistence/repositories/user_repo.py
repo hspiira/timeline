@@ -9,7 +9,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.persistence.models.user import User
-from app.infrastructure.persistence.repositories.auditable_repo import AuditableRepository
+from app.infrastructure.persistence.repositories.auditable_repo import (
+    AuditableRepository,
+)
 from app.infrastructure.security.password import get_password_hash, verify_password
 from app.shared.enums import AuditAction
 

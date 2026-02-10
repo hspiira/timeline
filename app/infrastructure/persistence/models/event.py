@@ -4,8 +4,8 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import (
-    Connection,
     CheckConstraint,
+    Connection,
     DateTime,
     ForeignKey,
     Index,
@@ -31,7 +31,9 @@ class Event(CuidMixin, TenantMixin, Base):
     )
     event_type: Mapped[str] = mapped_column(String, nullable=False, index=True)
     schema_version: Mapped[int] = mapped_column(Integer, nullable=False)
-    event_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    event_time: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     previous_hash: Mapped[str | None] = mapped_column(String)
     hash: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
@@ -42,7 +44,9 @@ class Event(CuidMixin, TenantMixin, Base):
     __table_args__ = (
         Index("ix_event_subject_time", "subject_id", "event_time"),
         Index("ix_event_tenant_subject", "tenant_id", "subject_id"),
-        Index("ix_event_tenant_type_version", "tenant_id", "event_type", "schema_version"),
+        Index(
+            "ix_event_tenant_type_version", "tenant_id", "event_type", "schema_version"
+        ),
         CheckConstraint("created_at IS NOT NULL", name="ck_event_created_at_immutable"),
     )
 

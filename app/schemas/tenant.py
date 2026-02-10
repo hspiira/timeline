@@ -6,7 +6,9 @@ from pydantic import BaseModel, Field
 class TenantCreateRequest(BaseModel):
     """Request body for creating a new tenant with admin user."""
 
-    code: str = Field(..., min_length=1, max_length=64, description="Unique tenant code")
+    code: str = Field(
+        ..., min_length=1, max_length=64, description="Unique tenant code"
+    )
     name: str = Field(..., min_length=1, max_length=255, description="Display name")
     admin_password: str | None = Field(
         default=None,

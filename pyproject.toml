@@ -48,6 +48,10 @@ dependencies = [
     "opentelemetry-instrumentation-sqlalchemy>=0.60b1",
 ]
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
 [project.optional-dependencies]
 dev = [
     # Testing

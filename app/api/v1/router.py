@@ -20,9 +20,9 @@ from app.api.v1.endpoints import (
     tenants,
     user_roles,
     users,
-    websocket as ws_endpoint,
-    workflows,
 )
+from app.api.v1.endpoints import websocket as ws_endpoint
+from app.api.v1.endpoints import workflows
 
 api_router = APIRouter()
 
@@ -36,11 +36,11 @@ api_router.include_router(
 )
 api_router.include_router(subjects.router, prefix="/subjects", tags=["subjects"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
-api_router.include_router(
-    user_roles.router, prefix="/users", tags=["user-roles"]
-)
+api_router.include_router(user_roles.router, prefix="/users", tags=["user-roles"])
 api_router.include_router(roles.router, prefix="/roles", tags=["roles"])
-api_router.include_router(permissions.router, prefix="/permissions", tags=["permissions"])
+api_router.include_router(
+    permissions.router, prefix="/permissions", tags=["permissions"]
+)
 api_router.include_router(
     event_schemas.router, prefix="/event-schemas", tags=["event-schemas"]
 )

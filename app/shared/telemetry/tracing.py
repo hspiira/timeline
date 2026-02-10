@@ -133,7 +133,9 @@ class TracedOperation:
             self.span.set_attribute(key, value)
         return self
 
-    def __exit__(self, exc_type: type | None, exc_val: BaseException | None, exc_tb: object) -> None:
+    def __exit__(
+        self, exc_type: type | None, exc_val: BaseException | None, exc_tb: object
+    ) -> None:
         if self.span is None:
             return
         if exc_type is not None and exc_val is not None:

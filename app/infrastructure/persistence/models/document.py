@@ -2,15 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import (
-    BigInteger,
-    Boolean,
-    DateTime,
-    ForeignKey,
-    Index,
-    Integer,
-    String,
-)
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.persistence.database import Base
@@ -39,7 +31,9 @@ class Document(MultiTenantModel, Base):
     parent_document_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("document.id"), nullable=True
     )
-    is_latest_version: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    is_latest_version: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True
+    )
     created_by: Mapped[str | None] = mapped_column(
         String, ForeignKey("user.id", ondelete="SET NULL"), nullable=True, index=True
     )

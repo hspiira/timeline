@@ -59,7 +59,9 @@ class Settings(BaseSettings):
     correlation_id_header: str = "X-Correlation-ID"
 
     # Firebase / Firestore: use key (env) or path (file). For Vercel, use key.
-    firebase_service_account_key: str | None = None  # Full JSON string (e.g. FIREBASE_SERVICE_ACCOUNT_KEY)
+    firebase_service_account_key: str | None = (
+        None  # Full JSON string (e.g. FIREBASE_SERVICE_ACCOUNT_KEY)
+    )
     firebase_service_account_path: str | None = None  # Path to JSON file
 
     # Redis Cache
@@ -102,7 +104,10 @@ class Settings(BaseSettings):
                     "Set in environment or .env file."
                 )
         elif self.database_backend == "firestore":
-            if not self.firebase_service_account_key and not self.firebase_service_account_path:
+            if (
+                not self.firebase_service_account_key
+                and not self.firebase_service_account_path
+            ):
                 raise ValueError(
                     "When database_backend is 'firestore', set FIREBASE_SERVICE_ACCOUNT_KEY (full JSON string) "
                     "or FIREBASE_SERVICE_ACCOUNT_PATH (path to JSON file)."
@@ -112,9 +117,13 @@ class Settings(BaseSettings):
                 f"database_backend must be 'postgres' or 'firestore', got: {self.database_backend!r}"
             )
         if not self.secret_key:
-            raise ValueError("SECRET_KEY is required. Generate with: openssl rand -hex 32")
+            raise ValueError(
+                "SECRET_KEY is required. Generate with: openssl rand -hex 32"
+            )
         if not self.encryption_salt:
-            raise ValueError("ENCRYPTION_SALT is required. Generate with: openssl rand -hex 16")
+            raise ValueError(
+                "ENCRYPTION_SALT is required. Generate with: openssl rand -hex 16"
+            )
         if self.storage_backend == "s3":
             if not self.s3_bucket:
                 raise ValueError(

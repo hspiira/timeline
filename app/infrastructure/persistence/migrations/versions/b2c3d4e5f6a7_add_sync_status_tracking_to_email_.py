@@ -37,11 +37,15 @@ def upgrade() -> None:
     )
     op.add_column(
         "email_account",
-        sa.Column("sync_messages_fetched", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column(
+            "sync_messages_fetched", sa.Integer(), nullable=False, server_default="0"
+        ),
     )
     op.add_column(
         "email_account",
-        sa.Column("sync_events_created", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column(
+            "sync_events_created", sa.Integer(), nullable=False, server_default="0"
+        ),
     )
     op.add_column(
         "email_account",

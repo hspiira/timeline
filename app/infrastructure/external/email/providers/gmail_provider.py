@@ -12,7 +12,10 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from app.infrastructure.external.email.protocols import EmailMessage, EmailProviderConfig
+from app.infrastructure.external.email.protocols import (
+    EmailMessage,
+    EmailProviderConfig,
+)
 from app.shared.telemetry.logging import get_logger
 from app.shared.utils.datetime import from_timestamp_ms_utc
 
@@ -64,9 +67,7 @@ class GmailProvider:
             client_id=config.credentials.get("client_id"),
             client_secret=config.credentials.get("client_secret"),
         )
-        self._service = await asyncio.to_thread(
-            build, "gmail", "v1", credentials=creds
-        )
+        self._service = await asyncio.to_thread(build, "gmail", "v1", credentials=creds)
         logger.info("Connected to Gmail API: %s", config.email_address)
 
     async def disconnect(self) -> None:
@@ -89,11 +90,15 @@ class GmailProvider:
         all_message_ids: list[str] = []
         page_token: str | None = None
         while True:
-            request = self._service.users().messages().list(
-                userId="me",
-                q=query,
-                maxResults=500,
-                pageToken=page_token,
+            request = (
+                self._service.users()
+                .messages()
+                .list(
+                    userId="me",
+                    q=query,
+                    maxResults=500,
+                    pageToken=page_token,
+                )
             )
             results = await asyncio.to_thread(request.execute)
             message_ids = [m["id"] for m in results.get("messages", [])]
@@ -133,9 +138,9 @@ class GmailProvider:
             batch = self._service.new_batch_http_request()
             for msg_id in batch_ids:
                 batch.add(
-                    self._service.users().messages().get(
-                        userId="me", id=msg_id, format="full"
-                    ),
+                    self._service.users()
+                    .messages()
+                    .get(userId="me", id=msg_id, format="full"),
                     callback=add_callback(msg_id),
                 )
             await asyncio.to_thread(batch.execute)
@@ -158,9 +163,7 @@ class GmailProvider:
             message_id=headers.get("Message-ID", msg_id),
             thread_id=msg.get("threadId"),
             from_address=headers.get("From", ""),
-            to_addresses=[
-                a.strip() for a in headers.get("To", "").split(",")
-            ],
+            to_addresses=[a.strip() for a in headers.get("To", "").split(",")],
             subject=headers.get("Subject", ""),
             timestamp=timestamp,
             labels=label_ids,
@@ -296,7 +299,9 @@ class GmailProvider:
         fetched = await self._fetch_messages_batch(ids)
         by_id: dict[str, EmailMessage] = {}
         for msg in fetched:
-            gid = msg.provider_metadata.get("gmail_id") if msg.provider_metadata else None
+            gid = (
+                msg.provider_metadata.get("gmail_id") if msg.provider_metadata else None
+            )
             if gid:
                 by_id[gid] = msg
         for c in changes:

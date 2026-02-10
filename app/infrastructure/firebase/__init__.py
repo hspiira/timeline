@@ -1,9 +1,6 @@
 """Firebase Admin SDK and Firestore integration."""
 
-from app.infrastructure.firebase.client import (
-    get_firestore_client,
-    init_firebase,
-)
+from app.infrastructure.firebase.client import get_firestore_client, init_firebase
 from app.infrastructure.firebase.collections import (
     COLLECTION_DOCUMENTS,
     COLLECTION_EMAIL_ACCOUNTS,

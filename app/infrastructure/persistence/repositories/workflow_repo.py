@@ -7,8 +7,10 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.persistence.models.workflow import Workflow, WorkflowExecution
-from app.infrastructure.persistence.repositories.auditable_repo import AuditableRepository
+from app.infrastructure.persistence.models.workflow import Workflow
+from app.infrastructure.persistence.repositories.auditable_repo import (
+    AuditableRepository,
+)
 
 if TYPE_CHECKING:
     from app.infrastructure.services.system_audit_service import SystemAuditService
@@ -71,16 +73,16 @@ class WorkflowRepository(AuditableRepository[Workflow]):
         result = await self.db.execute(q)
         return list(result.scalars().all())
 
-    async def get_by_trigger(
-        self, tenant_id: str, event_type: str
-    ) -> list[Workflow]:
+    async def get_by_trigger(self, tenant_id: str, event_type: str) -> list[Workflow]:
         result = await self.db.execute(
-            select(Workflow).where(
+            select(Workflow)
+            .where(
                 Workflow.tenant_id == tenant_id,
                 Workflow.trigger_event_type == event_type,
                 Workflow.is_active.is_(True),
                 Workflow.deleted_at.is_(None),
-            ).order_by(Workflow.execution_order.asc())
+            )
+            .order_by(Workflow.execution_order.asc())
         )
         return list(result.scalars().all())
 

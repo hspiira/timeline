@@ -10,7 +10,6 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.v1.dependencies import (
     get_current_user,
-    get_current_user_optional,
     get_tenant_repo,
     get_user_repo,
 )

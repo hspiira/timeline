@@ -14,7 +14,9 @@ from app.api.v1.dependencies import (
     get_user_repo,
 )
 from app.core.config import get_settings
-from app.infrastructure.persistence.repositories.permission_repo import PermissionRepository
+from app.infrastructure.persistence.repositories.permission_repo import (
+    PermissionRepository,
+)
 from app.infrastructure.persistence.repositories.role_repo import RoleRepository
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
 
@@ -83,7 +85,9 @@ async def remove_role_from_user(
     permission_repo: PermissionRepository = Depends(get_permission_repo_for_write),
 ):
     """Remove a role from a user (tenant-scoped)."""
-    removed = await permission_repo.remove_role_from_user(user_id=user_id, role_id=role_id)
+    removed = await permission_repo.remove_role_from_user(
+        user_id=user_id, role_id=role_id
+    )
     if not removed:
         raise HTTPException(status_code=404, detail="Assignment not found")
     return None

@@ -1,8 +1,22 @@
 # new-timeline
 
-## Run
+Multi-tenant event sourcing API with FastAPI. All code uses the `app` package; see **Migration** and **Development** below.
 
-Copy `.env.example` to `.env`. For **Firestore** (default) set `DATABASE_BACKEND=firestore`, `FIREBASE_SERVICE_ACCOUNT_PATH`, `SECRET_KEY`, and `ENCRYPTION_SALT`. For **Postgres** set `DATABASE_BACKEND=postgres` and `DATABASE_URL`, then run `uv run --extra dev python -m alembic upgrade head`.
+## Required environment variables
+
+Copy `.env.example` to `.env` and set:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SECRET_KEY` | Yes | Min 32 chars; e.g. `openssl rand -hex 32` |
+| `ENCRYPTION_SALT` | Yes | e.g. `openssl rand -hex 16` |
+| `DATABASE_BACKEND` | Yes | `firestore` or `postgres` |
+| Firestore | If firestore | `FIREBASE_SERVICE_ACCOUNT_KEY` (JSON string) or `FIREBASE_SERVICE_ACCOUNT_PATH` (file path) |
+| Postgres | If postgres | `DATABASE_URL` (e.g. `postgresql+asyncpg://user:pass@host:5432/db`) |
+
+Optional: `REDIS_*` (cache), `ALLOWED_ORIGINS`, `REQUEST_TIMEOUT_SECONDS`, storage and telemetry settings. See `.env.example` and `app.core.config`.
+
+## Run
 
 ```bash
 uv run uvicorn app.main:app --reload
@@ -65,6 +79,22 @@ vercel
 ```
 
 This deploys a preview and will fail at build time if the bundle is too large or the build breaks.
+
+## Migration
+
+This project follows a phased migration plan and docstring standard:
+
+- **Phase plan:** [docs/MIGRATION_PHASE_PLAN.md](docs/MIGRATION_PHASE_PLAN.md) — domain, infrastructure, application, presentation, main app, scripts/tests/deploy.
+- **Docstrings:** [docs/DOCSTRING_STANDARD.md](docs/DOCSTRING_STANDARD.md) (or the docstring section in the phase plan) — Google-style; all public modules, classes, and functions documented.
+
+Imports use the `app` package only (no `src.*`).
+
+## Development
+
+- **Run:** `uv run uvicorn app.main:app --reload`
+- **Tests:** `uv run pytest tests/ -v` (requires `uv sync --all-extras` or `--extra dev` for pytest, httpx, pytest-asyncio)
+- **Scripts:** `uv run python -m scripts.create_test_user <tenant_code> <username> [password]`, `scripts.seed_rbac <tenant_id_or_code>`, `scripts.reset_password <user_id> <new_password>`. Scripts require Postgres (`DATABASE_BACKEND=postgres`).
+- **Lint/format:** `uv run black app tests scripts`, `uv run isort app tests scripts`, `uv run flake8 app tests scripts` (or ruff).
 
 ## Firestore (no migrations)
 

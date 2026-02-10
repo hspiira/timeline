@@ -1,6 +1,8 @@
 """Persistence repositories. Re-exports for dependency injection."""
 
-from app.infrastructure.persistence.repositories.auditable_repo import AuditableRepository
+from app.infrastructure.persistence.repositories.auditable_repo import (
+    AuditableRepository,
+)
 from app.infrastructure.persistence.repositories.base import BaseRepository
 from app.infrastructure.persistence.repositories.document_repo import DocumentRepository
 from app.infrastructure.persistence.repositories.email_account_repo import (

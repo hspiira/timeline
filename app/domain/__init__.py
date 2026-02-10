@@ -4,7 +4,12 @@ No dependencies on infrastructure or presentation. Used by application
 and infrastructure layers.
 """
 
-from app.domain.entities import EventEntity, EventSchemaEntity, SubjectEntity, TenantEntity
+from app.domain.entities import (
+    EventEntity,
+    EventSchemaEntity,
+    SubjectEntity,
+    TenantEntity,
+)
 from app.domain.enums import TenantStatus
 from app.domain.exceptions import (
     AuthenticationException,

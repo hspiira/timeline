@@ -12,8 +12,8 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-from app.core.config import get_settings
-from app.infrastructure.firebase._rest_client import (
+from app.core.config import get_settings  # noqa: E402
+from app.infrastructure.firebase._rest_client import (  # noqa: E402
     FirestoreRESTClient,
     _get_credentials,
 )

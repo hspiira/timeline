@@ -13,7 +13,9 @@ from app.infrastructure.persistence.models.permission import (
     UserRole,
 )
 from app.infrastructure.persistence.models.role import Role
-from app.infrastructure.persistence.repositories.auditable_repo import AuditableRepository
+from app.infrastructure.persistence.repositories.auditable_repo import (
+    AuditableRepository,
+)
 from app.shared.enums import AuditAction
 
 if TYPE_CHECKING:

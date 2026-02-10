@@ -16,10 +16,9 @@ from app.application.interfaces.services import IHashService
 from app.shared.telemetry.logging import get_logger
 
 if TYPE_CHECKING:
-    from app.schemas.event import EventCreate
-
-    from app.infrastructure.persistence.models.event import Event
     from app.application.interfaces.services import IWorkflowEngine
+    from app.infrastructure.persistence.models.event import Event
+    from app.schemas.event import EventCreate
 
 logger = get_logger(__name__)
 
@@ -65,9 +64,7 @@ class EventService:
                 event.payload,
             )
 
-        prev_event = await self.event_repo.get_last_event(
-            event.subject_id, tenant_id
-        )
+        prev_event = await self.event_repo.get_last_event(event.subject_id, tenant_id)
         prev_hash = prev_event.hash if prev_event else None
 
         if prev_event and event.event_time <= prev_event.event_time:
@@ -116,9 +113,7 @@ class EventService:
                 )
 
         first_subject_id = events[0].subject_id
-        prev_event = await self.event_repo.get_last_event(
-            first_subject_id, tenant_id
-        )
+        prev_event = await self.event_repo.get_last_event(first_subject_id, tenant_id)
         prev_hash = prev_event.hash if prev_event else None
         prev_time = prev_event.event_time if prev_event else None
 
@@ -165,15 +160,11 @@ class EventService:
 
         return created
 
-    async def _trigger_workflows(
-        self, event: "Event", tenant_id: str
-    ) -> list[Any]:
+    async def _trigger_workflows(self, event: "Event", tenant_id: str) -> list[Any]:
         if not self.workflow_engine:
             return []
         try:
-            result = await self.workflow_engine.process_event_triggers(
-                event, tenant_id
-            )
+            result = await self.workflow_engine.process_event_triggers(event, tenant_id)
             return result or []
         except Exception:
             logger.exception(
@@ -204,9 +195,7 @@ class EventService:
                 f"Schema version {schema_version} for '{event_type}' is not active"
             )
         try:
-            jsonschema.validate(
-                instance=payload, schema=schema.schema_definition
-            )
+            jsonschema.validate(instance=payload, schema=schema.schema_definition)
         except jsonschema.ValidationError as e:
             raise ValueError(
                 f"Payload validation failed against schema v{schema_version}: {e.message}"

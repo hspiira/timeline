@@ -4,7 +4,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 
-from app.api.v1.dependencies import get_event_schema_repo, get_event_schema_repo_for_write
+from app.api.v1.dependencies import (
+    get_event_schema_repo,
+    get_event_schema_repo_for_write,
+)
 from app.core.config import get_settings
 from app.infrastructure.persistence.repositories.event_schema_repo import (
     EventSchemaRepository,

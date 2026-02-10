@@ -80,8 +80,14 @@ DEFAULT_ROLES: dict[str, RoleData] = {
         "name": "Manager",
         "description": "Can manage events, subjects, and users",
         "permissions": [
-            "event:*", "subject:*", "user:read", "user:create", "user:list",
-            "document:*", "event_schema:read", "workflow:*",
+            "event:*",
+            "subject:*",
+            "user:read",
+            "user:create",
+            "user:list",
+            "document:*",
+            "event_schema:read",
+            "workflow:*",
         ],
         "is_system": True,
     },
@@ -89,9 +95,16 @@ DEFAULT_ROLES: dict[str, RoleData] = {
         "name": "Agent",
         "description": "Can create and view events and subjects",
         "permissions": [
-            "event:create", "event:read", "event:list",
-            "subject:create", "subject:read", "subject:update", "subject:list",
-            "document:create", "document:read", "event_schema:read",
+            "event:create",
+            "event:read",
+            "event:list",
+            "subject:create",
+            "subject:read",
+            "subject:update",
+            "subject:list",
+            "document:create",
+            "document:read",
+            "event_schema:read",
         ],
         "is_system": True,
     },
@@ -99,8 +112,12 @@ DEFAULT_ROLES: dict[str, RoleData] = {
         "name": "Auditor (Read-Only)",
         "description": "Read-only access to events and subjects",
         "permissions": [
-            "event:read", "event:list", "subject:read", "subject:list",
-            "document:read", "event_schema:read",
+            "event:read",
+            "event:list",
+            "subject:read",
+            "subject:list",
+            "document:read",
+            "event_schema:read",
         ],
         "is_system": True,
     },
@@ -123,9 +140,7 @@ class TenantInitializationService:
         await self.db.flush()
 
         permissions, permission_map = self._build_permissions(tenant_id)
-        roles, role_permissions, role_map = self._build_roles(
-            tenant_id, permission_map
-        )
+        roles, role_permissions, role_map = self._build_roles(tenant_id, permission_map)
         self._role_map = role_map
 
         self.db.add_all(permissions)
@@ -135,21 +150,15 @@ class TenantInitializationService:
         self.db.add_all(role_permissions)
         await self.db.flush()
 
-    async def assign_admin_role(
-        self, tenant_id: str, admin_user_id: str
-    ) -> None:
+    async def assign_admin_role(self, tenant_id: str, admin_user_id: str) -> None:
         """Assign admin role to user. Call after user creation."""
         if "admin" not in self._role_map:
             result = await self.db.execute(
-                select(Role.id).where(
-                    Role.tenant_id == tenant_id, Role.code == "admin"
-                )
+                select(Role.id).where(Role.tenant_id == tenant_id, Role.code == "admin")
             )
             admin_role_id = result.scalar_one_or_none()
             if not admin_role_id:
-                raise ValueError(
-                    f"Admin role not found for tenant {tenant_id}"
-                )
+                raise ValueError(f"Admin role not found for tenant {tenant_id}")
         else:
             admin_role_id = self._role_map["admin"]
 
@@ -220,7 +229,8 @@ class TenantInitializationService:
         if pattern.endswith(":*"):
             prefix = pattern[:-2]
             return [
-                pid for code, pid in permission_map.items()
+                pid
+                for code, pid in permission_map.items()
                 if code.startswith(prefix + ":")
             ]
         pid = permission_map.get(pattern)
@@ -239,9 +249,7 @@ class TenantInitializationService:
         )
 
     @staticmethod
-    def _build_audit_schema(
-        tenant_id: str, created_by: str | None
-    ) -> EventSchema:
+    def _build_audit_schema(tenant_id: str, created_by: str | None) -> EventSchema:
         return EventSchema(
             id=generate_cuid(),
             tenant_id=tenant_id,

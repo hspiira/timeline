@@ -6,17 +6,16 @@ Use TYPE_CHECKING for model/schema types so application has no runtime infra dep
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
     from app.application.dtos.event import EventToPersist
-    from app.schemas.event import EventCreate
-
     from app.infrastructure.persistence.models.event import Event
     from app.infrastructure.persistence.models.event_schema import EventSchema
     from app.infrastructure.persistence.models.subject import Subject
     from app.infrastructure.persistence.models.tenant import Tenant
     from app.infrastructure.persistence.models.user import User
+    from app.schemas.event import EventCreate
 
 
 class IEventRepository(Protocol):
@@ -26,9 +25,7 @@ class IEventRepository(Protocol):
         """Return hash of the most recent event for subject in tenant."""
         ...
 
-    async def get_last_event(
-        self, subject_id: str, tenant_id: str
-    ) -> "Event | None":
+    async def get_last_event(self, subject_id: str, tenant_id: str) -> "Event | None":
         """Return the most recent event for subject in tenant."""
         ...
 

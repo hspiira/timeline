@@ -30,7 +30,9 @@ def upgrade() -> None:
     )
     op.add_column(
         "email_account",
-        sa.Column("history_sync_enabled", sa.Boolean(), nullable=False, server_default="false"),
+        sa.Column(
+            "history_sync_enabled", sa.Boolean(), nullable=False, server_default="false"
+        ),
     )
 
 

@@ -7,7 +7,10 @@ from typing import Any
 
 import aioimaplib
 
-from app.infrastructure.external.email.protocols import EmailMessage, EmailProviderConfig
+from app.infrastructure.external.email.protocols import (
+    EmailMessage,
+    EmailProviderConfig,
+)
 from app.shared.telemetry.logging import get_logger
 from app.shared.utils.datetime import utc_now
 
@@ -83,14 +86,10 @@ class IMAPProvider:
         email_message = email.message_from_bytes(msg_data[1])
         message_id = email_message.get("Message-ID", f"imap-{msg_id.decode()}")
         from_address = email_message.get("From", "")
-        to_addresses = [
-            addr.strip() for addr in email_message.get("To", "").split(",")
-        ]
+        to_addresses = [addr.strip() for addr in email_message.get("To", "").split(",")]
         subject = email_message.get("Subject", "")
         date_str = email_message.get("Date")
-        timestamp = (
-            parsedate_to_datetime(date_str) if date_str else utc_now()
-        )
+        timestamp = parsedate_to_datetime(date_str) if date_str else utc_now()
         flags_str = msg_data[0].decode() if msg_data[0] else ""
         is_read = "\\Seen" in flags_str
         is_starred = "\\Flagged" in flags_str

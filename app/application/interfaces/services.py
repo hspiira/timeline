@@ -9,9 +9,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
-    from app.schemas.event import EventCreate
-
     from app.infrastructure.persistence.models.event import Event
+    from app.schemas.event import EventCreate
 
 
 class IHashService(Protocol):
@@ -58,9 +57,7 @@ class IEventService(Protocol):
 class IWorkflowEngine(Protocol):
     """Protocol for workflow execution triggered by events."""
 
-    async def process_event_triggers(
-        self, event: Any, tenant_id: str
-    ) -> list[Any]:
+    async def process_event_triggers(self, event: Any, tenant_id: str) -> list[Any]:
         """Find and execute workflows for event; return executions."""
         ...
 
@@ -72,9 +69,7 @@ class ITenantInitializationService(Protocol):
         """Create permissions, roles, role-permissions, audit schema and subject."""
         ...
 
-    async def assign_admin_role(
-        self, tenant_id: str, admin_user_id: str
-    ) -> None:
+    async def assign_admin_role(self, tenant_id: str, admin_user_id: str) -> None:
         """Assign admin role to user (call after user creation)."""
         ...
 
@@ -82,9 +77,7 @@ class ITenantInitializationService(Protocol):
 class IPermissionResolver(Protocol):
     """Protocol for resolving user permissions (used by AuthorizationService)."""
 
-    async def get_user_permissions(
-        self, user_id: str, tenant_id: str
-    ) -> set[str]:
+    async def get_user_permissions(self, user_id: str, tenant_id: str) -> set[str]:
         """Return set of permission codes (e.g. {'event:create', 'subject:read'})."""
         ...
 

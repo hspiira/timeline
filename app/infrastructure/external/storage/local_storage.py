@@ -36,7 +36,9 @@ class LocalStorageService:
 
     CHUNK_SIZE = 64 * 1024  # 64KB
 
-    _download_tokens: dict[str, tuple[str, datetime]] = {}  # token -> (storage_ref, expires_at)
+    _download_tokens: dict[str, tuple[str, datetime]] = (
+        {}
+    )  # token -> (storage_ref, expires_at)
 
     def __init__(self, storage_root: str, base_url: str | None = None) -> None:
         """Initialize local storage.
@@ -105,7 +107,9 @@ class LocalStorageService:
                         "storage_ref": storage_ref,
                         "checksum": existing_checksum,
                         "size": target_path.stat().st_size,
-                        "uploaded_at": existing_meta.get("uploaded_at", utc_now().isoformat()),
+                        "uploaded_at": existing_meta.get(
+                            "uploaded_at", utc_now().isoformat()
+                        ),
                     }
                 raise StorageAlreadyExistsError(storage_ref)
 
