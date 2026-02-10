@@ -15,7 +15,7 @@ from app.infrastructure.persistence.repositories.auditable_repo import Auditable
 from app.shared.enums import AuditAction
 
 if TYPE_CHECKING:
-    from app.application.services.system_audit_service import SystemAuditService
+    from app.infrastructure.services.system_audit_service import SystemAuditService
 
 
 class TenantRepository(AuditableRepository[Tenant]):
@@ -56,6 +56,11 @@ class TenantRepository(AuditableRepository[Tenant]):
             d = _tenant_to_dict(tenant)
             await self.cache.set(tenant_key(tenant_id), d, ttl=self.cache_ttl)
         return tenant
+
+    async def create_tenant(self, code: str, name: str, status: str) -> Tenant:
+        """Create tenant from code/name/status; return created entity."""
+        tenant = Tenant(code=code, name=name, status=status)
+        return await self.create(tenant)
 
     async def get_by_code(self, code: str) -> Tenant | None:
         """Get tenant by unique code, from cache if available."""

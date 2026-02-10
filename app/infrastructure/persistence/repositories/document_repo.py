@@ -13,11 +13,11 @@ from app.shared.enums import AuditAction
 from app.shared.utils import utc_now
 
 if TYPE_CHECKING:
-    from app.application.services.system_audit_service import SystemAuditService
+    from app.infrastructure.services.system_audit_service import SystemAuditService
 
 
 class DocumentRepository(AuditableRepository[Document]):
-    """Document repository."""
+    """Document repository. create() accepts Document or dict (for application layer)."""
 
     def __init__(
         self,
@@ -45,6 +45,12 @@ class DocumentRepository(AuditableRepository[Document]):
             "event_id": obj.event_id,
             "version": obj.version,
         }
+
+    async def create(self, obj: Document | dict[str, Any]) -> Document:
+        """Create document; accepts Document or dict (from application use case)."""
+        if isinstance(obj, dict):
+            obj = Document(**obj)
+        return await super().create(obj)
 
     async def get_by_subject(
         self,

@@ -3,6 +3,7 @@
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.dtos.event import EventToPersist
 from app.infrastructure.persistence.models.event import Event
 from app.infrastructure.persistence.repositories.base import BaseRepository
 from app.schemas.event import EventCreate
@@ -87,3 +88,37 @@ class EventRepository(BaseRepository[Event]):
             select(Event).where(Event.id == event_id, Event.tenant_id == tenant_id)
         )
         return result.scalar_one_or_none()
+
+    async def get_by_tenant(
+        self, tenant_id: str, skip: int = 0, limit: int = 100
+    ) -> list[Event]:
+        result = await self.db.execute(
+            select(Event)
+            .where(Event.tenant_id == tenant_id)
+            .order_by(Event.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def create_events_bulk(
+        self, tenant_id: str, events: list[EventToPersist]
+    ) -> list[Event]:
+        if not events:
+            return []
+        objs = [
+            Event(
+                tenant_id=tenant_id,
+                subject_id=e.subject_id,
+                event_type=e.event_type,
+                schema_version=e.schema_version,
+                event_time=e.event_time,
+                payload=e.payload,
+                hash=e.hash,
+                previous_hash=e.previous_hash,
+            )
+            for e in events
+        ]
+        self.db.add_all(objs)
+        await self.db.flush()
+        return objs

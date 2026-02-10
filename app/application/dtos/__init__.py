@@ -1,4 +1,5 @@
-"""Application data transfer objects (DTOs).
+"""Application DTOs (no ORM dependency)."""
 
-Structures for cross-layer data passing where domain entities are not used.
-"""
+from app.application.dtos.event import EventToPersist
+
+__all__ = ["EventToPersist"]

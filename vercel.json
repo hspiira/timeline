@@ -1,5 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && $HOME/.local/bin/uv sync --frozen",
+  "installCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && export UV_LINK_MODE=copy VIRTUAL_ENV=\"${VIRTUAL_ENV:-.vercel/python/.venv}\" && $HOME/.local/bin/uv venv \"$VIRTUAL_ENV\" 2>/dev/null || true && $HOME/.local/bin/uv sync --frozen --active",
   "framework": "fastapi"
 }
