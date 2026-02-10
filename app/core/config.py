@@ -53,6 +53,11 @@ class Settings(BaseSettings):
     # Tenant
     tenant_header_name: str = "X-Tenant-ID"
 
+    # Request / middleware
+    request_timeout_seconds: int = 60
+    request_id_header: str = "X-Request-ID"
+    correlation_id_header: str = "X-Correlation-ID"
+
     # Firebase / Firestore: use key (env) or path (file). For Vercel, use key.
     firebase_service_account_key: str | None = None  # Full JSON string (e.g. FIREBASE_SERVICE_ACCOUNT_KEY)
     firebase_service_account_path: str | None = None  # Path to JSON file
