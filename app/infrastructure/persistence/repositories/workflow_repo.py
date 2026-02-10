@@ -11,7 +11,7 @@ from app.infrastructure.persistence.models.workflow import Workflow, WorkflowExe
 from app.infrastructure.persistence.repositories.auditable_repo import AuditableRepository
 
 if TYPE_CHECKING:
-    from app.application.services.system_audit_service import SystemAuditService
+    from app.infrastructure.services.system_audit_service import SystemAuditService
 
 
 class WorkflowRepository(AuditableRepository[Workflow]):
@@ -83,3 +83,29 @@ class WorkflowRepository(AuditableRepository[Workflow]):
             ).order_by(Workflow.execution_order.asc())
         )
         return list(result.scalars().all())
+
+    async def create_workflow(
+        self,
+        tenant_id: str,
+        name: str,
+        trigger_event_type: str,
+        actions: list[dict[str, Any]],
+        description: str | None = None,
+        is_active: bool = True,
+        trigger_conditions: dict[str, Any] | None = None,
+        max_executions_per_day: int | None = None,
+        execution_order: int = 0,
+    ) -> Workflow:
+        """Create workflow; return created entity."""
+        workflow = Workflow(
+            tenant_id=tenant_id,
+            name=name,
+            description=description,
+            is_active=is_active,
+            trigger_event_type=trigger_event_type,
+            trigger_conditions=trigger_conditions,
+            actions=actions,
+            max_executions_per_day=max_executions_per_day,
+            execution_order=execution_order,
+        )
+        return await self.create(workflow)

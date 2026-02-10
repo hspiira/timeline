@@ -17,7 +17,7 @@ from app.infrastructure.persistence.repositories.auditable_repo import Auditable
 from app.shared.enums import AuditAction
 
 if TYPE_CHECKING:
-    from app.application.services.system_audit_service import SystemAuditService
+    from app.infrastructure.services.system_audit_service import SystemAuditService
 
 
 class PermissionRepository(AuditableRepository[Permission]):

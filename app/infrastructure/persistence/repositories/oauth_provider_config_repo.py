@@ -11,7 +11,7 @@ from app.infrastructure.persistence.models.oauth_provider_config import OAuthPro
 from app.infrastructure.persistence.repositories.auditable_repo import AuditableRepository
 
 if TYPE_CHECKING:
-    from app.application.services.system_audit_service import SystemAuditService
+    from app.infrastructure.services.system_audit_service import SystemAuditService
 
 
 class OAuthProviderConfigRepository(AuditableRepository[OAuthProviderConfig]):

@@ -1,8 +1,9 @@
-"""Document operations: upload/download coordinating storage and document repo."""
+"""Document operations: upload/download and read coordinating storage and document repo."""
 
 from __future__ import annotations
 
 import hashlib
+from datetime import timedelta
 from typing import Any, BinaryIO
 
 from app.application.interfaces.repositories import (
@@ -122,3 +123,63 @@ class DocumentService:
             "created_by": created_by,
         }
         return await self.document_repo.create(document_dto)
+
+    async def get_document_metadata(
+        self, tenant_id: str, document_id: str
+    ) -> dict[str, Any]:
+        """Return document metadata; raise ResourceNotFoundException if not found or wrong tenant."""
+        doc = await self.document_repo.get_by_id(document_id)
+        if not doc:
+            raise ResourceNotFoundException("document", document_id)
+        if getattr(doc, "tenant_id", None) != tenant_id:
+            raise ResourceNotFoundException("document", document_id)
+        return {
+            "id": getattr(doc, "id", None),
+            "tenant_id": getattr(doc, "tenant_id", None),
+            "subject_id": getattr(doc, "subject_id", None),
+            "filename": getattr(doc, "filename", None),
+            "original_filename": getattr(doc, "original_filename", None),
+            "mime_type": getattr(doc, "mime_type", None),
+            "file_size": getattr(doc, "file_size", None),
+            "version": getattr(doc, "version", None),
+            "storage_ref": getattr(doc, "storage_ref", None),
+        }
+
+    async def get_download_url(
+        self,
+        tenant_id: str,
+        document_id: str,
+        expiration: timedelta = timedelta(hours=1),
+    ) -> str:
+        """Return temporary download URL; raise ResourceNotFoundException if not found or wrong tenant."""
+        doc = await self.document_repo.get_by_id(document_id)
+        if not doc:
+            raise ResourceNotFoundException("document", document_id)
+        if getattr(doc, "tenant_id", None) != tenant_id:
+            raise ResourceNotFoundException("document", document_id)
+        storage_ref = getattr(doc, "storage_ref", None)
+        if not storage_ref:
+            raise ResourceNotFoundException("document", document_id)
+        return await self.storage.generate_download_url(
+            storage_ref, expiration=expiration
+        )
+
+    async def list_documents(
+        self, tenant_id: str, subject_id: str
+    ) -> list[dict[str, Any]]:
+        """Return documents for subject in tenant (metadata only)."""
+        docs = await self.document_repo.get_by_subject(
+            subject_id=subject_id,
+            tenant_id=tenant_id,
+            include_deleted=False,
+        )
+        return [
+            {
+                "id": getattr(d, "id", None),
+                "filename": getattr(d, "filename", None),
+                "mime_type": getattr(d, "mime_type", None),
+                "file_size": getattr(d, "file_size", None),
+                "version": getattr(d, "version", None),
+            }
+            for d in docs
+        ]

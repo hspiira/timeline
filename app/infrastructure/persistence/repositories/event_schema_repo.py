@@ -14,7 +14,7 @@ from app.infrastructure.persistence.repositories.auditable_repo import Auditable
 from app.shared.enums import AuditAction
 
 if TYPE_CHECKING:
-    from app.application.services.system_audit_service import SystemAuditService
+    from app.infrastructure.services.system_audit_service import SystemAuditService
 
 
 class EventSchemaRepository(AuditableRepository[EventSchema]):
@@ -66,6 +66,26 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
             )
         )
         return (r.scalar() or 0) + 1
+
+    async def create_schema(
+        self,
+        tenant_id: str,
+        event_type: str,
+        schema_definition: dict[str, Any],
+        is_active: bool = False,
+        created_by: str | None = None,
+    ) -> EventSchema:
+        """Create event schema with next version; return created entity."""
+        version = await self.get_next_version(tenant_id, event_type)
+        schema = EventSchema(
+            tenant_id=tenant_id,
+            event_type=event_type,
+            schema_definition=schema_definition,
+            version=version,
+            is_active=is_active,
+            created_by=created_by,
+        )
+        return await self.create(schema)
 
     async def get_active_schema(
         self, tenant_id: str, event_type: str

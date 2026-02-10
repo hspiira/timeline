@@ -19,7 +19,7 @@ from app.shared.telemetry.logging import get_logger
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
-    from app.application.services.system_audit_service import SystemAuditService
+    from app.infrastructure.services.system_audit_service import SystemAuditService
 
 ModelType = TypeVar("ModelType", bound=Base)
 _logger = get_logger(__name__)

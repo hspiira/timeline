@@ -102,6 +102,15 @@ class ISubjectRepository(Protocol):
         """Return subject by external reference."""
         ...
 
+    async def create_subject(
+        self,
+        tenant_id: str,
+        subject_type: str,
+        external_ref: str | None = None,
+    ) -> "Subject":
+        """Create subject; return created entity."""
+        ...
+
 
 class IEventSchemaRepository(Protocol):
     """Protocol for event schema repository (DIP)."""
@@ -172,6 +181,15 @@ class IDocumentRepository(Protocol):
 
     async def get_by_id(self, document_id: str) -> Any:
         """Return document by ID."""
+        ...
+
+    async def get_by_subject(
+        self,
+        subject_id: str,
+        tenant_id: str,
+        include_deleted: bool = False,
+    ) -> Any:
+        """Return documents for subject in tenant."""
         ...
 
     async def get_by_checksum(self, tenant_id: str, checksum: str) -> Any:

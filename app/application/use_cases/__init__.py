@@ -2,5 +2,6 @@
 
 from app.application.use_cases.documents import DocumentService
 from app.application.use_cases.events import EventService
+from app.application.use_cases.subjects import SubjectService
 
-__all__ = ["DocumentService", "EventService"]
+__all__ = ["DocumentService", "EventService", "SubjectService"]

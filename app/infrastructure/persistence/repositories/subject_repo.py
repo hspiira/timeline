@@ -11,7 +11,7 @@ from app.infrastructure.persistence.models.subject import Subject
 from app.infrastructure.persistence.repositories.auditable_repo import AuditableRepository
 
 if TYPE_CHECKING:
-    from app.application.services.system_audit_service import SystemAuditService
+    from app.infrastructure.services.system_audit_service import SystemAuditService
 
 
 class SubjectRepository(AuditableRepository[Subject]):
@@ -85,3 +85,17 @@ class SubjectRepository(AuditableRepository[Subject]):
             )
         )
         return result.scalar_one_or_none()
+
+    async def create_subject(
+        self,
+        tenant_id: str,
+        subject_type: str,
+        external_ref: str | None = None,
+    ) -> Subject:
+        """Create subject; return created entity."""
+        subject = Subject(
+            tenant_id=tenant_id,
+            subject_type=subject_type,
+            external_ref=external_ref,
+        )
+        return await self.create(subject)

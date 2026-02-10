@@ -13,8 +13,18 @@ from app.pages import render_root_page
 async def lifespan(app: FastAPI):
     # Startup
     init_firebase()
+    if settings.redis_enabled:
+        from app.infrastructure.cache.redis_cache import CacheService
+
+        cache = CacheService()
+        await cache.connect()
+        app.state.cache = cache
+    else:
+        app.state.cache = None
     yield
     # Shutdown
+    if getattr(app.state, "cache", None) is not None:
+        await app.state.cache.disconnect()
 
 
 app = FastAPI(
