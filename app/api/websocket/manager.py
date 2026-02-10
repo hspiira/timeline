@@ -36,14 +36,15 @@ class ConnectionManager:
         async with self._lock:
             self._connections.append(websocket)
 
-    def disconnect(self, websocket: WebSocket) -> None:
+    async def disconnect(self, websocket: WebSocket) -> None:
         """Remove a connection from the set (call on disconnect).
 
         Args:
             websocket: The WebSocket instance to remove.
         """
-        if websocket in self._connections:
-            self._connections.remove(websocket)
+        async with self._lock:
+            if websocket in self._connections:
+                self._connections.remove(websocket)
 
     async def broadcast(self, message: str | dict[str, Any]) -> None:
         """Send a message to all connected clients.
@@ -52,17 +53,21 @@ class ConnectionManager:
             message: String or JSON-serializable dict to send.
         """
         async with self._lock:
-            dead: list[WebSocket] = []
-            for ws in self._connections:
-                try:
-                    if isinstance(message, dict):
-                        await ws.send_json(message)
-                    else:
-                        await ws.send_text(message)
-                except Exception:
-                    dead.append(ws)
-            for ws in dead:
-                self._connections.remove(ws)
+            snapshot = list(self._connections)
+        dead: list[WebSocket] = []
+        for ws in snapshot:
+            try:
+                if isinstance(message, dict):
+                    await ws.send_json(message)
+                else:
+                    await ws.send_text(message)
+            except Exception:
+                dead.append(ws)
+        if dead:
+            async with self._lock:
+                for ws in dead:
+                    if ws in self._connections:
+                        self._connections.remove(ws)
 
     @property
     def connection_count(self) -> int:

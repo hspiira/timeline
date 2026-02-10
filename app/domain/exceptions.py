@@ -81,17 +81,27 @@ class AuthenticationException(TimelineException):
 class AuthorizationException(TimelineException):
     """Raised when the user lacks required permissions for the operation."""
 
-    def __init__(self, resource: str, action: str) -> None:
-        """Initialize with resource and action that was denied.
+    def __init__(
+        self,
+        resource: str | None = None,
+        action: str | None = None,
+        message: str = "Permission denied",
+    ) -> None:
+        """Initialize with optional resource, action, and message.
 
         Args:
-            resource: Resource type (e.g. 'event', 'subject').
-            action: Action that was attempted (e.g. 'create', 'read').
+            resource: Optional resource type (e.g. 'event', 'subject').
+            action: Optional action that was attempted (e.g. 'create', 'read').
+            message: Human-readable message; default used when resource/action omitted.
         """
-        message = f"Permission denied: {action} on {resource}"
-        super().__init__(
-            message, "AUTHORIZATION_ERROR", {"resource": resource, "action": action}
-        )
+        if resource and action:
+            message = f"Permission denied: {action} on {resource}"
+        details: dict[str, Any] = {}
+        if resource:
+            details["resource"] = resource
+        if action:
+            details["action"] = action
+        super().__init__(message, "PERMISSION_DENIED", details)
 
 
 class TenantNotFoundException(TimelineException):
@@ -123,6 +133,17 @@ class TenantAlreadyExistsError(TimelineException):
             f"Tenant with code '{code}' already exists",
             "TENANT_ALREADY_EXISTS",
             {"code": code},
+        )
+
+
+class DocumentVersionConflictError(TimelineException):
+    """Raised when a concurrent request won the parent version update (optimistic lock)."""
+
+    def __init__(self, parent_document_id: str) -> None:
+        super().__init__(
+            "Document was updated by another request; retry.",
+            "DOCUMENT_VERSION_CONFLICT",
+            {"parent_document_id": parent_document_id},
         )
 
 
@@ -194,25 +215,3 @@ class DuplicateAssignmentError(TimelineException):
         super().__init__(message, "DUPLICATE_ASSIGNMENT", details)
 
 
-class PermissionDeniedError(TimelineException):
-    """Raised when the user lacks a required permission."""
-
-    def __init__(
-        self,
-        message: str = "Permission denied",
-        resource: str | None = None,
-        action: str | None = None,
-    ) -> None:
-        """Initialize with optional message and context.
-
-        Args:
-            message: Optional custom message.
-            resource: Optional resource that was denied.
-            action: Optional action that was denied.
-        """
-        details: dict[str, Any] = {}
-        if resource:
-            details["resource"] = resource
-        if action:
-            details["action"] = action
-        super().__init__(message, "PERMISSION_DENIED", details)

@@ -8,12 +8,15 @@ import re
 from dataclasses import dataclass
 from typing import ClassVar
 
+# Shared slug pattern: lowercase alphanumeric with optional hyphens (e.g. acme-corp).
+_SLUG_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+
 
 @dataclass(frozen=True)
 class TenantCode:
     """Value object for tenant code (SRP: tenant code validation).
 
-    Tenant codes must be 3–15 characters, lowercase alphanumeric with
+    Tenant codes must be 3-15 characters, lowercase alphanumeric with
     optional hyphens (e.g. 'acme', 'acme-corp'). Immutable once activated.
     """
 
@@ -29,7 +32,7 @@ class TenantCode:
             raise ValueError("Tenant code must be a non-empty string")
         if len(self.value) < 3 or len(self.value) > 15:
             raise ValueError("Tenant code must be 3-15 characters")
-        if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", self.value):
+        if not _SLUG_RE.match(self.value):
             raise ValueError(
                 "Tenant code must be lowercase alphanumeric with optional hyphens "
                 "(e.g., 'acme', 'acme-corp', 'abc123')"
@@ -56,7 +59,7 @@ class SubjectType:
             raise ValueError("Subject type must be a non-empty string")
         if len(self.value) > 150:
             raise ValueError("Subject type must not exceed 150 characters")
-        if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", self.value):
+        if not _SLUG_RE.match(self.value):
             raise ValueError(
                 "Subject type must be lowercase alphanumeric with optional hyphens "
                 "(e.g., 'client', 'policy', 'supplier')"
@@ -73,7 +76,7 @@ class EventType:
 
     value: str
 
-    # Standard event types (reference only – custom types are allowed)
+    # Standard event types (reference only - custom types are allowed)
     VALID_TYPES: ClassVar[frozenset[str]] = frozenset(
         {
             "created",
@@ -111,13 +114,15 @@ class Hash:
         Raises:
             ValueError: If empty, wrong length, or non-hex.
         """
+        # Normalize to lowercase for consistent comparisons
+        object.__setattr__(self, "value", self.value.lower())
         if not self.value:
             raise ValueError("Hash must be a non-empty string")
         if len(self.value) not in (64, 128):
             raise ValueError(
                 "Hash must be a valid SHA-256 (64 chars) or SHA-512 (128 chars) hex string"
             )
-        if not all(c in "0123456789abcdef" for c in self.value.lower()):
+        if not all(c in "0123456789abcdef" for c in self.value):
             raise ValueError("Hash must contain only hexadecimal characters")
 
 

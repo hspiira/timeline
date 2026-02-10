@@ -25,15 +25,9 @@ async def create_user(
             email=body.email,
             password=body.password,
         )
-        return UserResponse(
-            id=user.id,
-            tenant_id=user.tenant_id,
-            username=user.username,
-            email=user.email,
-            is_active=user.is_active,
-        )
+        return UserResponse.model_validate(user)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/{user_id}", response_model=UserResponse)
@@ -46,16 +40,10 @@ async def get_user(
     user = await user_repo.get_by_id_and_tenant(user_id, tenant_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return UserResponse(
-        id=user.id,
-        tenant_id=user.tenant_id,
-        username=user.username,
-        email=user.email,
-        is_active=user.is_active,
-    )
+    return UserResponse.model_validate(user)
 
 
-@router.get("")
+@router.get("", response_model=list[UserResponse])
 async def list_users(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     skip: int = 0,
@@ -68,13 +56,4 @@ async def list_users(
         skip=skip,
         limit=limit,
     )
-    return [
-        {
-            "id": u.id,
-            "tenant_id": u.tenant_id,
-            "username": u.username,
-            "email": u.email,
-            "is_active": u.is_active,
-        }
-        for u in users
-    ]
+    return [UserResponse.model_validate(u) for u in users]

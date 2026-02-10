@@ -60,3 +60,14 @@ def _prevent_event_updates(
         "Events are immutable and cannot be updated. "
         "Create a new compensating event instead."
     )
+
+
+@event.listens_for(Event, "before_delete")
+def _prevent_event_deletes(
+    _mapper: Mapper[Any], _connection: Connection, _target: Event
+) -> None:
+    """Events are append-only; deletions are forbidden for chain integrity."""
+    raise ValueError(
+        "Events are immutable and cannot be deleted. "
+        "Create a new compensating event instead."
+    )

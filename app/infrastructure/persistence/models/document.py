@@ -2,7 +2,16 @@
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.persistence.database import Base
@@ -15,7 +24,7 @@ class Document(MultiTenantModel, Base):
     __tablename__ = "document"
 
     subject_id: Mapped[str] = mapped_column(
-        String, ForeignKey("subject.id"), nullable=False, index=True
+        String, ForeignKey("subject.id", ondelete="CASCADE"), nullable=False, index=True
     )
     event_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("event.id"), nullable=True, index=True
@@ -51,5 +60,14 @@ class Document(MultiTenantModel, Base):
             "parent_document_id",
             "version",
             unique=True,
+        ),
+        # Root documents (parent_document_id IS NULL): one version=1 per (tenant, subject).
+        Index(
+            "ux_document_root_version",
+            "tenant_id",
+            "subject_id",
+            "version",
+            unique=True,
+            postgresql_where=text("parent_document_id IS NULL"),
         ),
     )

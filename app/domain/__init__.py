@@ -16,7 +16,6 @@ from app.domain.exceptions import (
     AuthorizationException,
     DuplicateAssignmentError,
     EventChainBrokenException,
-    PermissionDeniedError,
     ResourceNotFoundException,
     SchemaValidationException,
     TenantNotFoundException,
@@ -32,28 +31,23 @@ from app.domain.value_objects import (
 )
 
 __all__ = [
-    # Entities
-    "EventEntity",
-    "EventSchemaEntity",
-    "SubjectEntity",
-    "TenantEntity",
-    # Enums
-    "TenantStatus",
-    # Exceptions
     "AuthenticationException",
     "AuthorizationException",
     "DuplicateAssignmentError",
-    "EventChainBrokenException",
-    "PermissionDeniedError",
-    "ResourceNotFoundException",
-    "SchemaValidationException",
-    "TenantNotFoundException",
-    "TimelineException",
-    "ValidationException",
-    # Value objects
     "EventChain",
+    "EventChainBrokenException",
+    "EventEntity",
+    "EventSchemaEntity",
     "EventType",
     "Hash",
+    "ResourceNotFoundException",
+    "SchemaValidationException",
+    "SubjectEntity",
     "SubjectType",
     "TenantCode",
+    "TenantEntity",
+    "TenantNotFoundException",
+    "TenantStatus",
+    "TimelineException",
+    "ValidationException",
 ]

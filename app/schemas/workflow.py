@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class WorkflowCreateRequest(BaseModel):
@@ -20,6 +20,8 @@ class WorkflowCreateRequest(BaseModel):
 
 class WorkflowResponse(BaseModel):
     """Workflow response."""
+
+    model_config = ConfigDict(from_attributes=True)
 
     id: str
     tenant_id: str

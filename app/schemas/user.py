@@ -1,6 +1,6 @@
 """User API schemas."""
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserCreateRequest(BaseModel):
@@ -13,6 +13,8 @@ class UserCreateRequest(BaseModel):
 
 class UserResponse(BaseModel):
     """User response (no password)."""
+
+    model_config = ConfigDict(from_attributes=True)
 
     id: str
     tenant_id: str

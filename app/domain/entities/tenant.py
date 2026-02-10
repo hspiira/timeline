@@ -31,23 +31,27 @@ class TenantEntity:
         return self.status == TenantStatus.ACTIVE
 
     def activate(self) -> None:
-        """Set tenant to ACTIVE. Suspended tenants can be activated.
+        """Set tenant to ACTIVE. Idempotent when already ACTIVE.
 
-        Raises:
-            ValueError: If tenant is ARCHIVED (archived cannot be activated).
-        """
-        if self.status == TenantStatus.ARCHIVED:
-            raise ValueError("Archived tenants cannot be activated")
-        self.status = TenantStatus.ACTIVE
-
-    def suspend(self) -> None:
-        """Set tenant to SUSPENDED. Active tenants can be suspended.
+        Suspended tenants can be activated. No-op if status is already ACTIVE.
 
         Raises:
             ValueError: If tenant is ARCHIVED.
         """
         if self.status == TenantStatus.ARCHIVED:
-            raise ValueError("Archived tenants cannot be suspended")
+            raise ValueError("Tenant is archived")
+        self.status = TenantStatus.ACTIVE
+
+    def suspend(self) -> None:
+        """Set tenant to SUSPENDED. Idempotent when already SUSPENDED.
+
+        Active tenants can be suspended. No-op if status is already SUSPENDED.
+
+        Raises:
+            ValueError: If tenant is ARCHIVED.
+        """
+        if self.status == TenantStatus.ARCHIVED:
+            raise ValueError("Tenant is archived")
         self.status = TenantStatus.SUSPENDED
 
     def archive(self) -> None:
@@ -61,14 +65,16 @@ class TenantEntity:
         self.status = TenantStatus.ARCHIVED
 
     def change_code(self, new_code: TenantCode) -> None:
-        """Change tenant code. Not allowed once tenant is ACTIVE.
+        """Change tenant code. Not allowed when ACTIVE or ARCHIVED.
 
         Args:
             new_code: New tenant code value object.
 
         Raises:
-            ValueError: If tenant is already active (code is immutable).
+            ValueError: If tenant is ACTIVE or ARCHIVED (code is immutable).
         """
         if self.status == TenantStatus.ACTIVE:
-            raise ValueError("Tenant code cannot be changed once tenant is active")
+            raise ValueError("Tenant is active")
+        if self.status == TenantStatus.ARCHIVED:
+            raise ValueError("Tenant is archived")
         self.code = new_code

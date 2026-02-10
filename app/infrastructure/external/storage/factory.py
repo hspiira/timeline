@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from app.infrastructure.external.storage.local_storage import LocalStorageService
 from app.infrastructure.external.storage.protocol import StorageProtocol
 
 if TYPE_CHECKING:
@@ -28,6 +27,7 @@ class StorageFactory:
             ValueError: Unknown backend or missing required config.
         """
         from app.core.config import get_settings
+        from app.infrastructure.external.storage.local_storage import LocalStorageService
         from app.infrastructure.external.storage.s3_storage import S3StorageService
 
         s = settings or get_settings()

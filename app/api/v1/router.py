@@ -48,4 +48,4 @@ api_router.include_router(workflows.router, prefix="/workflows", tags=["workflow
 api_router.include_router(
     oauth_providers.router, prefix="/oauth-providers", tags=["oauth-providers"]
 )
-api_router.include_router(ws_endpoint.router, tags=["websocket"])
+api_router.include_router(ws_endpoint.router, prefix="/ws", tags=["websocket"])

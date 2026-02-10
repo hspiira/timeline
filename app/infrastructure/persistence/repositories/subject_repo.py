@@ -1,4 +1,4 @@
-"""Subject repository with audit."""
+"""Subject repository with audit. Returns application DTOs."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.dtos.subject import SubjectResult
 from app.infrastructure.persistence.models.subject import Subject
 from app.infrastructure.persistence.repositories.auditable_repo import (
     AuditableRepository,
@@ -14,6 +15,16 @@ from app.infrastructure.persistence.repositories.auditable_repo import (
 
 if TYPE_CHECKING:
     from app.infrastructure.services.system_audit_service import SystemAuditService
+
+
+def _subject_to_result(s: Subject) -> SubjectResult:
+    """Map ORM Subject to application SubjectResult."""
+    return SubjectResult(
+        id=s.id,
+        tenant_id=s.tenant_id,
+        subject_type=s.subject_type,
+        external_ref=s.external_ref,
+    )
 
 
 class SubjectRepository(AuditableRepository[Subject]):
@@ -41,16 +52,21 @@ class SubjectRepository(AuditableRepository[Subject]):
             "external_ref": obj.external_ref,
         }
 
+    async def get_by_id(self, subject_id: str) -> SubjectResult | None:
+        result = await self.db.execute(select(Subject).where(Subject.id == subject_id))
+        row = result.scalar_one_or_none()
+        return _subject_to_result(row) if row else None
+
     async def get_by_tenant(
         self, tenant_id: str, skip: int = 0, limit: int = 100
-    ) -> list[Subject]:
+    ) -> list[SubjectResult]:
         result = await self.db.execute(
             select(Subject)
             .where(Subject.tenant_id == tenant_id)
             .offset(skip)
             .limit(limit)
         )
-        return list(result.scalars().all())
+        return [_subject_to_result(s) for s in result.scalars().all()]
 
     async def get_by_type(
         self,
@@ -58,7 +74,7 @@ class SubjectRepository(AuditableRepository[Subject]):
         subject_type: str,
         skip: int = 0,
         limit: int = 100,
-    ) -> list[Subject]:
+    ) -> list[SubjectResult]:
         result = await self.db.execute(
             select(Subject)
             .where(
@@ -69,40 +85,43 @@ class SubjectRepository(AuditableRepository[Subject]):
             .offset(skip)
             .limit(limit)
         )
-        return list(result.scalars().all())
+        return [_subject_to_result(s) for s in result.scalars().all()]
 
     async def get_by_external_ref(
         self, tenant_id: str, external_ref: str
-    ) -> Subject | None:
+    ) -> SubjectResult | None:
         result = await self.db.execute(
             select(Subject).where(
                 Subject.tenant_id == tenant_id,
                 Subject.external_ref == external_ref,
             )
         )
-        return result.scalar_one_or_none()
+        row = result.scalar_one_or_none()
+        return _subject_to_result(row) if row else None
 
     async def get_by_id_and_tenant(
         self, subject_id: str, tenant_id: str
-    ) -> Subject | None:
+    ) -> SubjectResult | None:
         result = await self.db.execute(
             select(Subject).where(
                 Subject.id == subject_id,
                 Subject.tenant_id == tenant_id,
             )
         )
-        return result.scalar_one_or_none()
+        row = result.scalar_one_or_none()
+        return _subject_to_result(row) if row else None
 
     async def create_subject(
         self,
         tenant_id: str,
         subject_type: str,
         external_ref: str | None = None,
-    ) -> Subject:
+    ) -> SubjectResult:
         """Create subject; return created entity."""
         subject = Subject(
             tenant_id=tenant_id,
             subject_type=subject_type,
             external_ref=external_ref,
         )
-        return await self.create(subject)
+        created = await self.create(subject)
+        return _subject_to_result(created)

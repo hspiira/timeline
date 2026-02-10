@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     database_backend: str = "firestore"
     database_url: str = ""
     database_echo: bool = False
+    # Optional pool/driver overrides (None = use defaults in database.py)
+    db_pool_size: int | None = None
+    db_max_overflow: int | None = None
+    db_query_cache_size: int | None = None
+    db_command_timeout: int | None = None
+    db_disable_jit: bool = True
 
     # Security
     secret_key: str = ""
@@ -83,14 +89,14 @@ class Settings(BaseSettings):
     telemetry_enabled: bool = True
     telemetry_exporter: str = "console"
     telemetry_otlp_endpoint: str | None = None
-    telemetry_jaeger_endpoint: str | None = "localhost"
+    telemetry_jaeger_endpoint: str | None = None
     telemetry_sample_rate: float = 1.0
     telemetry_environment: str = "development"
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        extra="allow",
+        extra="ignore",
         case_sensitive=False,
     )
 
@@ -99,7 +105,7 @@ class Settings(BaseSettings):
         """Validate required env and storage backend.
 
         - Postgres: DATABASE_URL required.
-        - Firestore: FIREBASE_SERVICE_ACCOUNT_PATH required; Alembic not used.
+        - Firestore: FIREBASE_SERVICE_ACCOUNT_KEY or FIREBASE_SERVICE_ACCOUNT_PATH required; Alembic not used.
         """
         if self.database_backend == "postgres":
             if not self.database_url:
@@ -134,7 +140,7 @@ class Settings(BaseSettings):
                     "s3_bucket is required when storage_backend is 's3'. "
                     "Set S3_BUCKET environment variable or update .env file."
                 )
-        elif self.storage_backend not in ("local", "s3"):
+        elif self.storage_backend != "local":
             raise ValueError(
                 f"Invalid storage_backend '{self.storage_backend}'. "
                 "Must be one of: 'local', 's3'"
@@ -146,11 +152,11 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Return cached application settings (single instance per process).
 
+    Validation runs on first call, not at import time. In tests, call
+    get_settings.cache_clear() before overriding env vars so the next
+    get_settings() uses the new values.
+
     Returns:
         Loaded and validated Settings instance.
     """
     return Settings()
-
-
-# Module-level instance for convenience (uses same cache as get_settings).
-settings = get_settings()

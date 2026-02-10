@@ -2,64 +2,42 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
-
+from app.application.dtos.event import EventResult
 from app.application.interfaces.repositories import IEventRepository
 from app.application.interfaces.services import IHashService
 from app.shared.utils.datetime import utc_now
 
 
+@dataclass(kw_only=True)
 class VerificationResult:
     """Result of verifying a single event."""
 
-    def __init__(
-        self,
-        event_id: str,
-        event_type: str,
-        event_time: datetime,
-        sequence: int,
-        is_valid: bool,
-        error_type: str | None = None,
-        error_message: str | None = None,
-        expected_hash: str | None = None,
-        actual_hash: str | None = None,
-        previous_hash: str | None = None,
-    ) -> None:
-        self.event_id = event_id
-        self.event_type = event_type
-        self.event_time = event_time
-        self.sequence = sequence
-        self.is_valid = is_valid
-        self.error_type = error_type
-        self.error_message = error_message
-        self.expected_hash = expected_hash
-        self.actual_hash = actual_hash
-        self.previous_hash = previous_hash
+    event_id: str
+    event_type: str
+    event_time: datetime
+    sequence: int
+    is_valid: bool
+    error_type: str | None = None
+    error_message: str | None = None
+    expected_hash: str | None = None
+    actual_hash: str | None = None
+    previous_hash: str | None = None
 
 
+@dataclass(kw_only=True)
 class ChainVerificationResult:
     """Result of verifying a subject or tenant chain."""
 
-    def __init__(
-        self,
-        subject_id: str | None,
-        tenant_id: str,
-        total_events: int,
-        valid_events: int,
-        invalid_events: int,
-        is_chain_valid: bool,
-        verified_at: datetime,
-        event_results: list[VerificationResult],
-    ) -> None:
-        self.subject_id = subject_id
-        self.tenant_id = tenant_id
-        self.total_events = total_events
-        self.valid_events = valid_events
-        self.invalid_events = invalid_events
-        self.is_chain_valid = is_chain_valid
-        self.verified_at = verified_at
-        self.event_results = event_results
+    subject_id: str | None
+    tenant_id: str
+    total_events: int
+    valid_events: int
+    invalid_events: int
+    is_chain_valid: bool
+    verified_at: datetime
+    event_results: list[VerificationResult] = field(default_factory=list)
 
 
 class VerificationService:
@@ -76,9 +54,20 @@ class VerificationService:
     async def verify_subject_chain(
         self, subject_id: str, tenant_id: str
     ) -> ChainVerificationResult:
-        """Verify event chain for one subject. Events sorted by created_at (oldest first)."""
-        events = await self.event_repo.get_by_subject(subject_id, tenant_id)
-        events = sorted(events, key=lambda e: getattr(e, "created_at"))
+        """Verify event chain for one subject. Events sorted by event_time (oldest first)."""
+        # Fetch ALL events for the subject so chain verification is complete (no silent truncation).
+        all_events: list[EventResult] = []
+        batch_size = 500
+        offset = 0
+        while True:
+            batch = await self.event_repo.get_by_subject(
+                subject_id, tenant_id, skip=offset, limit=batch_size
+            )
+            all_events.extend(batch)
+            if len(batch) < batch_size:
+                break
+            offset += batch_size
+        events = sorted(all_events, key=lambda e: e.event_time)
 
         if not events:
             return ChainVerificationResult(
@@ -131,16 +120,16 @@ class VerificationService:
                 event_results=[],
             )
 
-        by_subject: dict[str, list[Any]] = {}
+        by_subject: dict[str, list[EventResult]] = {}
         for event in events:
-            sid = getattr(event, "subject_id", None)
+            sid = event.subject_id
             if sid not in by_subject:
                 by_subject[sid] = []
             by_subject[sid].append(event)
         for sid in by_subject:
             by_subject[sid] = sorted(
                 by_subject[sid],
-                key=lambda e: getattr(e, "created_at"),
+                key=lambda e: e.event_time,
             )
 
         results = []
@@ -167,17 +156,41 @@ class VerificationService:
         )
 
     def _verify_event(
-        self, event: Any, previous_event: Any | None, sequence: int
+        self,
+        event: EventResult,
+        previous_event: EventResult | None,
+        sequence: int,
     ) -> VerificationResult:
         """Verify one event: hash match and previous_hash link."""
-        subject_id = getattr(event, "subject_id", "")
-        event_type = getattr(event, "event_type", "")
-        event_time = getattr(event, "event_time", None)
-        payload = getattr(event, "payload", {})
-        schema_version = getattr(event, "schema_version", 1)
-        previous_hash = getattr(event, "previous_hash", None)
-        event_hash = getattr(event, "hash", "")
-        event_id = getattr(event, "id", "")
+        subject_id = event.subject_id
+        event_type = event.event_type
+        event_time = event.event_time
+        payload = event.payload
+        schema_version = event.schema_version
+        previous_hash = event.previous_hash
+        event_hash = event.hash
+        event_id = event.id
+
+        def result(
+            *,
+            is_valid: bool,
+            error_type: str | None = None,
+            error_message: str | None = None,
+            expected_hash: str | None = None,
+            actual_hash: str | None = None,
+        ) -> VerificationResult:
+            return VerificationResult(
+                event_id=event_id,
+                event_type=event_type,
+                event_time=event_time,
+                sequence=sequence,
+                is_valid=is_valid,
+                error_type=error_type,
+                error_message=error_message,
+                expected_hash=expected_hash,
+                actual_hash=actual_hash,
+                previous_hash=previous_hash,
+            )
 
         computed = self.hash_service.compute_hash(
             subject_id=subject_id,
@@ -189,65 +202,40 @@ class VerificationService:
         )
 
         if computed != event_hash:
-            return VerificationResult(
-                event_id=event_id,
-                event_type=event_type,
-                event_time=event_time,
-                sequence=sequence,
+            return result(
                 is_valid=False,
                 error_type="HASH_MISMATCH",
                 error_message="Event hash does not match recomputed hash",
                 expected_hash=computed,
                 actual_hash=event_hash,
-                previous_hash=previous_hash,
             )
 
         if sequence == 0:
             if previous_hash is not None:
-                return VerificationResult(
-                    event_id=event_id,
-                    event_type=event_type,
-                    event_time=event_time,
-                    sequence=sequence,
+                return result(
                     is_valid=False,
                     error_type="GENESIS_ERROR",
                     error_message="Genesis event should have null previous_hash",
-                    previous_hash=previous_hash,
                 )
         else:
             if previous_event is None:
-                return VerificationResult(
-                    event_id=event_id,
-                    event_type=event_type,
-                    event_time=event_time,
-                    sequence=sequence,
+                return result(
                     is_valid=False,
                     error_type="MISSING_PREVIOUS",
                     error_message="Previous event not found",
-                    previous_hash=previous_hash,
                 )
-            prev_hash = getattr(previous_event, "hash", None)
+            prev_hash = previous_event.hash
             if previous_hash != prev_hash:
-                return VerificationResult(
-                    event_id=event_id,
-                    event_type=event_type,
-                    event_time=event_time,
-                    sequence=sequence,
+                return result(
                     is_valid=False,
                     error_type="CHAIN_BREAK",
                     error_message="previous_hash does not match previous event",
                     expected_hash=prev_hash,
                     actual_hash=previous_hash,
-                    previous_hash=previous_hash,
                 )
 
-        return VerificationResult(
-            event_id=event_id,
-            event_type=event_type,
-            event_time=event_time,
-            sequence=sequence,
+        return result(
             is_valid=True,
             expected_hash=event_hash,
             actual_hash=event_hash,
-            previous_hash=previous_hash,
         )

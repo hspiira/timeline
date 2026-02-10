@@ -30,20 +30,9 @@ async def create_workflow(
             max_executions_per_day=body.max_executions_per_day,
             execution_order=body.execution_order,
         )
-        return WorkflowResponse(
-            id=workflow.id,
-            tenant_id=workflow.tenant_id,
-            name=workflow.name,
-            description=workflow.description,
-            is_active=workflow.is_active,
-            trigger_event_type=workflow.trigger_event_type,
-            trigger_conditions=workflow.trigger_conditions,
-            actions=workflow.actions,
-            max_executions_per_day=workflow.max_executions_per_day,
-            execution_order=workflow.execution_order,
-        )
+        return WorkflowResponse.model_validate(workflow)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/{workflow_id}", response_model=WorkflowResponse)
@@ -56,21 +45,10 @@ async def get_workflow(
     workflow = await workflow_repo.get_by_id_and_tenant(workflow_id, tenant_id)
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    return WorkflowResponse(
-        id=workflow.id,
-        tenant_id=workflow.tenant_id,
-        name=workflow.name,
-        description=workflow.description,
-        is_active=workflow.is_active,
-        trigger_event_type=workflow.trigger_event_type,
-        trigger_conditions=workflow.trigger_conditions,
-        actions=workflow.actions,
-        max_executions_per_day=workflow.max_executions_per_day,
-        execution_order=workflow.execution_order,
-    )
+    return WorkflowResponse.model_validate(workflow)
 
 
-@router.get("")
+@router.get("", response_model=list[WorkflowResponse])
 async def list_workflows(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     skip: int = 0,
@@ -85,15 +63,4 @@ async def list_workflows(
         limit=limit,
         include_inactive=include_inactive,
     )
-    return [
-        {
-            "id": w.id,
-            "tenant_id": w.tenant_id,
-            "name": w.name,
-            "description": w.description,
-            "is_active": w.is_active,
-            "trigger_event_type": w.trigger_event_type,
-            "execution_order": w.execution_order,
-        }
-        for w in workflows
-    ]
+    return [WorkflowResponse.model_validate(w) for w in workflows]

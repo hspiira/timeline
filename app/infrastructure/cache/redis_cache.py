@@ -90,13 +90,13 @@ class CacheService:
             return None
         try:
             value = await self.redis.get(key)
-            if value:
+            if value is not None:
                 logger.debug("Cache HIT: %s", key)
                 return json.loads(value)
             logger.debug("Cache MISS: %s", key)
             return None
-        except Exception as e:
-            logger.error("Cache get error for key %s: %s", key, e)
+        except Exception:
+            logger.exception("Cache get error for key %s", key)
             return None
 
     async def set(self, key: str, value: Any, ttl: int = 300) -> bool:
@@ -117,8 +117,8 @@ class CacheService:
             await self.redis.setex(key, ttl, serialized)
             logger.debug("Cache SET: %s (TTL: %ss)", key, ttl)
             return True
-        except Exception as e:
-            logger.error("Cache set error for key %s: %s", key, e)
+        except Exception:
+            logger.exception("Cache set error for key %s", key)
             return False
 
     async def delete(self, key: str) -> bool:
@@ -136,31 +136,48 @@ class CacheService:
             await self.redis.delete(key)
             logger.debug("Cache DELETE: %s", key)
             return True
-        except Exception as e:
-            logger.error("Cache delete error for key %s: %s", key, e)
+        except Exception:
+            logger.exception("Cache delete error for key %s", key)
             return False
 
     async def delete_pattern(self, pattern: str) -> int:
-        """Delete all keys matching pattern (e.g. permissions:tenant-123:*).
+        """Delete all keys matching pattern using SCAN + batched UNLINK (non-blocking).
+
+        Uses scan_iter to avoid KEYS blocking; collects keys in chunks and
+        UNLINKs each chunk to minimize round-trips and keep deletion async on server.
 
         Args:
-            pattern: Redis SCAN match pattern.
+            pattern: Redis SCAN match pattern (e.g. permission:tenant-123:*).
 
         Returns:
             Number of keys deleted.
         """
         if not self.is_available() or self.redis is None:
             return 0
+        chunk_size = 500
+        deleted = 0
         try:
-            deleted = 0
-            async for k in self.redis.scan_iter(match=pattern):
-                await self.redis.delete(k)
-                deleted += 1
+            chunk: list[str] = []
+            async for key in self.redis.scan_iter(match=pattern):
+                chunk.append(key)
+                if len(chunk) >= chunk_size:
+                    async with self.redis.pipeline(transaction=False) as pipe:
+                        for k in chunk:
+                            pipe.delete(k)
+                        results = await pipe.execute()
+                    deleted += sum(int(r or 0) for r in results)
+                    chunk = []
+            if chunk:
+                async with self.redis.pipeline(transaction=False) as pipe:
+                    for k in chunk:
+                        pipe.delete(k)
+                    results = await pipe.execute()
+                deleted += sum(int(r or 0) for r in results)
             if deleted > 0:
                 logger.info("Cache INVALIDATE: %s (%s keys)", pattern, deleted)
             return deleted
-        except Exception as e:
-            logger.error("Cache delete_pattern error for %s: %s", pattern, e)
+        except Exception:
+            logger.exception("Cache delete_pattern error for %s", pattern)
             return 0
 
     async def clear_all(self) -> bool:
@@ -175,8 +192,8 @@ class CacheService:
             await self.redis.flushdb()
             logger.warning("Cache CLEARED: all keys deleted")
             return True
-        except Exception as e:
-            logger.error("Cache clear error: %s", e)
+        except Exception:
+            logger.exception("Cache clear error")
             return False
 
 
@@ -200,22 +217,32 @@ def cached(
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             cache: CacheService | None = None
+            # Detect CacheService from first arg, self.cache, or explicit kwarg.
             if args and isinstance(args[0], CacheService):
                 cache = args[0]
                 func_args = args[1:]
-            elif "cache" in kwargs:
+                call_kwargs = kwargs
+            elif args and hasattr(args[0], "cache") and isinstance(
+                getattr(args[0], "cache"), CacheService
+            ):
+                cache = getattr(args[0], "cache")
+                func_args = args[1:]
+                call_kwargs = kwargs
+            elif "cache" in kwargs and isinstance(kwargs["cache"], CacheService):
                 cache = kwargs["cache"]
                 func_args = args
+                # Do not expose "cache" kwarg to key builders.
+                call_kwargs = {k: v for k, v in kwargs.items() if k != "cache"}
             else:
                 return await func(*args, **kwargs)
             if cache is None:
                 return await func(*args, **kwargs)
             if key_builder:
-                cache_key = key_builder(*func_args, **kwargs)
+                cache_key = key_builder(*func_args, **call_kwargs)
             else:
                 parts = [str(a) for a in func_args]
                 parts.extend(
-                    f"{k}={v}" for k, v in sorted(kwargs.items()) if k != "cache"
+                    f"{k}={v}" for k, v in sorted(call_kwargs.items())
                 )
                 cache_key = f"{key_prefix}:{':'.join(parts)}"
             cached_value = await cache.get(cache_key)

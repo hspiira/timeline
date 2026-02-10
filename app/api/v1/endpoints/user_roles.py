@@ -19,11 +19,12 @@ from app.infrastructure.persistence.repositories.permission_repo import (
 )
 from app.infrastructure.persistence.repositories.role_repo import RoleRepository
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
+from app.schemas.role import RoleResponse
 
 router = APIRouter()
 
 
-@router.get("/{user_id}/roles")
+@router.get("/{user_id}/roles", response_model=list[RoleResponse])
 async def list_user_roles(
     user_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
@@ -31,18 +32,7 @@ async def list_user_roles(
 ):
     """List roles assigned to a user (tenant-scoped)."""
     roles = await permission_repo.get_user_roles(user_id=user_id, tenant_id=tenant_id)
-    return [
-        {
-            "id": r.id,
-            "tenant_id": r.tenant_id,
-            "code": r.code,
-            "name": r.name,
-            "description": r.description,
-            "is_system": r.is_system,
-            "is_active": r.is_active,
-        }
-        for r in roles
-    ]
+    return [RoleResponse.model_validate(r) for r in roles]
 
 
 @router.post("/{user_id}/roles/{role_id}", status_code=204)

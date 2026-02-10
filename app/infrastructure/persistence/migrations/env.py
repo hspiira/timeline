@@ -16,12 +16,15 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from app.core.config import get_settings
 from app.infrastructure.persistence.database import Base
 
+import app.infrastructure.persistence.models as _models
+
+_ = _models
+
 settings = get_settings()
 if settings.database_backend != "postgres":
     print(
-        "Alembic: database_backend is not 'postgres' (current: %r). "
-        "Firestore has no SQL schema; skipping migrations."
-        % (settings.database_backend,),
+        f"Alembic: database_backend is not 'postgres' (current: {settings.database_backend!r}). "
+        "Firestore has no SQL schema; skipping migrations.",
         file=sys.stderr,
     )
     sys.exit(0)

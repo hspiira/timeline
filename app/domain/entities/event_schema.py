@@ -67,10 +67,7 @@ class EventSchemaEntity:
             raise ValueError("Cannot compare schemas for different event types")
         prev_required = set(previous.schema_definition.get("required", []))
         curr_required = set(self.schema_definition.get("required", []))
-        new_required = curr_required - prev_required
-        if new_required:
-            return False
-        return True
+        return not (curr_required - prev_required)
 
     def activate(self) -> None:
         """Mark this schema version as active.

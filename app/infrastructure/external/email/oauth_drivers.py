@@ -60,6 +60,9 @@ class OAuthDriver(ABC):
     AUTHORIZATION_ENDPOINT: ClassVar[str]
     TOKEN_ENDPOINT: ClassVar[str]
     SUPPORTS_PKCE: ClassVar[bool] = False
+    _SENSITIVE_KEYS: ClassVar[frozenset[str]] = frozenset(
+        {"access_token", "refresh_token", "id_token"}
+    )
 
     @property
     def provider_name(self) -> str:
@@ -83,6 +86,11 @@ class OAuthDriver(ABC):
 
     def build_authorization_url(self, state: str, **extra_params: Any) -> str:
         """Build OAuth authorization URL with state."""
+        _RESERVED = {"client_id", "redirect_uri", "response_type", "scope", "state"}
+        reserved = _RESERVED | set(self._get_authorization_params())
+        conflicts = reserved & set(extra_params.keys())
+        if conflicts:
+            raise ValueError(f"Cannot override reserved OAuth params: {conflicts}")
         params = {
             "client_id": self.client_id,
             "redirect_uri": self.redirect_uri,
@@ -117,17 +125,19 @@ class OAuthDriver(ABC):
             )
             if response.status_code != 200:
                 logger.error(
-                    "%s token exchange failed: %s", self.provider_name, response.text
+                    "%s token exchange failed: status=%d",
+                    self.provider_name,
+                    response.status_code,
                 )
                 raise ValueError(
-                    f"Token exchange failed: {response.status_code} {response.text}"
+                    f"Token exchange failed with status {response.status_code}"
                 )
             token_data: dict[str, Any] = response.json()
             return self._normalize_token_response(token_data)
 
     async def refresh_access_token(self, refresh_token: str) -> OAuthTokens:
         """Refresh access token."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 self.token_endpoint,
                 data={
@@ -139,10 +149,12 @@ class OAuthDriver(ABC):
             )
             if response.status_code != 200:
                 logger.error(
-                    "%s token refresh failed: %s", self.provider_name, response.text
+                    "%s token refresh failed: status=%d",
+                    self.provider_name,
+                    response.status_code,
                 )
                 raise ValueError(
-                    f"Token refresh failed: {response.status_code} {response.text}"
+                    f"Token refresh failed with status {response.status_code}"
                 )
             token_data = response.json()
             tokens = self._normalize_token_response(token_data)
@@ -167,6 +179,11 @@ class OAuthDriver(ABC):
         """Normalize provider response to OAuthTokens."""
         expires_in = token_data.get("expires_in", 3600)
         expires_at = utc_now() + timedelta(seconds=expires_in)
+        safe_metadata = {
+            k: v
+            for k, v in token_data.items()
+            if k not in self._SENSITIVE_KEYS
+        }
         return OAuthTokens(
             access_token=token_data["access_token"],
             refresh_token=token_data.get("refresh_token"),
@@ -174,7 +191,7 @@ class OAuthDriver(ABC):
             expires_in=expires_in,
             expires_at=expires_at,
             scope=token_data.get("scope", " ".join(self.scopes)),
-            provider_metadata=token_data,
+            provider_metadata=safe_metadata,
         )
 
 
@@ -200,13 +217,22 @@ class GmailDriver(OAuthDriver):
                 headers={"Authorization": f"Bearer {access_token}"},
             )
             if response.status_code != 200:
-                raise ValueError(f"Failed to get user info: {response.text}")
+                logger.error(
+                    "%s get user info failed: status=%d",
+                    self.PROVIDER_NAME,
+                    response.status_code,
+                )
+                raise ValueError(
+                    f"Failed to get user info with status {response.status_code}"
+                )
             data = response.json()
+            # Gmail profile API does not return a stable user ID (historyId is a
+            # mailbox change marker). Use People API or ID token 'sub' for a stable ID.
             return OAuthUserInfo(
                 email=data["emailAddress"],
                 name=None,
                 picture=None,
-                provider_user_id=data.get("historyId"),
+                provider_user_id=None,
                 provider_metadata=data,
             )
 
@@ -231,7 +257,14 @@ class OutlookDriver(OAuthDriver):
                 headers={"Authorization": f"Bearer {access_token}"},
             )
             if response.status_code != 200:
-                raise ValueError(f"Failed to get user info: {response.text}")
+                logger.error(
+                    "%s get user info failed: status=%d",
+                    self.PROVIDER_NAME,
+                    response.status_code,
+                )
+                raise ValueError(
+                    f"Failed to get user info with status {response.status_code}"
+                )
             data = response.json()
             email = data.get("mail") or data.get("userPrincipalName")
             if not email:
@@ -263,7 +296,14 @@ class YahooDriver(OAuthDriver):
                 headers={"Authorization": f"Bearer {access_token}"},
             )
             if response.status_code != 200:
-                raise ValueError(f"Failed to get user info: {response.text}")
+                logger.error(
+                    "%s get user info failed: status=%d",
+                    self.PROVIDER_NAME,
+                    response.status_code,
+                )
+                raise ValueError(
+                    f"Failed to get user info with status {response.status_code}"
+                )
             data = response.json()
             return OAuthUserInfo(
                 email=data["email"],

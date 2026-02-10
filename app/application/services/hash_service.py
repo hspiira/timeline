@@ -8,6 +8,8 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any
 
+from app.shared.utils.datetime import ensure_utc
+
 
 class HashAlgorithm(ABC):
     """Abstract hash algorithm (OCP)."""
@@ -53,11 +55,12 @@ class HashService:
         previous_hash: str | None,
     ) -> str:
         """Compute hash for event (chain integrity)."""
+        event_time_utc = ensure_utc(event_time) or event_time
         hash_content = {
             "subject_id": subject_id,
             "event_type": event_type,
             "schema_version": schema_version,
-            "event_time": event_time.isoformat(),
+            "event_time": event_time_utc.isoformat(),
             "payload": payload,
             "previous_hash": previous_hash,
         }

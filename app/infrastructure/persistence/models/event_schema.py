@@ -15,7 +15,9 @@ class EventSchema(MultiTenantModel, Base):
     __tablename__ = "event_schema"
 
     event_type: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    schema_definition: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    schema_definition: Mapped[dict[str, Any]] = mapped_column(
+        "schema_json", JSON, nullable=False
+    )
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_by: Mapped[str | None] = mapped_column(

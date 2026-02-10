@@ -9,9 +9,9 @@ from app.domain.value_objects.core import (
 )
 
 __all__ = [
-    "TenantCode",
-    "SubjectType",
+    "EventChain",
     "EventType",
     "Hash",
-    "EventChain",
+    "SubjectType",
+    "TenantCode",
 ]

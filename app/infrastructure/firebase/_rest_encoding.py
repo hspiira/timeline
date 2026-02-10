@@ -1,6 +1,6 @@
 """Encode/decode Python values to/from Firestore REST API 'fields' format."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 
@@ -14,7 +14,12 @@ def _encode_value(v: Any) -> dict:
     if isinstance(v, float):
         return {"doubleValue": v}
     if isinstance(v, datetime):
-        return {"timestampValue": v.strftime("%Y-%m-%dT%H:%M:%S.%fZ")}
+        if v.tzinfo is None:
+            raise ValueError(
+                "Firestore timestamp encoding requires timezone-aware datetime"
+            )
+        utc_v = v.astimezone(timezone.utc)
+        return {"timestampValue": utc_v.strftime("%Y-%m-%dT%H:%M:%S.%fZ")}
     if isinstance(v, str):
         return {"stringValue": v}
     if isinstance(v, bytes):
@@ -63,4 +68,4 @@ def decode_document(fields: dict | None) -> dict:
     """Convert Firestore REST Document.fields to a Python dict."""
     if not fields:
         return {}
-    return {k: _decode_value(v) for k, v in fields.get("fields", {}).items()}
+    return {k: _decode_value(v) for k, v in fields.items()}

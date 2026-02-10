@@ -1,4 +1,4 @@
-"""EventSchema repository with optional caching and audit."""
+"""EventSchema repository with optional caching and audit. Returns application DTOs."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.dtos.event_schema import EventSchemaResult
 from app.infrastructure.cache.cache_protocol import CacheProtocol
 from app.infrastructure.cache.keys import schema_active_key
 from app.infrastructure.persistence.models.event_schema import EventSchema
@@ -17,6 +18,19 @@ from app.shared.enums import AuditAction
 
 if TYPE_CHECKING:
     from app.infrastructure.services.system_audit_service import SystemAuditService
+
+
+def _event_schema_to_result(s: EventSchema) -> EventSchemaResult:
+    """Map ORM EventSchema to application EventSchemaResult."""
+    return EventSchemaResult(
+        id=s.id,
+        tenant_id=s.tenant_id,
+        event_type=s.event_type,
+        schema_definition=s.schema_definition,
+        version=s.version,
+        is_active=s.is_active,
+        created_by=s.created_by,
+    )
 
 
 class EventSchemaRepository(AuditableRepository[EventSchema]):
@@ -69,6 +83,11 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
         )
         return (r.scalar() or 0) + 1
 
+    async def get_by_id(self, schema_id: str) -> EventSchemaResult | None:
+        result = await self.db.execute(select(EventSchema).where(EventSchema.id == schema_id))
+        row = result.scalar_one_or_none()
+        return _event_schema_to_result(row) if row else None
+
     async def create_schema(
         self,
         tenant_id: str,
@@ -76,7 +95,7 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
         schema_definition: dict[str, Any],
         is_active: bool = False,
         created_by: str | None = None,
-    ) -> EventSchema:
+    ) -> EventSchemaResult:
         """Create event schema with next version; return created entity."""
         version = await self.get_next_version(tenant_id, event_type)
         schema = EventSchema(
@@ -87,17 +106,18 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
             is_active=is_active,
             created_by=created_by,
         )
-        return await self.create(schema)
+        created = await self.create(schema)
+        return _event_schema_to_result(created)
 
     async def get_active_schema(
         self, tenant_id: str, event_type: str
-    ) -> EventSchema | None:
+    ) -> EventSchemaResult | None:
         if self.cache and self.cache.is_available():
             cached = await self.cache.get(schema_active_key(tenant_id, event_type))
             if cached is not None:
                 schema = EventSchema(**cached)
                 self.db.add(schema)
-                return schema
+                return _event_schema_to_result(schema)
         result = await self.db.execute(
             select(EventSchema)
             .where(
@@ -129,11 +149,11 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
             await self.cache.set(
                 schema_active_key(tenant_id, event_type), d, ttl=self.cache_ttl
             )
-        return schema
+        return _event_schema_to_result(schema) if schema else None
 
     async def get_by_version(
         self, tenant_id: str, event_type: str, version: int
-    ) -> EventSchema | None:
+    ) -> EventSchemaResult | None:
         result = await self.db.execute(
             select(EventSchema).where(
                 and_(
@@ -143,11 +163,12 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
                 )
             )
         )
-        return result.scalar_one_or_none()
+        row = result.scalar_one_or_none()
+        return _event_schema_to_result(row) if row else None
 
     async def get_all_for_event_type(
         self, tenant_id: str, event_type: str
-    ) -> list[EventSchema]:
+    ) -> list[EventSchemaResult]:
         result = await self.db.execute(
             select(EventSchema)
             .where(
@@ -158,10 +179,10 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
             )
             .order_by(EventSchema.version.desc())
         )
-        return list(result.scalars().all())
+        return [_event_schema_to_result(s) for s in result.scalars().all()]
 
     async def deactivate_schema(self, schema_id: str) -> EventSchema | None:
-        schema = await self.get_by_id(schema_id)
+        schema = await super().get_by_id(schema_id)
         if not schema:
             return None
         schema.is_active = False
@@ -170,7 +191,7 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
         return updated
 
     async def activate_schema(self, schema_id: str) -> EventSchema | None:
-        schema = await self.get_by_id(schema_id)
+        schema = await super().get_by_id(schema_id)
         if not schema:
             return None
         schema.is_active = True

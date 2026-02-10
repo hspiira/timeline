@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
-
+from app.application.dtos.subject import SubjectResult
 from app.application.interfaces.repositories import ISubjectRepository
 from app.domain.exceptions import ResourceNotFoundException
 
@@ -19,7 +18,7 @@ class SubjectService:
         tenant_id: str,
         subject_type: str,
         external_ref: str | None = None,
-    ) -> Any:
+    ) -> SubjectResult:
         """Create a subject; return created entity."""
         return await self.subject_repo.create_subject(
             tenant_id=tenant_id,
@@ -27,7 +26,7 @@ class SubjectService:
             external_ref=external_ref,
         )
 
-    async def get_subject(self, tenant_id: str, subject_id: str) -> Any:
+    async def get_subject(self, tenant_id: str, subject_id: str) -> SubjectResult:
         """Return subject by id if it belongs to tenant; else raise ResourceNotFoundException."""
         subject = await self.subject_repo.get_by_id_and_tenant(
             subject_id=subject_id,
@@ -43,7 +42,7 @@ class SubjectService:
         skip: int = 0,
         limit: int = 100,
         subject_type: str | None = None,
-    ) -> list[Any]:
+    ) -> list[SubjectResult]:
         """Return subjects for tenant with optional type filter."""
         if subject_type:
             return await self.subject_repo.get_by_type(

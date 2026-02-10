@@ -21,7 +21,15 @@ async def create_event(
     """Create a single event (hash chaining, optional schema validation, workflows)."""
     try:
         created = await event_svc.create_event(tenant_id, body)
-        return EventResponse.model_validate(created)
+        return EventResponse(
+            id=created.id,
+            subject_id=created.subject_id,
+            event_type=created.event_type.value,
+            schema_version=body.schema_version,
+            event_time=created.event_time,
+            payload=created.payload,
+            hash=created.chain.current_hash.value,
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 

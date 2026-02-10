@@ -2,12 +2,16 @@
 
 Uses google-auth for service account tokens and Firestore REST v1.
 Keeps serverless bundle small (avoids grpcio / firebase-admin).
+All HTTP calls use httpx.AsyncClient so they do not block the event loop.
 """
 
+from __future__ import annotations
+
 import json
-import urllib.error
-import urllib.request
+from collections.abc import AsyncIterator
 from typing import Any
+
+import httpx
 
 from app.infrastructure.firebase._rest_encoding import decode_document, encode_document
 
@@ -32,26 +36,33 @@ def _get_access_token(credentials) -> str:
     return credentials.token
 
 
-def _request(
+async def _request_async(
     url: str,
     method: str = "GET",
     body: dict | None = None,
     access_token: str | None = None,
 ) -> dict | None:
+    """Perform async HTTP request to Firestore REST API. 404 returns None."""
     headers = {"Content-Type": "application/json"}
     if access_token:
         headers["Authorization"] = f"Bearer {access_token}"
-    data = json.dumps(body).encode("utf-8") if body else None
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            if resp.status == 200:
-                return json.loads(resp.read().decode()) if resp.length else {}
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        if method == "GET":
+            resp = await client.get(url, headers=headers)
+        elif method == "PATCH":
+            resp = await client.patch(url, headers=headers, json=body)
+        elif method == "DELETE":
+            resp = await client.delete(url, headers=headers)
+        else:
+            raise ValueError(f"Unsupported method: {method!r}")
+        if resp.status_code == 404:
             return None
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            return None
-        raise
+        if resp.status_code not in (200, 204):
+            resp.raise_for_status()
+        if method == "DELETE":
+            return {}
+        raw = resp.content
+        return json.loads(raw.decode()) if raw else {}
 
 
 class DocumentReference:
@@ -61,31 +72,28 @@ class DocumentReference:
         self._client = client
         self._path = path
 
-    def set(self, data: dict[str, Any]) -> None:
+    async def set(self, data: dict[str, Any]) -> None:
         """Create or overwrite the document (PATCH with full replace)."""
         doc = encode_document(data)
         url = f"{_BASE}/{self._path}"
-        _request(url, method="PATCH", body=doc, access_token=self._client._token())
+        await _request_async(
+            url, method="PATCH", body=doc, access_token=self._client._token()
+        )
 
-    def get(self) -> "DocumentSnapshot | None":
+    async def get(self) -> DocumentSnapshot | None:
         """Fetch the document; returns None if not found."""
         url = f"{_BASE}/{self._path}"
-        out = _request(url, access_token=self._client._token())
+        out = await _request_async(url, access_token=self._client._token())
         if not out:
             return None
         return DocumentSnapshot(
             self._path.split("/")[-1], decode_document(out.get("fields"))
         )
 
-    def delete(self) -> None:
-        """Delete the document."""
+    async def delete(self) -> None:
+        """Delete the document. Idempotent if document is already missing (404)."""
         url = f"{_BASE}/{self._path}"
-        req = urllib.request.Request(
-            url,
-            headers={"Authorization": f"Bearer {self._client._token()}"},
-            method="DELETE",
-        )
-        urllib.request.urlopen(req, timeout=30)
+        await _request_async(url, method="DELETE", access_token=self._client._token())
 
 
 class DocumentSnapshot:
@@ -109,11 +117,10 @@ class CollectionReference:
     def document(self, document_id: str) -> DocumentReference:
         return DocumentReference(self._client, f"{self._path}/{document_id}")
 
-    def stream(self):
+    async def stream(self) -> AsyncIterator[DocumentSnapshot]:
         """List documents in the collection (shallow)."""
-        # List documents: GET .../documents/{collectionId} (returns {documents: [...]})
         url = f"{_BASE}/{self._path}"
-        out = _request(url, access_token=self._client._token())
+        out = await _request_async(url, access_token=self._client._token())
         if not out:
             return
         for doc in out.get("documents", []):

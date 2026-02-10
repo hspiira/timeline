@@ -52,7 +52,7 @@ def get_system_audit_schema_definition() -> dict[str, Any]:
             "entity_type": {
                 "type": "string",
                 "description": "Type of entity being audited",
-                "enum": list(AUDITABLE_ENTITIES),
+                "enum": sorted(AUDITABLE_ENTITIES),
             },
             "entity_id": {
                 "type": "string",
@@ -63,7 +63,7 @@ def get_system_audit_schema_definition() -> dict[str, Any]:
             "action": {
                 "type": "string",
                 "description": "The action performed on the entity",
-                "enum": list(AUDIT_ACTIONS),
+                "enum": sorted(AUDIT_ACTIONS),
             },
             "actor": {
                 "type": "object",
@@ -71,7 +71,7 @@ def get_system_audit_schema_definition() -> dict[str, Any]:
                 "required": ["type"],
                 "additionalProperties": False,
                 "properties": {
-                    "type": {"type": "string", "enum": list(ACTOR_TYPES)},
+                    "type": {"type": "string", "enum": sorted(ACTOR_TYPES)},
                     "id": {"type": ["string", "null"], "maxLength": 128},
                     "ip_address": {"type": ["string", "null"], "maxLength": 45},
                     "user_agent": {"type": ["string", "null"], "maxLength": 512},

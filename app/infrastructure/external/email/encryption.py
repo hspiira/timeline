@@ -42,6 +42,7 @@ class CredentialEncryptor:
         """Decrypt stored string back to credentials dict.
 
         Raises:
+            TypeError: If decrypted value is not a dictionary.
             ValueError: If invalid or not valid JSON.
         """
         try:
@@ -49,7 +50,7 @@ class CredentialEncryptor:
             json_str = decrypted_bytes.decode()
             result = json.loads(json_str)
             if not isinstance(result, dict):
-                raise ValueError("Decrypted credentials must be a dictionary")
+                raise TypeError("Decrypted credentials must be a dictionary")
             return cast(dict[str, Any], result)
         except InvalidToken as e:
             raise ValueError(DECRYPTION_ERROR_MSG) from e

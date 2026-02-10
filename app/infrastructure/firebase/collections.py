@@ -10,7 +10,7 @@ Example:
 
     db = get_firestore_client()
     if db:
-        db.collection(COLLECTION_TENANTS).document(tenant_id).set({...})
+        await db.collection(COLLECTION_TENANTS).document(tenant_id).set({...})
 """
 
 # Core multi-tenant entities (aligned with SQL table names / domain)

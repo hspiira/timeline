@@ -3,6 +3,6 @@
 Single place for settings and shared constants.
 """
 
-from app.core.config import get_settings, settings
+from app.core.config import get_settings
 
-__all__ = ["settings", "get_settings"]
+__all__ = ["get_settings"]

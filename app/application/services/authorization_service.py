@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from app.application.interfaces.services import ICacheService, IPermissionResolver
-from app.domain.exceptions import PermissionDeniedError
+from app.domain.exceptions import AuthorizationException
 
 
 class AuthorizationService:
@@ -57,12 +57,9 @@ class AuthorizationService:
         resource: str,
         action: str,
     ) -> None:
-        """Raise PermissionDeniedError if user lacks permission."""
+        """Raise AuthorizationException if user lacks permission."""
         if not await self.check_permission(user_id, tenant_id, resource, action):
-            raise PermissionDeniedError(
-                resource=resource,
-                action=action,
-            )
+            raise AuthorizationException(resource=resource, action=action)
 
     async def invalidate_user_cache(self, user_id: str, tenant_id: str) -> None:
         """Invalidate cached permissions for one user."""

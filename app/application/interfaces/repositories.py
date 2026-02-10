@@ -1,7 +1,7 @@
 """Repository interfaces (ports) for the application layer.
 
 Protocols define contracts that infrastructure implementations must fulfill (DIP).
-Use TYPE_CHECKING for model/schema types so application has no runtime infra deps.
+All types reference application DTOs or schemas only; no infrastructure imports.
 """
 
 from __future__ import annotations
@@ -9,12 +9,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
-    from app.application.dtos.event import EventToPersist
-    from app.infrastructure.persistence.models.event import Event
-    from app.infrastructure.persistence.models.event_schema import EventSchema
-    from app.infrastructure.persistence.models.subject import Subject
-    from app.infrastructure.persistence.models.tenant import Tenant
-    from app.infrastructure.persistence.models.user import User
+    from app.application.dtos.document import DocumentResult
+    from app.application.dtos.event import EventResult, EventToPersist
+    from app.application.dtos.event_schema import EventSchemaResult
+    from app.application.dtos.subject import SubjectResult
+    from app.application.dtos.tenant import TenantResult
+    from app.application.dtos.user import UserResult
     from app.schemas.event import EventCreate
 
 
@@ -25,41 +25,41 @@ class IEventRepository(Protocol):
         """Return hash of the most recent event for subject in tenant."""
         ...
 
-    async def get_last_event(self, subject_id: str, tenant_id: str) -> "Event | None":
+    async def get_last_event(self, subject_id: str, tenant_id: str) -> EventResult | None:
         """Return the most recent event for subject in tenant."""
         ...
 
     async def create_event(
         self,
         tenant_id: str,
-        data: "EventCreate",
+        data: EventCreate,
         event_hash: str,
         previous_hash: str | None,
-    ) -> "Event":
+    ) -> EventResult:
         """Create a new event with computed hash."""
         ...
 
     async def create_events_bulk(
         self,
         tenant_id: str,
-        events: list["EventToPersist"],
-    ) -> list["Event"]:
+        events: list[EventToPersist],
+    ) -> list[EventResult]:
         """Bulk insert events (hashes precomputed)."""
         ...
 
-    async def get_by_id(self, event_id: str) -> "Event | None":
+    async def get_by_id(self, event_id: str) -> EventResult | None:
         """Return event by ID."""
         ...
 
     async def get_by_subject(
         self, subject_id: str, tenant_id: str, skip: int = 0, limit: int = 100
-    ) -> list["Event"]:
+    ) -> list[EventResult]:
         """Return events for subject in tenant (newest first)."""
         ...
 
     async def get_by_tenant(
         self, tenant_id: str, skip: int = 0, limit: int = 100
-    ) -> list["Event"]:
+    ) -> list[EventResult]:
         """Return events for tenant with pagination (for verification)."""
         ...
 
@@ -67,19 +67,19 @@ class IEventRepository(Protocol):
 class ISubjectRepository(Protocol):
     """Protocol for subject repository (DIP)."""
 
-    async def get_by_id(self, subject_id: str) -> "Subject | None":
+    async def get_by_id(self, subject_id: str) -> SubjectResult | None:
         """Return subject by ID."""
         ...
 
     async def get_by_id_and_tenant(
         self, subject_id: str, tenant_id: str
-    ) -> "Subject | None":
+    ) -> SubjectResult | None:
         """Return subject by ID if it belongs to tenant."""
         ...
 
     async def get_by_tenant(
         self, tenant_id: str, skip: int = 0, limit: int = 100
-    ) -> list["Subject"]:
+    ) -> list[SubjectResult]:
         """Return subjects for tenant with pagination."""
         ...
 
@@ -89,13 +89,13 @@ class ISubjectRepository(Protocol):
         subject_type: str,
         skip: int = 0,
         limit: int = 100,
-    ) -> list["Subject"]:
+    ) -> list[SubjectResult]:
         """Return subjects of type for tenant."""
         ...
 
     async def get_by_external_ref(
         self, tenant_id: str, external_ref: str
-    ) -> "Subject | None":
+    ) -> SubjectResult | None:
         """Return subject by external reference."""
         ...
 
@@ -104,7 +104,7 @@ class ISubjectRepository(Protocol):
         tenant_id: str,
         subject_type: str,
         external_ref: str | None = None,
-    ) -> "Subject":
+    ) -> SubjectResult:
         """Create subject; return created entity."""
         ...
 
@@ -112,25 +112,25 @@ class ISubjectRepository(Protocol):
 class IEventSchemaRepository(Protocol):
     """Protocol for event schema repository (DIP)."""
 
-    async def get_by_id(self, schema_id: str) -> "EventSchema | None":
+    async def get_by_id(self, schema_id: str) -> EventSchemaResult | None:
         """Return schema by ID."""
         ...
 
     async def get_by_version(
         self, tenant_id: str, event_type: str, version: int
-    ) -> "EventSchema | None":
+    ) -> EventSchemaResult | None:
         """Return specific schema version."""
         ...
 
     async def get_active_schema(
         self, tenant_id: str, event_type: str
-    ) -> "EventSchema | None":
+    ) -> EventSchemaResult | None:
         """Return active schema for event type and tenant."""
         ...
 
     async def get_all_for_event_type(
         self, tenant_id: str, event_type: str
-    ) -> list["EventSchema"]:
+    ) -> list[EventSchemaResult]:
         """Return all schema versions for event type."""
         ...
 
@@ -142,15 +142,15 @@ class IEventSchemaRepository(Protocol):
 class ITenantRepository(Protocol):
     """Protocol for tenant repository (DIP)."""
 
-    async def get_by_id(self, tenant_id: str) -> "Tenant | None":
+    async def get_by_id(self, tenant_id: str) -> TenantResult | None:
         """Return tenant by ID."""
         ...
 
-    async def get_by_code(self, code: str) -> "Tenant | None":
+    async def get_by_code(self, code: str) -> TenantResult | None:
         """Return tenant by code."""
         ...
 
-    async def create_tenant(self, code: str, name: str, status: str) -> "Tenant":
+    async def create_tenant(self, code: str, name: str, status: str) -> TenantResult:
         """Create tenant; return created entity with id."""
         ...
 
@@ -158,7 +158,7 @@ class ITenantRepository(Protocol):
 class IUserRepository(Protocol):
     """Protocol for user repository (DIP)."""
 
-    async def get_by_id(self, user_id: str) -> "User | None":
+    async def get_by_id(self, user_id: str) -> UserResult | None:
         """Return user by ID."""
         ...
 
@@ -168,7 +168,7 @@ class IUserRepository(Protocol):
         username: str,
         email: str,
         password: str,
-    ) -> "User":
+    ) -> UserResult:
         """Create user with hashed password; return created user."""
         ...
 
@@ -176,7 +176,7 @@ class IUserRepository(Protocol):
 class IDocumentRepository(Protocol):
     """Protocol for document repository (DIP)."""
 
-    async def get_by_id(self, document_id: str) -> Any:
+    async def get_by_id(self, document_id: str) -> DocumentResult | None:
         """Return document by ID."""
         ...
 
@@ -184,19 +184,30 @@ class IDocumentRepository(Protocol):
         self,
         subject_id: str,
         tenant_id: str,
+        *,
         include_deleted: bool = False,
-    ) -> Any:
+    ) -> list[DocumentResult]:
         """Return documents for subject in tenant."""
         ...
 
-    async def get_by_checksum(self, tenant_id: str, checksum: str) -> Any:
+    async def get_by_checksum(
+        self, tenant_id: str, checksum: str
+    ) -> DocumentResult | None:
         """Return document by tenant and checksum (for duplicate check)."""
         ...
 
-    async def create(self, document: Any) -> Any:
+    async def create(
+        self, document: DocumentResult | dict[str, Any]
+    ) -> DocumentResult:
         """Create document; return created entity."""
         ...
 
-    async def update(self, document: Any) -> Any:
+    async def mark_parent_not_latest_if_current(
+        self, parent_id: str, expected_version: int
+    ) -> bool:
+        """Set parent is_latest_version=False only if still current (optimistic lock). Returns True if updated."""
+        ...
+
+    async def update(self, document: DocumentResult) -> DocumentResult:
         """Update document (e.g. is_latest_version)."""
         ...

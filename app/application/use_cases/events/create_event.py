@@ -2,23 +2,41 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable
 
 import jsonschema
 
-from app.application.dtos.event import EventToPersist
+from app.application.dtos.event import EventResult, EventToPersist
 from app.application.interfaces.repositories import (
     IEventRepository,
     IEventSchemaRepository,
     ISubjectRepository,
 )
 from app.application.interfaces.services import IHashService
+from app.domain.entities.event import EventEntity
+from app.domain.value_objects.core import EventChain, EventType, Hash
 from app.shared.telemetry.logging import get_logger
 
 if TYPE_CHECKING:
     from app.application.interfaces.services import IWorkflowEngine
-    from app.infrastructure.persistence.models.event import Event
     from app.schemas.event import EventCreate
+
+
+def _event_result_to_entity(r: EventResult) -> EventEntity:
+    """Map EventResult (application DTO) to EventEntity (domain entity)."""
+    current_hash = Hash(r.hash)
+    previous_hash = Hash(r.previous_hash) if r.previous_hash else None
+    chain = EventChain(current_hash=current_hash, previous_hash=previous_hash)
+    return EventEntity(
+        id=r.id,
+        tenant_id=r.tenant_id,
+        subject_id=r.subject_id,
+        event_type=EventType(r.event_type),
+        event_time=r.event_time,
+        payload=r.payload,
+        chain=chain,
+    )
 
 logger = get_logger(__name__)
 
@@ -53,7 +71,7 @@ class EventService:
         event: "EventCreate",
         *,
         trigger_workflows: bool = True,
-    ) -> "Event":
+    ) -> EventEntity:
         """Create one event; validate subject and schema, compute hash, optionally trigger workflows."""
         subject = await self.subject_repo.get_by_id_and_tenant(
             event.subject_id, tenant_id
@@ -92,10 +110,11 @@ class EventService:
             tenant_id, event, event_hash, prev_hash
         )
 
+        entity = _event_result_to_entity(created)
         if trigger_workflows and self.workflow_engine:
-            await self._trigger_workflows(created, tenant_id)
+            await self._trigger_workflows(entity, tenant_id)
 
-        return created
+        return entity
 
     async def create_events_bulk(
         self,
@@ -104,7 +123,7 @@ class EventService:
         *,
         skip_schema_validation: bool = False,
         trigger_workflows: bool = False,
-    ) -> list["Event"]:
+    ) -> list[EventEntity]:
         """Bulk create events (e.g. email sync). Hashes computed sequentially; single DB roundtrip."""
         if not events:
             return []
@@ -119,13 +138,18 @@ class EventService:
                     f"Subject '{subject_id}' not found or does not belong to tenant"
                 )
 
-        first_subject_id = events[0].subject_id
-        prev_event = await self.event_repo.get_last_event(first_subject_id, tenant_id)
-        prev_hash = prev_event.hash if prev_event else None
-        prev_time = prev_event.event_time if prev_event else None
+        # Fetch last event per subject so each subject has an independent hash chain.
+        chain_state: dict[str, tuple[str | None, datetime | None]] = {}
+        for sid in subject_ids:
+            prev_ev = await self.event_repo.get_last_event(sid, tenant_id)
+            chain_state[sid] = (
+                prev_ev.hash if prev_ev else None,
+                prev_ev.event_time if prev_ev else None,
+            )
 
         to_persist: list[EventToPersist] = []
         for event_data in events:
+            prev_hash, prev_time = chain_state[event_data.subject_id]
             if prev_time and event_data.event_time <= prev_time:
                 raise ValueError(
                     "Event time must be after previous; events must be sorted by event_time"
@@ -156,18 +180,20 @@ class EventService:
                     previous_hash=prev_hash,
                 )
             )
-            prev_hash = event_hash
-            prev_time = event_data.event_time
+            chain_state[event_data.subject_id] = (event_hash, event_data.event_time)
 
         created = await self.event_repo.create_events_bulk(tenant_id, to_persist)
+        entities = [_event_result_to_entity(ev) for ev in created]
 
         if trigger_workflows and self.workflow_engine:
-            for ev in created:
+            for ev in entities:
                 await self._trigger_workflows(ev, tenant_id)
 
-        return created
+        return entities
 
-    async def _trigger_workflows(self, event: "Event", tenant_id: str) -> list[Any]:
+    async def _trigger_workflows(
+        self, event: EventEntity, tenant_id: str
+    ) -> list[Any]:
         if not self.workflow_engine:
             return []
         try:
@@ -177,7 +203,7 @@ class EventService:
             logger.exception(
                 "Workflow trigger failed for event %s (type: %s)",
                 event.id,
-                event.event_type,
+                event.event_type.value,
             )
             return []
 

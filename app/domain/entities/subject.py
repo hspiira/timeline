@@ -70,5 +70,6 @@ class SubjectEntity:
         return not self._has_events
 
     def mark_has_events(self) -> None:
-        """Mark that at least one event has been added to this subject."""
+        """Record that an event has been added to this subject."""
+        self._event_count += 1
         self._has_events = True

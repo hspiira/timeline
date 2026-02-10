@@ -45,7 +45,7 @@ class EmailProviderFactory:
                 f"Unsupported provider: {config.provider_type}. "
                 f"Supported: {list(cls._providers.keys())}"
             )
-        logger.info("Creating %s for %s", provider_class.__name__, config.email_address)
+        logger.debug("Creating %s for %s", provider_class.__name__, config.email_address)
         return provider_class()
 
     @classmethod

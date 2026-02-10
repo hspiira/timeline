@@ -8,8 +8,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol
 
+from app.shared.enums import ActorType, AuditAction
+
 if TYPE_CHECKING:
-    from app.infrastructure.persistence.models.event import Event
+    from app.domain.entities.event import EventEntity
     from app.schemas.event import EventCreate
 
 
@@ -35,21 +37,21 @@ class IEventService(Protocol):
     async def create_event(
         self,
         tenant_id: str,
-        data: "EventCreate",
+        data: EventCreate,
         *,
         trigger_workflows: bool = True,
-    ) -> "Event":
+    ) -> EventEntity:
         """Create a new event with cryptographic chaining and optional schema validation."""
         ...
 
     async def create_events_bulk(
         self,
         tenant_id: str,
-        events: list["EventCreate"],
+        events: list[EventCreate],
         *,
         skip_schema_validation: bool = False,
         trigger_workflows: bool = False,
-    ) -> list["Event"]:
+    ) -> list[EventEntity]:
         """Bulk create events (e.g. email sync)."""
         ...
 
@@ -89,14 +91,14 @@ class IAuditService(Protocol):
         self,
         tenant_id: str,
         entity_type: str,
-        action: Any,
+        action: AuditAction,
         entity_id: str,
         entity_data: dict[str, Any],
         actor_id: str | None = None,
-        actor_type: Any = None,
+        actor_type: ActorType | None = None,
         metadata: dict[str, Any] | None = None,
-    ) -> Any:
-        """Emit one audit event; returns created event or None."""
+    ) -> None:
+        """Emit one audit event."""
         ...
 
 

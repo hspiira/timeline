@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.domain.value_objects.core import EventChain, EventType
+from app.shared.utils.datetime import ensure_utc
 
 
 @dataclass
@@ -29,21 +30,25 @@ class EventEntity:
     def validate(self) -> bool:
         """Validate event business rules.
 
-        Ensures event time is not in the future and payload is non-empty.
-        Chain integrity is enforced at EventChain construction time.
+        Ensures identity fields are set, event time is not in the future, and
+        payload is non-empty. Chain integrity is enforced at EventChain
+        construction time.
 
         Returns:
             True if valid.
 
         Raises:
-            ValueError: If event_time is in the future or payload is empty.
+            ValueError: If id, tenant_id, or subject_id is missing; event_time
+                is in the future; or payload is empty.
         """
+        if not self.id:
+            raise ValueError("Event ID is required")
+        if not self.tenant_id:
+            raise ValueError("Event must belong to a tenant")
+        if not self.subject_id:
+            raise ValueError("Event must belong to a subject")
         now = datetime.now(UTC)
-        event_time = (
-            self.event_time
-            if self.event_time.tzinfo
-            else self.event_time.replace(tzinfo=UTC)
-        )
+        event_time = ensure_utc(self.event_time)
         if event_time > now:
             raise ValueError("Event time cannot be in the future")
         if not self.payload:

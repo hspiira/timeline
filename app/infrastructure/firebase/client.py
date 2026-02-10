@@ -18,19 +18,19 @@ from app.infrastructure.firebase._rest_client import (  # noqa: E402
     _get_credentials,
 )
 
-_settings = get_settings()
 _firestore_client: FirestoreRESTClient | None = None
 
 
 def _load_key_dict():
     """Return service account dict from env key or file path."""
-    key_json = _settings.firebase_service_account_key
+    settings = get_settings()
+    key_json = settings.firebase_service_account_key
     if key_json:
         try:
             return json.loads(key_json)
         except json.JSONDecodeError as e:
             raise ValueError("FIREBASE_SERVICE_ACCOUNT_KEY is not valid JSON") from e
-    path = _settings.firebase_service_account_path
+    path = settings.firebase_service_account_path
     if path and Path(path).is_file():
         with open(path, encoding="utf-8") as f:
             return json.load(f)
@@ -71,9 +71,10 @@ def init_firebase() -> bool:
 def get_firestore_client() -> FirestoreRESTClient | None:
     """Return the Firestore client, or None if not configured.
 
-    Same API as the Firebase Admin client for the operations we use:
-    - db.collection(name).document(id).set(data)
-    - db.collection(name).document(id).get() -> DocumentSnapshot | None
-    - db.collection(name).stream() -> iterable of DocumentSnapshot
+    Same API as the Firebase Admin client for the operations we use (all async):
+    - await db.collection(name).document(id).set(data)
+    - await db.collection(name).document(id).get() -> DocumentSnapshot | None
+    - await db.collection(name).document(id).delete()
+    - async for doc in db.collection(name).stream() -> DocumentSnapshot
     """
     return _firestore_client

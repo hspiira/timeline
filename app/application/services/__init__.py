@@ -17,15 +17,15 @@ from app.application.services.verification_service import (
     VerificationService,
 )
 
-__all__ = [
-    "ChainVerificationResult",
-    "HashAlgorithm",
-    "HashService",
-    "SHA256Algorithm",
-    "SHA512Algorithm",
-    "TenantCreationResult",
-    "TenantCreationService",
-    "AuthorizationService",
-    "VerificationResult",
-    "VerificationService",
+__all__ = [  
+    "AuthorizationService",  
+    "ChainVerificationResult",  
+    "HashAlgorithm",  
+    "HashService",  
+    "SHA256Algorithm",  
+    "SHA512Algorithm",  
+    "TenantCreationResult",  
+    "TenantCreationService",  
+    "VerificationResult",  
+    "VerificationService",  
 ]

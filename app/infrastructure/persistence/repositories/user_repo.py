@@ -1,4 +1,4 @@
-"""User repository with audit and password helpers."""
+"""User repository with audit and password helpers. Interface methods return application DTOs."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.dtos.user import UserResult
 from app.infrastructure.persistence.models.user import User
 from app.infrastructure.persistence.repositories.auditable_repo import (
     AuditableRepository,
@@ -20,6 +21,17 @@ _DUMMY_HASH = get_password_hash("not-a-real-password")
 
 if TYPE_CHECKING:
     from app.infrastructure.services.system_audit_service import SystemAuditService
+
+
+def _user_to_result(u: User) -> UserResult:
+    """Map ORM User to application UserResult (no password)."""
+    return UserResult(
+        id=u.id,
+        tenant_id=u.tenant_id,
+        username=u.username,
+        email=u.email,
+        is_active=u.is_active,
+    )
 
 
 class UserRepository(AuditableRepository[User]):
@@ -84,13 +96,17 @@ class UserRepository(AuditableRepository[User]):
             return None
         return user
 
+    async def get_by_id(self, user_id: str) -> UserResult | None:
+        user = await super().get_by_id(user_id)
+        return _user_to_result(user) if user else None
+
     async def create_user(
         self,
         tenant_id: str,
         username: str,
         email: str,
         password: str,
-    ) -> User:
+    ) -> UserResult:
         hashed = await asyncio.to_thread(get_password_hash, password)
         user = User(
             tenant_id=tenant_id,
@@ -99,10 +115,11 @@ class UserRepository(AuditableRepository[User]):
             hashed_password=hashed,
             is_active=True,
         )
-        return await self.create(user)
+        created = await self.create(user)
+        return _user_to_result(created)
 
     async def update_password(self, user_id: str, new_password: str) -> User | None:
-        user = await self.get_by_id(user_id)
+        user = await super().get_by_id(user_id)
         if not user:
             return None
         user.hashed_password = await asyncio.to_thread(get_password_hash, new_password)
