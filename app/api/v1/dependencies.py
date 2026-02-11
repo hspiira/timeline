@@ -321,17 +321,19 @@ async def get_verification_service(
 
 async def get_subject_service(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
 ) -> SubjectService:
-    """Subject service for create/get/list (uses transactional session)."""
-    subject_repo = SubjectRepository(db, audit_service=None)
+    """Subject service for create/get/list (transactional, tenant-scoped)."""
+    subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=None)
     return SubjectService(subject_repo)
 
 
 async def get_subject_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
 ) -> SubjectRepository:
-    """Subject repository for update/delete (transactional)."""
-    return SubjectRepository(db, audit_service=None)
+    """Subject repository for update/delete (transactional, tenant-scoped)."""
+    return SubjectRepository(db, tenant_id=tenant_id, audit_service=None)
 
 
 async def get_event_schema_repo(

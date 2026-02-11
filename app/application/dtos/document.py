@@ -5,6 +5,26 @@ from datetime import datetime
 
 
 @dataclass(frozen=True)
+class DocumentCreate:
+    """Input for creating a document record (write-model). Use case builds this; repo persists and returns DocumentResult."""
+
+    id: str
+    tenant_id: str
+    subject_id: str
+    event_id: str | None
+    document_type: str
+    filename: str
+    original_filename: str
+    mime_type: str
+    file_size: int
+    checksum: str
+    storage_ref: str
+    version: int
+    parent_document_id: str | None
+    created_by: str | None
+
+
+@dataclass(frozen=True)
 class DocumentResult:
     """Document read-model (result of get_by_id, get_by_subject, get_by_checksum, create, update)."""
 

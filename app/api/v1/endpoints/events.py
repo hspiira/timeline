@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import (
     get_event_repo,
@@ -135,13 +135,10 @@ async def count_events(
 async def verify_tenant_chains(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     verification_svc: Annotated[VerificationService, Depends(get_verification_service)],
-    limit: int = Query(1, ge=1, le=10000, description="Max events to verify"),
     _: Annotated[object, Depends(require_permission("event", "read"))] = None,
 ):
-    """Verify cryptographic integrity of all event chains for current tenant."""
-    result = await verification_svc.verify_tenant_chains(
-        tenant_id=tenant_id, limit=limit
-    )
+    """Verify cryptographic integrity of all event chains for current tenant (all events, no truncation)."""
+    result = await verification_svc.verify_tenant_chains(tenant_id=tenant_id)
     return _to_verification_response(result)
 
 

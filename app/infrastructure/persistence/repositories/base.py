@@ -45,6 +45,8 @@ class BaseRepository[ModelType: Base]:
 
         Verifies the record exists by primary key before merging; raises
         ResourceNotFoundException if any PK is missing or no row is found.
+        When the object is already attached to this session, skips the existence
+        SELECT to avoid a redundant query.
         """
         mapper = sa_inspect(self.model)
         pk_attrs = mapper.primary_key
@@ -54,14 +56,17 @@ class BaseRepository[ModelType: Base]:
                     f"Cannot update: primary key '{col.key}' is missing on "
                     f"{self.model.__name__} instance."
                 )
-        stmt = select(self.model).where(
-            and_(*(getattr(self.model, c.key) == getattr(obj, c.key) for c in pk_attrs))
-        )
-        result = await self.db.execute(stmt)
-        if result.scalar_one_or_none() is None:
-            pk_str = ",".join(str(getattr(obj, c.key)) for c in pk_attrs)
-            raise ResourceNotFoundException(self.model.__name__, pk_str)
-        if object_session(obj) is None:
+        attached = object_session(obj) is self.db
+        if not attached:
+            stmt = select(self.model).where(
+                and_(
+                    *(getattr(self.model, c.key) == getattr(obj, c.key) for c in pk_attrs)
+                )
+            )
+            result = await self.db.execute(stmt)
+            if result.scalar_one_or_none() is None:
+                pk_str = ",".join(str(getattr(obj, c.key)) for c in pk_attrs)
+                raise ResourceNotFoundException(self.model.__name__, pk_str)
             obj = await self.db.merge(obj)
         await self.db.flush()
         await self.db.refresh(obj)

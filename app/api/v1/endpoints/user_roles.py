@@ -63,8 +63,8 @@ async def assign_role_to_user(
     user = await user_repo.get_by_id_and_tenant(user_id, tenant_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    role = await role_repo.get_by_id(role_id)
-    if not role or role.tenant_id != tenant_id:
+    role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
+    if not role:
         raise HTTPException(status_code=404, detail="Role not found")
     await user_role_repo.assign_role_to_user(
         user_id=user_id,

@@ -94,10 +94,24 @@ class VerificationService:
         )
 
     async def verify_tenant_chains(
-        self, tenant_id: str, limit: int | None = None
+        self, tenant_id: str
     ) -> ChainVerificationResult:
-        """Verify all event chains for a tenant (grouped by subject)."""
-        events = await self.event_repo.get_by_tenant(tenant_id, limit=limit or 100)
+        """Verify all event chains for a tenant (grouped by subject).
+
+        Fetches all events in batches so verification is complete with no silent truncation.
+        """
+        all_events: list[EventResult] = []
+        batch_size = 500
+        offset = 0
+        while True:
+            batch = await self.event_repo.get_by_tenant(
+                tenant_id, skip=offset, limit=batch_size
+            )
+            all_events.extend(batch)
+            if len(batch) < batch_size:
+                break
+            offset += batch_size
+        events = all_events
         if not events:
             return ChainVerificationResult(
                 subject_id=None,

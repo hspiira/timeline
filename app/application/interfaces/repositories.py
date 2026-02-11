@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 from app.domain.enums import TenantStatus
 
 if TYPE_CHECKING:
-    from app.application.dtos.document import DocumentResult
+    from app.application.dtos.document import DocumentCreate, DocumentResult
     from app.application.dtos.event import CreateEventCommand, EventResult, EventToPersist
     from app.application.dtos.event_schema import EventSchemaResult
     from app.application.dtos.subject import SubjectResult
@@ -226,8 +226,8 @@ class IDocumentRepository(Protocol):
         """Return document by tenant and checksum (for duplicate check)."""
         ...
 
-    async def create(self, document: DocumentResult) -> DocumentResult:
-        """Create document from DTO; return created entity."""
+    async def create(self, document: DocumentCreate) -> DocumentResult:
+        """Create document from write-model DTO; return created read-model."""
         ...
 
     async def mark_parent_not_latest_if_current(

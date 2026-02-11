@@ -129,7 +129,7 @@ async def update_role(
     _: Annotated[object, Depends(require_permission("role", "update"))] = None,
 ):
     """Update role (name, description, is_active). Tenant-scoped."""
-    role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
+    role = await role_repo.get_entity_by_id_and_tenant(role_id, tenant_id)
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
     if role.is_system:
@@ -157,7 +157,7 @@ async def delete_role(
     role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
-    result = await role_repo.deactivate(role_id)
+    result = await role_repo.deactivate(role_id, tenant_id)
     if not result:
         raise HTTPException(status_code=404, detail="Role not found")
 

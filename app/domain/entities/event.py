@@ -32,6 +32,34 @@ class EventEntity:
     def __post_init__(self) -> None:
         self.validate()
 
+    @staticmethod
+    def validate_event_time_after_previous(
+        new_event_time: datetime,
+        previous_event_time: datetime | None,
+    ) -> None:
+        """Enforce that new event time is after the previous event (chain ordering).
+
+        Call when appending an event to a subject's timeline. Genesis events
+        (previous_event_time is None) pass without check.
+
+        Args:
+            new_event_time: Timestamp of the event being appended.
+            previous_event_time: Timestamp of the last event in the chain, or None.
+
+        Raises:
+            ValidationException: If previous_event_time is set and new_event_time
+                is not strictly after it.
+        """
+        if previous_event_time is None:
+            return
+        new_utc = ensure_utc(new_event_time)
+        prev_utc = ensure_utc(previous_event_time)
+        if new_utc <= prev_utc:
+            raise ValidationException(
+                f"Event time must be after previous event time {prev_utc}",
+                field="event_time",
+            )
+
     def validate(self) -> None:
         """Validate event business rules. Raises ValidationException if invalid."""
         if not self.id:

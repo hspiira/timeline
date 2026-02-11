@@ -9,6 +9,7 @@ from datetime import timedelta
 from typing import BinaryIO
 
 from app.application.dtos.document import (
+    DocumentCreate,
     DocumentListItem,
     DocumentMetadata,
     DocumentResult,
@@ -21,6 +22,7 @@ from app.application.interfaces.storage import IStorageService
 from app.domain.exceptions import (
     DocumentVersionConflictException,
     ResourceNotFoundException,
+    ValidationException,
 )
 from app.shared.utils.generators import generate_cuid
 
@@ -104,7 +106,7 @@ class DocumentUploadService:
 
         existing = await self.document_repo.get_by_checksum(tenant_id, checksum)
         if existing:
-            raise ValueError("Duplicate document checksum")
+            raise ValidationException("Duplicate document checksum", field="checksum")
 
         version = 1
         if parent_document_id:
@@ -112,7 +114,10 @@ class DocumentUploadService:
             if not parent:
                 raise ResourceNotFoundException("document", parent_document_id)
             if parent.tenant_id != tenant_id:
-                raise ValueError("Parent document belongs to different tenant")
+                raise ValidationException(
+                    "Parent document belongs to different tenant",
+                    field="parent_document_id",
+                )
             version = parent.version + 1
             updated = await self.document_repo.mark_parent_not_latest_if_current(
                 parent_document_id, parent.version
@@ -139,7 +144,7 @@ class DocumentUploadService:
             },
         )
 
-        document_dto = DocumentResult(
+        create_dto = DocumentCreate(
             id=document_id,
             tenant_id=tenant_id,
             subject_id=subject_id,
@@ -152,12 +157,10 @@ class DocumentUploadService:
             checksum=checksum,
             storage_ref=storage_ref,
             version=version,
-            is_latest_version=True,
             parent_document_id=parent_document_id,
             created_by=created_by,
-            deleted_at=None,
         )
-        return await self.document_repo.create(document_dto)
+        return await self.document_repo.create(create_dto)
 
 
 def _document_for_tenant_or_raise(

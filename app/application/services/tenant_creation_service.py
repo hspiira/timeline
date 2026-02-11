@@ -4,23 +4,12 @@ from __future__ import annotations
 
 import secrets
 import string
-from dataclasses import dataclass
 
+from app.application.dtos.tenant import TenantCreationResult
 from app.application.interfaces.repositories import ITenantRepository, IUserRepository
 from app.application.interfaces.services import ITenantInitializationService
 from app.domain.enums import TenantStatus
 from app.domain.exceptions import TenantAlreadyExistsException
-
-
-@dataclass
-class TenantCreationResult:
-    """Result of tenant creation."""
-
-    tenant_id: str
-    tenant_code: str
-    tenant_name: str
-    admin_username: str
-    admin_password: str
 
 
 class TenantCreationService:

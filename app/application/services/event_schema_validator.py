@@ -8,6 +8,7 @@ import jsonschema
 
 from app.application.interfaces.repositories import IEventSchemaRepository
 from app.application.interfaces.services import IEventSchemaValidator
+from app.domain.exceptions import ResourceNotFoundException, SchemaValidationException
 
 
 class EventSchemaValidator:
@@ -26,21 +27,23 @@ class EventSchemaValidator:
         schema = await self.schema_repo.get_by_version(
             tenant_id, event_type, schema_version
         )
+        schema_id = f"{event_type}@v{schema_version}"
         if not schema:
-            raise ValueError(
-                f"Schema version {schema_version} not found for event type '{event_type}'"
-            )
+            raise ResourceNotFoundException("event_schema", schema_id)
         if not schema.is_active:
-            raise ValueError(
-                f"Schema version {schema_version} for '{event_type}' is not active"
+            raise SchemaValidationException(
+                schema_type=schema_id,
+                validation_errors=["Schema version is not active"],
             )
         try:
             jsonschema.validate(instance=payload, schema=schema.schema_definition)
         except jsonschema.ValidationError as e:
-            raise ValueError(
-                f"Payload validation failed against schema v{schema_version}: {e.message}"
+            raise SchemaValidationException(
+                schema_type=schema_id,
+                validation_errors=[str(e)],
             ) from e
         except jsonschema.SchemaError as e:
-            raise ValueError(
-                f"Invalid schema definition for v{schema_version}: {e.message}"
+            raise SchemaValidationException(
+                schema_type=schema_id,
+                validation_errors=[str(e)],
             ) from e

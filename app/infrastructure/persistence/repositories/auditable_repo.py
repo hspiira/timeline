@@ -10,8 +10,10 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, TypeVar
 
+from sqlalchemy import select
 from sqlalchemy.orm import object_session
 
+from app.domain.exceptions import ValidationException
 from app.infrastructure.persistence.database import Base
 from app.infrastructure.persistence.repositories.base import BaseRepository
 from app.shared.context import get_current_actor_id, get_current_actor_type
@@ -146,3 +148,69 @@ class AuditableRepository(BaseRepository[ModelType]):
     ) -> None:
         """Emit a custom audit event (e.g. activated, deactivated)."""
         await self._emit_audit_event(action, obj, metadata)
+
+
+class TenantScopedRepository(AuditableRepository[ModelType]):
+    """Repository that enforces tenant isolation.
+
+    All reads (get_by_id, get_all) and writes (create, update, delete) are
+    scoped to a single tenant_id. Pass tenant_id at construction; the repo
+    then auto-adds tenant filtering and rejects cross-tenant writes.
+    """
+
+    def __init__(
+        self,
+        db: "AsyncSession",
+        model: type[ModelType],
+        tenant_id: str,
+        audit_service: "SystemAuditService | None" = None,
+        *,
+        enable_audit: bool = True,
+    ) -> None:
+        super().__init__(db, model, audit_service, enable_audit=enable_audit)
+        self._tenant_id = tenant_id
+
+    def _assert_tenant(self, obj: ModelType, operation: str) -> None:
+        """Raise if obj.tenant_id does not match this repo's tenant."""
+        if getattr(obj, "tenant_id", None) != self._tenant_id:
+            raise ValidationException(
+                f"Cannot {operation} entity belonging to another tenant",
+                field="tenant_id",
+            )
+
+    async def get_by_id(self, entity_id: str) -> ModelType | None:
+        """Return a single record by primary key and tenant_id, or None."""
+        model: Any = self.model
+        result = await self.db.execute(
+            select(self.model).where(
+                model.id == entity_id,
+                model.tenant_id == self._tenant_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def get_all(self, skip: int = 0, limit: int = 100) -> list[ModelType]:
+        """Return records for this tenant with pagination."""
+        model: Any = self.model
+        result = await self.db.execute(
+            select(self.model)
+            .where(model.tenant_id == self._tenant_id)
+            .offset(skip)
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def create(self, obj: ModelType) -> ModelType:
+        """Persist and run hooks; ensure obj.tenant_id matches this repo."""
+        self._assert_tenant(obj, "create")
+        return await super().create(obj)
+
+    async def update(self, obj: ModelType) -> ModelType:
+        """Update only if obj belongs to this tenant."""
+        self._assert_tenant(obj, "update")
+        return await super().update(obj)
+
+    async def delete(self, obj: ModelType) -> None:
+        """Delete only if obj belongs to this tenant."""
+        self._assert_tenant(obj, "delete")
+        await super().delete(obj)

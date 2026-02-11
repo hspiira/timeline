@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import and_, select, update
+from sqlalchemy import and_, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.application.dtos.document import DocumentResult
+from app.application.dtos.document import DocumentCreate, DocumentResult
 from app.infrastructure.persistence.models.document import Document
 from app.infrastructure.persistence.repositories.auditable_repo import (
     AuditableRepository,
@@ -19,8 +19,8 @@ if TYPE_CHECKING:
     from app.infrastructure.services.system_audit_service import SystemAuditService
 
 
-def _result_to_document(d: DocumentResult) -> Document:
-    """Map application DocumentResult to ORM Document (for create)."""
+def _create_to_document(d: DocumentCreate) -> Document:
+    """Map DocumentCreate (write-model) to ORM Document for persistence."""
     return Document(
         id=d.id,
         tenant_id=d.tenant_id,
@@ -35,9 +35,9 @@ def _result_to_document(d: DocumentResult) -> Document:
         storage_ref=d.storage_ref,
         version=d.version,
         parent_document_id=d.parent_document_id,
-        is_latest_version=d.is_latest_version,
+        is_latest_version=True,
         created_by=d.created_by,
-        deleted_at=d.deleted_at,
+        deleted_at=None,
     )
 
 
@@ -64,7 +64,7 @@ def _document_to_result(d: Document) -> DocumentResult:
 
 
 class DocumentRepository(AuditableRepository[Document]):
-    """Document repository. create() accepts DocumentResult or Document; returns DTO (LSP-safe input)."""
+    """Document repository. create() accepts DocumentCreate (write-model); returns DocumentResult (read-model)."""
 
     def __init__(
         self,
@@ -122,9 +122,9 @@ class DocumentRepository(AuditableRepository[Document]):
         )
         return result.scalar_one_or_none()
 
-    async def create(self, obj: DocumentResult | Document) -> DocumentResult:
-        """Create document from DTO or ORM; returns DTO. No dict (LSP: typed input only)."""
-        orm = _result_to_document(obj) if isinstance(obj, DocumentResult) else obj
+    async def create(self, document: DocumentCreate) -> DocumentResult:
+        """Create document from write-model DTO; return read-model."""
+        orm = _create_to_document(document)
         created = await super().create(orm)
         return _document_to_result(created)
 
@@ -195,21 +195,23 @@ class DocumentRepository(AuditableRepository[Document]):
         self, document_id: str, tenant_id: str
     ) -> list[DocumentResult]:
         """Return this document plus all documents with parent_document_id = document_id (version chain)."""
-        doc = await self.get_by_id(document_id)
-        if not doc or doc.tenant_id != tenant_id:
-            return []
         result = await self.db.execute(
             select(Document)
             .where(
                 and_(
-                    Document.parent_document_id == document_id,
+                    or_(
+                        Document.id == document_id,
+                        Document.parent_document_id == document_id,
+                    ),
                     Document.tenant_id == tenant_id,
                 )
             )
             .order_by(Document.version.asc())
         )
-        children = [_document_to_result(d) for d in result.scalars().all()]
-        return [doc] + children
+        rows = result.scalars().all()
+        if not any(d.id == document_id for d in rows):
+            return []
+        return [_document_to_result(d) for d in rows]
 
     async def get_by_checksum(
         self, tenant_id: str, checksum: str

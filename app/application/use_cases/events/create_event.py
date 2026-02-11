@@ -12,6 +12,7 @@ from app.application.interfaces.repositories import (
 )
 from app.application.interfaces.services import IHashService
 from app.domain.entities.event import EventEntity
+from app.domain.exceptions import ResourceNotFoundException
 from app.domain.value_objects.core import EventChain, EventType, Hash
 from app.shared.telemetry.logging import get_logger
 
@@ -73,9 +74,7 @@ class EventService:
             data.subject_id, tenant_id
         )
         if not subject:
-            raise ValueError(
-                f"Subject '{data.subject_id}' not found or does not belong to tenant"
-            )
+            raise ResourceNotFoundException("subject", data.subject_id)
 
         if self.schema_validator:
             await self.schema_validator.validate_payload(
@@ -88,10 +87,10 @@ class EventService:
         prev_event = await self.event_repo.get_last_event(data.subject_id, tenant_id)
         prev_hash = prev_event.hash if prev_event else None
 
-        if prev_event and data.event_time <= prev_event.event_time:
-            raise ValueError(
-                f"Event time must be after previous event time {prev_event.event_time}"
-            )
+        EventEntity.validate_event_time_after_previous(
+            data.event_time,
+            prev_event.event_time if prev_event else None,
+        )
 
         event_hash = self.hash_service.compute_hash(
             subject_id=data.subject_id,
@@ -130,9 +129,7 @@ class EventService:
                 subject_id, tenant_id
             )
             if not subject:
-                raise ValueError(
-                    f"Subject '{subject_id}' not found or does not belong to tenant"
-                )
+                raise ResourceNotFoundException("subject", subject_id)
 
         # Fetch last event per subject so each subject has an independent hash chain.
         chain_state: dict[str, tuple[str | None, datetime | None]] = {}
@@ -146,10 +143,10 @@ class EventService:
         to_persist: list[EventToPersist] = []
         for event_data in events:
             prev_hash, prev_time = chain_state[event_data.subject_id]
-            if prev_time and event_data.event_time <= prev_time:
-                raise ValueError(
-                    "Event time must be after previous; events must be sorted by event_time"
-                )
+            EventEntity.validate_event_time_after_previous(
+                event_data.event_time,
+                prev_time,
+            )
             if not skip_schema_validation and self.schema_validator:
                 await self.schema_validator.validate_payload(
                     tenant_id,
@@ -195,7 +192,11 @@ class EventService:
         try:
             result = await self.workflow_engine.process_event_triggers(event, tenant_id)
             return result or []
+        except (AssertionError, AttributeError, IndexError, KeyError, NameError, TypeError):
+            # Programming errors: do not mask; re-raise so they surface in tests and logs.
+            raise
         except Exception:
+            # Runtime/infra failures (e.g. network, DB in workflow): log and do not fail event creation.
             logger.exception(
                 "Workflow trigger failed for event %s (type: %s)",
                 event.id,

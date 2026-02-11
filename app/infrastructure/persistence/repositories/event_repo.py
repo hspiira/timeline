@@ -149,6 +149,5 @@ class EventRepository(BaseRepository[Event]):
         ]
         self.db.add_all(objs)
         await self.db.flush()
-        for o in objs:
-            await self.db.refresh(o)
+        # IDs and fields are set in Python (CUID + payload); no refresh needed.
         return [_event_to_result(o) for o in objs]
