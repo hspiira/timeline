@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from app.application.dtos.role import RoleResult
+from app.application.interfaces.repositories import (
+    IPermissionRepository,
+    IRolePermissionRepository,
+    IRoleRepository,
+)
 from app.domain.exceptions import DuplicateAssignmentException, ValidationException
 
 
@@ -13,9 +16,9 @@ class RoleService:
 
     def __init__(
         self,
-        role_repo: Any,
-        permission_repo: Any,
-        role_permission_repo: Any,
+        role_repo: IRoleRepository,
+        permission_repo: IPermissionRepository,
+        role_permission_repo: IRolePermissionRepository,
     ) -> None:
         self._role_repo = role_repo
         self._permission_repo = permission_repo

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.dtos.permission import PermissionResult
 from app.infrastructure.persistence.models.permission import Permission
 from app.infrastructure.persistence.repositories.auditable_repo import (
     AuditableRepository,
@@ -14,6 +15,18 @@ from app.infrastructure.persistence.repositories.auditable_repo import (
 
 if TYPE_CHECKING:
     from app.infrastructure.services.system_audit_service import SystemAuditService
+
+
+def _permission_to_result(p: Permission) -> PermissionResult:
+    """Map ORM Permission to application PermissionResult."""
+    return PermissionResult(
+        id=p.id,
+        tenant_id=p.tenant_id,
+        code=p.code,
+        resource=p.resource,
+        action=p.action,
+        description=p.description,
+    )
 
 
 class PermissionRepository(AuditableRepository[Permission]):
@@ -47,8 +60,8 @@ class PermissionRepository(AuditableRepository[Permission]):
         resource: str,
         action: str,
         description: str | None = None,
-    ) -> Permission:
-        """Create a permission (caller does not need to import Permission ORM)."""
+    ) -> PermissionResult:
+        """Create a permission; return application DTO."""
         perm = Permission(
             tenant_id=tenant_id,
             code=code,
@@ -56,14 +69,28 @@ class PermissionRepository(AuditableRepository[Permission]):
             action=action,
             description=description,
         )
-        return await self.create(perm)
+        created = await self.create(perm)
+        return _permission_to_result(created)
 
     async def get_by_code_and_tenant(
         self, code: str, tenant_id: str
-    ) -> Permission | None:
+    ) -> PermissionResult | None:
         result = await self.db.execute(
             select(Permission).where(
                 Permission.code == code,
+                Permission.tenant_id == tenant_id,
+            )
+        )
+        perm = result.scalar_one_or_none()
+        return _permission_to_result(perm) if perm else None
+
+    async def get_by_id_and_tenant(
+        self, permission_id: str, tenant_id: str
+    ) -> Permission | None:
+        """Return permission by id if it belongs to the tenant; otherwise None."""
+        result = await self.db.execute(
+            select(Permission).where(
+                Permission.id == permission_id,
                 Permission.tenant_id == tenant_id,
             )
         )

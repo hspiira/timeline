@@ -3,7 +3,6 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy.exc import IntegrityError
 
 from app.api.v1.dependencies import (
     get_role_permission_repo_for_write,
@@ -13,6 +12,7 @@ from app.api.v1.dependencies import (
     get_tenant_id,
     require_permission,
 )
+from app.domain.exceptions import DuplicateAssignmentException, ValidationException
 from app.application.services.role_service import RoleService
 from app.core.limiter import limit_writes
 from app.infrastructure.persistence.repositories.role_permission_repo import (
@@ -36,7 +36,7 @@ async def create_role(
     request: Request,
     body: RoleCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    role_service: RoleService = Depends(get_role_service),
+    role_service: Annotated[RoleService, Depends(get_role_service)],
     _: Annotated[object, Depends(require_permission("role", "create"))] = None,
 ):
     """Create a role (tenant-scoped). Optionally assign permissions by code."""
@@ -48,22 +48,19 @@ async def create_role(
             description=body.description,
             permission_codes=body.permission_codes,
         )
-    except IntegrityError:
-        raise HTTPException(
-            status_code=400,
-            detail="Role creation failed (constraint violation)",
-        ) from None
+    except ValidationException as e:
+        raise HTTPException(status_code=400, detail=e.message) from e
     return RoleResponse.model_validate(created)
 
 
 @router.get("", response_model=list[RoleResponse])
 async def list_roles(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
+    role_repo: Annotated[RoleRepository, Depends(get_role_repo)],
+    _: Annotated[object, Depends(require_permission("role", "read"))] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     include_inactive: bool = False,
-    role_repo: RoleRepository = Depends(get_role_repo),
-    _: Annotated[object, Depends(require_permission("role", "read"))] = None,
 ):
     """List roles for tenant (paginated)."""
     roles = await role_repo.get_by_tenant(
@@ -79,7 +76,7 @@ async def list_roles(
 async def get_role(
     role_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    role_repo: RoleRepository = Depends(get_role_repo),
+    role_repo: Annotated[RoleRepository, Depends(get_role_repo)],
     _: Annotated[object, Depends(require_permission("role", "read"))] = None,
 ):
     """Get role by id (tenant-scoped)."""
@@ -96,7 +93,7 @@ async def update_role(
     role_id: str,
     body: RoleUpdate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    role_repo: RoleRepository = Depends(get_role_repo_for_write),
+    role_repo: Annotated[RoleRepository, Depends(get_role_repo_for_write)],
     _: Annotated[object, Depends(require_permission("role", "update"))] = None,
 ):
     """Update role (name, description, is_active). Tenant-scoped."""
@@ -121,7 +118,7 @@ async def delete_role(
     request: Request,
     role_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    role_repo: RoleRepository = Depends(get_role_repo_for_write),
+    role_repo: Annotated[RoleRepository, Depends(get_role_repo_for_write)],
     _: Annotated[object, Depends(require_permission("role", "delete"))] = None,
 ):
     """Deactivate role (soft delete). Tenant-scoped."""
@@ -144,10 +141,10 @@ async def assign_permission_to_role(
     role_id: str,
     body: RolePermissionAssign,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    role_repo: RoleRepository = Depends(get_role_repo),
-    role_permission_repo: RolePermissionRepository = Depends(
-        get_role_permission_repo_for_write
-    ),
+    role_repo: Annotated[RoleRepository, Depends(get_role_repo)],
+    role_permission_repo: Annotated[
+        RolePermissionRepository, Depends(get_role_permission_repo_for_write)
+    ],
     _: Annotated[object, Depends(require_permission("role", "update"))] = None,
 ):
     """Assign a permission to a role. Tenant-scoped."""
@@ -177,10 +174,10 @@ async def remove_permission_from_role(
     role_id: str,
     permission_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    role_repo: RoleRepository = Depends(get_role_repo),
-    role_permission_repo: RolePermissionRepository = Depends(
-        get_role_permission_repo_for_write
-    ),
+    role_repo: Annotated[RoleRepository, Depends(get_role_repo)],
+    role_permission_repo: Annotated[
+        RolePermissionRepository, Depends(get_role_permission_repo_for_write)
+    ],
     _: Annotated[object, Depends(require_permission("role", "update"))] = None,
 ):
     """Remove a permission from a role. Tenant-scoped."""

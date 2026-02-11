@@ -78,6 +78,10 @@ class Settings(BaseSettings):
     request_id_header: str = "X-Request-ID"
     correlation_id_header: str = "X-Correlation-ID"
 
+    # Verification: tenant-wide chain verification (fail-fast over limit; use background job for large tenants).
+    verification_max_events: int = 100_000
+    verification_timeout_seconds: int = 55
+
     # Firebase / Firestore: use key (env) or path (file). For Vercel, use key.
     firebase_service_account_key: SecretStr | None = None
     firebase_service_account_path: str | None = None  # Path to JSON file

@@ -153,3 +153,26 @@ class SubjectRepository(TenantScopedRepository[Subject]):
         )
         created = await self.create(subject)
         return _subject_to_result(created)
+
+    async def update_subject(
+        self,
+        tenant_id: str,
+        subject_id: str,
+        external_ref: str | None = None,
+    ) -> SubjectResult | None:
+        """Update subject; return updated result or None if not found in tenant."""
+        entity = await self.get_entity_by_id_and_tenant(subject_id, tenant_id)
+        if not entity:
+            return None
+        if external_ref is not None:
+            entity.external_ref = external_ref
+        updated = await self.update(entity, skip_existence_check=True)
+        return _subject_to_result(updated)
+
+    async def delete_subject(self, tenant_id: str, subject_id: str) -> bool:
+        """Delete subject; return True if deleted, False if not found in tenant."""
+        entity = await self.get_entity_by_id_and_tenant(subject_id, tenant_id)
+        if not entity:
+            return False
+        await self.delete(entity)
+        return True

@@ -30,7 +30,7 @@ class EmailAccountService:
         subject_id: str,
         provider_type: str,
         email_address: str,
-        credentials_plain: str,
+        credentials_plain: dict[str, Any],
         connection_params: dict | None = None,
         oauth_provider_config_id: str | None = None,
     ) -> Any:
@@ -57,3 +57,12 @@ class EmailAccountService:
         account.sync_started_at = utc_now()
         account.sync_error = None
         await self._repo.update(account)
+
+    async def run_sync_now(self, account_id: str, tenant_id: str) -> None:
+        """Run sync for the account (mark pending and execute sync). Use for in-process or background task.
+
+        Currently marks the account pending; full sync execution (fetch/process/save) can be
+        wired here or delegated to a dedicated sync runner.
+        """
+        await self.mark_sync_pending(account_id, tenant_id)
+        # TODO: run actual sync (fetch messages, create events, update completion state)

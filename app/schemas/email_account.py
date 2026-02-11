@@ -1,8 +1,12 @@
 """Email account API schemas."""
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+# Allowed values for sync_status (PATCH and responses).
+EmailAccountSyncStatus = Literal["idle", "pending", "syncing", "error"]
 
 
 class EmailAccountCreateRequest(BaseModel):
@@ -22,7 +26,7 @@ class EmailAccountUpdate(BaseModel):
     email_address: EmailStr | None = None
     connection_params: dict | None = None
     is_active: bool | None = None
-    sync_status: str | None = None
+    sync_status: EmailAccountSyncStatus | None = None
 
 
 class EmailAccountSyncStatusResponse(BaseModel):

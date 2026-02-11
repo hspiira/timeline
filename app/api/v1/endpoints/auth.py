@@ -7,7 +7,6 @@ repo construction. JWT created via infrastructure security.
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.exc import IntegrityError
 
 from app.api.v1.dependencies import (
     AuthSecurity,
@@ -34,26 +33,20 @@ router = APIRouter()
 async def register(
     request: Request,
     body: RegisterRequest,
-    user_repo: UserRepository = Depends(get_user_repo_for_write),
-    tenant_repo: TenantRepository = Depends(get_tenant_repo),
+    user_repo: Annotated[UserRepository, Depends(get_user_repo_for_write)],
+    tenant_repo: Annotated[TenantRepository, Depends(get_tenant_repo)],
 ):
     """Register a new user with tenant_code (public endpoint). Resolves tenant by code."""
     tenant = await tenant_repo.get_by_code(body.tenant_code)
     if not tenant:
         raise HTTPException(status_code=400, detail="Invalid tenant code")
-    try:
-        user = await user_repo.create_user(
-            tenant_id=tenant.id,
-            username=body.username,
-            email=body.email,
-            password=body.password,
-        )
-        return UserResponse.model_validate(user)
-    except IntegrityError:
-        raise HTTPException(
-            status_code=400,
-            detail="Username or email already registered in this tenant",
-        ) from None
+    user = await user_repo.create_user(
+        tenant_id=tenant.id,
+        username=body.username,
+        email=body.email,
+        password=body.password,
+    )
+    return UserResponse.model_validate(user)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -61,9 +54,9 @@ async def register(
 async def login(
     request: Request,
     body: LoginRequest,
-    user_repo: UserRepository = Depends(get_user_repo),
-    tenant_repo: TenantRepository = Depends(get_tenant_repo),
-    auth_security: AuthSecurity = Depends(get_auth_security),
+    user_repo: Annotated[UserRepository, Depends(get_user_repo)],
+    tenant_repo: Annotated[TenantRepository, Depends(get_tenant_repo)],
+    auth_security: Annotated[AuthSecurity, Depends(get_auth_security)],
 ):
     """Authenticate with tenant_code, username, and password; return JWT.
 
@@ -105,21 +98,15 @@ async def update_me(
     request: Request,
     body: UserUpdate,
     current_user: Annotated[UserResult, Depends(get_current_user)],
-    user_service: UserService = Depends(get_user_service),
+    user_service: Annotated[UserService, Depends(get_user_service)],
 ):
     """Update current user email and/or password. Requires Authorization."""
-    try:
-        updated = await user_service.update_me(
-            user_id=current_user.id,
-            tenant_id=current_user.tenant_id,
-            email=body.email,
-            password=body.password,
-        )
-    except IntegrityError:
-        raise HTTPException(
-            status_code=400,
-            detail="Email is already registered in this tenant",
-        ) from None
+    updated = await user_service.update_me(
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        email=body.email,
+        password=body.password,
+    )
     return UserResponse.model_validate(updated)
 
 
@@ -128,7 +115,7 @@ async def update_me(
 async def delete_me(
     request: Request,
     current_user: Annotated[UserResult, Depends(get_current_user)],
-    user_repo: UserRepository = Depends(get_user_repo_for_write),
+    user_repo: Annotated[UserRepository, Depends(get_user_repo_for_write)],
 ):
     """Deactivate current user (soft delete). Requires Authorization."""
     updated = await user_repo.deactivate(

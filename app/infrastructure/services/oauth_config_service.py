@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.domain.exceptions import (
+    AuthorizationException,
     CredentialException,
     ResourceNotFoundException,
     ValidationException,
@@ -79,8 +80,19 @@ class OAuthConfigService:
         )
         return driver.build_authorization_url(state=signed_state)
 
-    async def exchange_callback(self, code: str, state: str) -> OAuthTokens:
-        """Verify state, exchange code for tokens. Raises TimelineException on invalid state or config."""
+    async def exchange_callback(
+        self,
+        code: str,
+        state: str,
+        *,
+        tenant_id: str | None = None,
+        provider_type: str | None = None,
+    ) -> OAuthTokens:
+        """Verify state, exchange code for tokens. Raises TimelineException on invalid state or config.
+
+        When tenant_id and provider_type are provided (e.g. from the callback route), asserts
+        they match the state so the token exchange cannot complete for a different tenant/provider.
+        """
         state_manager = OAuthStateManager()
         try:
             state_id = state_manager.verify_and_extract(state)
@@ -89,6 +101,12 @@ class OAuthConfigService:
         state_row = await self._state_repo.consume(state_id)
         if not state_row:
             raise ValidationException("State already used or expired")
+        if tenant_id is not None and state_row.tenant_id != tenant_id:
+            raise AuthorizationException(
+                resource="oauth_config",
+                action="exchange",
+                message="State does not match request tenant",
+            )
         config = await self._oauth_repo.get_by_id_and_tenant(
             state_row.provider_config_id, state_row.tenant_id or ""
         )
@@ -96,6 +114,14 @@ class OAuthConfigService:
             raise ResourceNotFoundException(
                 "oauth_config", state_row.provider_config_id
             )
+        if provider_type is not None:
+            expected = provider_type.strip().lower()
+            if config.provider_type != expected:
+                raise AuthorizationException(
+                    resource="oauth_config",
+                    action="exchange",
+                    message="State does not match request provider",
+                )
         try:
             creds = self._encryptor.decrypt(config.client_id_encrypted)
         except ValueError:

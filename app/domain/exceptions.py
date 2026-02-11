@@ -124,6 +124,30 @@ class TenantAlreadyExistsException(TimelineException):
         )
 
 
+class UserAlreadyExistsException(TimelineException):
+    """Raised when creating a user whose username or email already exists in the tenant."""
+
+    def __init__(self) -> None:
+        """Initialize with a generic message (username/email duplicate in tenant)."""
+        super().__init__(
+            "Username or email already registered in this tenant",
+            "USER_ALREADY_EXISTS",
+            {},
+        )
+
+
+class DuplicateEmailException(TimelineException):
+    """Raised when updating a user to an email already registered in the tenant."""
+
+    def __init__(self) -> None:
+        """Initialize with a generic message (email duplicate in tenant)."""
+        super().__init__(
+            "Email is already registered in this tenant",
+            "DUPLICATE_EMAIL",
+            {},
+        )
+
+
 class DocumentVersionConflictException(TimelineException):
     """Raised when a concurrent request won the parent version update (optimistic lock)."""
 
@@ -167,6 +191,24 @@ class EventChainBrokenException(TimelineException):
             f"Event chain broken for subject {subject_id}",
             "CHAIN_INTEGRITY_ERROR",
             {"subject_id": subject_id, "event_id": event_id, "reason": reason},
+        )
+
+
+class VerificationLimitExceededException(TimelineException):
+    """Raised when tenant event count exceeds verification_max_events (use background job)."""
+
+    def __init__(self, tenant_id: str, total_events: int, max_events: int) -> None:
+        """Initialize with tenant and counts.
+
+        Args:
+            tenant_id: Tenant whose event count exceeded the limit.
+            total_events: Current total event count.
+            max_events: Configured maximum for inline verification.
+        """
+        super().__init__(
+            f"Tenant has {total_events} events; maximum for inline verification is {max_events}",
+            "VERIFICATION_LIMIT_EXCEEDED",
+            {"tenant_id": tenant_id, "total_events": total_events, "max_events": max_events},
         )
 
 

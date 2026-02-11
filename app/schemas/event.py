@@ -1,6 +1,6 @@
 """Event API schemas. Minimal for Phase 3; full validation in Phase 6."""
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
@@ -71,3 +71,20 @@ class ChainVerificationResponse(BaseModel):
     is_chain_valid: bool
     verified_at: AwareDatetime
     event_results: list[EventVerificationResult] = []
+
+
+class VerificationJobStartedResponse(BaseModel):
+    """Response when a background verification job is started (202)."""
+
+    job_id: str
+    message: str = "Verification job started; poll GET /events/verify/tenant/jobs/{job_id} for status."
+
+
+class VerificationJobStatusResponse(BaseModel):
+    """Status of a background verification job."""
+
+    job_id: str
+    status: Literal["pending", "running", "completed", "failed"]
+    result: ChainVerificationResponse | None = None
+    error: str | None = None
+    total_events: int | None = None

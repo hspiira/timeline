@@ -28,7 +28,9 @@ async def create_permission(
     request: Request,
     body: PermissionCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    permission_service: PermissionService = Depends(get_permission_service),
+    permission_service: Annotated[
+        PermissionService, Depends(get_permission_service)
+    ],
     _: Annotated[object, Depends(require_permission("permission", "create"))] = None,
 ):
     """Create a permission (tenant-scoped)."""
@@ -51,10 +53,12 @@ async def create_permission(
 @router.get("", response_model=list[PermissionResponse])
 async def list_permissions(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
+    permission_repo: Annotated[
+        PermissionRepository, Depends(get_permission_repo)
+    ],
+    _: Annotated[object, Depends(require_permission("permission", "read"))] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(200, ge=1, le=1000),
-    permission_repo: PermissionRepository = Depends(get_permission_repo),
-    _: Annotated[object, Depends(require_permission("permission", "read"))] = None,
 ):
     """List permissions for tenant (paginated)."""
     perms = await permission_repo.get_by_tenant(
@@ -69,12 +73,14 @@ async def list_permissions(
 async def get_permission(
     permission_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    permission_repo: PermissionRepository = Depends(get_permission_repo),
+    permission_repo: Annotated[
+        PermissionRepository, Depends(get_permission_repo)
+    ],
     _: Annotated[object, Depends(require_permission("permission", "read"))] = None,
 ):
     """Get permission by id (tenant-scoped)."""
-    perm = await permission_repo.get_by_id(permission_id)
-    if not perm or perm.tenant_id != tenant_id:
+    perm = await permission_repo.get_by_id_and_tenant(permission_id, tenant_id)
+    if not perm:
         raise HTTPException(status_code=404, detail="Permission not found")
     return PermissionResponse.model_validate(perm)
 
@@ -85,11 +91,13 @@ async def delete_permission(
     request: Request,
     permission_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    permission_repo: PermissionRepository = Depends(get_permission_repo_for_write),
+    permission_repo: Annotated[
+        PermissionRepository, Depends(get_permission_repo_for_write)
+    ],
     _: Annotated[object, Depends(require_permission("permission", "delete"))] = None,
 ):
     """Delete permission. Tenant-scoped."""
-    perm = await permission_repo.get_by_id(permission_id)
-    if not perm or perm.tenant_id != tenant_id:
+    perm = await permission_repo.get_by_id_and_tenant(permission_id, tenant_id)
+    if not perm:
         raise HTTPException(status_code=404, detail="Permission not found")
     await permission_repo.delete(perm)

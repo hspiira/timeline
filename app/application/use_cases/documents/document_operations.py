@@ -110,14 +110,11 @@ class DocumentUploadService:
 
         version = 1
         if parent_document_id:
-            parent = await self.document_repo.get_by_id(parent_document_id)
+            parent = await self.document_repo.get_by_id_and_tenant(
+                parent_document_id, tenant_id
+            )
             if not parent:
                 raise ResourceNotFoundException("document", parent_document_id)
-            if parent.tenant_id != tenant_id:
-                raise ValidationException(
-                    "Parent document belongs to different tenant",
-                    field="parent_document_id",
-                )
             version = parent.version + 1
             updated = await self.document_repo.mark_parent_not_latest_if_current(
                 parent_document_id, parent.version
@@ -163,15 +160,6 @@ class DocumentUploadService:
         return await self.document_repo.create(create_dto)
 
 
-def _document_for_tenant_or_raise(
-    doc: DocumentResult | None, tenant_id: str, document_id: str
-) -> DocumentResult:
-    """Return doc if it exists and belongs to tenant; else raise ResourceNotFoundException."""
-    if not doc or doc.tenant_id != tenant_id:
-        raise ResourceNotFoundException("document", document_id)
-    return doc
-
-
 class DocumentQueryService:
     """Single responsibility: document metadata, download URL, and listing."""
 
@@ -187,8 +175,9 @@ class DocumentQueryService:
         self, tenant_id: str, document_id: str
     ) -> DocumentMetadata:
         """Return document metadata; raise ResourceNotFoundException if not found or wrong tenant."""
-        doc = await self.document_repo.get_by_id(document_id)
-        doc = _document_for_tenant_or_raise(doc, tenant_id, document_id)
+        doc = await self.document_repo.get_by_id_and_tenant(document_id, tenant_id)
+        if not doc:
+            raise ResourceNotFoundException("document", document_id)
         return DocumentMetadata(
             id=doc.id,
             tenant_id=doc.tenant_id,
@@ -208,8 +197,9 @@ class DocumentQueryService:
         expiration: timedelta = timedelta(hours=1),
     ) -> str:
         """Return temporary download URL; raise ResourceNotFoundException if not found or wrong tenant."""
-        doc = await self.document_repo.get_by_id(document_id)
-        doc = _document_for_tenant_or_raise(doc, tenant_id, document_id)
+        doc = await self.document_repo.get_by_id_and_tenant(document_id, tenant_id)
+        if not doc:
+            raise ResourceNotFoundException("document", document_id)
         if not doc.storage_ref:
             raise ResourceNotFoundException("document", document_id)
         return await self.storage.generate_download_url(

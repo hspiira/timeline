@@ -77,3 +77,28 @@ class SubjectService:
             skip=skip,
             limit=limit,
         )
+
+    async def update_subject(
+        self,
+        tenant_id: str,
+        subject_id: str,
+        external_ref: str | None = None,
+    ) -> SubjectResult:
+        """Update subject; raise ResourceNotFoundException if not found in tenant."""
+        result = await self.subject_repo.update_subject(
+            tenant_id=tenant_id,
+            subject_id=subject_id,
+            external_ref=external_ref,
+        )
+        if result is None:
+            raise ResourceNotFoundException("subject", subject_id)
+        return result
+
+    async def delete_subject(self, tenant_id: str, subject_id: str) -> None:
+        """Delete subject; raise ResourceNotFoundException if not found in tenant."""
+        deleted = await self.subject_repo.delete_subject(
+            tenant_id=tenant_id,
+            subject_id=subject_id,
+        )
+        if not deleted:
+            raise ResourceNotFoundException("subject", subject_id)

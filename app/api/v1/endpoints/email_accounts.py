@@ -8,7 +8,7 @@ import hmac
 import hashlib
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
     get_email_account_repo,
@@ -177,11 +177,13 @@ async def trigger_email_sync(
     request: Request,
     account_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    email_account_service: EmailAccountService = Depends(get_email_account_service),
+    email_account_service: Annotated[
+        EmailAccountService, Depends(get_email_account_service)
+    ],
     _: Annotated[object, Depends(require_permission("email_account", "update"))] = None,
 ):
-    """Trigger sync for the email account (in-process). Returns 202 when accepted."""
-    await email_account_service.mark_sync_pending(account_id, tenant_id)
+    """Trigger sync for the email account (in-process). Runs sync before returning 202."""
+    await email_account_service.run_sync_now(account_id, tenant_id)
     return EmailSyncAcceptedResponse(detail="Sync started", account_id=account_id)
 
 
@@ -195,11 +197,16 @@ async def trigger_email_sync_background(
     request: Request,
     account_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    email_account_service: EmailAccountService = Depends(get_email_account_service),
+    background_tasks: BackgroundTasks,
+    email_account_service: Annotated[
+        EmailAccountService, Depends(get_email_account_service)
+    ],
     _: Annotated[object, Depends(require_permission("email_account", "update"))] = None,
 ):
-    """Enqueue background sync for the email account. Returns 202 when accepted."""
-    await email_account_service.mark_sync_pending(account_id, tenant_id)
+    """Enqueue sync for the email account. Returns 202 immediately; sync runs after response."""
+    background_tasks.add_task(
+        email_account_service.run_sync_now, account_id, tenant_id
+    )
     return EmailSyncAcceptedResponse(
         detail="Background sync enqueued", account_id=account_id
     )
@@ -209,7 +216,7 @@ def _verify_webhook_signature(body: bytes, signature_header: str | None, secret:
     """Return True if X-Webhook-Signature-256 matches HMAC-SHA256(secret, body)."""
     if not signature_header or not signature_header.startswith("sha256="):
         return False
-    expected = hmac.new(
+    expected = hmac.HMAC(
         secret.encode(), body, hashlib.sha256
     ).hexdigest()
     return hmac.compare_digest(signature_header[7:].strip(), expected)

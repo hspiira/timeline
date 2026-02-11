@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
+
 from app.application.dtos.event import EventResult
 from app.application.interfaces.repositories import IEventRepository
 from app.application.interfaces.services import IHashService
+from app.domain.exceptions import VerificationLimitExceededException
 from app.shared.utils.datetime import utc_now
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(kw_only=True)
@@ -47,9 +53,13 @@ class VerificationService:
         self,
         event_repo: IEventRepository,
         hash_service: IHashService,
+        max_events: int | None = None,
+        timeout_seconds: int | None = None,
     ) -> None:
         self.event_repo = event_repo
         self.hash_service = hash_service
+        self.max_events = max_events
+        self.timeout_seconds = timeout_seconds
 
     async def verify_subject_chain(
         self, subject_id: str, tenant_id: str
@@ -99,19 +109,54 @@ class VerificationService:
         """Verify all event chains for a tenant (grouped by subject).
 
         Fetches all events in batches so verification is complete with no silent truncation.
+        Raises VerificationLimitExceededException if total events exceed max_events.
+        Applies timeout_seconds when set to avoid long-running request timeouts.
         """
-        all_events: list[EventResult] = []
-        batch_size = 500
-        offset = 0
-        while True:
-            batch = await self.event_repo.get_by_tenant(
-                tenant_id, skip=offset, limit=batch_size
+        total = await self.event_repo.count_by_tenant(tenant_id)
+        if self.max_events is not None and total > self.max_events:
+            raise VerificationLimitExceededException(
+                tenant_id=tenant_id,
+                total_events=total,
+                max_events=self.max_events,
             )
-            all_events.extend(batch)
-            if len(batch) < batch_size:
-                break
-            offset += batch_size
-        events = all_events
+        if self.timeout_seconds is not None and total > 0:
+            logger.info(
+                "Starting tenant verification: tenant_id=%s total_events=%s timeout=%ss",
+                tenant_id,
+                total,
+                self.timeout_seconds,
+            )
+        async def _run() -> ChainVerificationResult:
+            all_events: list[EventResult] = []
+            batch_size = 500
+            offset = 0
+            while True:
+                batch = await self.event_repo.get_by_tenant(
+                    tenant_id, skip=offset, limit=batch_size
+                )
+                all_events.extend(batch)
+                if len(batch) < batch_size:
+                    break
+                offset += batch_size
+            return await self._verify_tenant_events(tenant_id, all_events)
+
+        try:
+            if self.timeout_seconds is not None:
+                return await asyncio.wait_for(_run(), timeout=self.timeout_seconds)
+            return await _run()
+        except asyncio.TimeoutError:
+            logger.warning(
+                "Tenant verification timed out: tenant_id=%s total_events=%s timeout=%ss",
+                tenant_id,
+                total,
+                self.timeout_seconds,
+            )
+            raise
+
+    async def _verify_tenant_events(
+        self, tenant_id: str, events: list[EventResult]
+    ) -> ChainVerificationResult:
+        """Run verification over already-fetched tenant events (grouped by subject)."""
         if not events:
             return ChainVerificationResult(
                 subject_id=None,

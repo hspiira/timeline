@@ -22,6 +22,7 @@ from app.domain.exceptions import (
     TenantNotFoundException,
     TimelineException,
     ValidationException,
+    VerificationLimitExceededException,
 )
 from app.domain.value_objects import (
     EventChain,
@@ -52,4 +53,5 @@ __all__ = [
     "TenantStatus",
     "TimelineException",
     "ValidationException",
+    "VerificationLimitExceededException",
 ]

@@ -103,6 +103,13 @@ class DocumentRepository(AuditableRepository[Document]):
         row = result.scalar_one_or_none()
         return _document_to_result(row) if row else None
 
+    async def get_by_id_and_tenant(
+        self, document_id: str, tenant_id: str
+    ) -> DocumentResult | None:
+        """Return document by ID if it belongs to the tenant; otherwise None."""
+        orm = await self._get_orm_by_id_and_tenant(document_id, tenant_id)
+        return _document_to_result(orm) if orm else None
+
     async def _get_orm_by_id(self, document_id: str) -> Document | None:
         """Return ORM Document by id (for internal use by update)."""
         result = await self.db.execute(

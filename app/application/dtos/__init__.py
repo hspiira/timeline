@@ -8,6 +8,7 @@ from app.application.dtos.document import (
 )
 from app.application.dtos.event import CreateEventCommand, EventResult, EventToPersist
 from app.application.dtos.event_schema import EventSchemaResult
+from app.application.dtos.permission import PermissionResult
 from app.application.dtos.role import RoleResult
 from app.application.dtos.subject import SubjectResult
 from app.application.dtos.tenant import TenantCreationResult, TenantResult
@@ -22,6 +23,7 @@ __all__ = [
     "EventResult",
     "EventSchemaResult",
     "EventToPersist",
+    "PermissionResult",
     "RoleResult",
     "SubjectResult",
     "TenantCreationResult",

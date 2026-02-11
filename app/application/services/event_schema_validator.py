@@ -14,7 +14,7 @@ class EventSchemaValidator:
     """Validates event payload against active schema; single responsibility."""
 
     def __init__(self, schema_repo: IEventSchemaRepository) -> None:
-        self.schema_repo = schema_repo
+        self._schema_repo = schema_repo
 
     async def validate_payload(
         self,
@@ -23,7 +23,7 @@ class EventSchemaValidator:
         schema_version: int,
         payload: dict[str, Any],
     ) -> None:
-        schema = await self.schema_repo.get_by_version(
+        schema = await self._schema_repo.get_by_version(
             tenant_id, event_type, schema_version
         )
         schema_id = f"{event_type}@v{schema_version}"

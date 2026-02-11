@@ -22,7 +22,7 @@ class ConnectionManager:
 
     def __init__(self) -> None:
         """Initialize with empty per-tenant connection sets."""
-        self._connections_by_tenant: dict[str, list[WebSocket]] = {}
+        self._connections_by_tenant: dict[str, set[WebSocket]] = {}
         self._websocket_to_tenant: dict[WebSocket, str] = {}
         self._lock = asyncio.Lock()
 
@@ -36,8 +36,8 @@ class ConnectionManager:
         await websocket.accept()
         async with self._lock:
             if tenant_id not in self._connections_by_tenant:
-                self._connections_by_tenant[tenant_id] = []
-            self._connections_by_tenant[tenant_id].append(websocket)
+                self._connections_by_tenant[tenant_id] = set()
+            self._connections_by_tenant[tenant_id].add(websocket)
             self._websocket_to_tenant[websocket] = tenant_id
 
     async def disconnect(self, websocket: WebSocket) -> None:
@@ -65,7 +65,7 @@ class ConnectionManager:
             message: String or JSON-serializable dict to send.
         """
         async with self._lock:
-            snapshot = list(self._connections_by_tenant.get(tenant_id, []))
+            snapshot = list(self._connections_by_tenant.get(tenant_id, set()))
         await self._send_to_list(snapshot, message)
 
     async def broadcast(self, message: str | dict[str, Any]) -> None:
@@ -77,11 +77,11 @@ class ConnectionManager:
             message: String or JSON-serializable dict to send.
         """
         async with self._lock:
-            snapshot = [
+            snapshot = list(
                 ws
                 for conns in self._connections_by_tenant.values()
                 for ws in conns
-            ]
+            )
         await self._send_to_list(snapshot, message)
 
     async def _send_to_list(

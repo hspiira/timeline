@@ -27,7 +27,7 @@ router = APIRouter()
 @router.get("/me/roles", response_model=list[RoleResponse])
 async def list_my_roles(
     current_user: Annotated[UserResult, Depends(require_permission("user_role", "read"))],
-    user_role_repo: UserRoleRepository = Depends(get_user_role_repo),
+    user_role_repo: Annotated[UserRoleRepository, Depends(get_user_role_repo)],
 ):
     """List roles assigned to the current authenticated user."""
     roles = await user_role_repo.get_user_roles(
@@ -40,10 +40,14 @@ async def list_my_roles(
 async def list_user_roles(
     user_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    user_role_repo: UserRoleRepository = Depends(get_user_role_repo),
+    user_repo: Annotated[UserRepository, Depends(get_user_repo)],
+    user_role_repo: Annotated[UserRoleRepository, Depends(get_user_role_repo)],
     _: Annotated[object, Depends(require_permission("user_role", "read"))] = None,
 ):
-    """List roles assigned to a user (tenant-scoped)."""
+    """List roles assigned to a user (tenant-scoped). Returns 404 if user does not exist."""
+    user = await user_repo.get_by_id_and_tenant(user_id, tenant_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     roles = await user_role_repo.get_user_roles(user_id=user_id, tenant_id=tenant_id)
     return [RoleResponse.model_validate(r) for r in roles]
 
@@ -55,9 +59,9 @@ async def assign_role_to_user(
     user_id: str,
     role_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    user_repo: UserRepository = Depends(get_user_repo),
-    role_repo: RoleRepository = Depends(get_role_repo),
-    user_role_repo: UserRoleRepository = Depends(get_user_role_repo_for_write),
+    user_repo: Annotated[UserRepository, Depends(get_user_repo)],
+    role_repo: Annotated[RoleRepository, Depends(get_role_repo)],
+    user_role_repo: Annotated[UserRoleRepository, Depends(get_user_role_repo_for_write)],
     _: Annotated[object, Depends(require_permission("user_role", "update"))] = None,
 ):
     """Assign a role to a user (tenant-scoped). Verifies user and role exist and belong to tenant."""
@@ -82,7 +86,7 @@ async def remove_role_from_user(
     user_id: str,
     role_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    user_role_repo: UserRoleRepository = Depends(get_user_role_repo_for_write),
+    user_role_repo: Annotated[UserRoleRepository, Depends(get_user_role_repo_for_write)],
     _: Annotated[object, Depends(require_permission("user_role", "update"))] = None,
 ):
     """Remove a role from a user (tenant-scoped)."""

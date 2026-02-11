@@ -4,16 +4,22 @@ Uses only the ConnectionManager on app.state (set in lifespan); no manual constr
 Requires a valid JWT via query param ?token=... before registering the connection.
 """
 
-from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from typing import Annotated
 
+from fastapi import APIRouter, Depends, Request, WebSocket, WebSocketDisconnect
+
+from app.api.v1.dependencies import get_tenant_id, require_permission
 from app.schemas.websocket import WebSocketStatusResponse
 
 router = APIRouter()
 
 
 @router.get("/status", response_model=WebSocketStatusResponse)
-async def websocket_status(request: Request) -> WebSocketStatusResponse:
-    """Return WebSocket connection status for monitoring."""
+async def websocket_status(
+    request: Request,
+    _: Annotated[object, Depends(require_permission("tenant", "read"))] = None,
+) -> WebSocketStatusResponse:
+    """Return WebSocket connection count for monitoring. Requires tenant read permission (e.g. admin)."""
     manager = getattr(request.app.state, "ws_manager", None)
     total_connections = (
         await manager.get_connection_count() if manager else 0

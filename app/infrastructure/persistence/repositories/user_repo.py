@@ -6,9 +6,11 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.user import UserResult
+from app.domain.exceptions import DuplicateEmailException, UserAlreadyExistsException
 from app.infrastructure.persistence.models.user import User
 from app.infrastructure.persistence.repositories.auditable_repo import (
     AuditableRepository,
@@ -116,6 +118,7 @@ class UserRepository(AuditableRepository[User]):
         email: str,
         password: str,
     ) -> UserResult:
+        """Create user; raise UserAlreadyExistsException on unique constraint violation."""
         hashed = await asyncio.to_thread(get_password_hash, password)
         user = User(
             tenant_id=tenant_id,
@@ -124,8 +127,20 @@ class UserRepository(AuditableRepository[User]):
             hashed_password=hashed,
             is_active=True,
         )
-        created = await self.create(user)
-        return _user_to_result(created)
+        try:
+            created = await self.create(user)
+            return _user_to_result(created)
+        except IntegrityError:
+            raise UserAlreadyExistsException()
+
+    async def update(
+        self, obj: User, *, skip_existence_check: bool = False
+    ) -> User:
+        """Update user; raise DuplicateEmailException on unique constraint (e.g. duplicate email)."""
+        try:
+            return await super().update(obj, skip_existence_check=skip_existence_check)
+        except IntegrityError:
+            raise DuplicateEmailException()
 
     async def update_password(self, user_id: str, new_password: str) -> User | None:
         user = await super().get_by_id(user_id)

@@ -42,10 +42,8 @@ from app.infrastructure.external.email.oauth_drivers import OAuthDriverRegistry
 from app.infrastructure.security.jwt import create_access_token
 from app.infrastructure.security.password import get_password_hash
 from app.infrastructure.persistence.database import (
-    AsyncSessionLocal,
     get_db,
     get_db_transactional,
-    _ensure_engine,
 )
 from app.infrastructure.persistence.models.user import User
 from app.infrastructure.persistence.repositories import (
@@ -81,6 +79,10 @@ from app.infrastructure.firebase.repositories import (
     FirestoreUserRepository,
 )
 from app.infrastructure.firebase.services import FirestoreTenantInitializationService
+
+# Short TTL for tenant-ID validation cache (reduce DB load; avoid long-lived negative cache).
+_TENANT_VALIDATION_CACHE_TTL = 60
+_TENANT_CACHE_MISS_MARKER = "__missing__"
 
 
 @dataclass
@@ -123,49 +125,46 @@ class DbOrFirestore:
     firestore: FirestoreRESTClient | None
 
 
-async def _get_db_or_firestore_read() -> AsyncGenerator[DbOrFirestore, None]:
-    """Yield DB session (read) or Firestore client based on config."""
-    settings = get_settings()
-    if settings.database_backend == "postgres":
-        _ensure_engine()
-        if AsyncSessionLocal is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Postgres not configured (set DATABASE_BACKEND=postgres and DATABASE_URL)",
-            )
-        async with AsyncSessionLocal() as session:
-            yield DbOrFirestore(db=session, firestore=None)
-    else:
-        client = get_firestore_client()
-        if not client:
-            raise HTTPException(
-                status_code=503,
-                detail="Firestore not configured (set FIREBASE_SERVICE_ACCOUNT_KEY or PATH)",
-            )
-        yield DbOrFirestore(db=None, firestore=client)
+def _get_firestore_client_or_raise() -> FirestoreRESTClient:
+    """Return Firestore client or raise HTTPException 503 with standard message."""
+    client = get_firestore_client()
+    if not client:
+        raise HTTPException(
+            status_code=503,
+            detail="Firestore not configured (set FIREBASE_SERVICE_ACCOUNT_KEY or PATH)",
+        )
+    return client
 
 
-async def _get_db_or_firestore_write() -> AsyncGenerator[DbOrFirestore, None]:
-    """Yield DB session (transactional) or Firestore client based on config."""
+async def _yield_db_or_firestore(
+    transactional: bool,
+) -> AsyncGenerator[DbOrFirestore, None]:
+    """Yield DbOrFirestore from Postgres (get_db/get_db_transactional) or Firestore."""
     settings = get_settings()
     if settings.database_backend == "postgres":
-        _ensure_engine()
-        if AsyncSessionLocal is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Postgres not configured (set DATABASE_BACKEND=postgres and DATABASE_URL)",
-            )
-        async with AsyncSessionLocal() as session:
-            async with session.begin():
+        try:
+            session_gen = get_db_transactional() if transactional else get_db()
+            async for session in session_gen:
                 yield DbOrFirestore(db=session, firestore=None)
-    else:
-        client = get_firestore_client()
-        if not client:
+                return
+        except RuntimeError as e:
             raise HTTPException(
                 status_code=503,
-                detail="Firestore not configured (set FIREBASE_SERVICE_ACCOUNT_KEY or PATH)",
-            )
+                detail="Postgres not configured (set DATABASE_BACKEND=postgres and DATABASE_URL)",
+            ) from e
+    else:
+        client = _get_firestore_client_or_raise()
         yield DbOrFirestore(db=None, firestore=client)
+
+
+def _get_db_or_firestore_read() -> AsyncGenerator[DbOrFirestore, None]:
+    """Yield DB session (read) or Firestore client based on config."""
+    return _yield_db_or_firestore(transactional=False)
+
+
+def _get_db_or_firestore_write() -> AsyncGenerator[DbOrFirestore, None]:
+    """Yield DB session (transactional) or Firestore client based on config."""
+    return _yield_db_or_firestore(transactional=True)
 
 
 async def get_tenant_repo(
@@ -195,7 +194,11 @@ async def get_tenant_id(
         Depends(get_tenant_repo),
     ],
 ) -> str:
-    """Resolve tenant ID from header and validate it exists (Postgres or Firestore)."""
+    """Resolve tenant ID from header and validate it exists (Postgres or Firestore).
+
+    Uses app.state.cache (short TTL) when available to avoid hitting the tenant
+    repository on every request.
+    """
     name = get_settings().tenant_header_name
     value = request.headers.get(name)
     if not value:
@@ -203,12 +206,29 @@ async def get_tenant_id(
             status_code=400,
             detail=f"Missing required header: {name}",
         )
+    cache = getattr(request.app.state, "cache", None)
+    cache_key = f"tenant:{value}"
+    if cache and cache.is_available():
+        cached = await cache.get(cache_key)
+        if cached is not None:
+            if cached == _TENANT_CACHE_MISS_MARKER:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid or unknown tenant",
+                )
+            return value
     tenant = await tenant_repo.get_by_id(value)
     if not tenant:
+        if cache and cache.is_available():
+            await cache.set(
+                cache_key, _TENANT_CACHE_MISS_MARKER, ttl=_TENANT_VALIDATION_CACHE_TTL
+            )
         raise HTTPException(
             status_code=400,
             detail="Invalid or unknown tenant",
         )
+    if cache and cache.is_available():
+        await cache.set(cache_key, value, ttl=_TENANT_VALIDATION_CACHE_TTL)
     return value
 
 
@@ -338,7 +358,13 @@ async def get_verification_service(
     event_repo: Annotated[EventRepository, Depends(get_event_repo)],
 ) -> VerificationService:
     """Verification service for event chain integrity (hash + previous_hash)."""
-    return VerificationService(event_repo=event_repo, hash_service=HashService())
+    settings = get_settings()
+    return VerificationService(
+        event_repo=event_repo,
+        hash_service=HashService(),
+        max_events=settings.verification_max_events,
+        timeout_seconds=settings.verification_timeout_seconds,
+    )
 
 
 async def get_subject_service(
@@ -537,7 +563,7 @@ def get_email_account_service(
     )
 
 
-async def get_role_service(
+def get_role_service(
     role_repo: Annotated[RoleRepository, Depends(get_role_repo_for_write)],
     permission_repo: Annotated[PermissionRepository, Depends(get_permission_repo)],
     role_permission_repo: Annotated[
@@ -552,7 +578,7 @@ async def get_role_service(
     )
 
 
-async def get_permission_service(
+def get_permission_service(
     permission_repo: Annotated[
         PermissionRepository, Depends(get_permission_repo_for_write)
     ],

@@ -1,11 +1,10 @@
-"""Subject API: thin routes delegating to SubjectService and SubjectRepository."""
+"""Subject API: thin routes delegating to SubjectService."""
 
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
-    get_subject_repo_for_write,
     get_subject_service,
     get_tenant_id,
     require_permission,
@@ -13,7 +12,6 @@ from app.api.v1.dependencies import (
 from app.application.use_cases.subjects import SubjectService
 from app.core.limiter import limit_writes
 from app.domain.exceptions import ResourceNotFoundException
-from app.infrastructure.persistence.repositories.subject_repo import SubjectRepository
 from app.schemas.subject import SubjectCreateRequest, SubjectResponse, SubjectUpdate
 
 router = APIRouter()
@@ -25,7 +23,7 @@ async def create_subject(
     request: Request,
     body: SubjectCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    subject_svc: SubjectService = Depends(get_subject_service),
+    subject_svc: Annotated[SubjectService, Depends(get_subject_service)],
     _: Annotated[object, Depends(require_permission("subject", "create"))] = None,
 ):
     """Create a subject (tenant-scoped)."""
@@ -41,7 +39,7 @@ async def create_subject(
 async def get_subject(
     subject_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    subject_svc: SubjectService = Depends(get_subject_service),
+    subject_svc: Annotated[SubjectService, Depends(get_subject_service)],
     _: Annotated[object, Depends(require_permission("subject", "read"))] = None,
 ):
     """Get subject by id (tenant-scoped)."""
@@ -58,11 +56,11 @@ async def get_subject(
 @router.get("", response_model=list[SubjectResponse])
 async def list_subjects(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
+    subject_svc: Annotated[SubjectService, Depends(get_subject_service)],
+    _: Annotated[object, Depends(require_permission("subject", "read"))] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     subject_type: str | None = None,
-    subject_svc: SubjectService = Depends(get_subject_service),
-    _: Annotated[object, Depends(require_permission("subject", "read"))] = None,
 ):
     """List subjects for tenant (optional type filter)."""
     subjects = await subject_svc.list_subjects(
@@ -81,22 +79,19 @@ async def update_subject(
     subject_id: str,
     body: SubjectUpdate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    subject_repo: SubjectRepository = Depends(get_subject_repo_for_write),
+    subject_svc: Annotated[SubjectService, Depends(get_subject_service)],
     _: Annotated[object, Depends(require_permission("subject", "update"))] = None,
 ):
     """Update subject (e.g. external_ref). Tenant-scoped."""
-    subject = await subject_repo.get_entity_by_id_and_tenant(subject_id, tenant_id)
-    if not subject:
-        raise HTTPException(status_code=404, detail="Subject not found")
-    if body.external_ref is not None:
-        subject.external_ref = body.external_ref
-    updated = await subject_repo.update(subject)
-    return SubjectResponse(
-        id=updated.id,
-        tenant_id=updated.tenant_id,
-        subject_type=updated.subject_type,
-        external_ref=updated.external_ref,
-    )
+    try:
+        updated = await subject_svc.update_subject(
+            tenant_id=tenant_id,
+            subject_id=subject_id,
+            external_ref=body.external_ref,
+        )
+        return SubjectResponse.model_validate(updated)
+    except ResourceNotFoundException:
+        raise HTTPException(status_code=404, detail="Subject not found") from None
 
 
 @router.delete("/{subject_id}", status_code=204)
@@ -105,11 +100,11 @@ async def delete_subject(
     request: Request,
     subject_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    subject_repo: SubjectRepository = Depends(get_subject_repo_for_write),
+    subject_svc: Annotated[SubjectService, Depends(get_subject_service)],
     _: Annotated[object, Depends(require_permission("subject", "delete"))] = None,
 ):
     """Delete subject. Tenant-scoped."""
-    subject = await subject_repo.get_entity_by_id_and_tenant(subject_id, tenant_id)
-    if not subject:
-        raise HTTPException(status_code=404, detail="Subject not found")
-    await subject_repo.delete(subject)
+    try:
+        await subject_svc.delete_subject(tenant_id=tenant_id, subject_id=subject_id)
+    except ResourceNotFoundException:
+        raise HTTPException(status_code=404, detail="Subject not found") from None

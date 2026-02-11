@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from app.application.dtos.document import DocumentCreate, DocumentResult
     from app.application.dtos.event import CreateEventCommand, EventResult, EventToPersist
     from app.application.dtos.event_schema import EventSchemaResult
+    from app.application.dtos.role import RoleResult
     from app.application.dtos.subject import SubjectResult
     from app.application.dtos.tenant import TenantResult
     from app.application.dtos.user import UserResult
@@ -62,6 +63,10 @@ class IEventRepository(Protocol):
         self, subject_id: str, tenant_id: str, skip: int = 0, limit: int = 100
     ) -> list[EventResult]:
         """Return events for subject in tenant (newest first)."""
+        ...
+
+    async def count_by_tenant(self, tenant_id: str) -> int:
+        """Return total event count for tenant (for verification limit check)."""
         ...
 
     async def get_by_tenant(
@@ -119,6 +124,21 @@ class ISubjectRepository(Protocol):
         external_ref: str | None = None,
     ) -> SubjectResult:
         """Create subject; return created entity."""
+        ...
+
+    async def update_subject(
+        self,
+        tenant_id: str,
+        subject_id: str,
+        external_ref: str | None = None,
+    ) -> SubjectResult | None:
+        """Update subject; return updated result or None if not found in tenant."""
+        ...
+
+    async def delete_subject(
+        self, tenant_id: str, subject_id: str
+    ) -> bool:
+        """Delete subject; return True if deleted, False if not found in tenant."""
         ...
 
 
@@ -222,6 +242,12 @@ class IDocumentRepository(Protocol):
         """Return document by ID."""
         ...
 
+    async def get_by_id_and_tenant(
+        self, document_id: str, tenant_id: str
+    ) -> DocumentResult | None:
+        """Return document by ID if it belongs to the tenant; otherwise None."""
+        ...
+
     async def get_by_subject(
         self,
         subject_id: str,
@@ -256,4 +282,64 @@ class IDocumentRepository(Protocol):
         self, document_id: str, tenant_id: str
     ) -> DocumentResult | None:
         """Soft-delete document by id; returns None if not found in tenant."""
+        ...
+
+
+class IRoleRepository(Protocol):
+    """Protocol for role repository (DIP)."""
+
+    async def get_by_code_and_tenant(
+        self, code: str, tenant_id: str
+    ) -> RoleResult | None:
+        """Return role by code and tenant if it exists; otherwise None."""
+        ...
+
+    async def create_role(
+        self,
+        tenant_id: str,
+        code: str,
+        name: str,
+        description: str | None = None,
+        *,
+        is_system: bool = False,
+        is_active: bool = True,
+    ) -> RoleResult:
+        """Create a role; return created read-model DTO."""
+        ...
+
+
+class IPermissionRead(Protocol):
+    """Minimal protocol for permission lookup result (has id for assignment)."""
+
+    id: str
+
+
+class IPermissionRepository(Protocol):
+    """Protocol for permission repository (DIP)."""
+
+    async def get_by_code_and_tenant(
+        self, code: str, tenant_id: str
+    ) -> PermissionResult | None:
+        """Return permission by code and tenant if it exists; otherwise None."""
+        ...
+
+    async def create_permission(
+        self,
+        tenant_id: str,
+        code: str,
+        resource: str,
+        action: str,
+        description: str | None = None,
+    ) -> PermissionResult:
+        """Create a permission; return created entity."""
+        ...
+
+
+class IRolePermissionRepository(Protocol):
+    """Protocol for role-permission assignment repository (DIP)."""
+
+    async def assign_permission_to_role(
+        self, role_id: str, permission_id: str, tenant_id: str
+    ) -> None:
+        """Assign a permission to a role in the tenant. Raises DuplicateAssignmentException if already assigned."""
         ...

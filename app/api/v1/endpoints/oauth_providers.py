@@ -96,11 +96,16 @@ async def oauth_callback(
     code: str,
     state: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    oauth_service: OAuthConfigService = Depends(get_oauth_config_service),
+    oauth_service: Annotated[OAuthConfigService, Depends(get_oauth_config_service)],
     _: Annotated[object, Depends(require_permission("oauth_config", "read"))] = None,
 ):
-    """Exchange code for tokens; verify state and return tokens."""
-    tokens = await oauth_service.exchange_callback(code=code, state=state)
+    """Exchange code for tokens; verify state and return tokens. Tenant and provider must match state."""
+    tokens = await oauth_service.exchange_callback(
+        code=code,
+        state=state,
+        tenant_id=tenant_id,
+        provider_type=provider,
+    )
     return OAuthCallbackTokenResponse(
         access_token=tokens.access_token,
         refresh_token=tokens.refresh_token,
@@ -280,6 +285,11 @@ async def get_oauth_config_health(
     )
 
 
+# TODO: Implement OAuth config audit trail. Query audit entries via OAuthProviderConfigRepository
+# (or dedicated audit repo) for config_id/tenant_id and return in OAuthConfigAuditResponse.entries.
+# Track with: "OAuth config audit API" / audit trail implementation.
+
+
 @router.get(
     "/{config_id}/audit",
     response_model=OAuthConfigAuditResponse,
@@ -292,7 +302,7 @@ async def get_oauth_config_audit(
     ],
     _: Annotated[object, Depends(require_permission("oauth_config", "read"))] = None,
 ):
-    """Return audit log entries for this OAuth config (stub: empty list until audit repo)."""
+    """Return audit log entries for this OAuth config. Stub: returns empty list until audit retrieval is implemented (see TODO above)."""
     config = await oauth_repo.get_by_id_and_tenant(config_id, tenant_id)
     if not config:
         raise HTTPException(status_code=404, detail="OAuth config not found")

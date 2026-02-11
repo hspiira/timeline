@@ -1,5 +1,6 @@
 """Document API: thin routes delegating to DocumentUploadService, DocumentQueryService, and DocumentRepository."""
 
+import dataclasses
 from datetime import timedelta
 from typing import Annotated
 
@@ -42,14 +43,16 @@ router = APIRouter()
 async def upload_document(
     request: Request,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
+    upload_svc: Annotated[
+        DocumentUploadService, Depends(get_document_upload_service)
+    ],
+    _: Annotated[object, Depends(require_permission("document", "create"))] = None,
     subject_id: str = Form(...),
     document_type: str = Form(...),
     file: UploadFile = File(...),
     event_id: str | None = Form(None),
     created_by: str | None = Form(None),
     parent_document_id: str | None = Form(None),
-    upload_svc: DocumentUploadService = Depends(get_document_upload_service),
-    _: Annotated[object, Depends(require_permission("document", "create"))] = None,
 ):
     """Upload a document for a subject (storage + document record)."""
     if not file.filename:
@@ -79,7 +82,9 @@ async def upload_document(
 async def list_documents(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_id: str,
-    query_svc: DocumentQueryService = Depends(get_document_query_service),
+    query_svc: Annotated[
+        DocumentQueryService, Depends(get_document_query_service)
+    ],
     _: Annotated[object, Depends(require_permission("document", "read"))] = None,
 ):
     """List documents for a subject (tenant-scoped). subject_id is required."""
@@ -94,7 +99,7 @@ async def list_documents(
 async def list_documents_by_event(
     event_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    document_repo: DocumentRepository = Depends(get_document_repo),
+    document_repo: Annotated[DocumentRepository, Depends(get_document_repo)],
     _: Annotated[object, Depends(require_permission("document", "read"))] = None,
 ):
     """List documents linked to an event (tenant-scoped)."""
@@ -109,12 +114,12 @@ async def list_documents_by_event(
 async def get_document_versions(
     document_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    document_repo: DocumentRepository = Depends(get_document_repo),
+    document_repo: Annotated[DocumentRepository, Depends(get_document_repo)],
     _: Annotated[object, Depends(require_permission("document", "read"))] = None,
 ):
     """Get this document and its version chain (tenant-scoped)."""
-    doc = await document_repo.get_by_id(document_id)
-    if not doc or doc.tenant_id != tenant_id:
+    doc = await document_repo.get_by_id_and_tenant(document_id, tenant_id)
+    if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     versions = await document_repo.get_versions(document_id, tenant_id)
     return [DocumentVersionItem.model_validate(d) for d in versions]
@@ -127,9 +132,11 @@ async def get_document_versions(
 async def get_document_download_url(
     document_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    expires_in_hours: int = Query(1, ge=1, le=168),
-    query_svc: DocumentQueryService = Depends(get_document_query_service),
+    query_svc: Annotated[
+        DocumentQueryService, Depends(get_document_query_service)
+    ],
     _: Annotated[object, Depends(require_permission("document", "read"))] = None,
+    expires_in_hours: int = Query(1, ge=1, le=168),
 ):
     """Get temporary download URL for document (tenant-scoped). Defined before /{document_id} for route precedence."""
     try:
@@ -149,7 +156,9 @@ async def get_document_download_url(
 async def get_document(
     document_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    query_svc: DocumentQueryService = Depends(get_document_query_service),
+    query_svc: Annotated[
+        DocumentQueryService, Depends(get_document_query_service)
+    ],
     _: Annotated[object, Depends(require_permission("document", "read"))] = None,
 ):
     """Get document metadata by id (tenant-scoped)."""
@@ -170,17 +179,19 @@ async def update_document(
     document_id: str,
     body: DocumentUpdate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    document_repo: DocumentRepository = Depends(get_document_repo_for_write),
+    document_repo: Annotated[
+        DocumentRepository, Depends(get_document_repo_for_write)
+    ],
     _: Annotated[object, Depends(require_permission("document", "update"))] = None,
 ):
     """Update document metadata (e.g. document_type). Tenant-scoped."""
-    doc = await document_repo.get_by_id(document_id)
-    if not doc or doc.tenant_id != tenant_id:
+    doc = await document_repo.get_by_id_and_tenant(document_id, tenant_id)
+    if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     if doc.deleted_at:
         raise HTTPException(status_code=410, detail="Document has been deleted")
     if body.document_type is not None:
-        doc.document_type = body.document_type
+        doc = dataclasses.replace(doc, document_type=body.document_type)
     updated = await document_repo.update(doc)
     return DocumentVersionItem.model_validate(updated)
 
@@ -191,12 +202,14 @@ async def delete_document(
     request: Request,
     document_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    document_repo: DocumentRepository = Depends(get_document_repo_for_write),
+    document_repo: Annotated[
+        DocumentRepository, Depends(get_document_repo_for_write)
+    ],
     _: Annotated[object, Depends(require_permission("document", "delete"))] = None,
 ):
     """Soft-delete document. Tenant-scoped."""
-    doc = await document_repo.get_by_id(document_id)
-    if not doc or doc.tenant_id != tenant_id:
+    doc = await document_repo.get_by_id_and_tenant(document_id, tenant_id)
+    if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     if doc.deleted_at:
         raise HTTPException(status_code=410, detail="Document already deleted")
