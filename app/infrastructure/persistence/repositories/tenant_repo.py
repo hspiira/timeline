@@ -120,12 +120,6 @@ class TenantRepository(AuditableRepository[Tenant]):
         )
         return [_tenant_to_result(t) for t in result.scalars().all()]
 
-    async def update_status(
-        self, tenant_id: str, status: TenantStatus
-    ) -> TenantResult | None:
-        """Update tenant status and emit status_changed audit (no generic UPDATED)."""
-        return await self.update_tenant(tenant_id, status=status)
-
     async def update_tenant(
         self,
         tenant_id: str,

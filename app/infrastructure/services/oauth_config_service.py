@@ -85,28 +85,22 @@ class OAuthConfigService:
         code: str,
         state: str,
         *,
-        tenant_id: str | None = None,
+        tenant_id: str,
         provider_type: str | None = None,
     ) -> OAuthTokens:
         """Verify state, exchange code for tokens. Raises TimelineException on invalid state or config.
 
-        When tenant_id and provider_type are provided (e.g. from the callback route), asserts
-        they match the state so the token exchange cannot complete for a different tenant/provider.
+        tenant_id is required; state is consumed only when it matches (tenant isolation at DB layer).
+        When provider_type is provided, asserts it matches the state.
         """
         state_manager = OAuthStateManager()
         try:
             state_id = state_manager.verify_and_extract(state)
         except ValueError:
             raise ValidationException("Invalid or expired state") from None
-        state_row = await self._state_repo.consume(state_id)
+        state_row = await self._state_repo.consume(state_id, tenant_id)
         if not state_row:
             raise ValidationException("State already used or expired")
-        if tenant_id is not None and state_row.tenant_id != tenant_id:
-            raise AuthorizationException(
-                resource="oauth_config",
-                action="exchange",
-                message="State does not match request tenant",
-            )
         config = await self._oauth_repo.get_by_id_and_tenant(
             state_row.provider_config_id, state_row.tenant_id or ""
         )

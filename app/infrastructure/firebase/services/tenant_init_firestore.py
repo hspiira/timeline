@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 
 from app.application.services.system_audit_schema import (
@@ -25,6 +26,8 @@ from app.infrastructure.services.tenant_initialization_service import (
     SYSTEM_PERMISSIONS,
 )
 from app.shared.utils.generators import generate_cuid
+
+logger = logging.getLogger(__name__)
 
 
 def _resolve_permission_pattern(
@@ -50,7 +53,11 @@ class FirestoreTenantInitializationService:
         self._role_map: dict[str, dict[str, str]] = {}
 
     async def initialize_tenant_infrastructure(self, tenant_id: str) -> None:
-        """Create permissions, roles, role_permissions, audit schema and subject in Firestore."""
+        """Create permissions, roles, role_permissions, audit schema and subject in Firestore.
+
+        Uses batch writes to minimize round-trips. On failure, attempts rollback
+        by deleting any documents that were created in the batch.
+        """
         # Idempotency: skip if tenant already has permissions
         perms_coll = self._client.collection(COLLECTION_PERMISSIONS)
         async for snapshot in perms_coll.stream():
@@ -58,72 +65,111 @@ class FirestoreTenantInitializationService:
                 return
         now = datetime.now(timezone.utc)
 
-        # Permissions
         permission_map: dict[str, str] = {}
+        role_map: dict[str, str] = {}
+        writes: list[dict] = []
+
+        # Build permission writes
         for code, resource, action, description in SYSTEM_PERMISSIONS:
             perm_id = generate_cuid()
-            await perms_coll.document(perm_id).set({
-                "tenant_id": tenant_id,
-                "code": code,
-                "resource": resource,
-                "action": action,
-                "description": description,
-                "created_at": now,
-            })
             permission_map[code] = perm_id
+            writes.append({
+                "path": f"{COLLECTION_PERMISSIONS}/{perm_id}",
+                "data": {
+                    "tenant_id": tenant_id,
+                    "code": code,
+                    "resource": resource,
+                    "action": action,
+                    "description": description,
+                    "created_at": now,
+                },
+            })
 
-        # Roles and role_permissions
-        roles_coll = self._client.collection(COLLECTION_ROLES)
-        rp_coll = self._client.collection(COLLECTION_ROLE_PERMISSIONS)
-        role_map: dict[str, str] = {}
+        # Build role and role_permission writes
         for role_code, role_data in DEFAULT_ROLES.items():
             role_id = generate_cuid()
-            await roles_coll.document(role_id).set({
-                "tenant_id": tenant_id,
-                "code": role_code,
-                "name": role_data["name"],
-                "description": role_data["description"],
-                "is_system": role_data["is_system"],
-                "is_active": True,
-                "created_at": now,
-            })
             role_map[role_code] = role_id
+            writes.append({
+                "path": f"{COLLECTION_ROLES}/{role_id}",
+                "data": {
+                    "tenant_id": tenant_id,
+                    "code": role_code,
+                    "name": role_data["name"],
+                    "description": role_data["description"],
+                    "is_system": role_data["is_system"],
+                    "is_active": True,
+                    "created_at": now,
+                },
+            })
             for perm_pattern in role_data["permissions"]:
                 for perm_id in _resolve_permission_pattern(
                     perm_pattern, permission_map
                 ):
-                    await rp_coll.document(generate_cuid()).set({
-                        "tenant_id": tenant_id,
-                        "role_id": role_id,
-                        "permission_id": perm_id,
-                        "created_at": now,
+                    rp_id = generate_cuid()
+                    writes.append({
+                        "path": f"{COLLECTION_ROLE_PERMISSIONS}/{rp_id}",
+                        "data": {
+                            "tenant_id": tenant_id,
+                            "role_id": role_id,
+                            "permission_id": perm_id,
+                            "created_at": now,
+                        },
                     })
-        self._role_map[tenant_id] = role_map
 
         # Audit event schema
         schema_id = generate_cuid()
-        await self._client.collection(COLLECTION_EVENT_SCHEMAS).document(
-            schema_id
-        ).set({
-            "tenant_id": tenant_id,
-            "event_type": SYSTEM_AUDIT_EVENT_TYPE,
-            "schema_definition": get_system_audit_schema_definition(),
-            "version": SYSTEM_AUDIT_SCHEMA_VERSION,
-            "is_active": True,
-            "created_by": None,
-            "created_at": now,
+        writes.append({
+            "path": f"{COLLECTION_EVENT_SCHEMAS}/{schema_id}",
+            "data": {
+                "tenant_id": tenant_id,
+                "event_type": SYSTEM_AUDIT_EVENT_TYPE,
+                "schema_definition": get_system_audit_schema_definition(),
+                "version": SYSTEM_AUDIT_SCHEMA_VERSION,
+                "is_active": True,
+                "created_by": None,
+                "created_at": now,
+            },
         })
 
         # Audit subject
         subject_id = generate_cuid()
-        await self._client.collection(COLLECTION_SUBJECTS).document(
-            subject_id
-        ).set({
-            "tenant_id": tenant_id,
-            "subject_type": SYSTEM_AUDIT_SUBJECT_TYPE,
-            "external_ref": SYSTEM_AUDIT_SUBJECT_REF,
-            "created_at": now,
+        writes.append({
+            "path": f"{COLLECTION_SUBJECTS}/{subject_id}",
+            "data": {
+                "tenant_id": tenant_id,
+                "subject_type": SYSTEM_AUDIT_SUBJECT_TYPE,
+                "external_ref": SYSTEM_AUDIT_SUBJECT_REF,
+                "created_at": now,
+            },
         })
+
+        created_paths = [w["path"] for w in writes]
+        try:
+            await self._client.batch_write(writes)
+        except Exception:
+            logger.exception(
+                "Tenant infrastructure batch_write failed for tenant %s; attempting rollback",
+                tenant_id,
+            )
+            delete_writes = [
+                {"path": p, "delete": True} for p in created_paths
+            ]
+            try:
+                await self._client.batch_write(delete_writes)
+                logger.warning(
+                    "Rollback completed for tenant %s (%s documents deleted)",
+                    tenant_id,
+                    len(delete_writes),
+                )
+            except Exception as rollback_exc:
+                logger.exception(
+                    "Rollback failed for tenant %s; tenant may be partially initialized: %s",
+                    tenant_id,
+                    rollback_exc,
+                )
+            raise
+
+        self._role_map[tenant_id] = role_map
 
     async def assign_admin_role(
         self, tenant_id: str, admin_user_id: str

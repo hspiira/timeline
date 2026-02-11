@@ -229,6 +229,16 @@ class SchemaValidationException(TimelineException):
         )
 
 
+class SqlNotConfiguredError(TimelineException):
+    """Raised when an operation requires Postgres but the backend is not configured."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="This operation requires a SQL database that is not configured.",
+            error_code="SERVICE_UNAVAILABLE",
+        )
+
+
 class CredentialException(TimelineException):
     """Raised when credential decryption or format fails (e.g. OAuth client secrets)."""
 

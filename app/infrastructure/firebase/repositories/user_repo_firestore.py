@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
 
 from app.application.dtos.user import UserResult
 from app.infrastructure.firebase.collections import COLLECTION_USERS
 from app.infrastructure.firebase._rest_client import FirestoreRESTClient
 from app.infrastructure.security.password import get_password_hash
+from app.shared.utils.datetime import utc_now
 from app.shared.utils.generators import generate_cuid
 
 
@@ -56,7 +56,7 @@ class FirestoreUserRepository:
     ) -> UserResult:
         """Create user with hashed password; return created user."""
         hashed = await asyncio.to_thread(get_password_hash, password)
-        now = datetime.now(timezone.utc)
+        now = utc_now()
         user_id = generate_cuid()
         await self._coll.document(user_id).set({
             "tenant_id": tenant_id,

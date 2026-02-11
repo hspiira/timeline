@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from typing import Any
 
 from app.application.dtos.tenant import TenantResult
 from app.domain.enums import TenantStatus
 from app.domain.exceptions import TenantAlreadyExistsException
 from app.infrastructure.firebase.collections import COLLECTION_TENANTS
-from app.infrastructure.firebase._rest_client import FirestoreRESTClient
-from app.shared.utils.generators import generate_cuid
+from app.infrastructure.firebase._rest_client import (
+    DocumentExistsError,
+    FirestoreRESTClient,
+)
+from app.shared.utils.datetime import utc_now
+
+
+def _tenant_doc_id(code: str) -> str:
+    """Firestore document ID from tenant code (cannot contain '/')."""
+    return code.replace("/", "_")
 
 
 class FirestoreTenantRepository:
@@ -33,45 +41,49 @@ class FirestoreTenantRepository:
         )
 
     async def get_by_code(self, code: str) -> TenantResult | None:
-        """Return tenant by unique code."""
-        async for snapshot in self._coll.stream():
+        """Return tenant by unique code (server-side where query, at most one doc)."""
+        q = self._coll.where("code", "==", code).limit(1)
+        async for snapshot in q.stream():
             data = snapshot.to_dict()
-            if data.get("code") == code:
-                return TenantResult(
-                    id=snapshot.id,
-                    code=data.get("code", ""),
-                    name=data.get("name", ""),
-                    status=TenantStatus(data.get("status", "active")),
-                )
+            return TenantResult(
+                id=snapshot.id,
+                code=data.get("code", ""),
+                name=data.get("name", ""),
+                status=TenantStatus(data.get("status", "active")),
+            )
         return None
 
     async def create_tenant(
         self, code: str, name: str, status: TenantStatus
     ) -> TenantResult:
-        """Create tenant; raise TenantAlreadyExistsException if code exists."""
-        existing = await self.get_by_code(code)
-        if existing:
-            raise TenantAlreadyExistsException(code)
-        now = datetime.now(timezone.utc)
-        tenant_id = generate_cuid()
-        await self._coll.document(tenant_id).set({
-            "code": code,
-            "name": name,
-            "status": status.value,
-            "created_at": now,
-            "updated_at": now,
-        })
-        return TenantResult(id=tenant_id, code=code, name=name, status=status)
+        """Create tenant; raise TenantAlreadyExistsException if code exists (atomic via doc ID)."""
+        doc_id = _tenant_doc_id(code)
+        now = utc_now()
+        try:
+            await self._coll.create(doc_id, {
+                "code": code,
+                "name": name,
+                "status": status.value,
+                "created_at": now,
+                "updated_at": now,
+            })
+        except DocumentExistsError:
+            raise TenantAlreadyExistsException(code) from None
+        return TenantResult(id=doc_id, code=code, name=name, status=status)
 
     async def get_active_tenants(
         self, skip: int = 0, limit: int = 100
     ) -> list[TenantResult]:
-        """Return active tenants with pagination."""
+        """Return active tenants with pagination (server-side filter and order)."""
         results: list[TenantResult] = []
-        async for snapshot in self._coll.stream():
+        q = (
+            self._coll.where("status", "==", TenantStatus.ACTIVE.value)
+            .order_by("code")
+            .offset(skip)
+            .limit(limit)
+        )
+        async for snapshot in q.stream():
             data = snapshot.to_dict()
-            if data.get("status") != TenantStatus.ACTIVE.value:
-                continue
             results.append(
                 TenantResult(
                     id=snapshot.id,
@@ -80,14 +92,7 @@ class FirestoreTenantRepository:
                     status=TenantStatus(data.get("status", "active")),
                 )
             )
-        results.sort(key=lambda t: t.code)
-        return results[skip : skip + limit]
-
-    async def update_status(
-        self, tenant_id: str, status: TenantStatus
-    ) -> TenantResult | None:
-        """Update tenant status; return updated result or None if not found."""
-        return await self.update_tenant(tenant_id, status=status)
+        return results
 
     async def update_tenant(
         self,
@@ -100,15 +105,17 @@ class FirestoreTenantRepository:
         doc = await doc_ref.get()
         if not doc:
             return None
-        data = doc.to_dict()
+        updates: dict[str, Any] = {}
         if name is not None:
-            data["name"] = name
+            updates["name"] = name
         if status is not None:
-            data["status"] = status.value
-        data["updated_at"] = datetime.now(timezone.utc)
-        await doc_ref.set(data)
+            updates["status"] = status.value
+        updates["updated_at"] = utc_now()
+        await doc_ref.update(updates)
+        data = doc.to_dict()
+        data.update(updates)
         return TenantResult(
-            id=doc.id,
+            id=tenant_id,
             code=data.get("code", ""),
             name=data.get("name", ""),
             status=TenantStatus(data.get("status", "active")),

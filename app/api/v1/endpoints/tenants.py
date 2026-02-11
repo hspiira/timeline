@@ -122,7 +122,7 @@ async def update_tenant_status(
     """Update tenant status. Path tenant_id must match X-Tenant-ID header."""
     if tenant_id != tenant_id_header:
         raise HTTPException(status_code=403, detail="Forbidden")
-    updated = await tenant_repo.update_status(tenant_id, body.new_status)
+    updated = await tenant_repo.update_tenant(tenant_id, status=body.new_status)
     if not updated:
         raise HTTPException(status_code=404, detail="Tenant not found")
     return TenantResponse(
@@ -145,7 +145,7 @@ async def delete_tenant(
     """Soft-delete tenant. Path tenant_id must match X-Tenant-ID header."""
     if tenant_id != tenant_id_header:
         raise HTTPException(status_code=403, detail="Forbidden")
-    updated = await tenant_repo.update_status(tenant_id, TenantStatus.ARCHIVED)
+    updated = await tenant_repo.update_tenant(tenant_id, status=TenantStatus.ARCHIVED)
     if not updated:
         raise HTTPException(status_code=404, detail="Tenant not found")
     return None

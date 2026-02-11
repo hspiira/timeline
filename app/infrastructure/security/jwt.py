@@ -62,9 +62,8 @@ def verify_token(token: str) -> dict[str, Any]:
             token,
             settings.secret_key.get_secret_value(),
             algorithms=[settings.algorithm],
+            options={"require": ["exp", "sub"]},
         )
     except PyJWTError as e:
-        raise ValueError(f"Invalid token: {e!s}") from e
-    if "sub" not in payload:
-        raise ValueError("Token missing required claim: sub")
+        raise ValueError("Invalid token") from e
     return payload

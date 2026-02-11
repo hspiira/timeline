@@ -34,6 +34,7 @@ _ERROR_CODE_STATUS: dict[str, int] = {
     "USER_ALREADY_EXISTS": 400,
     "DUPLICATE_EMAIL": 400,
     "CREDENTIAL_ERROR": 500,
+    "SERVICE_UNAVAILABLE": 503,
 }
 
 
@@ -74,28 +75,6 @@ def _http_exception_handler(
     )
 
 
-def _sql_not_configured_handler(
-    request: Request, exc: RuntimeError
-) -> JSONResponse:
-    """Return 503 when an endpoint requires Postgres but database_backend is not 'postgres'."""
-    msg = str(exc)
-    if "database_backend is not 'postgres'" in msg or "SQL database is not configured" in msg:
-        return JSONResponse(
-            status_code=503,
-            content={
-                "error": "SERVICE_UNAVAILABLE",
-                "message": "This operation requires Postgres. Set DATABASE_BACKEND=postgres and DATABASE_URL (e.g. postgresql+asyncpg://user:pass@localhost:5432/dbname), then run: uv run alembic upgrade head",
-            },
-        )
-    logger.exception("Unhandled RuntimeError: %s", exc)
-    settings = get_settings()
-    detail: Any = msg if settings.debug else "Internal server error"
-    return JSONResponse(
-        status_code=500,
-        content={"error": "INTERNAL_ERROR", "message": detail},
-    )
-
-
 def _generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Return 500; include detail only when debug is True."""
     logger.exception("Unhandled exception: %s", exc)
@@ -110,11 +89,9 @@ def _generic_exception_handler(request: Request, exc: Exception) -> JSONResponse
 def register_exception_handlers(app: FastAPI) -> None:
     """Register all exception handlers on the FastAPI app.
 
-    Call once after creating the app. Handlers: RuntimeError (SQL not configured),
-    TimelineException (and subclasses), RequestValidationError, StarletteHTTPException,
-    generic Exception.
+    Call once after creating the app. Handlers: TimelineException (and subclasses),
+    RequestValidationError, StarletteHTTPException, generic Exception.
     """
-    app.add_exception_handler(RuntimeError, _sql_not_configured_handler)
     app.add_exception_handler(TimelineException, _timeline_exception_handler)
     app.add_exception_handler(RequestValidationError, _validation_exception_handler)
     app.add_exception_handler(StarletteHTTPException, _http_exception_handler)

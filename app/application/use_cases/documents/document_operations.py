@@ -157,7 +157,7 @@ class DocumentUploadService:
             parent_document_id=parent_document_id,
             created_by=created_by,
         )
-        return await self.document_repo.create(create_dto)
+        return await self.document_repo.create_document(create_dto)
 
 
 class DocumentQueryService:

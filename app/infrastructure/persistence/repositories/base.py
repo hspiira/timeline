@@ -60,7 +60,7 @@ class BaseRepository[ModelType: Base]:
                     f"Cannot update: primary key '{col.key}' is missing on "
                     f"{self.model.__name__} instance."
                 )
-        attached = object_session(obj) is self.db
+        attached = object_session(obj) is self.db.sync_session
         if not attached and not skip_existence_check:
             stmt = select(self.model).where(
                 and_(

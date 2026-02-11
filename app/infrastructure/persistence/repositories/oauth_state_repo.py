@@ -8,6 +8,7 @@ from datetime import timedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.infrastructure.external.email.envelope_encryption import OAuthStateManager
 from app.infrastructure.persistence.models.oauth_provider_config import OAuthState
 from app.infrastructure.persistence.repositories.base import BaseRepository
 from app.shared.utils.datetime import utc_now
@@ -17,13 +18,23 @@ from app.shared.utils.generators import generate_cuid
 class OAuthStateRepository(BaseRepository[OAuthState]):
     """Repository for OAuth state (create, get, consume)."""
 
-    def __init__(self, db: AsyncSession) -> None:
+    def __init__(
+        self,
+        db: AsyncSession,
+        state_manager: OAuthStateManager | None = None,
+    ) -> None:
         super().__init__(db, OAuthState)
+        self._state_manager = state_manager or OAuthStateManager()
 
-    async def get_by_id(self, state_id: str) -> OAuthState | None:
-        """Return state row by id."""
+    async def get_by_id(
+        self, state_id: str, tenant_id: str
+    ) -> OAuthState | None:
+        """Return state row by id and tenant (tenant isolation)."""
         result = await self.db.execute(
-            select(OAuthState).where(OAuthState.id == state_id)
+            select(OAuthState).where(
+                OAuthState.id == state_id,
+                OAuthState.tenant_id == tenant_id,
+            )
         )
         return result.scalar_one_or_none()
 
@@ -41,12 +52,7 @@ class OAuthStateRepository(BaseRepository[OAuthState]):
         """
         state_id = generate_cuid()
         nonce = secrets.token_hex(16)
-        from app.infrastructure.external.email.envelope_encryption import (
-            OAuthStateManager,
-        )
-
-        manager = OAuthStateManager()
-        signed_state = manager.create_signed_state(state_id)
+        signed_state = self._state_manager.create_signed_state(state_id)
         # Store signature part for audit (state is "state_id:signature")
         signature = signed_state.rsplit(":", 1)[-1] if ":" in signed_state else ""
         expires_at = utc_now() + timedelta(seconds=expires_in_seconds)
@@ -64,9 +70,11 @@ class OAuthStateRepository(BaseRepository[OAuthState]):
         await self.create(state)
         return state, signed_state
 
-    async def consume(self, state_id: str) -> OAuthState | None:
-        """Mark state as consumed; return updated state or None."""
-        state = await self.get_by_id(state_id)
+    async def consume(
+        self, state_id: str, tenant_id: str
+    ) -> OAuthState | None:
+        """Mark state as consumed; return updated state or None (tenant-scoped)."""
+        state = await self.get_by_id(state_id, tenant_id)
         if not state or state.consumed:
             return None
         if state.expires_at < utc_now():

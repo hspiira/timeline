@@ -9,12 +9,17 @@ from __future__ import annotations
 
 import asyncio
 import json
+from urllib.parse import quote
 from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx
 
-from app.infrastructure.firebase._rest_encoding import decode_document, encode_document
+from app.infrastructure.firebase._rest_encoding import (
+    _encode_value,
+    decode_document,
+    encode_document,
+)
 
 _FIRESTORE_SCOPE = "https://www.googleapis.com/auth/datastore"
 _BASE = "https://firestore.googleapis.com/v1"
@@ -52,18 +57,26 @@ async def _request_async(
         resp = await client.get(url, headers=headers)
     elif method == "PATCH":
         resp = await client.patch(url, headers=headers, json=body)
+    elif method == "POST":
+        resp = await client.post(url, headers=headers, json=body)
     elif method == "DELETE":
         resp = await client.delete(url, headers=headers)
     else:
         raise ValueError(f"Unsupported method: {method!r}")
     if resp.status_code == 404:
         return None
+    if resp.status_code == 409:
+        raise DocumentExistsError("Document already exists")
     if resp.status_code not in (200, 204):
         resp.raise_for_status()
     if method == "DELETE":
         return {}
     raw = resp.content
     return json.loads(raw.decode()) if raw else {}
+
+
+class DocumentExistsError(Exception):
+    """Raised when createDocument returns 409 (document ID already exists)."""
 
 
 class DocumentReference:
@@ -119,6 +132,87 @@ class DocumentSnapshot:
         return self._data
 
 
+class _Query:
+    """Fluent query builder for collection; runs via runQuery (filter/order/offset/limit on server)."""
+
+    def __init__(
+        self,
+        client: "FirestoreRESTClient",
+        parent: str,
+        collection_id: str,
+        *,
+        where_field: str | None = None,
+        where_op: str = "EQUAL",
+        where_value: Any = None,
+    ):
+        self._client = client
+        self._parent = parent
+        self._collection_id = collection_id
+        self._where_field = where_field
+        self._where_op = where_op
+        self._where_value = where_value
+        self._order_by_field: str | None = None
+        self._order_direction: str = "ASCENDING"
+        self._offset: int = 0
+        self._limit: int = 100
+
+    def order_by(self, field: str, direction: str = "ASCENDING") -> "_Query":
+        self._order_by_field = field
+        self._order_direction = direction
+        return self
+
+    def offset(self, n: int) -> "_Query":
+        self._offset = n
+        return self
+
+    def limit(self, n: int) -> "_Query":
+        self._limit = n
+        return self
+
+    async def stream(self) -> AsyncIterator[DocumentSnapshot]:
+        """Execute the query and yield document snapshots."""
+        structured: dict[str, Any] = {
+            "from": [{"collectionId": self._collection_id}],
+        }
+        if self._where_field is not None:
+            structured["where"] = {
+                "fieldFilter": {
+                    "field": {"fieldPath": self._where_field},
+                    "op": self._where_op,
+                    "value": _encode_value(self._where_value),
+                }
+            }
+        if self._order_by_field is not None:
+            structured["orderBy"] = [
+                {
+                    "field": {"fieldPath": self._order_by_field},
+                    "direction": self._order_direction,
+                }
+            ]
+        if self._offset:
+            structured["offset"] = self._offset
+        if self._limit:
+            structured["limit"] = self._limit
+
+        url = f"{_BASE}/{self._parent}:runQuery"
+        body = {"structuredQuery": structured}
+        resp = await _request_async(
+            self._client._http,
+            url,
+            method="POST",
+            body=body,
+            access_token=await self._client.get_token(),
+        )
+        items = resp if isinstance(resp, list) else ([resp] if resp else [])
+        for item in items:
+            if "document" not in item:
+                continue
+            doc = item["document"]
+            name = doc.get("name", "")
+            doc_id = name.split("/")[-1] if name else ""
+            yield DocumentSnapshot(doc_id, decode_document(doc.get("fields")))
+
+
 class CollectionReference:
     """Reference to a collection; matches firestore API style."""
 
@@ -128,6 +222,33 @@ class CollectionReference:
 
     def document(self, document_id: str) -> DocumentReference:
         return DocumentReference(self._client, f"{self._path}/{document_id}")
+
+    async def create(self, document_id: str, data: dict[str, Any]) -> None:
+        """Create a document with the given ID (fail with DocumentExistsError if it exists)."""
+        doc = encode_document(data)
+        url = f"{_BASE}/{self._path}?documentId={quote(document_id, safe='')}"
+        await _request_async(
+            self._client._http,
+            url,
+            method="POST",
+            body=doc,
+            access_token=await self._client.get_token(),
+        )
+
+    def where(
+        self, field: str, op: str, value: Any
+    ) -> _Query:
+        """Start a query with a filter. Use .order_by(), .offset(), .limit(), then .stream()."""
+        parent = self._path.rsplit("/", 1)[0]
+        collection_id = self._path.split("/")[-1]
+        return _Query(
+            self._client,
+            parent,
+            collection_id,
+            where_field=field,
+            where_op=op,
+            where_value=value,
+        )
 
     async def stream(self) -> AsyncIterator[DocumentSnapshot]:
         """List documents in the collection (shallow)."""

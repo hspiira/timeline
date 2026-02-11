@@ -31,7 +31,10 @@ def _auth_endpoint(provider_type: str) -> str:
         "outlook": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
         "yahoo": "https://api.login.yahoo.com/oauth2/request_auth",
     }
-    return endpoints.get(provider_type, "")
+    endpoint = endpoints.get(provider_type)
+    if not endpoint:
+        raise ValueError(f"Unsupported OAuth provider type: {provider_type}")
+    return endpoint
 
 
 def _token_endpoint(provider_type: str) -> str:
@@ -40,7 +43,10 @@ def _token_endpoint(provider_type: str) -> str:
         "outlook": "https://login.microsoftonline.com/common/oauth2/v2.0/token",
         "yahoo": "https://api.login.yahoo.com/oauth2/get_token",
     }
-    return endpoints.get(provider_type, "")
+    endpoint = endpoints.get(provider_type)
+    if not endpoint:
+        raise ValueError(f"Unsupported OAuth provider type: {provider_type}")
+    return endpoint
 
 
 class OAuthProviderConfigRepository(AuditableRepository[OAuthProviderConfig]):

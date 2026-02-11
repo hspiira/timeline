@@ -8,6 +8,7 @@ from sqlalchemy import and_, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.document import DocumentCreate, DocumentResult
+from app.domain.exceptions import ResourceNotFoundException
 from app.infrastructure.persistence.models.document import Document
 from app.infrastructure.persistence.repositories.auditable_repo import (
     AuditableRepository,
@@ -129,7 +130,7 @@ class DocumentRepository(AuditableRepository[Document]):
         )
         return result.scalar_one_or_none()
 
-    async def create(self, document: DocumentCreate) -> DocumentResult:
+    async def create_document(self, document: DocumentCreate) -> DocumentResult:
         """Create document from write-model DTO; return read-model."""
         orm = _create_to_document(document)
         created = await super().create(orm)
@@ -158,7 +159,7 @@ class DocumentRepository(AuditableRepository[Document]):
         """Update document from DTO (e.g. is_latest_version, document_type); return updated DTO."""
         orm = await self._get_orm_by_id(document.id)
         if not orm:
-            raise ValueError(f"Document {document.id} not found")
+            raise ResourceNotFoundException("document", document.id)
         orm.is_latest_version = document.is_latest_version
         orm.deleted_at = document.deleted_at
         orm.document_type = document.document_type
@@ -201,20 +202,28 @@ class DocumentRepository(AuditableRepository[Document]):
     async def get_versions(
         self, document_id: str, tenant_id: str
     ) -> list[DocumentResult]:
-        """Return this document plus all documents with parent_document_id = document_id (version chain)."""
-        result = await self.db.execute(
-            select(Document)
-            .where(
-                and_(
-                    or_(
-                        Document.id == document_id,
-                        Document.parent_document_id == document_id,
-                    ),
-                    Document.tenant_id == tenant_id,
-                )
+        """Return this document plus all descendants in the version chain (recursive by parent_document_id), ordered by version."""
+        anchor = select(Document.id).where(
+            and_(
+                Document.id == document_id,
+                Document.tenant_id == tenant_id,
             )
+        )
+        version_chain = anchor.cte(name="version_chain", recursive=True)
+        chain_alias = version_chain.alias()
+        recursive_part = select(Document.id).where(
+            and_(
+                Document.parent_document_id == chain_alias.c.id,
+                Document.tenant_id == tenant_id,
+            )
+        )
+        version_chain = version_chain.union_all(recursive_part)
+        stmt = (
+            select(Document)
+            .where(Document.id.in_(select(version_chain.c.id)))
             .order_by(Document.version.asc())
         )
+        result = await self.db.execute(stmt)
         rows = result.scalars().all()
         if not any(d.id == document_id for d in rows):
             return []

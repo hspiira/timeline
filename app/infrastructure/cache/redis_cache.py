@@ -183,6 +183,25 @@ class CacheService:
             logger.exception("Cache delete error for key %s", key)
             return False
 
+    async def _do_delete_pattern(self, pattern: str, chunk_size: int = 500) -> int:
+        """Perform SCAN + batched UNLINK for pattern. No retry; caller handles reconnect."""
+        deleted = 0
+        chunk: list[str] = []
+        async for key in self.redis.scan_iter(match=pattern):
+            chunk.append(key)
+            if len(chunk) >= chunk_size:
+                async with self.redis.pipeline(transaction=False) as pipe:
+                    pipe.unlink(*chunk)
+                    results = await pipe.execute()
+                deleted += sum(int(r or 0) for r in results)
+                chunk = []
+        if chunk:
+            async with self.redis.pipeline(transaction=False) as pipe:
+                pipe.unlink(*chunk)
+                results = await pipe.execute()
+            deleted += sum(int(r or 0) for r in results)
+        return deleted
+
     async def delete_pattern(self, pattern: str) -> int:
         """Delete all keys matching pattern using SCAN + batched UNLINK (non-blocking).
 
@@ -197,29 +216,23 @@ class CacheService:
         """
         if not self.is_available() or self.redis is None:
             return 0
-        chunk_size = 500
-        deleted = 0
         try:
-            chunk: list[str] = []
-            async for key in self.redis.scan_iter(match=pattern):
-                chunk.append(key)
-                if len(chunk) >= chunk_size:
-                    async with self.redis.pipeline(transaction=False) as pipe:
-                        pipe.unlink(*chunk)
-                        results = await pipe.execute()
-                    deleted += sum(int(r or 0) for r in results)
-                    chunk = []
-            if chunk:
-                async with self.redis.pipeline(transaction=False) as pipe:
-                    pipe.unlink(*chunk)
-                    results = await pipe.execute()
-                deleted += sum(int(r or 0) for r in results)
+            deleted = await self._do_delete_pattern(pattern)
             if deleted > 0:
                 logger.info("Cache INVALIDATE: %s (%s keys)", pattern, deleted)
             return deleted
         except (redis.ConnectionError, redis.TimeoutError):
             if await self._reconnect():
-                return await self.delete_pattern(pattern)
+                try:
+                    deleted = await self._do_delete_pattern(pattern)
+                    if deleted > 0:
+                        logger.info("Cache INVALIDATE: %s (%s keys)", pattern, deleted)
+                    return deleted
+                except redis.RedisError:
+                    logger.exception(
+                        "Cache delete_pattern error for %s after reconnect", pattern
+                    )
+                    return 0
             logger.warning(
                 "Cache delete_pattern unavailable for %s (Redis disconnected)", pattern
             )

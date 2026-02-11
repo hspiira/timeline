@@ -8,12 +8,16 @@ Engine and session factory are created lazily on first use (get_db /
 get_db_transactional) so import does not trigger Settings validation.
 """
 
+import logging
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
 from app.core.config import get_settings
+from app.domain.exceptions import SqlNotConfiguredError
+
+logger = logging.getLogger(__name__)
 
 # Set by _ensure_engine() on first use; avoids get_settings() at import time.
 engine: Any = None
@@ -75,14 +79,15 @@ async def get_db():
 
     Does not commit; use get_db_transactional for writes.
     Yields a session and closes it on exit.
-    Raises RuntimeError when database_backend is not 'postgres'.
+    Raises SqlNotConfiguredError when database_backend is not 'postgres'.
     """
     _ensure_engine()
     if AsyncSessionLocal is None:
-        raise RuntimeError(
-            "SQL database is not configured (database_backend is not 'postgres'). "
-            "Use get_firestore_client() from app.infrastructure.firebase.client for Firestore."
+        logger.error(
+            "SQL database not configured: set DATABASE_BACKEND=postgres and DATABASE_URL "
+            "(e.g. postgresql+asyncpg://user:pass@localhost:5432/dbname), then run: uv run alembic upgrade head"
         )
+        raise SqlNotConfiguredError()
     async with AsyncSessionLocal() as session:
         yield session
 
@@ -92,14 +97,15 @@ async def get_db_transactional():
 
     Begins a transaction, commits on success, rolls back on exception.
     Use for POST, PUT, PATCH, DELETE endpoints.
-    Raises RuntimeError when database_backend is not 'postgres'.
+    Raises SqlNotConfiguredError when database_backend is not 'postgres'.
     """
     _ensure_engine()
     if AsyncSessionLocal is None:
-        raise RuntimeError(
-            "SQL database is not configured (database_backend is not 'postgres'). "
-            "Use get_firestore_client() from app.infrastructure.firebase.client for Firestore."
+        logger.error(
+            "SQL database not configured: set DATABASE_BACKEND=postgres and DATABASE_URL "
+            "(e.g. postgresql+asyncpg://user:pass@localhost:5432/dbname), then run: uv run alembic upgrade head"
         )
+        raise SqlNotConfiguredError()
     async with AsyncSessionLocal() as session:
         async with session.begin():
             yield session

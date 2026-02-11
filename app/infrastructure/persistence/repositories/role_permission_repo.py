@@ -66,6 +66,7 @@ class RolePermissionRepository:
             await self.db.flush()
             await self.db.refresh(rp)
         except IntegrityError:
+            await self.db.rollback()
             raise DuplicateAssignmentException(
                 "Permission already assigned to role",
                 assignment_type="role_permission",

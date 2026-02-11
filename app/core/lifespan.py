@@ -22,8 +22,8 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Run startup then yield; on exit run shutdown.
 
     Startup order: Firebase, WebSocket manager, Redis cache (if enabled),
-    telemetry (if enabled). Shutdown order: Firebase close, cache disconnect,
-    telemetry shutdown, SQL engine dispose (if postgres).
+    telemetry (if enabled). Shutdown order: Firebase close, shared HTTP client
+    close, cache disconnect, telemetry shutdown, SQL engine dispose (if postgres).
     """
     settings = get_settings()
 

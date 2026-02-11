@@ -195,12 +195,6 @@ class ITenantRepository(Protocol):
         """Return active tenants with pagination."""
         ...
 
-    async def update_status(
-        self, tenant_id: str, status: TenantStatus
-    ) -> TenantResult | None:
-        """Update tenant status; return updated result or None."""
-        ...
-
     async def update_tenant(
         self,
         tenant_id: str,
@@ -264,7 +258,7 @@ class IDocumentRepository(Protocol):
         """Return document by tenant and checksum (for duplicate check)."""
         ...
 
-    async def create(self, document: DocumentCreate) -> DocumentResult:
+    async def create_document(self, document: DocumentCreate) -> DocumentResult:
         """Create document from write-model DTO; return created read-model."""
         ...
 

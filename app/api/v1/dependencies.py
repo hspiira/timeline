@@ -37,7 +37,10 @@ from app.application.use_cases.subjects import SubjectService
 from app.core.config import get_settings
 from app.infrastructure.external.storage.factory import StorageFactory
 from app.infrastructure.external.email.encryption import CredentialEncryptor
-from app.infrastructure.external.email.envelope_encryption import EnvelopeEncryptor
+from app.infrastructure.external.email.envelope_encryption import (
+    EnvelopeEncryptor,
+    OAuthStateManager,
+)
 from app.infrastructure.external.email.oauth_drivers import OAuthDriverRegistry
 from app.infrastructure.security.jwt import create_access_token
 from app.infrastructure.security.password import get_password_hash
@@ -111,6 +114,11 @@ def get_envelope_encryptor() -> EnvelopeEncryptor:
     return EnvelopeEncryptor()
 
 
+def get_oauth_state_manager() -> OAuthStateManager:
+    """OAuth state signing/verification (composition root)."""
+    return OAuthStateManager()
+
+
 def get_oauth_driver_registry(request: Request) -> OAuthDriverRegistry:
     """OAuth driver registry with shared HTTP client (composition root)."""
     http_client = getattr(request.app.state, "oauth_http_client", None)
@@ -142,16 +150,10 @@ async def _yield_db_or_firestore(
     """Yield DbOrFirestore from Postgres (get_db/get_db_transactional) or Firestore."""
     settings = get_settings()
     if settings.database_backend == "postgres":
-        try:
-            session_gen = get_db_transactional() if transactional else get_db()
-            async for session in session_gen:
-                yield DbOrFirestore(db=session, firestore=None)
-                return
-        except RuntimeError as e:
-            raise HTTPException(
-                status_code=503,
-                detail="Postgres not configured (set DATABASE_BACKEND=postgres and DATABASE_URL)",
-            ) from e
+        session_gen = get_db_transactional() if transactional else get_db()
+        async for session in session_gen:
+            yield DbOrFirestore(db=session, firestore=None)
+            return
     else:
         client = _get_firestore_client_or_raise()
         yield DbOrFirestore(db=None, firestore=client)
@@ -511,9 +513,10 @@ async def get_oauth_provider_config_repo_for_write(
 
 async def get_oauth_state_repo(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    state_manager: OAuthStateManager = Depends(get_oauth_state_manager),
 ) -> OAuthStateRepository:
     """OAuth state repository for authorize/callback (transactional)."""
-    return OAuthStateRepository(db)
+    return OAuthStateRepository(db, state_manager=state_manager)
 
 
 async def get_email_account_repo(
