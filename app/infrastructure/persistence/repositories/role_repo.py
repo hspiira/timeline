@@ -45,6 +45,27 @@ class RoleRepository(AuditableRepository[Role]):
             "is_active": obj.is_active,
         }
 
+    async def create_role(
+        self,
+        tenant_id: str,
+        code: str,
+        name: str,
+        description: str | None = None,
+        *,
+        is_system: bool = False,
+        is_active: bool = True,
+    ) -> Role:
+        """Create a role (caller does not need to import Role ORM)."""
+        role = Role(
+            tenant_id=tenant_id,
+            code=code,
+            name=name,
+            description=description,
+            is_system=is_system,
+            is_active=is_active,
+        )
+        return await self.create(role)
+
     async def get_by_code_and_tenant(self, code: str, tenant_id: str) -> Role | None:
         result = await self.db.execute(
             select(Role).where(Role.code == code, Role.tenant_id == tenant_id)

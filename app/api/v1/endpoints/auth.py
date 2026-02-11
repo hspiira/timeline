@@ -11,6 +11,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.exc import IntegrityError
 
 from app.api.v1.dependencies import (
+    AuthSecurity,
+    get_auth_security,
     get_current_user,
     get_tenant_repo,
     get_user_repo,
@@ -19,8 +21,6 @@ from app.api.v1.dependencies import (
 from app.core.limiter import limit_auth, limit_writes
 from app.infrastructure.persistence.repositories.tenant_repo import TenantRepository
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
-from app.infrastructure.security.jwt import create_access_token
-from app.infrastructure.security.password import get_password_hash
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 from app.schemas.user import UserResponse, UserUpdate
 
@@ -61,6 +61,7 @@ async def login(
     body: LoginRequest,
     user_repo: UserRepository = Depends(get_user_repo),
     tenant_repo: TenantRepository = Depends(get_tenant_repo),
+    auth_security: AuthSecurity = Depends(get_auth_security),
 ):
     """Authenticate with tenant_code, username, and password; return JWT.
 
@@ -79,7 +80,7 @@ async def login(
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    token = create_access_token(
+    token = auth_security.create_access_token(
         data={"sub": user.id, "tenant_id": user.tenant_id, "username": user.username},
     )
     return TokenResponse(access_token=token, token_type="bearer")
@@ -110,6 +111,7 @@ async def update_me(
     body: UserUpdate,
     current_user: Annotated[object, Depends(get_current_user)],
     user_repo: UserRepository = Depends(get_user_repo_for_write),
+    auth_security: AuthSecurity = Depends(get_auth_security),
 ):
     """Update current user email and/or password. Requires Authorization."""
     user = await user_repo.get_by_id_and_tenant(
@@ -121,7 +123,7 @@ async def update_me(
         user.email = body.email
     if body.password is not None:
         user.hashed_password = await asyncio.to_thread(
-            get_password_hash, body.password
+            auth_security.hash_password, body.password
         )
     try:
         updated = await user_repo.update(user)

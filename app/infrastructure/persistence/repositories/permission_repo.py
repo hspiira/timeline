@@ -43,6 +43,24 @@ class PermissionRepository(AuditableRepository[Permission]):
             "description": obj.description,
         }
 
+    async def create_permission(
+        self,
+        tenant_id: str,
+        code: str,
+        resource: str,
+        action: str,
+        description: str | None = None,
+    ) -> Permission:
+        """Create a permission (caller does not need to import Permission ORM)."""
+        perm = Permission(
+            tenant_id=tenant_id,
+            code=code,
+            resource=resource,
+            action=action,
+            description=description,
+        )
+        return await self.create(perm)
+
     async def get_by_code_and_tenant(
         self, code: str, tenant_id: str
     ) -> Permission | None:

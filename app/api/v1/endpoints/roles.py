@@ -16,7 +16,6 @@ from app.api.v1.dependencies import (
 )
 from app.core.limiter import limit_writes
 from app.domain.exceptions import DuplicateAssignmentError
-from app.infrastructure.persistence.models.role import Role
 from app.infrastructure.persistence.repositories.permission_repo import (
     PermissionRepository,
 )
@@ -55,15 +54,12 @@ async def create_role(
             detail=f"Role with code '{body.code}' already exists",
         )
     try:
-        role = Role(
+        created = await role_repo.create_role(
             tenant_id=tenant_id,
             code=body.code,
             name=body.name,
             description=body.description,
-            is_system=False,
-            is_active=True,
         )
-        created = await role_repo.create(role)
         if body.permission_codes:
             for code in body.permission_codes:
                 perm = await permission_repo.get_by_code_and_tenant(code, tenant_id)

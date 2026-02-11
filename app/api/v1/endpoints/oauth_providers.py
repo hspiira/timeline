@@ -8,6 +8,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import (
+    EnvelopeEncryptor,
+    OAuthDriverRegistry,
+    get_envelope_encryptor,
+    get_oauth_driver_registry,
     get_oauth_provider_config_repo,
     get_oauth_provider_config_repo_for_write,
     get_oauth_state_repo,
@@ -15,8 +19,6 @@ from app.api.v1.dependencies import (
     require_permission,
 )
 from app.core.limiter import limit_writes
-from app.infrastructure.external.email.envelope_encryption import EnvelopeEncryptor
-from app.infrastructure.external.email.oauth_drivers import OAuthDriverRegistry
 from app.infrastructure.persistence.repositories.oauth_provider_config_repo import (
     OAuthProviderConfigRepository,
 )
@@ -76,6 +78,8 @@ async def oauth_authorize(
         OAuthStateRepository, Depends(get_oauth_state_repo)
     ],
     return_url: str | None = None,
+    envelope_encryptor: EnvelopeEncryptor = Depends(get_envelope_encryptor),
+    oauth_driver_registry: OAuthDriverRegistry = Depends(get_oauth_driver_registry),
 ):
     """Build OAuth authorization URL and return it; frontend redirects user there."""
     provider_type = provider.strip().lower()
@@ -94,9 +98,8 @@ async def oauth_authorize(
         provider_config_id=config.id,
         return_url=return_url,
     )
-    encryptor = EnvelopeEncryptor()
     try:
-        creds = encryptor.decrypt(config.client_id_encrypted)
+        creds = envelope_encryptor.decrypt(config.client_id_encrypted)
     except ValueError:
         raise HTTPException(
             status_code=500,
@@ -108,7 +111,7 @@ async def oauth_authorize(
     else:
         raise HTTPException(status_code=500, detail="Invalid credential format")
     scopes = config.default_scopes or config.allowed_scopes or []
-    driver = OAuthDriverRegistry.get_driver(
+    driver = oauth_driver_registry.get_driver(
         provider_type=provider_type,
         client_id=client_id,
         client_secret=client_secret,
@@ -137,6 +140,8 @@ async def oauth_callback(
         OAuthStateRepository, Depends(get_oauth_state_repo)
     ],
     _: Annotated[object, Depends(require_permission("oauth_config", "read"))] = None,
+    envelope_encryptor: EnvelopeEncryptor = Depends(get_envelope_encryptor),
+    oauth_driver_registry: OAuthDriverRegistry = Depends(get_oauth_driver_registry),
 ):
     """Exchange code for tokens; verify state and return tokens."""
     from app.infrastructure.external.email.envelope_encryption import (
@@ -159,9 +164,8 @@ async def oauth_callback(
     )
     if not config:
         raise HTTPException(status_code=404, detail="OAuth config not found")
-    encryptor = EnvelopeEncryptor()
     try:
-        creds = encryptor.decrypt(config.client_id_encrypted)
+        creds = envelope_encryptor.decrypt(config.client_id_encrypted)
     except ValueError:
         raise HTTPException(
             status_code=500,
@@ -172,7 +176,7 @@ async def oauth_callback(
     client_id = creds.get("client_id", "")
     client_secret = creds.get("client_secret", "")
     scopes = config.default_scopes or config.allowed_scopes or []
-    driver = OAuthDriverRegistry.get_driver(
+    driver = oauth_driver_registry.get_driver(
         provider_type=config.provider_type,
         client_id=client_id,
         client_secret=client_secret,
@@ -197,12 +201,13 @@ async def oauth_callback(
     response_model=OAuthProvidersMetadataResponse,
 )
 async def list_oauth_providers_metadata(
+    oauth_driver_registry: OAuthDriverRegistry = Depends(get_oauth_driver_registry),
     _: Annotated[object, Depends(require_permission("oauth_config", "read"))] = None,
 ):
     """Return list of supported OAuth providers (gmail, outlook, yahoo) and their endpoints."""
     providers = []
-    for pt in OAuthDriverRegistry.list_providers():
-        meta = OAuthDriverRegistry.get_provider_metadata(pt)
+    for pt in oauth_driver_registry.list_providers():
+        meta = oauth_driver_registry.get_provider_metadata(pt)
         providers.append(
             OAuthProviderMetadataItem(
                 provider_type=meta["provider_type"],
@@ -260,13 +265,13 @@ async def create_oauth_config(
     oauth_repo: Annotated[
         OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo_for_write)
     ],
+    envelope_encryptor: EnvelopeEncryptor = Depends(get_envelope_encryptor),
 ):
     """Create or rotate OAuth provider config (envelope-encrypted credentials)."""
-    encryptor = EnvelopeEncryptor()
-    envelope = encryptor.encrypt(
+    envelope = envelope_encryptor.encrypt(
         {"client_id": body.client_id, "client_secret": body.client_secret}
     )
-    key_id = encryptor.extract_key_id(envelope)
+    key_id = envelope_encryptor.extract_key_id(envelope)
     config = await oauth_repo.create_new_version(
         tenant_id=tenant_id,
         provider_type=body.provider_type.strip().lower(),
@@ -345,6 +350,7 @@ async def rotate_oauth_config(
     oauth_repo: Annotated[
         OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo_for_write)
     ],
+    envelope_encryptor: EnvelopeEncryptor = Depends(get_envelope_encryptor),
 ):
     """Rotate OAuth credentials: create new version with new client_id/client_secret."""
     config = await oauth_repo.get_by_id_and_tenant(config_id, tenant_id)
@@ -352,11 +358,10 @@ async def rotate_oauth_config(
         raise HTTPException(status_code=404, detail="OAuth config not found")
     redirect_uri = body.redirect_uri or config.redirect_uri
     scopes = body.scopes or config.default_scopes or config.allowed_scopes or []
-    encryptor = EnvelopeEncryptor()
-    envelope = encryptor.encrypt(
+    envelope = envelope_encryptor.encrypt(
         {"client_id": body.client_id, "client_secret": body.client_secret}
     )
-    key_id = encryptor.extract_key_id(envelope)
+    key_id = envelope_encryptor.extract_key_id(envelope)
     new_config = await oauth_repo.create_new_version(
         tenant_id=tenant_id,
         provider_type=config.provider_type,

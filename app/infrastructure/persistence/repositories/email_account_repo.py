@@ -15,6 +15,30 @@ class EmailAccountRepository(BaseRepository[EmailAccount]):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(db, EmailAccount)
 
+    async def create_email_account(
+        self,
+        tenant_id: str,
+        subject_id: str,
+        provider_type: str,
+        email_address: str,
+        credentials_encrypted: str,
+        connection_params: dict | None = None,
+        oauth_provider_config_id: str | None = None,
+    ) -> EmailAccount:
+        """Create an email account (caller does not need to import EmailAccount ORM)."""
+        account = EmailAccount(
+            tenant_id=tenant_id,
+            subject_id=subject_id,
+            provider_type=provider_type.strip().lower(),
+            email_address=email_address.strip(),
+            credentials_encrypted=credentials_encrypted,
+            connection_params=connection_params,
+            oauth_provider_config_id=oauth_provider_config_id,
+            is_active=True,
+            sync_status="idle",
+        )
+        return await self.create(account)
+
     async def get_by_tenant(
         self,
         tenant_id: str,

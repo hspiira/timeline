@@ -226,10 +226,8 @@ class IDocumentRepository(Protocol):
         """Return document by tenant and checksum (for duplicate check)."""
         ...
 
-    async def create(
-        self, document: DocumentResult | dict[str, Any]
-    ) -> DocumentResult:
-        """Create document; return created entity."""
+    async def create(self, document: DocumentResult) -> DocumentResult:
+        """Create document from DTO; return created entity."""
         ...
 
     async def mark_parent_not_latest_if_current(

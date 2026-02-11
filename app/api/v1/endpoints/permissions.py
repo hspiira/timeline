@@ -12,7 +12,6 @@ from app.api.v1.dependencies import (
     require_permission,
 )
 from app.core.limiter import limit_writes
-from app.infrastructure.persistence.models.permission import Permission
 from app.infrastructure.persistence.repositories.permission_repo import (
     PermissionRepository,
 )
@@ -38,14 +37,13 @@ async def create_permission(
             detail=f"Permission with code '{body.code}' already exists",
         )
     try:
-        perm = Permission(
+        created = await permission_repo.create_permission(
             tenant_id=tenant_id,
             code=body.code,
             resource=body.resource,
             action=body.action,
             description=body.description,
         )
-        created = await permission_repo.create(perm)
         return PermissionResponse.model_validate(created)
     except IntegrityError:
         raise HTTPException(

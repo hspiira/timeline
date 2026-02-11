@@ -32,6 +32,11 @@ from app.application.use_cases.events import EventService
 from app.application.use_cases.subjects import SubjectService
 from app.core.config import get_settings
 from app.infrastructure.external.storage.factory import StorageFactory
+from app.infrastructure.external.email.encryption import CredentialEncryptor
+from app.infrastructure.external.email.envelope_encryption import EnvelopeEncryptor
+from app.infrastructure.external.email.oauth_drivers import OAuthDriverRegistry
+from app.infrastructure.security.jwt import create_access_token
+from app.infrastructure.security.password import get_password_hash
 from app.infrastructure.persistence.database import (
     AsyncSessionLocal,
     get_db,
@@ -69,6 +74,37 @@ from app.infrastructure.firebase.repositories import (
     FirestoreUserRepository,
 )
 from app.infrastructure.firebase.services import FirestoreTenantInitializationService
+
+
+@dataclass
+class AuthSecurity:
+    """Token and password hashing provided via DI (no direct infra imports in routes)."""
+
+    def create_access_token(self, data: dict) -> str:
+        return create_access_token(data)
+
+    def hash_password(self, password: str) -> str:
+        return get_password_hash(password)
+
+
+def get_auth_security() -> AuthSecurity:
+    """Auth token creation and password hashing (composition root)."""
+    return AuthSecurity()
+
+
+def get_credential_encryptor() -> CredentialEncryptor:
+    """Credential encryptor for email accounts (composition root)."""
+    return CredentialEncryptor()
+
+
+def get_envelope_encryptor() -> EnvelopeEncryptor:
+    """Envelope encryptor for OAuth client secrets (composition root)."""
+    return EnvelopeEncryptor()
+
+
+def get_oauth_driver_registry() -> OAuthDriverRegistry:
+    """OAuth driver registry (composition root)."""
+    return OAuthDriverRegistry()
 
 
 @dataclass

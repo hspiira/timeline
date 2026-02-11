@@ -11,6 +11,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import (
+    CredentialEncryptor,
+    get_credential_encryptor,
     get_email_account_repo,
     get_email_account_repo_for_write,
     get_tenant_id,
@@ -18,8 +20,6 @@ from app.api.v1.dependencies import (
 )
 from app.core.config import get_settings
 from app.core.limiter import limit_writes
-from app.infrastructure.external.email.encryption import CredentialEncryptor
-from app.infrastructure.persistence.models.email_account import EmailAccount
 from app.infrastructure.persistence.repositories.email_account_repo import (
     EmailAccountRepository,
 )
@@ -77,23 +77,20 @@ async def create_email_account(
     email_account_repo: Annotated[
         EmailAccountRepository, Depends(get_email_account_repo_for_write)
     ],
+    credential_encryptor: CredentialEncryptor = Depends(get_credential_encryptor),
     _: Annotated[object, Depends(require_permission("email_account", "create"))] = None,
 ):
     """Create email account (credentials encrypted at rest)."""
-    encryptor = CredentialEncryptor()
-    credentials_encrypted = encryptor.encrypt(body.credentials)
-    account = EmailAccount(
+    credentials_encrypted = credential_encryptor.encrypt(body.credentials)
+    account = await email_account_repo.create_email_account(
         tenant_id=tenant_id,
         subject_id=body.subject_id,
-        provider_type=body.provider_type.strip().lower(),
-        email_address=body.email_address.strip(),
+        provider_type=body.provider_type,
+        email_address=body.email_address,
         credentials_encrypted=credentials_encrypted,
         connection_params=body.connection_params,
         oauth_provider_config_id=body.oauth_provider_config_id,
-        is_active=True,
-        sync_status="idle",
     )
-    await email_account_repo.create(account)
     return EmailAccountResponse.model_validate(account)
 
 

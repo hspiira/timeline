@@ -19,6 +19,28 @@ if TYPE_CHECKING:
     from app.infrastructure.services.system_audit_service import SystemAuditService
 
 
+def _result_to_document(d: DocumentResult) -> Document:
+    """Map application DocumentResult to ORM Document (for create)."""
+    return Document(
+        id=d.id,
+        tenant_id=d.tenant_id,
+        subject_id=d.subject_id,
+        event_id=d.event_id,
+        document_type=d.document_type,
+        filename=d.filename,
+        original_filename=d.original_filename,
+        mime_type=d.mime_type,
+        file_size=d.file_size,
+        checksum=d.checksum,
+        storage_ref=d.storage_ref,
+        version=d.version,
+        parent_document_id=d.parent_document_id,
+        is_latest_version=d.is_latest_version,
+        created_by=d.created_by,
+        deleted_at=d.deleted_at,
+    )
+
+
 def _document_to_result(d: Document) -> DocumentResult:
     """Map ORM Document to application DocumentResult."""
     return DocumentResult(
@@ -42,7 +64,7 @@ def _document_to_result(d: Document) -> DocumentResult:
 
 
 class DocumentRepository(AuditableRepository[Document]):
-    """Document repository. create() accepts Document or dict (for application layer)."""
+    """Document repository. create() accepts DocumentResult or Document; returns DTO (LSP-safe input)."""
 
     def __init__(
         self,
@@ -103,13 +125,10 @@ class DocumentRepository(AuditableRepository[Document]):
         )
         return result.scalar_one_or_none()
 
-    async def create(
-        self, obj: DocumentResult | Document | dict[str, Any]
-    ) -> DocumentResult:
-        """Create document; accepts dict (from use case) or Document. Returns DTO."""
-        if isinstance(obj, dict):
-            obj = Document(**obj)
-        created = await super().create(obj)
+    async def create(self, obj: DocumentResult | Document) -> DocumentResult:
+        """Create document from DTO or ORM; returns DTO. No dict (LSP: typed input only)."""
+        orm = _result_to_document(obj) if isinstance(obj, DocumentResult) else obj
+        created = await super().create(orm)
         return _document_to_result(created)
 
     async def mark_parent_not_latest_if_current(
