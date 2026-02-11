@@ -60,9 +60,6 @@ class OAuthProviderConfigRepository(AuditableRepository[OAuthProviderConfig]):
     def _get_entity_type(self) -> str:
         return "oauth_provider"
 
-    def _get_tenant_id(self, obj: OAuthProviderConfig) -> str:
-        return obj.tenant_id
-
     def _serialize_for_audit(self, obj: OAuthProviderConfig) -> dict[str, Any]:
         return {
             "id": obj.id,

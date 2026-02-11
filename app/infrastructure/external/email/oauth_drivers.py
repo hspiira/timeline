@@ -107,11 +107,16 @@ class OAuthDriver(ABC):
         """Provider-specific auth params."""
         ...
 
+    @staticmethod
+    def _http_client(timeout: float = 30.0) -> httpx.AsyncClient:
+        """Shared HTTP client factory (DRY)."""
+        return httpx.AsyncClient(timeout=timeout)
+
     async def exchange_code_for_tokens(
         self, code: str, **extra_params: Any
     ) -> OAuthTokens:
         """Exchange authorization code for tokens."""
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with self._http_client() as client:
             response = await client.post(
                 self.token_endpoint,
                 data={
@@ -137,7 +142,7 @@ class OAuthDriver(ABC):
 
     async def refresh_access_token(self, refresh_token: str) -> OAuthTokens:
         """Refresh access token."""
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with self._http_client() as client:
             response = await client.post(
                 self.token_endpoint,
                 data={
@@ -211,7 +216,7 @@ class GmailDriver(OAuthDriver):
         }
 
     async def get_user_info(self, access_token: str) -> OAuthUserInfo:
-        async with httpx.AsyncClient() as client:
+        async with self._http_client() as client:
             response = await client.get(
                 "https://gmail.googleapis.com/gmail/v1/users/me/profile",
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -251,7 +256,7 @@ class OutlookDriver(OAuthDriver):
         return {"response_mode": "query"}
 
     async def get_user_info(self, access_token: str) -> OAuthUserInfo:
-        async with httpx.AsyncClient() as client:
+        async with self._http_client() as client:
             response = await client.get(
                 "https://graph.microsoft.com/v1.0/me",
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -290,7 +295,7 @@ class YahooDriver(OAuthDriver):
         return {}
 
     async def get_user_info(self, access_token: str) -> OAuthUserInfo:
-        async with httpx.AsyncClient() as client:
+        async with self._http_client() as client:
             response = await client.get(
                 "https://api.login.yahoo.com/openid/v1/userinfo",
                 headers={"Authorization": f"Bearer {access_token}"},

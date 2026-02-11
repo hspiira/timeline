@@ -66,10 +66,9 @@ class AuditableRepository(BaseRepository[ModelType]):
         """Return entity type for audit (e.g. 'subject')."""
         ...
 
-    @abstractmethod
     def _get_tenant_id(self, obj: ModelType) -> str:
-        """Return tenant_id from the entity."""
-        ...
+        """Return tenant_id from the entity (default: obj.tenant_id or obj.id for Tenant)."""
+        return getattr(obj, "tenant_id", None) or getattr(obj, "id", "")
 
     @abstractmethod
     def _serialize_for_audit(self, obj: ModelType) -> dict[str, Any]:

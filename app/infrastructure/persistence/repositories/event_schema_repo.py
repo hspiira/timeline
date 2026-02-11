@@ -54,9 +54,6 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
     def _get_entity_type(self) -> str:
         return "event_schema"
 
-    def _get_tenant_id(self, obj: EventSchema) -> str:
-        return obj.tenant_id
-
     def _serialize_for_audit(self, obj: EventSchema) -> dict[str, Any]:
         return {
             "id": obj.id,

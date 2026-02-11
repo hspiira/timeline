@@ -169,6 +169,23 @@ async def get_email_account_sync_status(
     )
 
 
+async def _mark_account_sync_pending(
+    email_account_repo: EmailAccountRepository,
+    account_id: str,
+    tenant_id: str,
+) -> None:
+    """Set account to sync pending and persist. Raises HTTPException 404 if not found."""
+    from app.shared.utils.datetime import utc_now
+
+    account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
+    if not account:
+        raise HTTPException(status_code=404, detail="Email account not found")
+    account.sync_status = "pending"
+    account.sync_started_at = utc_now()
+    account.sync_error = None
+    await email_account_repo.update(account)
+
+
 @router.post("/{account_id}/sync", status_code=202)
 @limit_writes
 async def trigger_email_sync(
@@ -181,15 +198,7 @@ async def trigger_email_sync(
     _: Annotated[object, Depends(require_permission("email_account", "update"))] = None,
 ):
     """Trigger sync for the email account (in-process). Returns 202 when accepted."""
-    account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
-    if not account:
-        raise HTTPException(status_code=404, detail="Email account not found")
-    from app.shared.utils.datetime import utc_now
-
-    account.sync_status = "pending"
-    account.sync_started_at = utc_now()
-    account.sync_error = None
-    await email_account_repo.update(account)
+    await _mark_account_sync_pending(email_account_repo, account_id, tenant_id)
     return {"detail": "Sync started", "account_id": account_id}
 
 
@@ -205,15 +214,7 @@ async def trigger_email_sync_background(
     _: Annotated[object, Depends(require_permission("email_account", "update"))] = None,
 ):
     """Enqueue background sync for the email account. Returns 202 when accepted."""
-    account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
-    if not account:
-        raise HTTPException(status_code=404, detail="Email account not found")
-    from app.shared.utils.datetime import utc_now
-
-    account.sync_status = "pending"
-    account.sync_started_at = utc_now()
-    account.sync_error = None
-    await email_account_repo.update(account)
+    await _mark_account_sync_pending(email_account_repo, account_id, tenant_id)
     return {"detail": "Background sync enqueued", "account_id": account_id}
 
 

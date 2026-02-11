@@ -57,9 +57,6 @@ class TenantRepository(AuditableRepository[Tenant]):
     def _get_entity_type(self) -> str:
         return "tenant"
 
-    def _get_tenant_id(self, obj: Tenant) -> str:
-        return obj.id
-
     def _serialize_for_audit(self, obj: Tenant) -> dict[str, Any]:
         return {"id": obj.id, "code": obj.code, "name": obj.name, "status": obj.status}
 

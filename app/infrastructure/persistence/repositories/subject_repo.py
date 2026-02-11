@@ -42,9 +42,6 @@ class SubjectRepository(AuditableRepository[Subject]):
     def _get_entity_type(self) -> str:
         return "subject"
 
-    def _get_tenant_id(self, obj: Subject) -> str:
-        return obj.tenant_id
-
     def _serialize_for_audit(self, obj: Subject) -> dict[str, Any]:
         return {
             "id": obj.id,

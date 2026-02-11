@@ -32,9 +32,6 @@ class RoleRepository(AuditableRepository[Role]):
     def _get_entity_type(self) -> str:
         return "role"
 
-    def _get_tenant_id(self, obj: Role) -> str:
-        return obj.tenant_id
-
     def _serialize_for_audit(self, obj: Role) -> dict[str, Any]:
         return {
             "id": obj.id,

@@ -12,6 +12,25 @@ from typing import ClassVar
 _SLUG_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
 
+def _validate_slug(
+    value: str,
+    min_len: int,
+    max_len: int,
+    field_name: str,
+    length_msg: str,
+    format_hint: str = "lowercase alphanumeric with optional hyphens",
+) -> None:
+    """Validate non-empty, length, and slug format. Raises ValueError on failure."""
+    if not value:
+        raise ValueError(f"{field_name} must be a non-empty string")
+    if len(value) < min_len or len(value) > max_len:
+        raise ValueError(length_msg)
+    if not _SLUG_RE.match(value):
+        raise ValueError(
+            f"{field_name} must be {format_hint} (e.g., 'acme', 'acme-corp')"
+        )
+
+
 @dataclass(frozen=True)
 class TenantCode:
     """Value object for tenant code (SRP: tenant code validation).
@@ -23,20 +42,13 @@ class TenantCode:
     value: str
 
     def __post_init__(self) -> None:
-        """Validate format and length.
-
-        Raises:
-            ValueError: If empty, length out of range, or invalid format.
-        """
-        if not self.value:
-            raise ValueError("Tenant code must be a non-empty string")
-        if len(self.value) < 3 or len(self.value) > 15:
-            raise ValueError("Tenant code must be 3-15 characters")
-        if not _SLUG_RE.match(self.value):
-            raise ValueError(
-                "Tenant code must be lowercase alphanumeric with optional hyphens "
-                "(e.g., 'acme', 'acme-corp', 'abc123')"
-            )
+        _validate_slug(
+            self.value,
+            min_len=3,
+            max_len=15,
+            field_name="Tenant code",
+            length_msg="Tenant code must be 3-15 characters",
+        )
 
 
 @dataclass(frozen=True)
@@ -50,20 +62,13 @@ class SubjectType:
     value: str
 
     def __post_init__(self) -> None:
-        """Validate non-empty, length, and format.
-
-        Raises:
-            ValueError: If empty, too long, or invalid format.
-        """
-        if not self.value:
-            raise ValueError("Subject type must be a non-empty string")
-        if len(self.value) > 150:
-            raise ValueError("Subject type must not exceed 150 characters")
-        if not _SLUG_RE.match(self.value):
-            raise ValueError(
-                "Subject type must be lowercase alphanumeric with optional hyphens "
-                "(e.g., 'client', 'policy', 'supplier')"
-            )
+        _validate_slug(
+            self.value,
+            min_len=1,
+            max_len=150,
+            field_name="Subject type",
+            length_msg="Subject type must not exceed 150 characters",
+        )
 
 
 @dataclass(frozen=True)

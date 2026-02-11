@@ -31,9 +31,6 @@ class PermissionRepository(AuditableRepository[Permission]):
     def _get_entity_type(self) -> str:
         return "permission"
 
-    def _get_tenant_id(self, obj: Permission) -> str:
-        return obj.tenant_id
-
     def _serialize_for_audit(self, obj: Permission) -> dict[str, Any]:
         return {
             "id": obj.id,

@@ -81,17 +81,7 @@ class VerificationService:
                 event_results=[],
             )
 
-        results: list[VerificationResult] = []
-        valid, invalid = 0, 0
-        for i, event in enumerate(events):
-            prev = events[i - 1] if i > 0 else None
-            r = self._verify_event(event, prev, i)
-            results.append(r)
-            if r.is_valid:
-                valid += 1
-            else:
-                invalid += 1
-
+        results, valid, invalid = self._verify_events_chain(events)
         return ChainVerificationResult(
             subject_id=subject_id,
             tenant_id=tenant_id,
@@ -135,14 +125,10 @@ class VerificationService:
         results = []
         valid, invalid = 0, 0
         for subject_events in by_subject.values():
-            for i, event in enumerate(subject_events):
-                prev = subject_events[i - 1] if i > 0 else None
-                r = self._verify_event(event, prev, i)
-                results.append(r)
-                if r.is_valid:
-                    valid += 1
-                else:
-                    invalid += 1
+            r_list, v, inv = self._verify_events_chain(subject_events)
+            results.extend(r_list)
+            valid += v
+            invalid += inv
 
         return ChainVerificationResult(
             subject_id=None,
@@ -154,6 +140,22 @@ class VerificationService:
             verified_at=utc_now(),
             event_results=results,
         )
+
+    def _verify_events_chain(
+        self, events: list[EventResult]
+    ) -> tuple[list[VerificationResult], int, int]:
+        """Verify a chain of events (sorted by event_time). Returns (results, valid_count, invalid_count)."""
+        results: list[VerificationResult] = []
+        valid, invalid = 0, 0
+        for i, event in enumerate(events):
+            prev = events[i - 1] if i > 0 else None
+            r = self._verify_event(event, prev, i)
+            results.append(r)
+            if r.is_valid:
+                valid += 1
+            else:
+                invalid += 1
+        return results, valid, invalid
 
     def _verify_event(
         self,

@@ -1,11 +1,8 @@
 """Document ORM model. File storage metadata and versioning."""
 
-from datetime import datetime
-
 from sqlalchemy import (
     BigInteger,
     Boolean,
-    DateTime,
     ForeignKey,
     Index,
     Integer,
@@ -15,10 +12,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.persistence.database import Base
-from app.infrastructure.persistence.models.mixins import MultiTenantModel
+from app.infrastructure.persistence.models.mixins import MultiTenantModel, SoftDeleteMixin
 
 
-class Document(MultiTenantModel, Base):
+class Document(MultiTenantModel, SoftDeleteMixin, Base):
     """Document entity. Table: document. Links to subject and optional event."""
 
     __tablename__ = "document"
@@ -45,9 +42,6 @@ class Document(MultiTenantModel, Base):
     )
     created_by: Mapped[str | None] = mapped_column(
         String, ForeignKey("app_user.id", ondelete="SET NULL"), nullable=True, index=True
-    )
-    deleted_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True, index=True
     )
 
     __table_args__ = (

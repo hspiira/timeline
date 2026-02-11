@@ -33,9 +33,6 @@ class WorkflowRepository(AuditableRepository[Workflow]):
     def _get_entity_type(self) -> str:
         return "workflow"
 
-    def _get_tenant_id(self, obj: Workflow) -> str:
-        return obj.tenant_id
-
     def _serialize_for_audit(self, obj: Workflow) -> dict[str, Any]:
         return {
             "id": obj.id,
