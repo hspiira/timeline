@@ -54,11 +54,11 @@ def upgrade() -> None:
     )
     op.drop_constraint(op.f("event_hash_key"), "event", type_="unique")
     op.drop_index(op.f("ix_event_schema_active"), table_name="event_schema")
-    op.execute('ALTER TABLE "user" ALTER COLUMN is_active DROP DEFAULT')
+    op.execute("ALTER TABLE app_user ALTER COLUMN is_active DROP DEFAULT")
     op.execute(
-        'ALTER TABLE "user" ALTER COLUMN is_active TYPE BOOLEAN USING is_active::boolean'
+        "ALTER TABLE app_user ALTER COLUMN is_active TYPE BOOLEAN USING is_active::boolean"
     )
-    op.execute('ALTER TABLE "user" ALTER COLUMN is_active SET DEFAULT true')
+    op.execute("ALTER TABLE app_user ALTER COLUMN is_active SET DEFAULT true")
     op.alter_column(
         "user_role",
         "assigned_at",
@@ -69,7 +69,7 @@ def upgrade() -> None:
     op.drop_constraint(
         op.f("user_role_assigned_by_fkey"), "user_role", type_="foreignkey"
     )
-    op.create_foreign_key(None, "user_role", "user", ["assigned_by"], ["id"])
+    op.create_foreign_key(None, "user_role", "app_user", ["assigned_by"], ["id"])
 
 
 def downgrade() -> None:
@@ -78,7 +78,7 @@ def downgrade() -> None:
     op.create_foreign_key(
         op.f("user_role_assigned_by_fkey"),
         "user_role",
-        "user",
+        "app_user",
         ["assigned_by"],
         ["id"],
         ondelete="SET NULL",
@@ -91,7 +91,7 @@ def downgrade() -> None:
         existing_server_default=sa.text("now()"),
     )
     op.alter_column(
-        "user",
+        "app_user",
         "is_active",
         existing_type=sa.Boolean(),
         type_=sa.VARCHAR(),

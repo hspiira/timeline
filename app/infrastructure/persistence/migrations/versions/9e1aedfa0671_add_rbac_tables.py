@@ -120,9 +120,9 @@ def upgrade() -> None:
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint("id"),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenant.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["user_id"], ["user.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["user_id"], ["app_user.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["role_id"], ["role.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["assigned_by"], ["user.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["assigned_by"], ["app_user.id"], ondelete="SET NULL"),
         sa.UniqueConstraint("user_id", "role_id", name="uq_user_role"),
     )
     op.create_index("ix_user_role_tenant_id", "user_role", ["tenant_id"])

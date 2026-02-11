@@ -144,29 +144,26 @@ def _get_firestore_client_or_raise() -> FirestoreRESTClient:
     return client
 
 
-async def _yield_db_or_firestore(
-    transactional: bool,
-) -> AsyncGenerator[DbOrFirestore, None]:
-    """Yield DbOrFirestore from Postgres (get_db/get_db_transactional) or Firestore."""
+async def _get_db_or_firestore_read() -> AsyncGenerator[DbOrFirestore, None]:
+    """Yield DB session (read) or Firestore client based on config."""
     settings = get_settings()
     if settings.database_backend == "postgres":
-        session_gen = get_db_transactional() if transactional else get_db()
-        async for session in session_gen:
+        async for session in get_db():
             yield DbOrFirestore(db=session, firestore=None)
-            return
     else:
         client = _get_firestore_client_or_raise()
         yield DbOrFirestore(db=None, firestore=client)
 
 
-def _get_db_or_firestore_read() -> AsyncGenerator[DbOrFirestore, None]:
-    """Yield DB session (read) or Firestore client based on config."""
-    return _yield_db_or_firestore(transactional=False)
-
-
-def _get_db_or_firestore_write() -> AsyncGenerator[DbOrFirestore, None]:
+async def _get_db_or_firestore_write() -> AsyncGenerator[DbOrFirestore, None]:
     """Yield DB session (transactional) or Firestore client based on config."""
-    return _yield_db_or_firestore(transactional=True)
+    settings = get_settings()
+    if settings.database_backend == "postgres":
+        async for session in get_db_transactional():
+            yield DbOrFirestore(db=session, firestore=None)
+    else:
+        client = _get_firestore_client_or_raise()
+        yield DbOrFirestore(db=None, firestore=client)
 
 
 async def get_tenant_repo(

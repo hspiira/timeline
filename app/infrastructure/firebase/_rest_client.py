@@ -132,6 +132,22 @@ class DocumentSnapshot:
         return self._data
 
 
+_OP_MAP: dict[str, str] = {
+    "==": "EQUAL",
+    "!=": "NOT_EQUAL",
+    "<": "LESS_THAN",
+    "<=": "LESS_THAN_OR_EQUAL",
+    ">": "GREATER_THAN",
+    ">=": "GREATER_THAN_OR_EQUAL",
+    "in": "IN",
+    "not-in": "NOT_IN",
+    "array_contains": "ARRAY_CONTAINS",
+    "array-contains": "ARRAY_CONTAINS",
+    "array_contains_any": "ARRAY_CONTAINS_ANY",
+    "array-contains-any": "ARRAY_CONTAINS_ANY",
+}
+
+
 class _Query:
     """Fluent query builder for collection; runs via runQuery (filter/order/offset/limit on server)."""
 
@@ -149,7 +165,7 @@ class _Query:
         self._parent = parent
         self._collection_id = collection_id
         self._where_field = where_field
-        self._where_op = where_op
+        self._where_op = _OP_MAP.get(where_op, where_op)
         self._where_value = where_value
         self._order_by_field: str | None = None
         self._order_direction: str = "ASCENDING"
