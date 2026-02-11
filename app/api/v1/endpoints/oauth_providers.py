@@ -8,26 +8,23 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import (
-    EnvelopeEncryptor,
     OAuthDriverRegistry,
-    get_envelope_encryptor,
+    get_oauth_config_service,
     get_oauth_driver_registry,
     get_oauth_provider_config_repo,
     get_oauth_provider_config_repo_for_write,
-    get_oauth_state_repo,
     get_tenant_id,
     require_permission,
 )
+from app.infrastructure.services.oauth_config_service import OAuthConfigService
 from app.core.limiter import limit_writes
 from app.infrastructure.persistence.repositories.oauth_provider_config_repo import (
     OAuthProviderConfigRepository,
 )
-from app.infrastructure.persistence.repositories.oauth_state_repo import (
-    OAuthStateRepository,
-)
 from app.schemas.oauth_provider_config import (
     OAuthAuthorizeResponse,
     OAuthCallbackTokenResponse,
+    OAuthConfigAuditResponse,
     OAuthConfigCreate,
     OAuthConfigResponse,
     OAuthConfigRotateRequest,
@@ -71,55 +68,20 @@ async def oauth_authorize(
     provider: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     current_user: Annotated[object, Depends(require_permission("oauth_config", "read"))],
-    oauth_repo: Annotated[
-        OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo)
-    ],
-    state_repo: Annotated[
-        OAuthStateRepository, Depends(get_oauth_state_repo)
-    ],
+    oauth_service: OAuthConfigService = Depends(get_oauth_config_service),
     return_url: str | None = None,
-    envelope_encryptor: EnvelopeEncryptor = Depends(get_envelope_encryptor),
-    oauth_driver_registry: OAuthDriverRegistry = Depends(get_oauth_driver_registry),
 ):
     """Build OAuth authorization URL and return it; frontend redirects user there."""
-    provider_type = provider.strip().lower()
-    config = await oauth_repo.get_active_config(tenant_id=tenant_id, provider_type=provider_type)
-    if not config:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No active OAuth config for provider: {provider_type}",
-        )
     user_id = getattr(current_user, "id", None)
     if not user_id:
         raise HTTPException(status_code=401, detail="User id required")
-    _, signed_state = await state_repo.create_state(
+    url = await oauth_service.build_authorize_url(
         tenant_id=tenant_id,
+        provider_type=provider,
         user_id=user_id,
-        provider_config_id=config.id,
         return_url=return_url,
     )
-    try:
-        creds = envelope_encryptor.decrypt(config.client_id_encrypted)
-    except ValueError:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to decrypt OAuth credentials",
-        )
-    if isinstance(creds, dict):
-        client_id = creds.get("client_id", "")
-        client_secret = creds.get("client_secret", "")
-    else:
-        raise HTTPException(status_code=500, detail="Invalid credential format")
-    scopes = config.default_scopes or config.allowed_scopes or []
-    driver = oauth_driver_registry.get_driver(
-        provider_type=provider_type,
-        client_id=client_id,
-        client_secret=client_secret,
-        redirect_uri=config.redirect_uri,
-        scopes=scopes,
-    )
-    authorization_url = driver.build_authorization_url(state=signed_state)
-    return OAuthAuthorizeResponse(authorization_url=authorization_url)
+    return OAuthAuthorizeResponse(authorization_url=url)
 
 
 @router.get(
@@ -133,60 +95,11 @@ async def oauth_callback(
     code: str,
     state: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    oauth_repo: Annotated[
-        OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo)
-    ],
-    state_repo: Annotated[
-        OAuthStateRepository, Depends(get_oauth_state_repo)
-    ],
+    oauth_service: OAuthConfigService = Depends(get_oauth_config_service),
     _: Annotated[object, Depends(require_permission("oauth_config", "read"))] = None,
-    envelope_encryptor: EnvelopeEncryptor = Depends(get_envelope_encryptor),
-    oauth_driver_registry: OAuthDriverRegistry = Depends(get_oauth_driver_registry),
 ):
     """Exchange code for tokens; verify state and return tokens."""
-    from app.infrastructure.external.email.envelope_encryption import (
-        OAuthStateManager,
-    )
-
-    try:
-        state_manager = OAuthStateManager()
-        state_id = state_manager.verify_and_extract(state)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid or expired state")
-    state_row = await state_repo.consume(state_id)
-    if not state_row:
-        raise HTTPException(
-            status_code=400,
-            detail="State already used or expired",
-        )
-    config = await oauth_repo.get_by_id_and_tenant(
-        state_row.provider_config_id, state_row.tenant_id or ""
-    )
-    if not config:
-        raise HTTPException(status_code=404, detail="OAuth config not found")
-    try:
-        creds = envelope_encryptor.decrypt(config.client_id_encrypted)
-    except ValueError:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to decrypt OAuth credentials",
-        )
-    if not isinstance(creds, dict):
-        raise HTTPException(status_code=500, detail="Invalid credential format")
-    client_id = creds.get("client_id", "")
-    client_secret = creds.get("client_secret", "")
-    scopes = config.default_scopes or config.allowed_scopes or []
-    driver = oauth_driver_registry.get_driver(
-        provider_type=config.provider_type,
-        client_id=client_id,
-        client_secret=client_secret,
-        redirect_uri=config.redirect_uri,
-        scopes=scopes,
-    )
-    try:
-        tokens = await driver.exchange_code_for_tokens(code=code)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    tokens = await oauth_service.exchange_callback(code=code, state=state)
     return OAuthCallbackTokenResponse(
         access_token=tokens.access_token,
         refresh_token=tokens.refresh_token,
@@ -262,23 +175,15 @@ async def create_oauth_config(
     body: OAuthConfigCreate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     current_user: Annotated[object, Depends(require_permission("oauth_config", "create"))],
-    oauth_repo: Annotated[
-        OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo_for_write)
-    ],
-    envelope_encryptor: EnvelopeEncryptor = Depends(get_envelope_encryptor),
+    oauth_service: OAuthConfigService = Depends(get_oauth_config_service),
 ):
-    """Create or rotate OAuth provider config (envelope-encrypted credentials)."""
-    envelope = envelope_encryptor.encrypt(
-        {"client_id": body.client_id, "client_secret": body.client_secret}
-    )
-    key_id = envelope_encryptor.extract_key_id(envelope)
-    config = await oauth_repo.create_new_version(
+    """Create OAuth provider config (envelope-encrypted credentials)."""
+    config = await oauth_service.create_config(
         tenant_id=tenant_id,
-        provider_type=body.provider_type.strip().lower(),
-        client_id_encrypted=envelope,
-        client_secret_encrypted=envelope,
-        encryption_key_id=key_id,
-        redirect_uri=body.redirect_uri.strip(),
+        provider_type=body.provider_type,
+        client_id=body.client_id,
+        client_secret=body.client_secret,
+        redirect_uri=body.redirect_uri,
         scopes=body.scopes or [],
         created_by=getattr(current_user, "id", None),
     )
@@ -292,28 +197,20 @@ async def update_oauth_config(
     config_id: str,
     body: OAuthConfigUpdate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    oauth_repo: Annotated[
-        OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo_for_write)
-    ],
+    oauth_service: OAuthConfigService = Depends(get_oauth_config_service),
     _: Annotated[object, Depends(require_permission("oauth_config", "update"))] = None,
 ):
     """Partially update OAuth provider config (display_name, redirect_uri, scopes)."""
-    config = await oauth_repo.get_by_id_and_tenant(config_id, tenant_id)
-    if not config:
-        raise HTTPException(status_code=404, detail="OAuth config not found")
-    if body.display_name is not None:
-        config.display_name = body.display_name
-    if body.redirect_uri is not None:
-        config.redirect_uri = body.redirect_uri
-    if body.redirect_uri_whitelist is not None:
-        config.redirect_uri_whitelist = body.redirect_uri_whitelist
-    if body.allowed_scopes is not None:
-        config.allowed_scopes = body.allowed_scopes
-    if body.default_scopes is not None:
-        config.default_scopes = body.default_scopes
-    if body.tenant_configured_scopes is not None:
-        config.tenant_configured_scopes = body.tenant_configured_scopes
-    await oauth_repo.update(config)
+    config = await oauth_service.update_config(
+        config_id=config_id,
+        tenant_id=tenant_id,
+        display_name=body.display_name,
+        redirect_uri=body.redirect_uri,
+        redirect_uri_whitelist=body.redirect_uri_whitelist,
+        allowed_scopes=body.allowed_scopes,
+        default_scopes=body.default_scopes,
+        tenant_configured_scopes=body.tenant_configured_scopes,
+    )
     return OAuthConfigResponse.model_validate(config)
 
 
@@ -347,31 +244,17 @@ async def rotate_oauth_config(
     body: OAuthConfigRotateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     current_user: Annotated[object, Depends(require_permission("oauth_config", "update"))],
-    oauth_repo: Annotated[
-        OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo_for_write)
-    ],
-    envelope_encryptor: EnvelopeEncryptor = Depends(get_envelope_encryptor),
+    oauth_service: OAuthConfigService = Depends(get_oauth_config_service),
 ):
     """Rotate OAuth credentials: create new version with new client_id/client_secret."""
-    config = await oauth_repo.get_by_id_and_tenant(config_id, tenant_id)
-    if not config:
-        raise HTTPException(status_code=404, detail="OAuth config not found")
-    redirect_uri = body.redirect_uri or config.redirect_uri
-    scopes = body.scopes or config.default_scopes or config.allowed_scopes or []
-    envelope = envelope_encryptor.encrypt(
-        {"client_id": body.client_id, "client_secret": body.client_secret}
-    )
-    key_id = envelope_encryptor.extract_key_id(envelope)
-    new_config = await oauth_repo.create_new_version(
+    new_config = await oauth_service.rotate_config(
+        config_id=config_id,
         tenant_id=tenant_id,
-        provider_type=config.provider_type,
-        client_id_encrypted=envelope,
-        client_secret_encrypted=envelope,
-        encryption_key_id=key_id,
-        redirect_uri=redirect_uri,
-        scopes=scopes,
-        display_name=config.display_name,
-        created_by=getattr(current_user, "id", None),
+        client_id=body.client_id,
+        client_secret=body.client_secret,
+        redirect_uri=body.redirect_uri,
+        scopes=body.scopes,
+        updated_by=getattr(current_user, "id", None),
     )
     return OAuthConfigResponse.model_validate(new_config)
 
@@ -396,7 +279,10 @@ async def get_oauth_config_health(
     )
 
 
-@router.get("/{config_id}/audit")
+@router.get(
+    "/{config_id}/audit",
+    response_model=OAuthConfigAuditResponse,
+)
 async def get_oauth_config_audit(
     config_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
@@ -409,4 +295,4 @@ async def get_oauth_config_audit(
     config = await oauth_repo.get_by_id_and_tenant(config_id, tenant_id)
     if not config:
         raise HTTPException(status_code=404, detail="OAuth config not found")
-    return {"config_id": config_id, "entries": []}
+    return OAuthConfigAuditResponse(config_id=config_id, entries=[])

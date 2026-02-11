@@ -8,9 +8,11 @@ from sqlalchemy.exc import IntegrityError
 from app.api.v1.dependencies import (
     get_permission_repo,
     get_permission_repo_for_write,
+    get_permission_service,
     get_tenant_id,
     require_permission,
 )
+from app.application.services.permission_service import PermissionService
 from app.core.limiter import limit_writes
 from app.infrastructure.persistence.repositories.permission_repo import (
     PermissionRepository,
@@ -26,18 +28,12 @@ async def create_permission(
     request: Request,
     body: PermissionCreate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    permission_repo: PermissionRepository = Depends(get_permission_repo_for_write),
+    permission_service: PermissionService = Depends(get_permission_service),
     _: Annotated[object, Depends(require_permission("permission", "create"))] = None,
 ):
     """Create a permission (tenant-scoped)."""
-    existing = await permission_repo.get_by_code_and_tenant(body.code, tenant_id)
-    if existing:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Permission with code '{body.code}' already exists",
-        )
     try:
-        created = await permission_repo.create_permission(
+        created = await permission_service.create_permission(
             tenant_id=tenant_id,
             code=body.code,
             resource=body.resource,

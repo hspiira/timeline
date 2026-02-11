@@ -5,7 +5,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class EmailAccountCreate(BaseModel):
+class EmailAccountCreateRequest(BaseModel):
     """Request body for creating an email account."""
 
     subject_id: str = Field(..., min_length=1)
@@ -36,6 +36,20 @@ class EmailAccountSyncStatusResponse(BaseModel):
     sync_error: str | None = None
     sync_messages_fetched: int = 0
     sync_events_created: int = 0
+
+
+class EmailSyncAcceptedResponse(BaseModel):
+    """Response for POST sync / sync-background (202 Accepted)."""
+
+    detail: str
+    account_id: str
+
+
+class WebhookAckResponse(BaseModel):
+    """Response for POST webhook (202 Accepted)."""
+
+    detail: str = "Webhook received"
+    account_id: str
 
 
 class EmailAccountResponse(BaseModel):

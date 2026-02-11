@@ -22,12 +22,22 @@ from app.domain.exceptions import ResourceNotFoundException
 from app.infrastructure.persistence.repositories.document_repo import (
     DocumentRepository,
 )
-from app.schemas.document import DocumentUpdate
+from app.schemas.document import (
+    DocumentDownloadUrlResponse,
+    DocumentListItem,
+    DocumentUpdate,
+    DocumentUploadResponse,
+    DocumentVersionItem,
+)
 
 router = APIRouter()
 
 
-@router.post("", status_code=201)
+@router.post(
+    "",
+    response_model=DocumentUploadResponse,
+    status_code=201,
+)
 @limit_writes
 async def upload_document(
     request: Request,
@@ -58,14 +68,14 @@ async def upload_document(
             created_by=created_by,
             parent_document_id=parent_document_id,
         )
-        return {"id": created.id, "filename": file.filename}
+        return DocumentUploadResponse(id=created.id, filename=file.filename)
     except ResourceNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-@router.get("")
+@router.get("", response_model=list[DocumentListItem])
 async def list_documents(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_id: str,
@@ -74,10 +84,13 @@ async def list_documents(
 ):
     """List documents for a subject (tenant-scoped). subject_id is required."""
     items = await query_svc.list_documents(tenant_id=tenant_id, subject_id=subject_id)
-    return items
+    return [DocumentListItem.model_validate(i) for i in items]
 
 
-@router.get("/event/{event_id}")
+@router.get(
+    "/event/{event_id}",
+    response_model=list[DocumentListItem],
+)
 async def list_documents_by_event(
     event_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
@@ -86,19 +99,13 @@ async def list_documents_by_event(
 ):
     """List documents linked to an event (tenant-scoped)."""
     docs = await document_repo.get_by_event(event_id=event_id, tenant_id=tenant_id)
-    return [
-        {
-            "id": d.id,
-            "filename": d.filename,
-            "mime_type": d.mime_type,
-            "file_size": d.file_size,
-            "version": d.version,
-        }
-        for d in docs
-    ]
+    return [DocumentListItem.model_validate(d) for d in docs]
 
 
-@router.get("/{document_id}/versions")
+@router.get(
+    "/{document_id}/versions",
+    response_model=list[DocumentVersionItem],
+)
 async def get_document_versions(
     document_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
@@ -110,21 +117,13 @@ async def get_document_versions(
     if not doc or doc.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Document not found")
     versions = await document_repo.get_versions(document_id, tenant_id)
-    return [
-        {
-            "id": d.id,
-            "tenant_id": d.tenant_id,
-            "subject_id": d.subject_id,
-            "filename": d.filename,
-            "mime_type": d.mime_type,
-            "file_size": d.file_size,
-            "version": d.version,
-        }
-        for d in versions
-    ]
+    return [DocumentVersionItem.model_validate(d) for d in versions]
 
 
-@router.get("/{document_id}/download-url")
+@router.get(
+    "/{document_id}/download-url",
+    response_model=DocumentDownloadUrlResponse,
+)
 async def get_document_download_url(
     document_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
@@ -139,7 +138,9 @@ async def get_document_download_url(
             document_id=document_id,
             expiration=timedelta(hours=expires_in_hours),
         )
-        return {"url": url, "expires_in_hours": expires_in_hours}
+        return DocumentDownloadUrlResponse(
+            url=url, expires_in_hours=expires_in_hours
+        )
     except ResourceNotFoundException as e:
         raise HTTPException(status_code=404, detail="Document not found") from e
 
@@ -162,7 +163,7 @@ async def get_document(
         raise HTTPException(status_code=404, detail="Document not found") from e
 
 
-@router.put("/{document_id}")
+@router.put("/{document_id}", response_model=DocumentVersionItem)
 @limit_writes
 async def update_document(
     request: Request,
@@ -181,15 +182,7 @@ async def update_document(
     if body.document_type is not None:
         doc.document_type = body.document_type
     updated = await document_repo.update(doc)
-    return {
-        "id": updated.id,
-        "tenant_id": updated.tenant_id,
-        "subject_id": updated.subject_id,
-        "filename": updated.filename,
-        "mime_type": updated.mime_type,
-        "file_size": updated.file_size,
-        "version": updated.version,
-    }
+    return DocumentVersionItem.model_validate(updated)
 
 
 @router.delete("/{document_id}", status_code=204)

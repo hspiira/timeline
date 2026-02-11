@@ -6,6 +6,7 @@ import asyncio
 from typing import Any
 
 from app.application.dtos.user import UserResult
+from app.domain.exceptions import ResourceNotFoundException
 
 
 def _user_to_result(u: Any) -> UserResult:
@@ -33,10 +34,10 @@ class UserService:
         email: str | None = None,
         password: str | None = None,
     ) -> UserResult:
-        """Update email and/or password. Raises ValueError if user not found."""
+        """Update email and/or password. Raises ResourceNotFoundException if user not found."""
         user = await self._user_repo.get_by_id_and_tenant(user_id, tenant_id)
         if not user:
-            raise ValueError("User not found")
+            raise ResourceNotFoundException("user", user_id)
         if email is not None:
             user.email = email
         if password is not None:

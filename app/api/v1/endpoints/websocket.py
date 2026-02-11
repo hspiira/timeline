@@ -6,15 +6,17 @@ Requires a valid JWT via query param ?token=... before registering the connectio
 
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 
+from app.schemas.websocket import WebSocketStatusResponse
+
 router = APIRouter()
 
 
-@router.get("/status")
-async def websocket_status(request: Request):
+@router.get("/status", response_model=WebSocketStatusResponse)
+async def websocket_status(request: Request) -> WebSocketStatusResponse:
     """Return WebSocket connection status for monitoring."""
     manager = getattr(request.app.state, "ws_manager", None)
     total_connections = manager.connection_count if manager else 0
-    return {"total_connections": total_connections}
+    return WebSocketStatusResponse(total_connections=total_connections)
 
 
 async def _reject_websocket(websocket: WebSocket, reason: str, code: int = 1008) -> None:

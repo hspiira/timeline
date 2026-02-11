@@ -14,6 +14,7 @@ from app.domain.enums import TenantStatus
 from app.domain.exceptions import (
     AuthenticationException,
     AuthorizationException,
+    CredentialException,
     DuplicateAssignmentException,
     EventChainBrokenException,
     ResourceNotFoundException,
@@ -33,6 +34,7 @@ from app.domain.value_objects import (
 __all__ = [
     "AuthenticationException",
     "AuthorizationException",
+    "CredentialException",
     "DuplicateAssignmentException",
     "EventChain",
     "EventChainBrokenException",

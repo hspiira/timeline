@@ -22,7 +22,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.application.services.authorization_service import AuthorizationService
 from app.application.services.event_schema_validator import EventSchemaValidator
 from app.application.services.hash_service import HashService
+from app.application.services.permission_service import PermissionService
+from app.application.services.role_service import RoleService
 from app.application.services.tenant_creation_service import TenantCreationService
+from app.application.services.user_service import UserService
 from app.application.services.verification_service import VerificationService
 from app.application.use_cases.documents import (
     DocumentQueryService,
@@ -65,6 +68,8 @@ from app.infrastructure.services import (
     TenantInitializationService,
     WorkflowEngine,
 )
+from app.infrastructure.services.email_account_service import EmailAccountService
+from app.infrastructure.services.oauth_config_service import OAuthConfigService
 
 # Firestore-backed repos and services (used when database_backend == "firestore")
 from app.infrastructure.firebase._rest_client import FirestoreRESTClient
@@ -481,6 +486,71 @@ async def get_email_account_repo_for_write(
 ) -> EmailAccountRepository:
     """Email account repository for create/update/delete (transactional)."""
     return EmailAccountRepository(db)
+
+
+async def get_oauth_config_service(
+    request: Request,
+    oauth_repo: Annotated[
+        OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo_for_write)
+    ],
+    state_repo: Annotated[
+        OAuthStateRepository, Depends(get_oauth_state_repo)
+    ],
+    envelope_encryptor: EnvelopeEncryptor = Depends(get_envelope_encryptor),
+    driver_registry: OAuthDriverRegistry = Depends(get_oauth_driver_registry),
+) -> OAuthConfigService:
+    """OAuth config and flow service (composition root)."""
+    return OAuthConfigService(
+        oauth_repo=oauth_repo,
+        state_repo=state_repo,
+        envelope_encryptor=envelope_encryptor,
+        driver_registry=driver_registry,
+    )
+
+
+def get_email_account_service(
+    email_account_repo: Annotated[
+        EmailAccountRepository, Depends(get_email_account_repo_for_write)
+    ],
+    credential_encryptor: CredentialEncryptor = Depends(get_credential_encryptor),
+) -> EmailAccountService:
+    """Email account service (composition root)."""
+    return EmailAccountService(
+        email_account_repo=email_account_repo,
+        credential_encryptor=credential_encryptor,
+    )
+
+
+async def get_role_service(
+    role_repo: Annotated[RoleRepository, Depends(get_role_repo_for_write)],
+    permission_repo: Annotated[PermissionRepository, Depends(get_permission_repo)],
+    role_permission_repo: Annotated[
+        RolePermissionRepository, Depends(get_role_permission_repo_for_write)
+    ],
+) -> RoleService:
+    """Role service for create-with-permissions (composition root)."""
+    return RoleService(
+        role_repo=role_repo,
+        permission_repo=permission_repo,
+        role_permission_repo=role_permission_repo,
+    )
+
+
+async def get_permission_service(
+    permission_repo: Annotated[
+        PermissionRepository, Depends(get_permission_repo_for_write)
+    ],
+) -> PermissionService:
+    """Permission service (composition root)."""
+    return PermissionService(permission_repo=permission_repo)
+
+
+def get_user_service(
+    user_repo: Annotated[UserRepository, Depends(get_user_repo_for_write)],
+    auth_security: AuthSecurity = Depends(get_auth_security),
+) -> UserService:
+    """User service for update-me (composition root)."""
+    return UserService(user_repo=user_repo, auth_security=auth_security)
 
 
 # ---- Auth (current user from JWT) ----

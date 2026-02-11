@@ -8,6 +8,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.domain.exceptions import (
+    CredentialException,
+    ResourceNotFoundException,
+    ValidationException,
+)
 from app.infrastructure.external.email.envelope_encryption import OAuthStateManager
 from app.infrastructure.external.email.oauth_drivers import (
     OAuthDriverRegistry,
@@ -43,13 +48,13 @@ class OAuthConfigService:
         user_id: str,
         return_url: str | None = None,
     ) -> str:
-        """Return OAuth authorization URL for the provider. Raises ValueError if config missing or decrypt fails."""
+        """Return OAuth authorization URL for the provider. Raises TimelineException if config missing or decrypt fails."""
         provider_type = provider_type.strip().lower()
         config = await self._oauth_repo.get_active_config(
             tenant_id=tenant_id, provider_type=provider_type
         )
         if not config:
-            raise ValueError(f"No active OAuth config for provider: {provider_type}")
+            raise ResourceNotFoundException("oauth_config", provider_type)
         _, signed_state = await self._state_repo.create_state(
             tenant_id=tenant_id,
             user_id=user_id,
@@ -59,9 +64,9 @@ class OAuthConfigService:
         try:
             creds = self._encryptor.decrypt(config.client_id_encrypted)
         except ValueError:
-            raise ValueError("Failed to decrypt OAuth credentials") from None
+            raise CredentialException("Failed to decrypt OAuth credentials") from None
         if not isinstance(creds, dict):
-            raise ValueError("Invalid credential format")
+            raise CredentialException("Invalid credential format")
         client_id = creds.get("client_id", "")
         client_secret = creds.get("client_secret", "")
         scopes = config.default_scopes or config.allowed_scopes or []
@@ -75,26 +80,28 @@ class OAuthConfigService:
         return driver.build_authorization_url(state=signed_state)
 
     async def exchange_callback(self, code: str, state: str) -> OAuthTokens:
-        """Verify state, exchange code for tokens. Raises ValueError on invalid state or config."""
+        """Verify state, exchange code for tokens. Raises TimelineException on invalid state or config."""
         state_manager = OAuthStateManager()
         try:
             state_id = state_manager.verify_and_extract(state)
         except ValueError:
-            raise ValueError("Invalid or expired state") from None
+            raise ValidationException("Invalid or expired state") from None
         state_row = await self._state_repo.consume(state_id)
         if not state_row:
-            raise ValueError("State already used or expired")
+            raise ValidationException("State already used or expired")
         config = await self._oauth_repo.get_by_id_and_tenant(
             state_row.provider_config_id, state_row.tenant_id or ""
         )
         if not config:
-            raise ValueError("OAuth config not found")
+            raise ResourceNotFoundException(
+                "oauth_config", state_row.provider_config_id
+            )
         try:
             creds = self._encryptor.decrypt(config.client_id_encrypted)
         except ValueError:
-            raise ValueError("Failed to decrypt OAuth credentials") from None
+            raise CredentialException("Failed to decrypt OAuth credentials") from None
         if not isinstance(creds, dict):
-            raise ValueError("Invalid credential format")
+            raise CredentialException("Invalid credential format")
         client_id = creds.get("client_id", "")
         client_secret = creds.get("client_secret", "")
         scopes = config.default_scopes or config.allowed_scopes or []
@@ -105,7 +112,10 @@ class OAuthConfigService:
             redirect_uri=config.redirect_uri,
             scopes=scopes,
         )
-        return await driver.exchange_code_for_tokens(code=code)
+        try:
+            return await driver.exchange_code_for_tokens(code=code)
+        except ValueError as e:
+            raise ValidationException(str(e)) from e
 
     async def create_config(
         self,
@@ -143,10 +153,10 @@ class OAuthConfigService:
         scopes: list[str] | None,
         updated_by: str | None = None,
     ) -> Any:
-        """Load config, encrypt new credentials, create new version. Raises ValueError if config not found."""
+        """Load config, encrypt new credentials, create new version. Raises ResourceNotFoundException if config not found."""
         config = await self._oauth_repo.get_by_id_and_tenant(config_id, tenant_id)
         if not config:
-            raise ValueError("OAuth config not found")
+            raise ResourceNotFoundException("oauth_config", config_id)
         redirect_uri = redirect_uri or config.redirect_uri
         scopes = scopes or config.default_scopes or config.allowed_scopes or []
         envelope = self._encryptor.encrypt(
@@ -177,10 +187,10 @@ class OAuthConfigService:
         default_scopes: list[str] | None = None,
         tenant_configured_scopes: list[str] | None = None,
     ) -> Any:
-        """Partially update config. Raises ValueError if config not found."""
+        """Partially update config. Raises ResourceNotFoundException if config not found."""
         config = await self._oauth_repo.get_by_id_and_tenant(config_id, tenant_id)
         if not config:
-            raise ValueError("OAuth config not found")
+            raise ResourceNotFoundException("oauth_config", config_id)
         if display_name is not None:
             config.display_name = display_name
         if redirect_uri is not None:

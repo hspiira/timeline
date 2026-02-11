@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.domain.exceptions import ValidationException
+
 
 class PermissionService:
     """Create permissions with validation."""
@@ -19,10 +21,10 @@ class PermissionService:
         action: str,
         description: str | None = None,
     ) -> Any:
-        """Create permission. Raises ValueError if code already exists for tenant."""
+        """Create permission. Raises ValidationException if code already exists for tenant."""
         existing = await self._repo.get_by_code_and_tenant(code, tenant_id)
         if existing:
-            raise ValueError(f"Permission with code '{code}' already exists")
+            raise ValidationException(f"Permission with code '{code}' already exists")
         return await self._repo.create_permission(
             tenant_id=tenant_id,
             code=code,

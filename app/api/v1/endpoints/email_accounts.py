@@ -11,13 +11,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import (
-    CredentialEncryptor,
-    get_credential_encryptor,
     get_email_account_repo,
     get_email_account_repo_for_write,
+    get_email_account_service,
     get_tenant_id,
     require_permission,
 )
+from app.infrastructure.services.email_account_service import EmailAccountService
 from app.core.config import get_settings
 from app.core.limiter import limit_writes
 from app.infrastructure.persistence.repositories.email_account_repo import (
@@ -28,6 +28,8 @@ from app.schemas.email_account import (
     EmailAccountResponse,
     EmailAccountSyncStatusResponse,
     EmailAccountUpdate,
+    EmailSyncAcceptedResponse,
+    WebhookAckResponse,
 )
 
 router = APIRouter()
@@ -74,20 +76,16 @@ async def create_email_account(
     request: Request,
     body: EmailAccountCreate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    email_account_repo: Annotated[
-        EmailAccountRepository, Depends(get_email_account_repo_for_write)
-    ],
-    credential_encryptor: CredentialEncryptor = Depends(get_credential_encryptor),
+    email_account_service: EmailAccountService = Depends(get_email_account_service),
     _: Annotated[object, Depends(require_permission("email_account", "create"))] = None,
 ):
     """Create email account (credentials encrypted at rest)."""
-    credentials_encrypted = credential_encryptor.encrypt(body.credentials)
-    account = await email_account_repo.create_email_account(
+    account = await email_account_service.create_email_account(
         tenant_id=tenant_id,
         subject_id=body.subject_id,
         provider_type=body.provider_type,
         email_address=body.email_address,
-        credentials_encrypted=credentials_encrypted,
+        credentials_plain=body.credentials,
         connection_params=body.connection_params,
         oauth_provider_config_id=body.oauth_provider_config_id,
     )
@@ -169,53 +167,42 @@ async def get_email_account_sync_status(
     )
 
 
-async def _mark_account_sync_pending(
-    email_account_repo: EmailAccountRepository,
-    account_id: str,
-    tenant_id: str,
-) -> None:
-    """Set account to sync pending and persist. Raises HTTPException 404 if not found."""
-    from app.shared.utils.datetime import utc_now
-
-    account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
-    if not account:
-        raise HTTPException(status_code=404, detail="Email account not found")
-    account.sync_status = "pending"
-    account.sync_started_at = utc_now()
-    account.sync_error = None
-    await email_account_repo.update(account)
-
-
-@router.post("/{account_id}/sync", status_code=202)
+@router.post(
+    "/{account_id}/sync",
+    response_model=EmailSyncAcceptedResponse,
+    status_code=202,
+)
 @limit_writes
 async def trigger_email_sync(
     request: Request,
     account_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    email_account_repo: Annotated[
-        EmailAccountRepository, Depends(get_email_account_repo_for_write)
-    ],
+    email_account_service: EmailAccountService = Depends(get_email_account_service),
     _: Annotated[object, Depends(require_permission("email_account", "update"))] = None,
 ):
     """Trigger sync for the email account (in-process). Returns 202 when accepted."""
-    await _mark_account_sync_pending(email_account_repo, account_id, tenant_id)
-    return {"detail": "Sync started", "account_id": account_id}
+    await email_account_service.mark_sync_pending(account_id, tenant_id)
+    return EmailSyncAcceptedResponse(detail="Sync started", account_id=account_id)
 
 
-@router.post("/{account_id}/sync-background", status_code=202)
+@router.post(
+    "/{account_id}/sync-background",
+    response_model=EmailSyncAcceptedResponse,
+    status_code=202,
+)
 @limit_writes
 async def trigger_email_sync_background(
     request: Request,
     account_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    email_account_repo: Annotated[
-        EmailAccountRepository, Depends(get_email_account_repo_for_write)
-    ],
+    email_account_service: EmailAccountService = Depends(get_email_account_service),
     _: Annotated[object, Depends(require_permission("email_account", "update"))] = None,
 ):
     """Enqueue background sync for the email account. Returns 202 when accepted."""
-    await _mark_account_sync_pending(email_account_repo, account_id, tenant_id)
-    return {"detail": "Background sync enqueued", "account_id": account_id}
+    await email_account_service.mark_sync_pending(account_id, tenant_id)
+    return EmailSyncAcceptedResponse(
+        detail="Background sync enqueued", account_id=account_id
+    )
 
 
 def _verify_webhook_signature(body: bytes, signature_header: str | None, secret: str) -> bool:
@@ -228,7 +215,11 @@ def _verify_webhook_signature(body: bytes, signature_header: str | None, secret:
     return hmac.compare_digest(signature_header[7:].strip(), expected)
 
 
-@router.post("/{account_id}/webhook", status_code=202)
+@router.post(
+    "/{account_id}/webhook",
+    response_model=WebhookAckResponse,
+    status_code=202,
+)
 @limit_writes
 async def email_account_webhook(
     request: Request,
@@ -249,4 +240,4 @@ async def email_account_webhook(
     account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
     if not account:
         raise HTTPException(status_code=404, detail="Email account not found")
-    return {"detail": "Webhook received", "account_id": account_id}
+    return WebhookAckResponse(account_id=account_id)

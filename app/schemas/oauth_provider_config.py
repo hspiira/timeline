@@ -5,7 +5,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class OAuthConfigCreate(BaseModel):
+class OAuthConfigCreateRequest(BaseModel):
     """Request body for creating or rotating OAuth provider config."""
 
     provider_type: str = Field(..., min_length=1, description="e.g. gmail, outlook, yahoo")
@@ -73,6 +73,13 @@ class OAuthProvidersMetadataResponse(BaseModel):
     """Response for GET /metadata/providers."""
 
     providers: list[OAuthProviderMetadataItem]
+
+
+class OAuthConfigAuditResponse(BaseModel):
+    """Response for GET /{config_id}/audit (stub: entries list)."""
+
+    config_id: str
+    entries: list[dict] = []
 
 
 class OAuthConfigResponse(BaseModel):

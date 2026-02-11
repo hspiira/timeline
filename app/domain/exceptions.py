@@ -187,6 +187,13 @@ class SchemaValidationException(TimelineException):
         )
 
 
+class CredentialException(TimelineException):
+    """Raised when credential decryption or format fails (e.g. OAuth client secrets)."""
+
+    def __init__(self, message: str = "Credential operation failed") -> None:
+        super().__init__(message, "CREDENTIAL_ERROR")
+
+
 class DuplicateAssignmentException(TimelineException):
     """Raised when assigning a role/permission that is already assigned (unique constraint)."""
 

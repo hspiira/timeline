@@ -3,7 +3,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class RoleCreate(BaseModel):
+class RoleCreateRequest(BaseModel):
     """Request body for creating a role."""
 
     code: str = Field(..., min_length=1, max_length=64)
@@ -38,4 +38,11 @@ class RoleResponse(BaseModel):
     description: str | None
     is_system: bool
     is_active: bool
+
+
+class RolePermissionAssignedResponse(BaseModel):
+    """Response for POST /{role_id}/permissions (assignment created)."""
+
+    role_id: str
+    permission_id: str
 

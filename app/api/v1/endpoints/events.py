@@ -21,6 +21,7 @@ from app.core.limiter import limit_writes
 from app.infrastructure.persistence.repositories.event_repo import EventRepository
 from app.schemas.event import (
     ChainVerificationResponse,
+    EventCountResponse,
     EventCreate,
     EventListResponse,
     EventResponse,
@@ -117,7 +118,10 @@ async def list_events(
     return [EventListResponse.model_validate(e) for e in events]
 
 
-@router.get("/count")
+@router.get(
+    "/count",
+    response_model=EventCountResponse,
+)
 async def count_events(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     event_repo: Annotated[EventRepository, Depends(get_event_repo)],
@@ -125,7 +129,7 @@ async def count_events(
 ):
     """Get total event count for the tenant (for dashboard stats)."""
     total = await event_repo.count_by_tenant(tenant_id)
-    return {"total": total}
+    return EventCountResponse(total=total)
 
 
 @router.get(

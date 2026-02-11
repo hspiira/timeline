@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.domain.exceptions import ResourceNotFoundException
 from app.infrastructure.persistence.repositories.email_account_repo import (
     EmailAccountRepository,
 )
@@ -46,12 +47,12 @@ class EmailAccountService:
         )
 
     async def mark_sync_pending(self, account_id: str, tenant_id: str) -> None:
-        """Set account sync_status to pending and clear error. Raises ValueError if not found."""
+        """Set account sync_status to pending and clear error. Raises ResourceNotFoundException if not found."""
         from app.shared.utils.datetime import utc_now
 
         account = await self._repo.get_by_id_and_tenant(account_id, tenant_id)
         if not account:
-            raise ValueError("Email account not found")
+            raise ResourceNotFoundException("email_account", account_id)
         account.sync_status = "pending"
         account.sync_started_at = utc_now()
         account.sync_error = None

@@ -3,7 +3,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class PermissionCreate(BaseModel):
+class PermissionCreateRequest(BaseModel):
     """Request body for creating a permission."""
 
     code: str = Field(..., min_length=1, max_length=128)

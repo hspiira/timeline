@@ -6,19 +6,15 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.exc import IntegrityError
 
 from app.api.v1.dependencies import (
-    get_permission_repo,
-    get_permission_repo_for_write,
     get_role_permission_repo_for_write,
     get_role_repo,
     get_role_repo_for_write,
+    get_role_service,
     get_tenant_id,
     require_permission,
 )
+from app.application.services.role_service import RoleService
 from app.core.limiter import limit_writes
-from app.domain.exceptions import DuplicateAssignmentException
-from app.infrastructure.persistence.repositories.permission_repo import (
-    PermissionRepository,
-)
 from app.infrastructure.persistence.repositories.role_permission_repo import (
     RolePermissionRepository,
 )
@@ -28,6 +24,7 @@ from app.schemas.role import (
     RolePermissionAssign,
     RoleResponse,
     RoleUpdate,
+    RolePermissionAssignedResponse,
 )
 
 router = APIRouter()
@@ -39,50 +36,24 @@ async def create_role(
     request: Request,
     body: RoleCreate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    role_repo: RoleRepository = Depends(get_role_repo_for_write),
-    permission_repo: PermissionRepository = Depends(get_permission_repo),
-    role_permission_repo: RolePermissionRepository = Depends(
-        get_role_permission_repo_for_write
-    ),
+    role_service: RoleService = Depends(get_role_service),
     _: Annotated[object, Depends(require_permission("role", "create"))] = None,
 ):
     """Create a role (tenant-scoped). Optionally assign permissions by code."""
-    existing = await role_repo.get_by_code_and_tenant(body.code, tenant_id)
-    if existing:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Role with code '{body.code}' already exists",
-        )
     try:
-        created = await role_repo.create_role(
+        created = await role_service.create_role_with_permissions(
             tenant_id=tenant_id,
             code=body.code,
             name=body.name,
             description=body.description,
+            permission_codes=body.permission_codes,
         )
-        if body.permission_codes:
-            for code in body.permission_codes:
-                perm = await permission_repo.get_by_code_and_tenant(code, tenant_id)
-                if perm:
-                    try:
-                        await role_permission_repo.assign_permission_to_role(
-                            role_id=created.id,
-                            permission_id=perm.id,
-                            tenant_id=tenant_id,
-                        )
-                    except DuplicateAssignmentException:
-                        pass
-                else:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"Invalid permission code: {code}",
-                    )
-        return RoleResponse.model_validate(created)
     except IntegrityError:
         raise HTTPException(
             status_code=400,
             detail="Role creation failed (constraint violation)",
         ) from None
+    return RoleResponse.model_validate(created)
 
 
 @router.get("", response_model=list[RoleResponse])
@@ -162,7 +133,11 @@ async def delete_role(
         raise HTTPException(status_code=404, detail="Role not found")
 
 
-@router.post("/{role_id}/permissions", status_code=201)
+@router.post(
+    "/{role_id}/permissions",
+    response_model=RolePermissionAssignedResponse,
+    status_code=201,
+)
 @limit_writes
 async def assign_permission_to_role(
     request: Request,
@@ -190,7 +165,9 @@ async def assign_permission_to_role(
             status_code=400,
             detail="Permission already assigned to role",
         ) from None
-    return {"role_id": role_id, "permission_id": body.permission_id}
+    return RolePermissionAssignedResponse(
+        role_id=role_id, permission_id=body.permission_id
+    )
 
 
 @router.delete("/{role_id}/permissions/{permission_id}", status_code=204)

@@ -5,7 +5,7 @@ from typing import Any
 from pydantic import AwareDatetime, BaseModel, ConfigDict
 
 
-class EventCreate(BaseModel):
+class EventCreateRequest(BaseModel):
     """Payload for creating an event. Schema version must match an active schema."""
 
     subject_id: str
@@ -52,6 +52,12 @@ class EventVerificationResult(BaseModel):
     error_message: str | None = None
     expected_hash: str | None = None
     actual_hash: str | None = None
+
+
+class EventCountResponse(BaseModel):
+    """Response for GET /count (total events for tenant)."""
+
+    total: int
 
 
 class ChainVerificationResponse(BaseModel):

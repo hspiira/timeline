@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.application.dtos.role import RoleResult
-from app.domain.exceptions import DuplicateAssignmentException
+from app.domain.exceptions import DuplicateAssignmentException, ValidationException
 
 
 class RoleService:
@@ -32,11 +32,11 @@ class RoleService:
         """Create role and optionally assign permissions by code.
 
         Raises:
-            ValueError: If role with code already exists or a permission code is invalid.
+            ValidationException: If role with code already exists or a permission code is invalid.
         """
         existing = await self._role_repo.get_by_code_and_tenant(code, tenant_id)
         if existing:
-            raise ValueError(f"Role with code '{code}' already exists")
+            raise ValidationException(f"Role with code '{code}' already exists")
         created = await self._role_repo.create_role(
             tenant_id=tenant_id,
             code=code,
@@ -49,7 +49,7 @@ class RoleService:
                     perm_code, tenant_id
                 )
                 if not perm:
-                    raise ValueError(f"Invalid permission code: {perm_code}")
+                    raise ValidationException(f"Invalid permission code: {perm_code}")
                 try:
                     await self._role_permission_repo.assign_permission_to_role(
                         role_id=created.id,

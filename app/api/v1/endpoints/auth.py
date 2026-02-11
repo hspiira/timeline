@@ -4,7 +4,6 @@ Uses only injected dependencies (get_user_repo, get_tenant_repo); no manual
 repo construction. JWT created via infrastructure security.
 """
 
-import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -17,7 +16,9 @@ from app.api.v1.dependencies import (
     get_tenant_repo,
     get_user_repo,
     get_user_repo_for_write,
+    get_user_service,
 )
+from app.application.services.user_service import UserService
 from app.core.limiter import limit_auth, limit_writes
 from app.infrastructure.persistence.repositories.tenant_repo import TenantRepository
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
@@ -94,14 +95,7 @@ async def get_me(
 
     Requires Authorization: Bearer <token>.
     """
-    u = current_user
-    return UserResponse(
-        id=u.id,
-        tenant_id=u.tenant_id,
-        username=u.username,
-        email=u.email,
-        is_active=u.is_active,
-    )
+    return UserResponse.model_validate(current_user)
 
 
 @router.put("/me", response_model=UserResponse)
@@ -110,35 +104,22 @@ async def update_me(
     request: Request,
     body: UserUpdate,
     current_user: Annotated[object, Depends(get_current_user)],
-    user_repo: UserRepository = Depends(get_user_repo_for_write),
-    auth_security: AuthSecurity = Depends(get_auth_security),
+    user_service: UserService = Depends(get_user_service),
 ):
     """Update current user email and/or password. Requires Authorization."""
-    user = await user_repo.get_by_id_and_tenant(
-        current_user.id, current_user.tenant_id
-    )
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    if body.email is not None:
-        user.email = body.email
-    if body.password is not None:
-        user.hashed_password = await asyncio.to_thread(
-            auth_security.hash_password, body.password
-        )
     try:
-        updated = await user_repo.update(user)
-        return UserResponse(
-            id=updated.id,
-            tenant_id=updated.tenant_id,
-            username=updated.username,
-            email=updated.email,
-            is_active=updated.is_active,
+        updated = await user_service.update_me(
+            user_id=current_user.id,
+            tenant_id=current_user.tenant_id,
+            email=body.email,
+            password=body.password,
         )
     except IntegrityError:
         raise HTTPException(
             status_code=400,
             detail="Email is already registered in this tenant",
         ) from None
+    return UserResponse.model_validate(updated)
 
 
 @router.delete("/me", status_code=204)
