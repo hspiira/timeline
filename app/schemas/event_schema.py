@@ -2,7 +2,9 @@
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.domain.value_objects.core import EventType
 
 
 class EventSchemaCreateRequest(BaseModel):
@@ -26,6 +28,12 @@ class EventSchemaListItem(BaseModel):
     is_active: bool
     created_by: str | None
 
+    @field_validator("event_type", mode="before")
+    @classmethod
+    def _event_type_to_str(cls, v: EventType | str) -> str:
+        """Accept EventType from DTO; serialize to str for JSON."""
+        return v.value if isinstance(v, EventType) else v
+
 
 class EventSchemaUpdate(BaseModel):
     """Request body for PATCH (partial update)."""
@@ -44,3 +52,9 @@ class EventSchemaResponse(BaseModel):
     is_active: bool
     schema_definition: dict[str, Any]
     created_by: str | None
+
+    @field_validator("event_type", mode="before")
+    @classmethod
+    def _event_type_to_str(cls, v: EventType | str) -> str:
+        """Accept EventType from DTO; serialize to str for JSON."""
+        return v.value if isinstance(v, EventType) else v

@@ -2,12 +2,14 @@
 
 from dataclasses import dataclass
 
+from app.domain.enums import TenantStatus
 
-@dataclass
+
+@dataclass(frozen=True)
 class TenantResult:
     """Tenant read-model (result of get_by_id, get_by_code, create_tenant, etc.)."""
 
     id: str
     code: str
     name: str
-    status: str
+    status: TenantStatus

@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.event_schema import EventSchemaResult
+from app.domain.value_objects.core import EventType
 from app.infrastructure.cache.cache_protocol import CacheProtocol
 from app.infrastructure.cache.keys import schema_active_key
 from app.infrastructure.persistence.models.event_schema import EventSchema
@@ -27,7 +28,7 @@ def _event_schema_to_result(s: EventSchema) -> EventSchemaResult:
     return EventSchemaResult(
         id=s.id,
         tenant_id=s.tenant_id,
-        event_type=s.event_type,
+        event_type=EventType(s.event_type),
         schema_definition=s.schema_definition,
         version=s.version,
         is_active=s.is_active,

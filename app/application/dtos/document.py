@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 
-@dataclass
+@dataclass(frozen=True)
 class DocumentResult:
     """Document read-model (result of get_by_id, get_by_subject, get_by_checksum, create, update)."""
 
@@ -26,7 +26,7 @@ class DocumentResult:
     deleted_at: datetime | None
 
 
-@dataclass
+@dataclass(frozen=True)
 class DocumentMetadata:
     """Document metadata for get_document_metadata (subset of DocumentResult)."""
 
@@ -41,7 +41,7 @@ class DocumentMetadata:
     storage_ref: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class DocumentListItem:
     """Document list item for list_documents (minimal fields)."""
 

@@ -6,6 +6,7 @@ Represents the business concept of a tenant, independent of persistence.
 from dataclasses import dataclass
 
 from app.domain.enums import TenantStatus
+from app.domain.exceptions import ValidationException
 from app.domain.value_objects.core import TenantCode
 
 
@@ -14,13 +15,23 @@ class TenantEntity:
     """Domain entity for tenant (SRP: business logic separate from persistence).
 
     Encapsulates tenant lifecycle (active/suspended/archived) and
-    business rules such as event creation and code immutability.
+    business rules. Validation runs on construction.
     """
 
     id: str
     code: TenantCode
     name: str
     status: TenantStatus
+
+    def __post_init__(self) -> None:
+        self.validate()
+
+    def validate(self) -> None:
+        """Validate tenant business rules. Raises ValidationException if invalid."""
+        if not self.id:
+            raise ValidationException("Tenant ID is required", field="id")
+        if not self.name or not self.name.strip():
+            raise ValidationException("Tenant name is required", field="name")
 
     def can_create_events(self) -> bool:
         """Return whether this tenant is allowed to create events.

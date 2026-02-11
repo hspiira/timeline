@@ -23,6 +23,7 @@ _ERROR_CODE_STATUS: dict[str, int] = {
     "TENANT_NOT_FOUND": 404,
     "TENANT_ALREADY_EXISTS": 409,
     "DOCUMENT_VERSION_CONFLICT": 409,
+    "DUPLICATE_ASSIGNMENT": 409,
     "AUTHENTICATION_ERROR": 401,
     "AUTHORIZATION_ERROR": 403,
     "VALIDATION_ERROR": 400,
@@ -35,12 +36,14 @@ _ERROR_CODE_STATUS: dict[str, int] = {
 def _timeline_exception_handler(
     request: Request, exc: TimelineException
 ) -> JSONResponse:
-    """Return JSON from TimelineException.to_dict() with appropriate status code."""
+    """Map domain exception to JSON response with appropriate status code."""
     status = _ERROR_CODE_STATUS.get(exc.error_code, 400)
-    return JSONResponse(
-        status_code=status,
-        content=exc.to_dict(),
-    )
+    content = {
+        "error": exc.error_code,
+        "message": exc.message,
+        "details": exc.details,
+    }
+    return JSONResponse(status_code=status, content=content)
 
 
 def _validation_exception_handler(

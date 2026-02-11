@@ -1,22 +1,24 @@
 """Event domain entity.
 
 Represents the business concept of an event in a timeline, independent of persistence.
+Events are immutable (append-only); use a frozen entity.
 """
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from app.domain.exceptions import ValidationException
 from app.domain.value_objects.core import EventChain, EventType
 from app.shared.utils.datetime import ensure_utc
 
 
-@dataclass
+@dataclass(frozen=True)
 class EventEntity:
-    """Domain entity for event (SRP: business logic separate from persistence).
+    """Immutable domain entity for event (SRP: business logic separate from persistence).
 
     Represents a single event in a subject's timeline with cryptographic
-    chain linkage. Validation (e.g. no future event_time) is done here.
+    chain linkage. Validation runs on construction. No mutators.
     """
 
     id: str
@@ -27,33 +29,23 @@ class EventEntity:
     payload: dict[str, Any]
     chain: EventChain
 
-    def validate(self) -> bool:
-        """Validate event business rules.
+    def __post_init__(self) -> None:
+        self.validate()
 
-        Ensures identity fields are set, event time is not in the future, and
-        payload is non-empty. Chain integrity is enforced at EventChain
-        construction time.
-
-        Returns:
-            True if valid.
-
-        Raises:
-            ValueError: If id, tenant_id, or subject_id is missing; event_time
-                is in the future; or payload is empty.
-        """
+    def validate(self) -> None:
+        """Validate event business rules. Raises ValidationException if invalid."""
         if not self.id:
-            raise ValueError("Event ID is required")
+            raise ValidationException("Event ID is required", field="id")
         if not self.tenant_id:
-            raise ValueError("Event must belong to a tenant")
+            raise ValidationException("Event must belong to a tenant", field="tenant_id")
         if not self.subject_id:
-            raise ValueError("Event must belong to a subject")
+            raise ValidationException("Event must belong to a subject", field="subject_id")
         now = datetime.now(UTC)
-        event_time = ensure_utc(self.event_time)
-        if event_time > now:
-            raise ValueError("Event time cannot be in the future")
+        event_time_utc = ensure_utc(self.event_time)
+        if event_time_utc > now:
+            raise ValidationException("Event time cannot be in the future", field="event_time")
         if not self.payload:
-            raise ValueError("Event payload cannot be empty")
-        return True
+            raise ValidationException("Event payload cannot be empty", field="payload")
 
     def is_genesis_event(self) -> bool:
         """Return whether this is the first event in the subject's timeline.

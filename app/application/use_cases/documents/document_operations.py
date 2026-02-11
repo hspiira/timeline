@@ -19,7 +19,7 @@ from app.application.interfaces.repositories import (
 )
 from app.application.interfaces.storage import IStorageService
 from app.domain.exceptions import (
-    DocumentVersionConflictError,
+    DocumentVersionConflictException,
     ResourceNotFoundException,
 )
 from app.shared.utils.generators import generate_cuid
@@ -118,7 +118,7 @@ class DocumentUploadService:
                 parent_document_id, parent.version
             )
             if not updated:
-                raise DocumentVersionConflictError(parent_document_id)
+                raise DocumentVersionConflictException(parent_document_id)
 
         document_id = generate_cuid()
         tenant_code = tenant.code

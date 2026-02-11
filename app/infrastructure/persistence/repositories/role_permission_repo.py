@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.exceptions import DuplicateAssignmentError
+from app.domain.exceptions import DuplicateAssignmentException
 from app.infrastructure.persistence.models.permission import (
     Permission,
     RolePermission,
@@ -67,7 +67,7 @@ class RolePermissionRepository:
             await self.db.flush()
             await self.db.refresh(rp)
         except IntegrityError:
-            raise DuplicateAssignmentError(
+            raise DuplicateAssignmentException(
                 "Permission already assigned to role",
                 assignment_type="role_permission",
                 details_extra={"role_id": role_id, "permission_id": permission_id},

@@ -8,7 +8,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.exceptions import DuplicateAssignmentError
+from app.domain.exceptions import DuplicateAssignmentException
 from app.infrastructure.persistence.models.permission import UserRole
 from app.infrastructure.persistence.models.role import Role
 from app.shared.context import get_current_actor_id, get_current_actor_type
@@ -71,7 +71,7 @@ class UserRoleRepository:
             await self.db.flush()
             await self.db.refresh(ur)
         except IntegrityError:
-            raise DuplicateAssignmentError(
+            raise DuplicateAssignmentException(
                 "Role already assigned to user",
                 assignment_type="user_role",
                 details_extra={"user_id": user_id, "role_id": role_id},

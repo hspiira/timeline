@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.tenant import TenantResult
 from app.domain.enums import TenantStatus
-from app.domain.exceptions import TenantAlreadyExistsError
+from app.domain.exceptions import TenantAlreadyExistsException
 from app.infrastructure.cache.cache_protocol import CacheProtocol
 from app.infrastructure.cache.keys import tenant_code_key, tenant_key
 from app.infrastructure.persistence.models.tenant import Tenant
@@ -26,7 +26,9 @@ if TYPE_CHECKING:
 
 def _tenant_to_result(t: Tenant) -> TenantResult:
     """Map ORM Tenant to application TenantResult."""
-    return TenantResult(id=t.id, code=t.code, name=t.name, status=t.status)
+    return TenantResult(
+        id=t.id, code=t.code, name=t.name, status=TenantStatus(t.status)
+    )
 
 
 def _tenant_from_cached(cached: dict[str, Any]) -> Tenant:
@@ -83,14 +85,14 @@ class TenantRepository(AuditableRepository[Tenant]):
     ) -> TenantResult:
         """Create tenant from code/name/status; return created entity.
 
-        Raises TenantAlreadyExistsError on unique constraint violation (e.g. duplicate code).
+        Raises TenantAlreadyExistsException on unique constraint violation (e.g. duplicate code).
         """
         tenant = Tenant(code=code, name=name, status=status.value)
         try:
             created = await self.create(tenant)
             return _tenant_to_result(created)
         except IntegrityError:
-            raise TenantAlreadyExistsError(code)
+            raise TenantAlreadyExistsException(code)
 
     async def get_by_code(self, code: str) -> TenantResult | None:
         """Get tenant by unique code, from cache if available."""

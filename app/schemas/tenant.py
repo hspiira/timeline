@@ -62,4 +62,4 @@ class TenantResponse(BaseModel):
     id: str
     code: str
     name: str
-    status: str
+    status: TenantStatus

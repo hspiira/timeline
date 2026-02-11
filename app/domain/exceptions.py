@@ -12,12 +12,12 @@ class TimelineException(Exception):
     """Base exception for all Timeline application errors.
 
     All custom exceptions should inherit from this class to allow
-    consistent error handling and logging. Handlers can use to_dict()
-    for API responses.
+    consistent error handling and logging. Presentation layer maps
+    these to HTTP responses using message, error_code, and details.
 
     Attributes:
         message: Human-readable error description.
-        error_code: Machine-readable error code for API responses.
+        error_code: Machine-readable error code.
         details: Additional error context (e.g. field, resource_id).
     """
 
@@ -32,24 +32,12 @@ class TimelineException(Exception):
         Args:
             message: Human-readable error description.
             error_code: Optional machine-readable code; defaults to class name.
-            details: Optional dict of extra context for the response.
+            details: Optional dict of extra context.
         """
         self.message = message
         self.error_code = error_code or self.__class__.__name__
         self.details = details or {}
         super().__init__(self.message)
-
-    def to_dict(self) -> dict[str, Any]:
-        """Convert exception to dictionary for API responses.
-
-        Returns:
-            Dict with keys: error, message, details.
-        """
-        return {
-            "error": self.error_code,
-            "message": self.message,
-            "details": self.details,
-        }
 
 
 class ValidationException(TimelineException):
@@ -120,7 +108,7 @@ class TenantNotFoundException(TimelineException):
         )
 
 
-class TenantAlreadyExistsError(TimelineException):
+class TenantAlreadyExistsException(TimelineException):
     """Raised when creating a tenant whose code already exists."""
 
     def __init__(self, code: str) -> None:
@@ -136,7 +124,7 @@ class TenantAlreadyExistsError(TimelineException):
         )
 
 
-class DocumentVersionConflictError(TimelineException):
+class DocumentVersionConflictException(TimelineException):
     """Raised when a concurrent request won the parent version update (optimistic lock)."""
 
     def __init__(self, parent_document_id: str) -> None:
@@ -199,7 +187,7 @@ class SchemaValidationException(TimelineException):
         )
 
 
-class DuplicateAssignmentError(TimelineException):
+class DuplicateAssignmentException(TimelineException):
     """Raised when assigning a role/permission that is already assigned (unique constraint)."""
 
     def __init__(self, message: str, assignment_type: str, details_extra: dict[str, Any] | None = None) -> None:
@@ -213,5 +201,3 @@ class DuplicateAssignmentError(TimelineException):
         details = details_extra or {}
         details["assignment_type"] = assignment_type
         super().__init__(message, "DUPLICATE_ASSIGNMENT", details)
-
-

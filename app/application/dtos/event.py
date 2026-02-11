@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any
 
 
-@dataclass
+@dataclass(frozen=True)
 class CreateEventCommand:
     """Application-layer input for creating one event. Presentation layer maps to this."""
 
@@ -16,7 +16,7 @@ class CreateEventCommand:
     payload: dict[str, Any]
 
 
-@dataclass
+@dataclass(frozen=True)
 class EventResult:
     """Event read-model (result of get_by_id, get_last_event, create_event, etc.)."""
 

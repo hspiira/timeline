@@ -1,6 +1,8 @@
 """Subject API schemas."""
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.domain.value_objects.core import SubjectType
 
 
 class SubjectCreateRequest(BaseModel):
@@ -25,3 +27,9 @@ class SubjectResponse(BaseModel):
     tenant_id: str
     subject_type: str
     external_ref: str | None
+
+    @field_validator("subject_type", mode="before")
+    @classmethod
+    def _subject_type_to_str(cls, v: SubjectType | str) -> str:
+        """Accept SubjectType from DTO; serialize to str for JSON."""
+        return v.value if isinstance(v, SubjectType) else v

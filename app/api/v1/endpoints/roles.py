@@ -15,7 +15,7 @@ from app.api.v1.dependencies import (
     require_permission,
 )
 from app.core.limiter import limit_writes
-from app.domain.exceptions import DuplicateAssignmentError
+from app.domain.exceptions import DuplicateAssignmentException
 from app.infrastructure.persistence.repositories.permission_repo import (
     PermissionRepository,
 )
@@ -70,7 +70,7 @@ async def create_role(
                             permission_id=perm.id,
                             tenant_id=tenant_id,
                         )
-                    except DuplicateAssignmentError:
+                    except DuplicateAssignmentException:
                         pass
                 else:
                     raise HTTPException(
@@ -185,7 +185,7 @@ async def assign_permission_to_role(
             permission_id=body.permission_id,
             tenant_id=tenant_id,
         )
-    except DuplicateAssignmentError:
+    except DuplicateAssignmentException:
         raise HTTPException(
             status_code=400,
             detail="Permission already assigned to role",

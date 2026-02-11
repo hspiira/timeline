@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from app.application.dtos.tenant import TenantResult
 from app.domain.enums import TenantStatus
-from app.domain.exceptions import TenantAlreadyExistsError
+from app.domain.exceptions import TenantAlreadyExistsException
 from app.infrastructure.firebase.collections import COLLECTION_TENANTS
 from app.infrastructure.firebase._rest_client import FirestoreRESTClient
 from app.shared.utils.generators import generate_cuid
@@ -29,7 +29,7 @@ class FirestoreTenantRepository:
             id=doc.id,
             code=d.get("code", ""),
             name=d.get("name", ""),
-            status=d.get("status", "active"),
+            status=TenantStatus(d.get("status", "active")),
         )
 
     async def get_by_code(self, code: str) -> TenantResult | None:
@@ -41,17 +41,17 @@ class FirestoreTenantRepository:
                     id=snapshot.id,
                     code=data.get("code", ""),
                     name=data.get("name", ""),
-                    status=data.get("status", "active"),
+                    status=TenantStatus(data.get("status", "active")),
                 )
         return None
 
     async def create_tenant(
         self, code: str, name: str, status: TenantStatus
     ) -> TenantResult:
-        """Create tenant; raise TenantAlreadyExistsError if code exists."""
+        """Create tenant; raise TenantAlreadyExistsException if code exists."""
         existing = await self.get_by_code(code)
         if existing:
-            raise TenantAlreadyExistsError(code)
+            raise TenantAlreadyExistsException(code)
         now = datetime.now(timezone.utc)
         tenant_id = generate_cuid()
         await self._coll.document(tenant_id).set({
@@ -61,7 +61,7 @@ class FirestoreTenantRepository:
             "created_at": now,
             "updated_at": now,
         })
-        return TenantResult(id=tenant_id, code=code, name=name, status=status.value)
+        return TenantResult(id=tenant_id, code=code, name=name, status=status)
 
     async def get_active_tenants(
         self, skip: int = 0, limit: int = 100
@@ -77,7 +77,7 @@ class FirestoreTenantRepository:
                     id=snapshot.id,
                     code=data.get("code", ""),
                     name=data.get("name", ""),
-                    status=data.get("status", "active"),
+                    status=TenantStatus(data.get("status", "active")),
                 )
             )
         results.sort(key=lambda t: t.code)
@@ -111,5 +111,5 @@ class FirestoreTenantRepository:
             id=doc.id,
             code=data.get("code", ""),
             name=data.get("name", ""),
-            status=data.get("status", "active"),
+            status=TenantStatus(data.get("status", "active")),
         )

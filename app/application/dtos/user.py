@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(frozen=True)
 class UserResult:
     """User read-model (result of get_by_id, create_user, etc.). No password."""
 

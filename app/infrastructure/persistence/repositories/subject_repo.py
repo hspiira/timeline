@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.subject import SubjectResult
+from app.domain.value_objects.core import SubjectType
 from app.infrastructure.persistence.models.subject import Subject
 from app.infrastructure.persistence.repositories.auditable_repo import (
     AuditableRepository,
@@ -22,7 +23,7 @@ def _subject_to_result(s: Subject) -> SubjectResult:
     return SubjectResult(
         id=s.id,
         tenant_id=s.tenant_id,
-        subject_type=s.subject_type,
+        subject_type=SubjectType(s.subject_type),
         external_ref=s.external_ref,
     )
 

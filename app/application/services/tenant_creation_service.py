@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from app.application.interfaces.repositories import ITenantRepository, IUserRepository
 from app.application.interfaces.services import ITenantInitializationService
 from app.domain.enums import TenantStatus
-from app.domain.exceptions import TenantAlreadyExistsError
+from app.domain.exceptions import TenantAlreadyExistsException
 
 
 @dataclass
@@ -55,7 +55,7 @@ class TenantCreationService:
         """
         existing = await self.tenant_repo.get_by_code(code)
         if existing:
-            raise TenantAlreadyExistsError(code)
+            raise TenantAlreadyExistsException(code)
 
         created_tenant = await self.tenant_repo.create_tenant(
             code=code,
