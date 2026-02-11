@@ -5,12 +5,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable
 
-import jsonschema
-
-from app.application.dtos.event import EventResult, EventToPersist
+from app.application.dtos.event import CreateEventCommand, EventResult, EventToPersist
 from app.application.interfaces.repositories import (
     IEventRepository,
-    IEventSchemaRepository,
     ISubjectRepository,
 )
 from app.application.interfaces.services import IHashService
@@ -19,8 +16,7 @@ from app.domain.value_objects.core import EventChain, EventType, Hash
 from app.shared.telemetry.logging import get_logger
 
 if TYPE_CHECKING:
-    from app.application.interfaces.services import IWorkflowEngine
-    from app.schemas.event import EventCreate
+    from app.application.interfaces.services import IEventSchemaValidator, IWorkflowEngine
 
 
 def _event_result_to_entity(r: EventResult) -> EventEntity:
@@ -49,13 +45,13 @@ class EventService:
         event_repo: IEventRepository,
         hash_service: IHashService,
         subject_repo: ISubjectRepository,
-        schema_repo: IEventSchemaRepository | None = None,
+        schema_validator: "IEventSchemaValidator | None" = None,
         workflow_engine_provider: Callable[[], "IWorkflowEngine | None"] | None = None,
     ) -> None:
         self.event_repo = event_repo
         self.hash_service = hash_service
         self.subject_repo = subject_repo
-        self.schema_repo = schema_repo
+        self.schema_validator = schema_validator
         self._workflow_engine_provider = workflow_engine_provider
 
     @property
@@ -68,46 +64,46 @@ class EventService:
     async def create_event(
         self,
         tenant_id: str,
-        event: "EventCreate",
+        data: CreateEventCommand,
         *,
         trigger_workflows: bool = True,
     ) -> EventEntity:
         """Create one event; validate subject and schema, compute hash, optionally trigger workflows."""
         subject = await self.subject_repo.get_by_id_and_tenant(
-            event.subject_id, tenant_id
+            data.subject_id, tenant_id
         )
         if not subject:
             raise ValueError(
-                f"Subject '{event.subject_id}' not found or does not belong to tenant"
+                f"Subject '{data.subject_id}' not found or does not belong to tenant"
             )
 
-        if self.schema_repo:
-            await self._validate_payload(
+        if self.schema_validator:
+            await self.schema_validator.validate_payload(
                 tenant_id,
-                event.event_type,
-                event.schema_version,
-                event.payload,
+                data.event_type,
+                data.schema_version,
+                data.payload,
             )
 
-        prev_event = await self.event_repo.get_last_event(event.subject_id, tenant_id)
+        prev_event = await self.event_repo.get_last_event(data.subject_id, tenant_id)
         prev_hash = prev_event.hash if prev_event else None
 
-        if prev_event and event.event_time <= prev_event.event_time:
+        if prev_event and data.event_time <= prev_event.event_time:
             raise ValueError(
                 f"Event time must be after previous event time {prev_event.event_time}"
             )
 
         event_hash = self.hash_service.compute_hash(
-            subject_id=event.subject_id,
-            event_type=event.event_type,
-            schema_version=event.schema_version,
-            event_time=event.event_time,
-            payload=event.payload,
+            subject_id=data.subject_id,
+            event_type=data.event_type,
+            schema_version=data.schema_version,
+            event_time=data.event_time,
+            payload=data.payload,
             previous_hash=prev_hash,
         )
 
         created = await self.event_repo.create_event(
-            tenant_id, event, event_hash, prev_hash
+            tenant_id, data, event_hash, prev_hash
         )
 
         entity = _event_result_to_entity(created)
@@ -119,7 +115,7 @@ class EventService:
     async def create_events_bulk(
         self,
         tenant_id: str,
-        events: list["EventCreate"],
+        events: list[CreateEventCommand],
         *,
         skip_schema_validation: bool = False,
         trigger_workflows: bool = False,
@@ -154,8 +150,8 @@ class EventService:
                 raise ValueError(
                     "Event time must be after previous; events must be sorted by event_time"
                 )
-            if not skip_schema_validation and self.schema_repo:
-                await self._validate_payload(
+            if not skip_schema_validation and self.schema_validator:
+                await self.schema_validator.validate_payload(
                     tenant_id,
                     event_data.event_type,
                     event_data.schema_version,
@@ -206,34 +202,3 @@ class EventService:
                 event.event_type.value,
             )
             return []
-
-    async def _validate_payload(
-        self,
-        tenant_id: str,
-        event_type: str,
-        schema_version: int,
-        payload: dict[str, Any],
-    ) -> None:
-        if not self.schema_repo:
-            raise ValueError("Schema repository not configured")
-        schema = await self.schema_repo.get_by_version(
-            tenant_id, event_type, schema_version
-        )
-        if not schema:
-            raise ValueError(
-                f"Schema version {schema_version} not found for event type '{event_type}'"
-            )
-        if not schema.is_active:
-            raise ValueError(
-                f"Schema version {schema_version} for '{event_type}' is not active"
-            )
-        try:
-            jsonschema.validate(instance=payload, schema=schema.schema_definition)
-        except jsonschema.ValidationError as e:
-            raise ValueError(
-                f"Payload validation failed against schema v{schema_version}: {e.message}"
-            ) from e
-        except jsonschema.SchemaError as e:
-            raise ValueError(
-                f"Invalid schema definition for v{schema_version}: {e.message}"
-            ) from e

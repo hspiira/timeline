@@ -8,10 +8,10 @@ from typing import Any, Protocol
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.dtos.event import CreateEventCommand
 from app.application.interfaces.services import IEventService
 from app.infrastructure.persistence.models.workflow import Workflow, WorkflowExecution
 from app.infrastructure.persistence.repositories.workflow_repo import WorkflowRepository
-from app.schemas.event import EventCreate
 from app.shared.enums import WorkflowExecutionStatus
 from app.shared.telemetry.logging import get_logger
 from app.shared.utils.datetime import utc_now
@@ -128,7 +128,7 @@ class WorkflowEngine:
                 if action_type == "create_event":
                     params = action.get("params", {})
                     try:
-                        event_create = EventCreate(
+                        cmd = CreateEventCommand(
                             subject_id=triggered_by.subject_id,
                             event_type=params.get("event_type", ""),
                             schema_version=params.get("schema_version", 1),
@@ -137,7 +137,7 @@ class WorkflowEngine:
                         )
                         created = await self.event_service.create_event(
                             tenant_id=workflow.tenant_id,
-                            event=event_create,
+                            data=cmd,
                             trigger_workflows=False,
                         )
                         execution_log.append(

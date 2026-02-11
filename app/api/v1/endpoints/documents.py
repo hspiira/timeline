@@ -1,4 +1,4 @@
-"""Document API: thin routes delegating to DocumentService and DocumentRepository."""
+"""Document API: thin routes delegating to DocumentUploadService, DocumentQueryService, and DocumentRepository."""
 
 from datetime import timedelta
 from typing import Annotated
@@ -6,13 +6,17 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 
 from app.api.v1.dependencies import (
+    get_document_query_service,
     get_document_repo,
     get_document_repo_for_write,
-    get_document_service,
+    get_document_upload_service,
     get_tenant_id,
     require_permission,
 )
-from app.application.use_cases.documents import DocumentService
+from app.application.use_cases.documents import (
+    DocumentQueryService,
+    DocumentUploadService,
+)
 from app.core.limiter import limit_writes
 from app.domain.exceptions import ResourceNotFoundException
 from app.infrastructure.persistence.repositories.document_repo import (
@@ -34,7 +38,7 @@ async def upload_document(
     event_id: str | None = Form(None),
     created_by: str | None = Form(None),
     parent_document_id: str | None = Form(None),
-    doc_svc: DocumentService = Depends(get_document_service),
+    upload_svc: DocumentUploadService = Depends(get_document_upload_service),
     _: Annotated[object, Depends(require_permission("document", "create"))] = None,
 ):
     """Upload a document for a subject (storage + document record)."""
@@ -42,7 +46,7 @@ async def upload_document(
         raise HTTPException(status_code=400, detail="Filename required")
     content_type = file.content_type or "application/octet-stream"
     try:
-        created = await doc_svc.upload_document(
+        created = await upload_svc.upload_document(
             tenant_id=tenant_id,
             subject_id=subject_id,
             file_data=file.file,
@@ -65,11 +69,11 @@ async def upload_document(
 async def list_documents(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_id: str,
-    doc_svc: DocumentService = Depends(get_document_service),
+    query_svc: DocumentQueryService = Depends(get_document_query_service),
     _: Annotated[object, Depends(require_permission("document", "read"))] = None,
 ):
     """List documents for a subject (tenant-scoped). subject_id is required."""
-    items = await doc_svc.list_documents(tenant_id=tenant_id, subject_id=subject_id)
+    items = await query_svc.list_documents(tenant_id=tenant_id, subject_id=subject_id)
     return items
 
 
@@ -125,12 +129,12 @@ async def get_document_download_url(
     document_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     expires_in_hours: int = 1,
-    doc_svc: DocumentService = Depends(get_document_service),
+    query_svc: DocumentQueryService = Depends(get_document_query_service),
     _: Annotated[object, Depends(require_permission("document", "read"))] = None,
 ):
     """Get temporary download URL for document (tenant-scoped). Defined before /{document_id} for route precedence."""
     try:
-        url = await doc_svc.get_download_url(
+        url = await query_svc.get_download_url(
             tenant_id=tenant_id,
             document_id=document_id,
             expiration=timedelta(hours=expires_in_hours),
@@ -144,12 +148,12 @@ async def get_document_download_url(
 async def get_document(
     document_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    doc_svc: DocumentService = Depends(get_document_service),
+    query_svc: DocumentQueryService = Depends(get_document_query_service),
     _: Annotated[object, Depends(require_permission("document", "read"))] = None,
 ):
     """Get document metadata by id (tenant-scoped)."""
     try:
-        meta = await doc_svc.get_document_metadata(
+        meta = await query_svc.get_document_metadata(
             tenant_id=tenant_id,
             document_id=document_id,
         )

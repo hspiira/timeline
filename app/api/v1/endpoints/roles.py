@@ -6,7 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.exc import IntegrityError
 
 from app.api.v1.dependencies import (
+    get_permission_repo,
     get_permission_repo_for_write,
+    get_role_permission_repo_for_write,
     get_role_repo,
     get_role_repo_for_write,
     get_tenant_id,
@@ -17,6 +19,9 @@ from app.domain.exceptions import DuplicateAssignmentError
 from app.infrastructure.persistence.models.role import Role
 from app.infrastructure.persistence.repositories.permission_repo import (
     PermissionRepository,
+)
+from app.infrastructure.persistence.repositories.role_permission_repo import (
+    RolePermissionRepository,
 )
 from app.infrastructure.persistence.repositories.role_repo import RoleRepository
 from app.schemas.role import (
@@ -36,7 +41,10 @@ async def create_role(
     body: RoleCreate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     role_repo: RoleRepository = Depends(get_role_repo_for_write),
-    permission_repo: PermissionRepository = Depends(get_permission_repo_for_write),
+    permission_repo: PermissionRepository = Depends(get_permission_repo),
+    role_permission_repo: RolePermissionRepository = Depends(
+        get_role_permission_repo_for_write
+    ),
     _: Annotated[object, Depends(require_permission("role", "create"))] = None,
 ):
     """Create a role (tenant-scoped). Optionally assign permissions by code."""
@@ -61,7 +69,7 @@ async def create_role(
                 perm = await permission_repo.get_by_code_and_tenant(code, tenant_id)
                 if perm:
                     try:
-                        await permission_repo.assign_permission_to_role(
+                        await role_permission_repo.assign_permission_to_role(
                             role_id=created.id,
                             permission_id=perm.id,
                             tenant_id=tenant_id,
@@ -166,7 +174,9 @@ async def assign_permission_to_role(
     body: RolePermissionAssign,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     role_repo: RoleRepository = Depends(get_role_repo),
-    permission_repo: PermissionRepository = Depends(get_permission_repo_for_write),
+    role_permission_repo: RolePermissionRepository = Depends(
+        get_role_permission_repo_for_write
+    ),
     _: Annotated[object, Depends(require_permission("role", "update"))] = None,
 ):
     """Assign a permission to a role. Tenant-scoped."""
@@ -174,7 +184,7 @@ async def assign_permission_to_role(
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
     try:
-        await permission_repo.assign_permission_to_role(
+        await role_permission_repo.assign_permission_to_role(
             role_id=role_id,
             permission_id=body.permission_id,
             tenant_id=tenant_id,
@@ -195,14 +205,16 @@ async def remove_permission_from_role(
     permission_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     role_repo: RoleRepository = Depends(get_role_repo),
-    permission_repo: PermissionRepository = Depends(get_permission_repo_for_write),
+    role_permission_repo: RolePermissionRepository = Depends(
+        get_role_permission_repo_for_write
+    ),
     _: Annotated[object, Depends(require_permission("role", "update"))] = None,
 ):
     """Remove a permission from a role. Tenant-scoped."""
     role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
-    removed = await permission_repo.remove_permission_from_role(
+    removed = await role_permission_repo.remove_permission_from_role(
         role_id=role_id,
         permission_id=permission_id,
         tenant_id=tenant_id,

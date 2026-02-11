@@ -5,19 +5,19 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import (
-    get_permission_repo,
-    get_permission_repo_for_write,
     get_role_repo,
-    get_user_repo,
     get_tenant_id,
+    get_user_repo,
+    get_user_role_repo,
+    get_user_role_repo_for_write,
     require_permission,
 )
 from app.core.limiter import limit_writes
-from app.infrastructure.persistence.repositories.permission_repo import (
-    PermissionRepository,
-)
 from app.infrastructure.persistence.repositories.role_repo import RoleRepository
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
+from app.infrastructure.persistence.repositories.user_role_repo import (
+    UserRoleRepository,
+)
 from app.schemas.role import RoleResponse
 
 router = APIRouter()
@@ -26,10 +26,10 @@ router = APIRouter()
 @router.get("/me/roles", response_model=list[RoleResponse])
 async def list_my_roles(
     current_user: Annotated[object, Depends(require_permission("user_role", "read"))],
-    permission_repo: PermissionRepository = Depends(get_permission_repo),
+    user_role_repo: UserRoleRepository = Depends(get_user_role_repo),
 ):
     """List roles assigned to the current authenticated user."""
-    roles = await permission_repo.get_user_roles(
+    roles = await user_role_repo.get_user_roles(
         user_id=current_user.id, tenant_id=current_user.tenant_id
     )
     return [RoleResponse.model_validate(r) for r in roles]
@@ -39,11 +39,11 @@ async def list_my_roles(
 async def list_user_roles(
     user_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    permission_repo: PermissionRepository = Depends(get_permission_repo),
+    user_role_repo: UserRoleRepository = Depends(get_user_role_repo),
     _: Annotated[object, Depends(require_permission("user_role", "read"))] = None,
 ):
     """List roles assigned to a user (tenant-scoped)."""
-    roles = await permission_repo.get_user_roles(user_id=user_id, tenant_id=tenant_id)
+    roles = await user_role_repo.get_user_roles(user_id=user_id, tenant_id=tenant_id)
     return [RoleResponse.model_validate(r) for r in roles]
 
 
@@ -56,7 +56,7 @@ async def assign_role_to_user(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     user_repo: UserRepository = Depends(get_user_repo),
     role_repo: RoleRepository = Depends(get_role_repo),
-    permission_repo: PermissionRepository = Depends(get_permission_repo_for_write),
+    user_role_repo: UserRoleRepository = Depends(get_user_role_repo_for_write),
     _: Annotated[object, Depends(require_permission("user_role", "update"))] = None,
 ):
     """Assign a role to a user (tenant-scoped). Verifies user and role exist and belong to tenant."""
@@ -66,7 +66,7 @@ async def assign_role_to_user(
     role = await role_repo.get_by_id(role_id)
     if not role or role.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Role not found")
-    await permission_repo.assign_role_to_user(
+    await user_role_repo.assign_role_to_user(
         user_id=user_id,
         role_id=role_id,
         tenant_id=tenant_id,
@@ -81,11 +81,11 @@ async def remove_role_from_user(
     user_id: str,
     role_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    permission_repo: PermissionRepository = Depends(get_permission_repo_for_write),
+    user_role_repo: UserRoleRepository = Depends(get_user_role_repo_for_write),
     _: Annotated[object, Depends(require_permission("user_role", "update"))] = None,
 ):
     """Remove a role from a user (tenant-scoped)."""
-    removed = await permission_repo.remove_role_from_user(
+    removed = await user_role_repo.remove_role_from_user(
         user_id=user_id, role_id=role_id, tenant_id=tenant_id
     )
     if not removed:

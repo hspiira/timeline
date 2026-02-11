@@ -1,4 +1,4 @@
-"""Document operations: upload/download and read coordinating storage and document repo."""
+"""Document operations: upload (write) and query (read) with single responsibilities."""
 
 from __future__ import annotations
 
@@ -25,8 +25,34 @@ from app.domain.exceptions import (
 from app.shared.utils.generators import generate_cuid
 
 
-class DocumentService:
-    """Orchestrates document upload/download (storage + document repo + tenant repo)."""
+def _rewind_if_seekable(file_data: BinaryIO) -> None:
+    """Reset file position to start if stream is seekable."""
+    if getattr(file_data, "seekable", lambda: False)() and file_data.seekable():
+        file_data.seek(0)
+
+
+def _sanitize_filename(filename: str) -> str:
+    """Strip path separators and dangerous characters from filename."""
+    name = os.path.basename(filename)
+    name = name.replace("\x00", "").strip(". ")
+    if not name:
+        raise ValueError("Filename is empty or invalid after sanitization")
+    return name
+
+
+def _compute_checksum_and_size_sync(file_data: BinaryIO) -> tuple[str, int]:
+    """Blocking: one pass over file_data (run in executor). Returns (hexdigest, byte_count)."""
+    sha256 = hashlib.sha256()
+    total = 0
+    while chunk := file_data.read(65536):
+        sha256.update(chunk)
+        total += len(chunk)
+    _rewind_if_seekable(file_data)
+    return sha256.hexdigest(), total
+
+
+class DocumentUploadService:
+    """Single responsibility: upload document to storage and create document record."""
 
     def __init__(
         self,
@@ -38,15 +64,6 @@ class DocumentService:
         self.document_repo = document_repo
         self.tenant_repo = tenant_repo
 
-    @staticmethod
-    def _sanitize_filename(filename: str) -> str:
-        """Strip path separators and dangerous characters from filename."""
-        name = os.path.basename(filename)
-        name = name.replace("\x00", "").strip(". ")
-        if not name:
-            raise ValueError("Filename is empty or invalid after sanitization")
-        return name
-
     def _generate_storage_ref(
         self,
         tenant_code: str,
@@ -54,30 +71,15 @@ class DocumentService:
         version: int,
         filename: str,
     ) -> str:
-        safe_filename = self._sanitize_filename(filename)
-        return f"tenants/{tenant_code}/documents/{document_id}/v{version}/{safe_filename}"
+        safe = _sanitize_filename(filename)
+        return f"tenants/{tenant_code}/documents/{document_id}/v{version}/{safe}"
 
     async def _compute_checksum_and_size(
         self, file_data: BinaryIO
     ) -> tuple[str, int]:
-        """Compute SHA-256 and size in one pass off the event loop. Returns (checksum, file_size)."""
         return await asyncio.to_thread(
-            DocumentService._compute_checksum_and_size_sync, file_data
+            _compute_checksum_and_size_sync, file_data
         )
-
-    @staticmethod
-    def _compute_checksum_and_size_sync(
-        file_data: BinaryIO,
-    ) -> tuple[str, int]:
-        """Blocking: one pass over file_data (run in executor). Returns (hexdigest, byte_count)."""
-        sha256 = hashlib.sha256()
-        total = 0
-        while chunk := file_data.read(65536):
-            sha256.update(chunk)
-            total += len(chunk)
-        if getattr(file_data, "seekable", lambda: False)() and file_data.seekable():
-            file_data.seek(0)
-        return sha256.hexdigest(), total
 
     async def upload_document(
         self,
@@ -98,8 +100,7 @@ class DocumentService:
             raise ResourceNotFoundException("tenant", tenant_id)
 
         checksum, file_size = await self._compute_checksum_and_size(file_data)
-        if getattr(file_data, "seekable", lambda: False)() and file_data.seekable():
-            file_data.seek(0)
+        _rewind_if_seekable(file_data)
 
         existing = await self.document_repo.get_by_checksum(tenant_id, checksum)
         if existing:
@@ -124,9 +125,7 @@ class DocumentService:
         storage_ref = self._generate_storage_ref(
             tenant_code, document_id, version, filename
         )
-
-        if getattr(file_data, "seekable", lambda: False)() and file_data.seekable():
-            file_data.seek(0)
+        _rewind_if_seekable(file_data)
 
         await self.storage.upload(
             file_data=file_data,
@@ -160,14 +159,24 @@ class DocumentService:
         )
         return await self.document_repo.create(document_dto)
 
+
+class DocumentQueryService:
+    """Single responsibility: document metadata, download URL, and listing."""
+
+    def __init__(
+        self,
+        storage_service: IStorageService,
+        document_repo: IDocumentRepository,
+    ) -> None:
+        self.storage = storage_service
+        self.document_repo = document_repo
+
     async def get_document_metadata(
         self, tenant_id: str, document_id: str
     ) -> DocumentMetadata:
         """Return document metadata; raise ResourceNotFoundException if not found or wrong tenant."""
         doc = await self.document_repo.get_by_id(document_id)
-        if not doc:
-            raise ResourceNotFoundException("document", document_id)
-        if doc.tenant_id != tenant_id:
+        if not doc or doc.tenant_id != tenant_id:
             raise ResourceNotFoundException("document", document_id)
         return DocumentMetadata(
             id=doc.id,
@@ -189,15 +198,12 @@ class DocumentService:
     ) -> str:
         """Return temporary download URL; raise ResourceNotFoundException if not found or wrong tenant."""
         doc = await self.document_repo.get_by_id(document_id)
-        if not doc:
+        if not doc or doc.tenant_id != tenant_id:
             raise ResourceNotFoundException("document", document_id)
-        if doc.tenant_id != tenant_id:
-            raise ResourceNotFoundException("document", document_id)
-        storage_ref = doc.storage_ref
-        if not storage_ref:
+        if not doc.storage_ref:
             raise ResourceNotFoundException("document", document_id)
         return await self.storage.generate_download_url(
-            storage_ref, expiration=expiration
+            doc.storage_ref, expiration=expiration
         )
 
     async def list_documents(

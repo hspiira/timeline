@@ -12,12 +12,11 @@ from app.domain.enums import TenantStatus
 
 if TYPE_CHECKING:
     from app.application.dtos.document import DocumentResult
-    from app.application.dtos.event import EventResult, EventToPersist
+    from app.application.dtos.event import CreateEventCommand, EventResult, EventToPersist
     from app.application.dtos.event_schema import EventSchemaResult
     from app.application.dtos.subject import SubjectResult
     from app.application.dtos.tenant import TenantResult
     from app.application.dtos.user import UserResult
-    from app.schemas.event import EventCreate
 
 
 class IEventRepository(Protocol):
@@ -34,7 +33,7 @@ class IEventRepository(Protocol):
     async def create_event(
         self,
         tenant_id: str,
-        data: EventCreate,
+        data: CreateEventCommand,
         event_hash: str,
         previous_hash: str | None,
     ) -> EventResult:

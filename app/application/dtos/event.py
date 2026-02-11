@@ -1,8 +1,19 @@
-"""DTOs for event use cases (no dependency on ORM)."""
+"""DTOs for event use cases (no dependency on ORM or presentation schemas)."""
 
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
+
+
+@dataclass
+class CreateEventCommand:
+    """Application-layer input for creating one event. Presentation layer maps to this."""
+
+    subject_id: str
+    event_type: str
+    schema_version: int
+    event_time: datetime
+    payload: dict[str, Any]
 
 
 @dataclass

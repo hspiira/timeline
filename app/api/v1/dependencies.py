@@ -20,10 +20,14 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.services.authorization_service import AuthorizationService
+from app.application.services.event_schema_validator import EventSchemaValidator
 from app.application.services.hash_service import HashService
 from app.application.services.tenant_creation_service import TenantCreationService
 from app.application.services.verification_service import VerificationService
-from app.application.use_cases.documents import DocumentService
+from app.application.use_cases.documents import (
+    DocumentQueryService,
+    DocumentUploadService,
+)
 from app.application.use_cases.events import EventService
 from app.application.use_cases.subjects import SubjectService
 from app.core.config import get_settings
@@ -42,10 +46,12 @@ from app.infrastructure.persistence.repositories import (
     OAuthProviderConfigRepository,
     OAuthStateRepository,
     PermissionRepository,
+    RolePermissionRepository,
     RoleRepository,
     SubjectRepository,
     TenantRepository,
     UserRepository,
+    UserRoleRepository,
     WorkflowExecutionRepository,
     WorkflowRepository,
 )
@@ -170,29 +176,42 @@ async def get_event_service(
     hash_service = HashService()
     subject_repo = SubjectRepository(db, audit_service=None)
     schema_repo = EventSchemaRepository(db, cache_service=None, audit_service=None)
+    schema_validator = EventSchemaValidator(schema_repo)
     workflow_repo = WorkflowRepository(db, audit_service=None)
     event_service = EventService(
         event_repo=event_repo,
         hash_service=hash_service,
         subject_repo=subject_repo,
-        schema_repo=schema_repo,
+        schema_validator=schema_validator,
         workflow_engine_provider=lambda: workflow_engine,
     )
     workflow_engine = WorkflowEngine(db, event_service, workflow_repo)
     return event_service
 
 
-async def get_document_service(
+async def get_document_upload_service(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
-) -> DocumentService:
-    """Build DocumentService with storage and document/tenant repos."""
+) -> DocumentUploadService:
+    """Build DocumentUploadService for upload (storage + document/tenant repos)."""
     storage = StorageFactory.create_storage_service()
     document_repo = DocumentRepository(db)
     tenant_repo = TenantRepository(db)
-    return DocumentService(
+    return DocumentUploadService(
         storage_service=storage,
         document_repo=document_repo,
         tenant_repo=tenant_repo,
+    )
+
+
+async def get_document_query_service(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> DocumentQueryService:
+    """Build DocumentQueryService for metadata, download URL, and listing."""
+    storage = StorageFactory.create_storage_service()
+    document_repo = DocumentRepository(db)
+    return DocumentQueryService(
+        storage_service=storage,
+        document_repo=document_repo,
     )
 
 
@@ -358,8 +377,36 @@ async def get_permission_repo(
 async def get_permission_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
 ) -> PermissionRepository:
-    """Permission repository for assign/remove role and permission (transactional)."""
+    """Permission repository for create/update/delete (transactional)."""
     return PermissionRepository(db, audit_service=None)
+
+
+async def get_role_permission_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> RolePermissionRepository:
+    """Role–permission repository for read (e.g. get_permissions_for_role)."""
+    return RolePermissionRepository(db, audit_service=None)
+
+
+async def get_role_permission_repo_for_write(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> RolePermissionRepository:
+    """Role–permission repository for assign/remove (transactional)."""
+    return RolePermissionRepository(db, audit_service=None)
+
+
+async def get_user_role_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserRoleRepository:
+    """User–role repository for read (e.g. get_user_roles)."""
+    return UserRoleRepository(db, audit_service=None)
+
+
+async def get_user_role_repo_for_write(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> UserRoleRepository:
+    """User–role repository for assign/remove (transactional)."""
+    return UserRoleRepository(db, audit_service=None)
 
 
 async def get_oauth_provider_config_repo(

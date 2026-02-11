@@ -11,8 +11,8 @@ from typing import TYPE_CHECKING, Any, Protocol
 from app.shared.enums import ActorType, AuditAction
 
 if TYPE_CHECKING:
+    from app.application.dtos.event import CreateEventCommand
     from app.domain.entities.event import EventEntity
-    from app.schemas.event import EventCreate
 
 
 class IHashService(Protocol):
@@ -31,13 +31,27 @@ class IHashService(Protocol):
         ...
 
 
+class IEventSchemaValidator(Protocol):
+    """Protocol for validating event payload against tenant schema (single responsibility)."""
+
+    async def validate_payload(
+        self,
+        tenant_id: str,
+        event_type: str,
+        schema_version: int,
+        payload: dict[str, Any],
+    ) -> None:
+        """Raise ValueError if schema not found, inactive, or payload invalid."""
+        ...
+
+
 class IEventService(Protocol):
     """Protocol for event creation use case."""
 
     async def create_event(
         self,
         tenant_id: str,
-        data: EventCreate,
+        data: CreateEventCommand,
         *,
         trigger_workflows: bool = True,
     ) -> EventEntity:
@@ -47,7 +61,7 @@ class IEventService(Protocol):
     async def create_events_bulk(
         self,
         tenant_id: str,
-        events: list[EventCreate],
+        events: list[CreateEventCommand],
         *,
         skip_schema_validation: bool = False,
         trigger_workflows: bool = False,

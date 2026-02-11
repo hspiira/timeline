@@ -21,7 +21,13 @@ from app.infrastructure.persistence.repositories.oauth_state_repo import (
 from app.infrastructure.persistence.repositories.permission_repo import (
     PermissionRepository,
 )
+from app.infrastructure.persistence.repositories.role_permission_repo import (
+    RolePermissionRepository,
+)
 from app.infrastructure.persistence.repositories.role_repo import RoleRepository
+from app.infrastructure.persistence.repositories.user_role_repo import (
+    UserRoleRepository,
+)
 from app.infrastructure.persistence.repositories.subject_repo import SubjectRepository
 from app.infrastructure.persistence.repositories.tenant_repo import TenantRepository
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
@@ -40,7 +46,9 @@ __all__ = [
     "OAuthProviderConfigRepository",
     "OAuthStateRepository",
     "PermissionRepository",
+    "RolePermissionRepository",
     "RoleRepository",
+    "UserRoleRepository",
     "SubjectRepository",
     "TenantRepository",
     "UserRepository",
