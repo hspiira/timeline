@@ -13,6 +13,7 @@ export const Route = createFileRoute('/')({
 
 interface DashboardData {
   events: EventResponse[]
+  totalEvents: number
   subjects: SubjectResponse[]
   workflows: WorkflowResponse[]
 }
@@ -27,6 +28,7 @@ function HomePage() {
 
   const [data, setData] = useState<DashboardData>({
     events: [],
+    totalEvents: 0,
     subjects: [],
     workflows: [],
   })
@@ -60,6 +62,7 @@ function HomePage() {
     try {
       const results = await Promise.allSettled([
         timelineApi.events.listAll(),
+        timelineApi.events.count(),
         timelineApi.subjects.list(),
         timelineApi.workflows.list(),
       ])
@@ -67,6 +70,7 @@ function HomePage() {
       const newErrors: FetchError[] = []
       const newData: DashboardData = {
         events: [],
+        totalEvents: 0,
         subjects: [],
         workflows: [],
       }
@@ -82,8 +86,14 @@ function HomePage() {
         })
       }
 
+      // Process events count response
+      const eventsCountResult = results[1]
+      if (eventsCountResult.status === 'fulfilled' && eventsCountResult.value.data) {
+        newData.totalEvents = (eventsCountResult.value.data as { total: number }).total
+      }
+
       // Process subjects response
-      const subjectsResult = results[1]
+      const subjectsResult = results[2]
       if (subjectsResult.status === 'fulfilled' && subjectsResult.value.data) {
         newData.subjects = subjectsResult.value.data
       } else if (subjectsResult.status === 'rejected') {
@@ -94,7 +104,7 @@ function HomePage() {
       }
 
       // Process workflows response
-      const workflowsResult = results[2]
+      const workflowsResult = results[3]
       if (workflowsResult.status === 'fulfilled' && workflowsResult.value.data) {
         newData.workflows = workflowsResult.value.data
       } else if (workflowsResult.status === 'rejected') {
@@ -214,7 +224,7 @@ function HomePage() {
         <StatsGrid
           totalSubjects={data.subjects.length}
           subjectsThisWeek={subjectsThisWeek.length}
-          totalEvents={data.events.length}
+          totalEvents={data.totalEvents}
           eventsToday={eventsToday.length}
           activeWorkflows={activeWorkflowsCount}
         />

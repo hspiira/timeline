@@ -41,16 +41,18 @@ export function useSubjects({ filterType, search }: UseSubjectsProps = {}) {
       const subjectsWithMetadata = await Promise.all(
         data.map(async (subject: SubjectResponse): Promise<SubjectWithMetadata> => {
           try {
-            const { data: events } = await timelineApi.events.list(subject.id)
+            const { data: eventsResponse } = await timelineApi.events.list(subject.id)
 
-            // Get event count and last event date
+            // Get event count and last event date from paginated response
             let eventCount = 0
             let lastEventDate: string | undefined
 
-            if (Array.isArray(events) && events.length > 0) {
-              eventCount = events.length
-              // Events are typically sorted by date descending, so first item is most recent
-              lastEventDate = events[0].created_at
+            if (eventsResponse && eventsResponse.total > 0) {
+              eventCount = eventsResponse.total
+              // Events are sorted by date descending, so first item is most recent
+              if (eventsResponse.items.length > 0) {
+                lastEventDate = eventsResponse.items[0].created_at
+              }
             }
 
             return {

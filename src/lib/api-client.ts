@@ -216,6 +216,7 @@ export const timelineApi = {
       client.GET('/events/{event_id}', {
         params: { path: { event_id: id } },
       }),
+    count: () => client.GET('/events/count'),
     create: (data: components['schemas']['EventCreate']) =>
       client.POST('/events/', { body: data }),
     verify: (subjectId: string) =>

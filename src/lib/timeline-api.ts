@@ -4,7 +4,47 @@
  */
 
 export interface paths {
-    "/auth/token": {
+    "/api/v1/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Health Check
+         * @description Return simple ok status for liveness.
+         */
+        get: operations["health_check_api_v1_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register
+         * @description Register a new user with tenant_code (public endpoint). Resolves tenant by code.
+         */
+        post: operations["register_api_v1_auth_register_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login": {
         parameters: {
             query?: never;
             header?: never;
@@ -15,25 +55,18 @@ export interface paths {
         put?: never;
         /**
          * Login
-         * @description Generate JWT access token for authenticated user.
+         * @description Authenticate with tenant_code, username, and password; return JWT.
          *
-         *     Rate limit: 5 requests per minute per IP
-         *
-         *     Token contains:
-         *     - sub: user_id (subject)
-         *     - tenant_id: tenant the user belongs to
-         *     - exp: expiration timestamp
-         *
-         *     This prevents tenant isolation bypass via header spoofing.
+         *     Tenant is identified by tenant_code (e.g. org slug).
          */
-        post: operations["login_auth_token_post"];
+        post: operations["login_api_v1_auth_login_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/oauth-providers": {
+    "/api/v1/auth/me": {
         parameters: {
             query?: never;
             header?: never;
@@ -41,59 +74,93 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Provider Configs
-         * @description List all OAuth provider configurations for tenant
-         */
-        get: operations["list_provider_configs_api_oauth_providers_get"];
-        put?: never;
-        /**
-         * Create Provider Config
-         * @description Register new OAuth provider configuration.
+         * Get Me
+         * @description Return the currently authenticated user from JWT.
          *
-         *     Requires admin role. Creates initial version (v1) of provider config.
-         *     Client credentials are encrypted using envelope encryption.
+         *     Requires Authorization: Bearer <token>.
          */
-        post: operations["create_provider_config_api_oauth_providers_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/oauth-providers/{config_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
+        get: operations["get_me_api_v1_auth_me_get"];
         /**
-         * Get Provider Config
-         * @description Get specific OAuth provider configuration
+         * Update Me
+         * @description Update current user email and/or password. Requires Authorization.
          */
-        get: operations["get_provider_config_api_oauth_providers__config_id__get"];
-        put?: never;
+        put: operations["update_me_api_v1_auth_me_put"];
         post?: never;
         /**
-         * Delete Provider Config
-         * @description Soft delete OAuth provider configuration.
-         *
-         *     Existing email accounts will continue to work with their bound version.
+         * Delete Me
+         * @description Deactivate current user (soft delete). Requires Authorization.
          */
-        delete: operations["delete_provider_config_api_oauth_providers__config_id__delete"];
+        delete: operations["delete_me_api_v1_auth_me_delete"];
         options?: never;
         head?: never;
-        /**
-         * Update Provider Config
-         * @description Update OAuth provider configuration.
-         *
-         *     Note: Updating client_id or client_secret creates a new version.
-         *     Use POST /{id}/rotate for explicit credential rotation.
-         */
-        patch: operations["update_provider_config_api_oauth_providers__config_id__patch"];
+        patch?: never;
         trace?: never;
     };
-    "/api/oauth-providers/{provider}/authorize": {
+    "/api/v1/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Events
+         * @description List events for tenant; optionally filter by subject_id.
+         */
+        get: operations["list_events_api_v1_events_get"];
+        put?: never;
+        /**
+         * Create Event
+         * @description Create a single event (hash chaining, optional schema validation, workflows).
+         */
+        post: operations["create_event_api_v1_events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Count Events
+         * @description Get total event count for the tenant (for dashboard stats).
+         */
+        get: operations["count_events_api_v1_events_count_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/verify/tenant/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Verify Tenant Chains
+         * @description Verify cryptographic integrity of all event chains for current tenant (inline; use POST /verify/tenant/all/start for large tenants).
+         */
+        get: operations["verify_tenant_chains_api_v1_events_verify_tenant_all_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/verify/tenant/all/start": {
         parameters: {
             query?: never;
             header?: never;
@@ -103,20 +170,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Authorize Provider
-         * @description Initiate OAuth authorization flow.
-         *
-         *     Returns authorization URL for user to visit. After consent,
-         *     user will be redirected to callback endpoint with authorization code.
+         * Start Verification Job
+         * @description Start a background verification job for all tenant event chains (for large tenants). Poll GET /events/verify/tenant/jobs/{job_id} for status.
          */
-        post: operations["authorize_provider_api_oauth_providers__provider__authorize_post"];
+        post: operations["start_verification_job_api_v1_events_verify_tenant_all_start_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/oauth-providers/{provider}/callback": {
+    "/api/v1/events/verify/tenant/jobs/{job_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -124,13 +188,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Oauth Callback
-         * @description Handle OAuth callback from provider.
-         *
-         *     Exchanges authorization code for tokens and creates EmailAccount.
-         *     Redirects to frontend return_url with result as query parameters.
+         * Get Verification Job Status
+         * @description Get status and result of a background verification job (tenant-scoped: only own tenant's jobs).
          */
-        get: operations["oauth_callback_api_oauth_providers__provider__callback_get"];
+        get: operations["get_verification_job_status_api_v1_events_verify_tenant_jobs__job_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -139,30 +200,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/oauth-providers/{config_id}/rotate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Rotate Credentials
-         * @description Rotate OAuth credentials (create new version).
-         *
-         *     Existing EmailAccounts remain bound to old version and continue working.
-         *     New connections will use the new credentials.
-         */
-        post: operations["rotate_credentials_api_oauth_providers__config_id__rotate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/oauth-providers/{config_id}/health": {
+    "/api/v1/events/verify/{subject_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -170,10 +208,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Check Provider Health
-         * @description Check OAuth provider health status
+         * Verify Subject Chain
+         * @description Verify cryptographic integrity of event chain for a subject.
          */
-        get: operations["check_provider_health_api_oauth_providers__config_id__health_get"];
+        get: operations["verify_subject_chain_api_v1_events_verify__subject_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -182,7 +220,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/oauth-providers/{config_id}/audit": {
+    "/api/v1/events/{event_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -190,10 +228,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Audit History
-         * @description Get audit history for provider configuration
+         * Get Event
+         * @description Get event by id (tenant-scoped).
          */
-        get: operations["get_audit_history_api_oauth_providers__config_id__audit_get"];
+        get: operations["get_event_api_v1_events__event_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -202,95 +240,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/oauth-providers/metadata/providers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Available Providers
-         * @description List all available OAuth providers and their metadata
-         */
-        get: operations["list_available_providers_api_oauth_providers_metadata_providers_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/users/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Register User
-         * @description Register a new user account
-         */
-        post: operations["register_user_users_register_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/users/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Current User Info
-         * @description Get current authenticated user information
-         */
-        get: operations["get_current_user_info_users_me_get"];
-        /**
-         * Update Current User
-         * @description Update current user information
-         */
-        put: operations["update_current_user_users_me_put"];
-        post?: never;
-        /**
-         * Deactivate Current User
-         * @description Deactivate current user account (soft delete)
-         */
-        delete: operations["deactivate_current_user_users_me_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/users/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Users
-         * @description List all users in current tenant (authenticated users only)
-         */
-        get: operations["list_users_users__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tenants/": {
+    "/api/v1/tenants": {
         parameters: {
             query?: never;
             header?: never;
@@ -299,25 +249,22 @@ export interface paths {
         };
         /**
          * List Tenants
-         * @description List all tenants with optional filtering by status
+         * @description List active tenants (paginated). Requires tenant:read and X-Tenant-ID header.
          */
-        get: operations["list_tenants_tenants__get"];
+        get: operations["list_tenants_api_v1_tenants_get"];
         put?: never;
         /**
          * Create Tenant
-         * @description Create a new tenant with an admin user in a single transaction.
-         *
-         *     Uses atomic database constraint for race-free uniqueness checking.
-         *     Returns tenant details along with admin credentials.
+         * @description Create a new tenant with admin user and RBAC. Only name and tenant code required; admin password is auto-generated.
          */
-        post: operations["create_tenant_tenants__post"];
+        post: operations["create_tenant_api_v1_tenants_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/tenants/{tenant_id}": {
+    "/api/v1/tenants/{tenant_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -326,26 +273,26 @@ export interface paths {
         };
         /**
          * Get Tenant
-         * @description Get a tenant by ID
+         * @description Get tenant by id. Path tenant_id must match X-Tenant-ID header.
          */
-        get: operations["get_tenant_tenants__tenant_id__get"];
+        get: operations["get_tenant_api_v1_tenants__tenant_id__get"];
         /**
          * Update Tenant
-         * @description Update a tenant
+         * @description Update tenant name and/or status. Path tenant_id must match X-Tenant-ID header.
          */
-        put: operations["update_tenant_tenants__tenant_id__put"];
+        put: operations["update_tenant_api_v1_tenants__tenant_id__put"];
         post?: never;
         /**
          * Delete Tenant
-         * @description Delete a tenant (soft delete by archiving)
+         * @description Soft-delete tenant. Path tenant_id must match X-Tenant-ID header.
          */
-        delete: operations["delete_tenant_tenants__tenant_id__delete"];
+        delete: operations["delete_tenant_api_v1_tenants__tenant_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/tenants/{tenant_id}/status": {
+    "/api/v1/tenants/{tenant_id}/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -360,14 +307,12 @@ export interface paths {
         head?: never;
         /**
          * Update Tenant Status
-         * @description Update tenant status (activate, suspend, archive).
-         *
-         *     Request body: {"new_status": "active"|"suspended"|"archived"}
+         * @description Update tenant status. Path tenant_id must match X-Tenant-ID header.
          */
-        patch: operations["update_tenant_status_tenants__tenant_id__status_patch"];
+        patch: operations["update_tenant_status_api_v1_tenants__tenant_id__status_patch"];
         trace?: never;
     };
-    "/subjects/": {
+    "/api/v1/documents": {
         parameters: {
             query?: never;
             header?: never;
@@ -375,326 +320,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Subjects
-         * @description List all subjects for the tenant
+         * List Documents
+         * @description List documents for a subject (tenant-scoped). subject_id is required.
          */
-        get: operations["list_subjects_subjects__get"];
-        put?: never;
-        /**
-         * Create Subject
-         * @description Create a new subject
-         */
-        post: operations["create_subject_subjects__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/subjects/{subject_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Subject
-         * @description Get a subject by ID
-         */
-        get: operations["get_subject_subjects__subject_id__get"];
-        /**
-         * Update Subject
-         * @description Update a subject
-         */
-        put: operations["update_subject_subjects__subject_id__put"];
-        post?: never;
-        /**
-         * Delete Subject
-         * @description Delete a subject
-         */
-        delete: operations["delete_subject_subjects__subject_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/events/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Events
-         * @description List all events for the tenant, optionally filtered by event_type
-         */
-        get: operations["list_events_events__get"];
-        put?: never;
-        /**
-         * Create Event
-         * @description Create a new event with cryptographic chaining
-         */
-        post: operations["create_event_events__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/events/subject/{subject_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Subject Timeline
-         * @description Get all events for a subject (timeline)
-         */
-        get: operations["get_subject_timeline_events_subject__subject_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/events/{event_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Event
-         * @description Get a single event by ID
-         */
-        get: operations["get_event_events__event_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/events/verify/tenant/all": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Verify Tenant Chains
-         * @description Verify cryptographic integrity of all event chains for current tenant.
-         *
-         *     Validates all events across all subjects for tenant.
-         *     Use limit parameter to control scope (default 1000 events).
-         *
-         *     Returns aggregated verification report.
-         */
-        get: operations["verify_tenant_chains_events_verify_tenant_all_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/events/verify/{subject_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Verify Subject Chain
-         * @description Verify cryptographic integrity of event chain for a subject.
-         *
-         *     Checks:
-         *     - Hash integrity: recomputed hash matches stored hash
-         *     - Chain continuity: previous_hash links are valid
-         *     - Tamper detection: identifies any modifications
-         *
-         *     Returns detailed verification report with per-event status.
-         */
-        get: operations["verify_subject_chain_events_verify__subject_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/event-schemas/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Event Schemas
-         * @description List all event schemas for the tenant
-         */
-        get: operations["list_event_schemas_event_schemas__get"];
-        put?: never;
-        /**
-         * Create Event Schema
-         * @description Create a new event schema version for the tenant.
-         *
-         *     The version number is auto-incremented based on existing versions for this event_type.
-         *     New schemas are automatically activated, and the previous active schema is deactivated.
-         *
-         *     Note on schema activation:
-         *     - Deactivating previous schemas ensures new events use the latest schema for data quality
-         *     - Clients that cached the old active schema will get a validation error and must retry
-         *     - This is transactional, so race conditions are minimized
-         *     - Events can only be created with active schemas to maintain data integrity
-         */
-        post: operations["create_event_schema_event_schemas__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/event-schemas/event-type/{event_type}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Schemas For Event Type
-         * @description Get all schema versions for a specific event type
-         */
-        get: operations["get_schemas_for_event_type_event_schemas_event_type__event_type__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/event-schemas/event-type/{event_type}/active": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Active Schema
-         * @description Get the active schema for a specific event type
-         */
-        get: operations["get_active_schema_event_schemas_event_type__event_type__active_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/event-schemas/event-type/{event_type}/version/{version}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Schema By Version
-         * @description Get a specific schema version for an event type (used for event verification)
-         */
-        get: operations["get_schema_by_version_event_schemas_event_type__event_type__version__version__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/event-schemas/{schema_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Event Schema
-         * @description Get a specific event schema by ID
-         */
-        get: operations["get_event_schema_event_schemas__schema_id__get"];
-        put?: never;
-        post?: never;
-        /**
-         * Delete Event Schema
-         * @description Delete an event schema.
-         *
-         *     Deletion is only allowed if no events reference this schema version.
-         *     If events exist, the schema should be deactivated instead.
-         */
-        delete: operations["delete_event_schema_event_schemas__schema_id__delete"];
-        options?: never;
-        head?: never;
-        /**
-         * Update Event Schema
-         * @description Update an event schema (activate/deactivate only).
-         *
-         *     Schema definitions are immutable - only is_active can be changed.
-         */
-        patch: operations["update_event_schema_event_schemas__schema_id__patch"];
-        trace?: never;
-    };
-    "/documents/upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
+        get: operations["list_documents_api_v1_documents_get"];
         put?: never;
         /**
          * Upload Document
-         * @description Upload a document file with metadata.
-         *
-         *     Security:
-         *     - Requires 'document:create' permission
-         *     - Validates file size against max_upload_size config
-         *     - Validates MIME type against allowed_mime_types config
-         *     - Validates subject_id belongs to current tenant
-         *     - Computes SHA-256 checksum for integrity
-         *     - Prevents duplicate uploads (same checksum)
-         *
-         *     Storage:
-         *     - Files stored at: tenants/{tenant_code}/documents/{document_id}/v{version}/{filename}
-         *     - Atomic writes with path traversal protection
-         *     - Metadata stored in database, binary data in storage
+         * @description Upload a document for a subject (storage + document record).
          */
-        post: operations["upload_document_documents_upload_post"];
+        post: operations["upload_document_api_v1_documents_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/documents/{document_id}/download": {
+    "/api/v1/documents/event/{event_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -702,19 +344,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Download Document
-         * @description Download a document file.
-         *
-         *     Security:
-         *     - Requires 'document:read' permission
-         *     - Validates document belongs to current tenant
-         *     - Streams file content (memory efficient)
-         *
-         *     Returns:
-         *     - StreamingResponse with original filename and MIME type
-         *     - Content-Disposition header for browser download
+         * List Documents By Event
+         * @description List documents linked to an event (tenant-scoped).
          */
-        get: operations["download_document_documents__document_id__download_get"];
+        get: operations["list_documents_by_event_api_v1_documents_event__event_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -723,70 +356,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/documents/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Document
-         * @description Create a new document.
-         *
-         *     Security: Validates that subject_id and event_id (if provided) belong to
-         *     the current tenant to prevent cross-tenant reference attacks.
-         */
-        post: operations["create_document_documents__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/documents/subject/{subject_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Documents By Subject
-         * @description Get all documents for a subject
-         */
-        get: operations["get_documents_by_subject_documents_subject__subject_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/documents/event/{event_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Documents By Event
-         * @description Get all documents for an event
-         */
-        get: operations["get_documents_by_event_documents_event__event_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/documents/{document_id}/versions": {
+    "/api/v1/documents/{document_id}/versions": {
         parameters: {
             query?: never;
             header?: never;
@@ -795,9 +365,9 @@ export interface paths {
         };
         /**
          * Get Document Versions
-         * @description Get all versions of a document
+         * @description Get this document and its version chain (tenant-scoped).
          */
-        get: operations["get_document_versions_documents__document_id__versions_get"];
+        get: operations["get_document_versions_api_v1_documents__document_id__versions_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -806,7 +376,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/documents/{document_id}": {
+    "/api/v1/documents/{document_id}/download-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Document Download Url
+         * @description Get temporary download URL for document (tenant-scoped). Defined before /{document_id} for route precedence.
+         */
+        get: operations["get_document_download_url_api_v1_documents__document_id__download_url_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{document_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -815,26 +405,26 @@ export interface paths {
         };
         /**
          * Get Document
-         * @description Get a document by ID
+         * @description Get document metadata by id (tenant-scoped).
          */
-        get: operations["get_document_documents__document_id__get"];
+        get: operations["get_document_api_v1_documents__document_id__get"];
         /**
          * Update Document
-         * @description Update document metadata
+         * @description Update document metadata (e.g. document_type). Tenant-scoped.
          */
-        put: operations["update_document_documents__document_id__put"];
+        put: operations["update_document_api_v1_documents__document_id__put"];
         post?: never;
         /**
          * Delete Document
-         * @description Soft delete a document
+         * @description Soft-delete document. Tenant-scoped.
          */
-        delete: operations["delete_document_documents__document_id__delete"];
+        delete: operations["delete_document_api_v1_documents__document_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/roles/": {
+    "/api/v1/email-accounts": {
         parameters: {
             query?: never;
             header?: never;
@@ -842,23 +432,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Roles
-         * @description List all roles in current tenant (requires 'role:read' permission)
+         * List Email Accounts
+         * @description List email accounts for tenant (paginated).
          */
-        get: operations["list_roles_roles__get"];
+        get: operations["list_email_accounts_api_v1_email_accounts_get"];
         put?: never;
         /**
-         * Create Role
-         * @description Create a new role (requires 'role:create' permission)
+         * Create Email Account
+         * @description Create email account (credentials encrypted at rest).
          */
-        post: operations["create_role_roles__post"];
+        post: operations["create_email_account_api_v1_email_accounts_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/roles/{role_id}": {
+    "/api/v1/email-accounts/{account_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -866,27 +456,47 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Role
-         * @description Get role details with permissions (requires 'role:read' permission)
+         * Get Email Account
+         * @description Get email account by id (tenant-scoped).
          */
-        get: operations["get_role_roles__role_id__get"];
-        /**
-         * Update Role
-         * @description Update role details (requires 'role:update' permission)
-         */
-        put: operations["update_role_roles__role_id__put"];
+        get: operations["get_email_account_api_v1_email_accounts__account_id__get"];
+        put?: never;
         post?: never;
         /**
-         * Delete Role
-         * @description Deactivate role (soft delete) (requires 'role:delete' permission)
+         * Delete Email Account
+         * @description Delete email account (hard delete).
          */
-        delete: operations["delete_role_roles__role_id__delete"];
+        delete: operations["delete_email_account_api_v1_email_accounts__account_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Email Account
+         * @description Partially update email account.
+         */
+        patch: operations["update_email_account_api_v1_email_accounts__account_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/email-accounts/{account_id}/sync-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Email Account Sync Status
+         * @description Return last sync time, status, and error for the email account.
+         */
+        get: operations["get_email_account_sync_status_api_v1_email_accounts__account_id__sync_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/roles/{role_id}/permissions": {
+    "/api/v1/email-accounts/{account_id}/sync": {
         parameters: {
             query?: never;
             header?: never;
@@ -896,17 +506,289 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Assign Permissions To Role
-         * @description Assign permissions to role (requires 'role:update' permission)
+         * Trigger Email Sync
+         * @description Trigger sync for the email account (in-process). Runs sync before returning 202.
          */
-        post: operations["assign_permissions_to_role_roles__role_id__permissions_post"];
+        post: operations["trigger_email_sync_api_v1_email_accounts__account_id__sync_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/roles/{role_id}/permissions/{permission_id}": {
+    "/api/v1/email-accounts/{account_id}/sync-background": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Email Sync Background
+         * @description Enqueue sync for the email account. Returns 202 immediately; sync runs after response.
+         */
+        post: operations["trigger_email_sync_background_api_v1_email_accounts__account_id__sync_background_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/email-accounts/{account_id}/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email Account Webhook
+         * @description Provider callback (e.g. Gmail push). If EMAIL_WEBHOOK_SECRET is set, X-Webhook-Signature-256 is required.
+         */
+        post: operations["email_account_webhook_api_v1_email_accounts__account_id__webhook_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subjects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Subjects
+         * @description List subjects for tenant (optional type filter).
+         */
+        get: operations["list_subjects_api_v1_subjects_get"];
+        put?: never;
+        /**
+         * Create Subject
+         * @description Create a subject (tenant-scoped).
+         */
+        post: operations["create_subject_api_v1_subjects_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subjects/{subject_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Subject
+         * @description Get subject by id (tenant-scoped).
+         */
+        get: operations["get_subject_api_v1_subjects__subject_id__get"];
+        /**
+         * Update Subject
+         * @description Update subject (e.g. external_ref). Tenant-scoped.
+         */
+        put: operations["update_subject_api_v1_subjects__subject_id__put"];
+        post?: never;
+        /**
+         * Delete Subject
+         * @description Delete subject. Tenant-scoped.
+         */
+        delete: operations["delete_subject_api_v1_subjects__subject_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Users
+         * @description List users for tenant (paginated).
+         */
+        get: operations["list_users_api_v1_users_get"];
+        put?: never;
+        /**
+         * Create User
+         * @description Create a user (tenant-scoped).
+         */
+        post: operations["create_user_api_v1_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get User
+         * @description Get user by id (tenant-scoped).
+         */
+        get: operations["get_user_api_v1_users__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List My Roles
+         * @description List roles assigned to the current authenticated user.
+         */
+        get: operations["list_my_roles_api_v1_users_me_roles_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{user_id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List User Roles
+         * @description List roles assigned to a user (tenant-scoped). Returns 404 if user does not exist.
+         */
+        get: operations["list_user_roles_api_v1_users__user_id__roles_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{user_id}/roles/{role_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assign Role To User
+         * @description Assign a role to a user (tenant-scoped). Verifies user and role exist and belong to tenant.
+         */
+        post: operations["assign_role_to_user_api_v1_users__user_id__roles__role_id__post"];
+        /**
+         * Remove Role From User
+         * @description Remove a role from a user (tenant-scoped).
+         */
+        delete: operations["remove_role_from_user_api_v1_users__user_id__roles__role_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Roles
+         * @description List roles for tenant (paginated).
+         */
+        get: operations["list_roles_api_v1_roles_get"];
+        put?: never;
+        /**
+         * Create Role
+         * @description Create a role (tenant-scoped). Optionally assign permissions by code.
+         */
+        post: operations["create_role_api_v1_roles_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles/{role_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Role
+         * @description Get role by id (tenant-scoped).
+         */
+        get: operations["get_role_api_v1_roles__role_id__get"];
+        /**
+         * Update Role
+         * @description Update role (name, description, is_active). Tenant-scoped.
+         */
+        put: operations["update_role_api_v1_roles__role_id__put"];
+        post?: never;
+        /**
+         * Delete Role
+         * @description Deactivate role (soft delete). Tenant-scoped.
+         */
+        delete: operations["delete_role_api_v1_roles__role_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles/{role_id}/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assign Permission To Role
+         * @description Assign a permission to a role. Tenant-scoped.
+         */
+        post: operations["assign_permission_to_role_api_v1_roles__role_id__permissions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles/{role_id}/permissions/{permission_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -918,15 +800,15 @@ export interface paths {
         post?: never;
         /**
          * Remove Permission From Role
-         * @description Remove permission from role (requires 'role:update' permission)
+         * @description Remove a permission from a role. Tenant-scoped.
          */
-        delete: operations["remove_permission_from_role_roles__role_id__permissions__permission_id__delete"];
+        delete: operations["remove_permission_from_role_api_v1_roles__role_id__permissions__permission_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/permissions/": {
+    "/api/v1/permissions": {
         parameters: {
             query?: never;
             header?: never;
@@ -935,22 +817,22 @@ export interface paths {
         };
         /**
          * List Permissions
-         * @description List all permissions in current tenant (requires 'permission:read' permission)
+         * @description List permissions for tenant (paginated).
          */
-        get: operations["list_permissions_permissions__get"];
+        get: operations["list_permissions_api_v1_permissions_get"];
         put?: never;
         /**
          * Create Permission
-         * @description Create a new permission (requires 'permission:create' permission)
+         * @description Create a permission (tenant-scoped).
          */
-        post: operations["create_permission_permissions__post"];
+        post: operations["create_permission_api_v1_permissions_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/permissions/{permission_id}": {
+    "/api/v1/permissions/{permission_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -959,46 +841,22 @@ export interface paths {
         };
         /**
          * Get Permission
-         * @description Get permission details (requires 'permission:read' permission)
+         * @description Get permission by id (tenant-scoped).
          */
-        get: operations["get_permission_permissions__permission_id__get"];
+        get: operations["get_permission_api_v1_permissions__permission_id__get"];
         put?: never;
         post?: never;
         /**
          * Delete Permission
-         * @description Delete permission (requires 'permission:delete' permission)
+         * @description Delete permission. Tenant-scoped.
          */
-        delete: operations["delete_permission_permissions__permission_id__delete"];
+        delete: operations["delete_permission_api_v1_permissions__permission_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/users/{user_id}/roles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get User Roles
-         * @description Get all roles assigned to a user (requires 'role:read' permission)
-         */
-        get: operations["get_user_roles_users__user_id__roles_get"];
-        put?: never;
-        /**
-         * Assign Role To User
-         * @description Assign role to user (requires 'role:assign' permission)
-         */
-        post: operations["assign_role_to_user_users__user_id__roles_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/users/{user_id}/roles/{role_id}": {
+    "/api/v1/event-schemas": {
         parameters: {
             query?: never;
             header?: never;
@@ -1007,18 +865,18 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
         /**
-         * Remove Role From User
-         * @description Remove role from user (requires 'role:assign' permission)
+         * Create Event Schema
+         * @description Create a new event schema version (tenant-scoped). created_by from authenticated user.
          */
-        delete: operations["remove_role_from_user_users__user_id__roles__role_id__delete"];
+        post: operations["create_event_schema_api_v1_event_schemas_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/users/me/roles": {
+    "/api/v1/event-schemas/event-type/{event_type}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1026,10 +884,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get My Roles
-         * @description Get roles assigned to current user
+         * List Schemas By Event Type
+         * @description List event schema versions for event_type (tenant-scoped).
          */
-        get: operations["get_my_roles_users_me_roles_get"];
+        get: operations["list_schemas_by_event_type_api_v1_event_schemas_event_type__event_type__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1038,7 +896,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workflows/": {
+    "/api/v1/event-schemas/event-type/{event_type}/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Active Schema For Event Type
+         * @description Get active event schema for event_type (tenant-scoped).
+         */
+        get: operations["get_active_schema_for_event_type_api_v1_event_schemas_event_type__event_type__active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/event-schemas/event-type/{event_type}/version/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Schema By Version
+         * @description Get event schema by event_type and version (tenant-scoped).
+         */
+        get: operations["get_schema_by_version_api_v1_event_schemas_event_type__event_type__version__version__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/event-schemas/{schema_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Event Schema
+         * @description Get event schema by id (tenant-scoped).
+         */
+        get: operations["get_event_schema_api_v1_event_schemas__schema_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Event Schema
+         * @description Delete event schema by id. Tenant-scoped.
+         */
+        delete: operations["delete_event_schema_api_v1_event_schemas__schema_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Event Schema
+         * @description Update event schema (schema_definition and/or is_active). Tenant-scoped.
+         */
+        patch: operations["update_event_schema_api_v1_event_schemas__schema_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/workflows": {
         parameters: {
             query?: never;
             header?: never;
@@ -1047,53 +973,22 @@ export interface paths {
         };
         /**
          * List Workflows
-         * @description List all workflows for tenant
+         * @description List workflows for tenant (paginated).
          */
-        get: operations["list_workflows_workflows__get"];
+        get: operations["list_workflows_api_v1_workflows_get"];
         put?: never;
         /**
          * Create Workflow
-         * @description Create new workflow.
-         *
-         *     Workflows automate actions when events occur.
-         *     Example: Auto-escalate urgent issues, send notifications, create follow-up events.
+         * @description Create a workflow (tenant-scoped).
          */
-        post: operations["create_workflow_workflows__post"];
+        post: operations["create_workflow_api_v1_workflows_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workflows/{workflow_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Workflow
-         * @description Get workflow by ID
-         */
-        get: operations["get_workflow_workflows__workflow_id__get"];
-        /**
-         * Update Workflow
-         * @description Update workflow
-         */
-        put: operations["update_workflow_workflows__workflow_id__put"];
-        post?: never;
-        /**
-         * Delete Workflow
-         * @description Soft delete workflow
-         */
-        delete: operations["delete_workflow_workflows__workflow_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/workflows/{workflow_id}/executions": {
+    "/api/v1/workflows/{workflow_id}/executions": {
         parameters: {
             query?: never;
             header?: never;
@@ -1102,9 +997,9 @@ export interface paths {
         };
         /**
          * Get Workflow Executions
-         * @description Get execution history for workflow
+         * @description Get execution history for a workflow. Tenant-scoped.
          */
-        get: operations["get_workflow_executions_workflows__workflow_id__executions_get"];
+        get: operations["get_workflow_executions_api_v1_workflows__workflow_id__executions_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1113,7 +1008,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workflows/executions/{execution_id}": {
+    "/api/v1/workflows/executions/{execution_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1122,9 +1017,9 @@ export interface paths {
         };
         /**
          * Get Execution
-         * @description Get workflow execution details
+         * @description Get workflow execution by id. Tenant-scoped.
          */
-        get: operations["get_execution_workflows_executions__execution_id__get"];
+        get: operations["get_execution_api_v1_workflows_executions__execution_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1133,7 +1028,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/email-accounts/": {
+    "/api/v1/workflows/{workflow_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1141,23 +1036,71 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Email Accounts
-         * @description List all email accounts for the tenant
+         * Get Workflow
+         * @description Get workflow by id (tenant-scoped).
          */
-        get: operations["list_email_accounts_email_accounts__get"];
+        get: operations["get_workflow_api_v1_workflows__workflow_id__get"];
+        /**
+         * Update Workflow
+         * @description Update workflow (tenant-scoped).
+         */
+        put: operations["update_workflow_api_v1_workflows__workflow_id__put"];
+        post?: never;
+        /**
+         * Delete Workflow
+         * @description Soft-delete workflow. Tenant-scoped.
+         */
+        delete: operations["delete_workflow_api_v1_workflows__workflow_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/oauth-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Oauth Configs
+         * @description List OAuth provider configs for tenant.
+         */
+        get: operations["list_oauth_configs_api_v1_oauth_providers_get"];
         put?: never;
         /**
-         * Create Email Account
-         * @description Create a new email account configuration
+         * Create Oauth Config
+         * @description Create OAuth provider config (envelope-encrypted credentials).
          */
-        post: operations["create_email_account_email_accounts__post"];
+        post: operations["create_oauth_config_api_v1_oauth_providers_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/email-accounts/{account_id}": {
+    "/api/v1/oauth-providers/{provider}/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Oauth Authorize
+         * @description Build OAuth authorization URL and return it; frontend redirects user there.
+         */
+        post: operations["oauth_authorize_api_v1_oauth_providers__provider__authorize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/oauth-providers/{provider}/callback": {
         parameters: {
             query?: never;
             header?: never;
@@ -1165,27 +1108,87 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Email Account
-         * @description Get a specific email account by ID
+         * Oauth Callback
+         * @description Exchange code for tokens; verify state and return tokens. Tenant and provider must match state.
          */
-        get: operations["get_email_account_email_accounts__account_id__get"];
+        get: operations["oauth_callback_api_v1_oauth_providers__provider__callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/oauth-providers/metadata/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Oauth Providers Metadata
+         * @description Return list of supported OAuth providers (gmail, outlook, yahoo) and their endpoints.
+         */
+        get: operations["list_oauth_providers_metadata_api_v1_oauth_providers_metadata_providers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/oauth-providers/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Active Oauth Config
+         * @description Get active OAuth provider config for tenant and provider type.
+         */
+        get: operations["get_active_oauth_config_api_v1_oauth_providers_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/oauth-providers/{config_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Oauth Config
+         * @description Get OAuth provider config by id (tenant-scoped).
+         */
+        get: operations["get_oauth_config_api_v1_oauth_providers__config_id__get"];
         put?: never;
         post?: never;
         /**
-         * Delete Email Account
-         * @description Delete email account (soft delete by deactivating)
+         * Delete Oauth Config
+         * @description Soft-delete OAuth provider config.
          */
-        delete: operations["delete_email_account_email_accounts__account_id__delete"];
+        delete: operations["delete_oauth_config_api_v1_oauth_providers__config_id__delete"];
         options?: never;
         head?: never;
         /**
-         * Update Email Account
-         * @description Update email account configuration
+         * Update Oauth Config
+         * @description Partially update OAuth provider config (display_name, redirect_uri, scopes).
          */
-        patch: operations["update_email_account_email_accounts__account_id__patch"];
+        patch: operations["update_oauth_config_api_v1_oauth_providers__config_id__patch"];
         trace?: never;
     };
-    "/email-accounts/{account_id}/sync": {
+    "/api/v1/oauth-providers/{config_id}/rotate": {
         parameters: {
             query?: never;
             header?: never;
@@ -1195,53 +1198,70 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Sync Email Account
-         * @description Trigger email sync for account
+         * Rotate Oauth Config
+         * @description Rotate OAuth credentials: create new version with new client_id/client_secret.
          */
-        post: operations["sync_email_account_email_accounts__account_id__sync_post"];
+        post: operations["rotate_oauth_config_api_v1_oauth_providers__config_id__rotate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/email-accounts/{account_id}/sync-background": {
+    "/api/v1/oauth-providers/{config_id}/health": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
         /**
-         * Sync Email Account Background
-         * @description Trigger email sync in background.
-         *
-         *     The sync runs asynchronously while the user continues working.
-         *     Returns immediately with 202 Accepted status.
+         * Get Oauth Config Health
+         * @description Return health status for the OAuth provider config.
          */
-        post: operations["sync_email_account_background_email_accounts__account_id__sync_background_post"];
+        get: operations["get_oauth_config_health_api_v1_oauth_providers__config_id__health_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/email-accounts/{account_id}/webhook": {
+    "/api/v1/oauth-providers/{config_id}/audit": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
         /**
-         * Setup Webhook
-         * @description Setup webhook for real-time email sync
+         * Get Oauth Config Audit
+         * @description Return audit log entries for this OAuth config. Stub: returns empty list until audit retrieval is implemented (see TODO above).
          */
-        post: operations["setup_webhook_email_accounts__account_id__webhook_post"];
+        get: operations["get_oauth_config_audit_api_v1_oauth_providers__config_id__audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ws/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Websocket Status
+         * @description Return WebSocket connection count for monitoring. Requires tenant read permission (e.g. admin).
+         */
+        get: operations["websocket_status_api_v1_ws_status_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1255,37 +1275,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Root */
-        get: operations["root__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
         /**
-         * Health Check
-         * @description Health check endpoint for load balancers and monitoring.
-         *
-         *     Validates:
-         *     - API is responsive
-         *     - Database connectivity
-         *     - Redis cache availability (optional)
-         *
-         *     Returns:
-         *     - 200 OK if healthy
-         *     - 503 Service Unavailable if unhealthy
+         * Root
+         * @description Landing page with links to API documentation.
          */
-        get: operations["health_check_health_get"];
+        get: operations["root__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1298,40 +1292,31 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** Body_upload_document_documents_upload_post */
-        Body_upload_document_documents_upload_post: {
+        /** Body_upload_document_api_v1_documents_post */
+        Body_upload_document_api_v1_documents_post: {
+            /** Subject Id */
+            subject_id: string;
+            /** Document Type */
+            document_type: string;
             /**
              * File
              * Format: binary
-             * @description File to upload
              */
             file: string;
-            /**
-             * Subject Id
-             * @description Subject ID this document belongs to
-             */
-            subject_id: string;
-            /**
-             * Document Type
-             * @description Document type (invoice, contract, etc.)
-             */
-            document_type: string;
-            /**
-             * Event Id
-             * @description Optional event ID to link document to
-             */
+            /** Event Id */
             event_id?: string | null;
+            /** Created By */
+            created_by?: string | null;
+            /** Parent Document Id */
+            parent_document_id?: string | null;
         };
         /**
          * ChainVerificationResponse
-         * @description Chain verification response for subject or tenant
+         * @description Result of verifying a subject or tenant event chain.
          */
         ChainVerificationResponse: {
-            /**
-             * Subject Id
-             * @description Subject ID (null for tenant-wide)
-             */
-            subject_id?: string | null;
+            /** Subject Id */
+            subject_id: string | null;
             /** Tenant Id */
             tenant_id: string;
             /** Total Events */
@@ -1347,86 +1332,41 @@ export interface components {
              * Format: date-time
              */
             verified_at: string;
-            /** Event Results */
-            event_results?: components["schemas"]["EventVerificationResult"][];
+            /**
+             * Event Results
+             * @default []
+             */
+            event_results: components["schemas"]["EventVerificationResult"][];
         };
         /**
-         * DocumentCreate
-         * @description Schema for creating a document
+         * DocumentDownloadUrlResponse
+         * @description Response for GET /{document_id}/download-url.
          */
-        DocumentCreate: {
-            /** Subject Id */
-            subject_id: string;
-            /** Event Id */
-            event_id?: string | null;
-            /** Document Type */
-            document_type: string;
-            /** Filename */
-            filename: string;
-            /** Original Filename */
-            original_filename: string;
-            /** Mime Type */
-            mime_type: string;
-            /** File Size */
-            file_size: number;
-            /** Checksum */
-            checksum: string;
-            /** Storage Ref */
-            storage_ref: string;
-            /** Created By */
-            created_by?: string | null;
+        DocumentDownloadUrlResponse: {
+            /** Url */
+            url: string;
+            /** Expires In Hours */
+            expires_in_hours: number;
         };
         /**
-         * DocumentResponse
-         * @description Schema for document responses
+         * DocumentListItem
+         * @description Document list item (by event or list).
          */
-        DocumentResponse: {
+        DocumentListItem: {
             /** Id */
             id: string;
-            /** Tenant Id */
-            tenant_id: string;
-            /** Subject Id */
-            subject_id: string;
-            /** Event Id */
-            event_id: string | null;
-            /** Document Type */
-            document_type: string;
             /** Filename */
             filename: string;
-            /** Original Filename */
-            original_filename: string;
             /** Mime Type */
-            mime_type: string;
+            mime_type?: string | null;
             /** File Size */
-            file_size: number;
-            /** Checksum */
-            checksum: string;
-            /** Storage Ref */
-            storage_ref: string;
+            file_size?: number | null;
             /** Version */
-            version: number;
-            /** Parent Document Id */
-            parent_document_id: string | null;
-            /** Is Latest Version */
-            is_latest_version: boolean;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-            /** Created By */
-            created_by: string | null;
-            /** Deleted At */
-            deleted_at: string | null;
+            version?: number | null;
         };
         /**
          * DocumentUpdate
-         * @description Schema for updating document metadata
+         * @description Request body for PATCH/PUT document (partial).
          */
         DocumentUpdate: {
             /** Document Type */
@@ -1434,60 +1374,68 @@ export interface components {
         };
         /**
          * DocumentUploadResponse
-         * @description Response after successful document upload
+         * @description Response for POST upload (document created).
          */
         DocumentUploadResponse: {
             /** Id */
             id: string;
-            /** Subject Id */
-            subject_id: string;
-            /** Event Id */
-            event_id: string | null;
-            /** Document Type */
-            document_type: string;
             /** Filename */
             filename: string;
-            /** Original Filename */
-            original_filename: string;
-            /** Storage Ref */
-            storage_ref: string;
-            /** Checksum */
-            checksum: string;
-            /** File Size */
-            file_size: number;
-            /** Mime Type */
-            mime_type: string;
-            /** Version */
-            version: number;
-            /** Is Latest Version */
-            is_latest_version: boolean;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
         };
         /**
-         * EmailAccountCreate
-         * @description Schema for creating an email account
+         * DocumentVersionItem
+         * @description Document version in version chain.
          */
-        EmailAccountCreate: {
-            /** Provider Type */
+        DocumentVersionItem: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Subject Id */
+            subject_id: string;
+            /** Filename */
+            filename: string;
+            /** Mime Type */
+            mime_type?: string | null;
+            /** File Size */
+            file_size?: number | null;
+            /** Version */
+            version?: number | null;
+        };
+        /**
+         * EmailAccountCreateRequest
+         * @description Request body for creating an email account.
+         */
+        EmailAccountCreateRequest: {
+            /** Subject Id */
+            subject_id: string;
+            /**
+             * Provider Type
+             * @description e.g. gmail, outlook, imap
+             */
             provider_type: string;
-            /** Email Address */
+            /**
+             * Email Address
+             * Format: email
+             */
             email_address: string;
-            /** Credentials */
-            credentials: {
+            /**
+             * Credentials
+             * @description Provider credentials (encrypted at rest)
+             */
+            credentials?: {
                 [key: string]: unknown;
             };
             /** Connection Params */
             connection_params?: {
                 [key: string]: unknown;
             } | null;
+            /** Oauth Provider Config Id */
+            oauth_provider_config_id?: string | null;
         };
         /**
          * EmailAccountResponse
-         * @description Schema for email account responses (credentials excluded)
+         * @description Response model for list and detail email account endpoints (consistent fields).
          */
         EmailAccountResponse: {
             /** Id */
@@ -1500,87 +1448,82 @@ export interface components {
             provider_type: string;
             /** Email Address */
             email_address: string;
-            /** Connection Params */
-            connection_params: {
-                [key: string]: unknown;
-            } | null;
-            /** Last Sync At */
-            last_sync_at: string | null;
-            /** Webhook Id */
-            webhook_id: string | null;
             /** Is Active */
             is_active: boolean;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
+            /** Sync Status */
+            sync_status: string;
+            /** Last Sync At */
+            last_sync_at: string | null;
             /** Oauth Status */
             oauth_status?: string | null;
+        };
+        /**
+         * EmailAccountSyncStatusResponse
+         * @description Response for GET sync-status: last sync time, status, error.
+         */
+        EmailAccountSyncStatusResponse: {
+            /** Account Id */
+            account_id: string;
+            /** Sync Status */
+            sync_status: string;
+            /** Last Sync At */
+            last_sync_at?: string | null;
+            /** Sync Started At */
+            sync_started_at?: string | null;
+            /** Sync Completed At */
+            sync_completed_at?: string | null;
+            /** Sync Error */
+            sync_error?: string | null;
             /**
-             * Oauth Error Count
+             * Sync Messages Fetched
              * @default 0
              */
-            oauth_error_count: number;
-            /** Oauth Next Retry At */
-            oauth_next_retry_at?: string | null;
-            /** Last Auth Error */
-            last_auth_error?: string | null;
-            /** Last Auth Error At */
-            last_auth_error_at?: string | null;
-            /** Token Last Refreshed At */
-            token_last_refreshed_at?: string | null;
-            /** Granted Scopes */
-            granted_scopes?: string[] | null;
+            sync_messages_fetched: number;
+            /**
+             * Sync Events Created
+             * @default 0
+             */
+            sync_events_created: number;
         };
         /**
          * EmailAccountUpdate
-         * @description Schema for updating an email account
+         * @description Request body for PATCH (partial update).
          */
         EmailAccountUpdate: {
-            /** Credentials */
-            credentials?: {
-                [key: string]: unknown;
-            } | null;
+            /** Email Address */
+            email_address?: string | null;
             /** Connection Params */
             connection_params?: {
                 [key: string]: unknown;
             } | null;
             /** Is Active */
             is_active?: boolean | null;
+            /** Sync Status */
+            sync_status?: ("idle" | "pending" | "syncing" | "error") | null;
         };
         /**
-         * EmailSyncRequest
-         * @description Schema for triggering email sync
+         * EmailSyncAcceptedResponse
+         * @description Response for POST sync / sync-background (202 Accepted).
          */
-        EmailSyncRequest: {
-            /**
-             * Incremental
-             * @default true
-             */
-            incremental: boolean;
+        EmailSyncAcceptedResponse: {
+            /** Detail */
+            detail: string;
+            /** Account Id */
+            account_id: string;
         };
         /**
-         * EmailSyncResponse
-         * @description Schema for sync operation results
+         * EventCountResponse
+         * @description Response for GET /count (total events for tenant).
          */
-        EmailSyncResponse: {
-            /** Messages Fetched */
-            messages_fetched: number;
-            /** Events Created */
-            events_created: number;
-            /** Provider */
-            provider: string;
-            /** Sync Type */
-            sync_type: string;
+        EventCountResponse: {
+            /** Total */
+            total: number;
         };
-        /** EventCreate */
-        EventCreate: {
+        /**
+         * EventCreateRequest
+         * @description Payload for creating an event. Schema version must match an active schema.
+         */
+        EventCreateRequest: {
             /** Subject Id */
             subject_id: string;
             /** Event Type */
@@ -1593,33 +1536,34 @@ export interface components {
              */
             event_time: string;
             /** Payload */
-            payload: {
+            payload?: {
                 [key: string]: unknown;
             };
         };
         /**
+         * EventListResponse
+         * @description Event list item (list endpoint).
+         */
+        EventListResponse: {
+            /** Id */
+            id: string;
+            /** Subject Id */
+            subject_id: string;
+            /** Event Type */
+            event_type: string;
+            /**
+             * Event Time
+             * Format: date-time
+             */
+            event_time: string;
+        };
+        /**
          * EventResponse
-         * @example {
-         *       "created_at": "2024-01-01T12:00:00Z",
-         *       "event_time": "2024-01-01T12:00:00Z",
-         *       "event_type": "user_action",
-         *       "hash": "sha256_hash_here",
-         *       "id": "clh1234567890abcdef",
-         *       "payload": {
-         *         "action": "login",
-         *         "ip": "192.168.1.1"
-         *       },
-         *       "previous_hash": "previous_sha256_hash",
-         *       "schema_version": 1,
-         *       "subject_id": "subject_456",
-         *       "tenant_id": "tenant_123"
-         *     }
+         * @description Event detail (get endpoint) and create response shape.
          */
         EventResponse: {
             /** Id */
             id: string;
-            /** Tenant Id */
-            tenant_id: string;
             /** Subject Id */
             subject_id: string;
             /** Event Type */
@@ -1637,31 +1581,47 @@ export interface components {
             };
             /** Hash */
             hash: string;
-            /** Previous Hash */
-            previous_hash: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
         };
         /**
-         * EventSchemaCreate
-         * @description Schema for creating an event schema.
+         * EventSchemaCreateRequest
+         * @description Request body for creating an event schema version.
          *
-         *     Version is auto-generated by incrementing the max version for the event_type.
+         *     created_by is set server-side from the authenticated user; not accepted from the client.
          */
-        EventSchemaCreate: {
+        EventSchemaCreateRequest: {
             /** Event Type */
             event_type: string;
             /** Schema Definition */
             schema_definition: {
                 [key: string]: unknown;
             };
+            /**
+             * Is Active
+             * @default false
+             */
+            is_active: boolean;
+        };
+        /**
+         * EventSchemaListItem
+         * @description Event schema list item (no schema_definition).
+         */
+        EventSchemaListItem: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Event Type */
+            event_type: string;
+            /** Version */
+            version: number;
+            /** Is Active */
+            is_active: boolean;
+            /** Created By */
+            created_by: string | null;
         };
         /**
          * EventSchemaResponse
-         * @description Schema for event schema responses
+         * @description Event schema response.
          */
         EventSchemaResponse: {
             /** Id */
@@ -1670,38 +1630,32 @@ export interface components {
             tenant_id: string;
             /** Event Type */
             event_type: string;
-            /** Schema Definition */
-            schema_definition: {
-                [key: string]: unknown;
-            };
             /** Version */
             version: number;
             /** Is Active */
             is_active: boolean;
+            /** Schema Definition */
+            schema_definition: {
+                [key: string]: unknown;
+            };
             /** Created By */
             created_by: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
         };
         /**
          * EventSchemaUpdate
-         * @description Schema for updating an event schema
+         * @description Request body for PATCH (partial update).
          */
         EventSchemaUpdate: {
+            /** Schema Definition */
+            schema_definition?: {
+                [key: string]: unknown;
+            } | null;
             /** Is Active */
             is_active?: boolean | null;
         };
         /**
          * EventVerificationResult
-         * @description Single event verification result
+         * @description Result of verifying a single event (hash + chain).
          */
         EventVerificationResult: {
             /** Event Id */
@@ -1732,108 +1686,104 @@ export interface components {
             detail?: components["schemas"]["ValidationError"][];
         };
         /**
-         * OAuthAuditLogResponse
-         * @description Schema for OAuth audit log responses
+         * HealthResponse
+         * @description Response for GET /health (liveness).
          */
-        OAuthAuditLogResponse: {
-            /** Id */
-            id: string;
-            /** Tenant Id */
-            tenant_id: string;
-            /** Provider Config Id */
-            provider_config_id: string;
-            /** Actor User Id */
-            actor_user_id: string;
-            /** Action */
-            action: string;
+        HealthResponse: {
             /**
-             * Timestamp
-             * Format: date-time
+             * Status
+             * @description Service status
+             * @default ok
              */
-            timestamp: string;
-            /** Changes */
-            changes: {
-                [key: string]: string;
-            };
-            /** Reason */
-            reason: string | null;
-            /** Ip Address */
-            ip_address: string | null;
+            status: string;
         };
         /**
-         * OAuthAuthorizeRequest
-         * @description Schema for initiating OAuth flow
+         * LoginRequest
+         * @description Request body for login. Users identify tenant by code (e.g. org slug), not internal tenant_id.
          */
-        OAuthAuthorizeRequest: {
+        LoginRequest: {
             /**
-             * Return Url
-             * @description URL to redirect user after OAuth completion
+             * Tenant Code
+             * @description Tenant code (e.g. org slug) to identify the tenant
              */
-            return_url?: string | null;
+            tenant_code: string;
+            /** Username */
+            username: string;
+            /**
+             * Password
+             * @description Password (min 8 characters)
+             */
+            password: string;
         };
         /**
          * OAuthAuthorizeResponse
-         * @description Schema for OAuth authorization URL response
+         * @description Response for authorize endpoint: URL to redirect user to.
          */
         OAuthAuthorizeResponse: {
-            /**
-             * Auth Url
-             * @description URL to redirect user for OAuth consent
-             */
-            auth_url: string;
-            /**
-             * State
-             * @description OAuth state parameter (for callback)
-             */
-            state: string;
-            /**
-             * Expires At
-             * Format: date-time
-             * @description When the state expires
-             */
-            expires_at: string;
-            /**
-             * Provider
-             * @description Provider type
-             */
-            provider: string;
+            /** Authorization Url */
+            authorization_url: string;
         };
         /**
-         * OAuthProviderConfigCreate
-         * @description Schema for creating OAuth provider configuration
+         * OAuthCallbackTokenResponse
+         * @description Response for callback: tokens (or redirect).
          */
-        OAuthProviderConfigCreate: {
+        OAuthCallbackTokenResponse: {
+            /** Access Token */
+            access_token: string;
+            /** Refresh Token */
+            refresh_token?: string | null;
+            /**
+             * Token Type
+             * @default Bearer
+             */
+            token_type: string;
+            /** Expires In */
+            expires_in: number;
+            /** Scope */
+            scope: string;
+        };
+        /**
+         * OAuthConfigAuditResponse
+         * @description Response for GET /{config_id}/audit (stub: entries list).
+         */
+        OAuthConfigAuditResponse: {
+            /** Config Id */
+            config_id: string;
+            /**
+             * Entries
+             * @default []
+             */
+            entries: {
+                [key: string]: unknown;
+            }[];
+        };
+        /**
+         * OAuthConfigCreateRequest
+         * @description Request body for creating or rotating OAuth provider config.
+         */
+        OAuthConfigCreateRequest: {
             /**
              * Provider Type
-             * @description Provider identifier (gmail, outlook, yahoo)
+             * @description e.g. gmail, outlook, yahoo
              */
             provider_type: string;
-            /**
-             * Client Id
-             * @description OAuth client ID from provider console
-             */
+            /** Client Id */
             client_id: string;
-            /**
-             * Client Secret
-             * @description OAuth client secret from provider console
-             */
+            /** Client Secret */
             client_secret: string;
-            /**
-             * Redirect Uri
-             * @description OAuth redirect URI (must match provider console)
-             */
+            /** Redirect Uri */
             redirect_uri: string;
             /**
              * Scopes
-             * @description Custom scopes (uses provider defaults if not specified)
+             * @description OAuth scopes to request
              */
-            scopes?: string[] | null;
+            scopes?: string[];
         };
         /**
-         * OAuthProviderConfigResponse
-         * @description Schema for OAuth provider configuration responses (secrets excluded)
+         * OAuthConfigResponse
+         * @description Response model for OAuth provider config (list/detail).
          */
-        OAuthProviderConfigResponse: {
+        OAuthConfigResponse: {
             /** Id */
             id: string;
             /** Tenant Id */
@@ -1846,88 +1796,58 @@ export interface components {
             version: number;
             /** Is Active */
             is_active: boolean;
-            /** Superseded By Id */
-            superseded_by_id: string | null;
-            /** Redirect Uri */
-            redirect_uri: string;
-            /** Redirect Uri Whitelist */
-            redirect_uri_whitelist: string[];
-            /** Allowed Scopes */
-            allowed_scopes: string[];
-            /** Default Scopes */
-            default_scopes: string[];
-            /** Tenant Configured Scopes */
-            tenant_configured_scopes: string[];
             /** Health Status */
-            health_status: string;
-            /** Last Health Check At */
-            last_health_check_at: string | null;
-            /** Rate Limit Connections Per Hour */
-            rate_limit_connections_per_hour: number | null;
-            /** Current Hour Connections */
-            current_hour_connections: number;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-            /** Created By */
-            created_by: string | null;
+            health_status?: string | null;
         };
         /**
-         * OAuthProviderConfigUpdate
-         * @description Schema for updating OAuth provider configuration
+         * OAuthConfigRotateRequest
+         * @description Request body for POST /{config_id}/rotate (new credentials).
          */
-        OAuthProviderConfigUpdate: {
+        OAuthConfigRotateRequest: {
             /** Client Id */
-            client_id?: string | null;
+            client_id: string;
             /** Client Secret */
-            client_secret?: string | null;
+            client_secret: string;
             /** Redirect Uri */
             redirect_uri?: string | null;
             /** Scopes */
-            scopes?: string[] | null;
-            /** Is Active */
-            is_active?: boolean | null;
-            /** Rate Limit Connections Per Hour */
-            rate_limit_connections_per_hour?: number | null;
+            scopes?: string[];
         };
         /**
-         * OAuthProviderHealthCheck
-         * @description Schema for provider health check
+         * OAuthConfigUpdate
+         * @description Request body for PATCH (partial update).
          */
-        OAuthProviderHealthCheck: {
-            /** Provider Type */
-            provider_type: string;
+        OAuthConfigUpdate: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Redirect Uri */
+            redirect_uri?: string | null;
+            /** Redirect Uri Whitelist */
+            redirect_uri_whitelist?: string[] | null;
+            /** Allowed Scopes */
+            allowed_scopes?: string[] | null;
+            /** Default Scopes */
+            default_scopes?: string[] | null;
+            /** Tenant Configured Scopes */
+            tenant_configured_scopes?: string[] | null;
+        };
+        /**
+         * OAuthHealthResponse
+         * @description Response for GET /{config_id}/health.
+         */
+        OAuthHealthResponse: {
             /** Health Status */
             health_status: string;
-            /** Last Check At */
-            last_check_at: string | null;
-            /** Last Error */
-            last_error: string | null;
-            /** Is Operational */
-            is_operational: boolean;
+            /** Last Health Check At */
+            last_health_check_at?: string | null;
+            /** Last Health Error */
+            last_health_error?: string | null;
         };
         /**
-         * OAuthProviderListResponse
-         * @description Schema for listing OAuth providers
+         * OAuthProviderMetadataItem
+         * @description One supported provider for GET /metadata/providers.
          */
-        OAuthProviderListResponse: {
-            /** Providers */
-            providers: components["schemas"]["OAuthProviderConfigResponse"][];
-            /** Total */
-            total: number;
-        };
-        /**
-         * OAuthProviderMetadata
-         * @description Schema for provider metadata
-         */
-        OAuthProviderMetadata: {
+        OAuthProviderMetadataItem: {
             /** Provider Type */
             provider_type: string;
             /** Provider Name */
@@ -1936,189 +1856,130 @@ export interface components {
             authorization_endpoint: string;
             /** Token Endpoint */
             token_endpoint: string;
-            /** Supports Pkce */
+            /**
+             * Supports Pkce
+             * @default false
+             */
             supports_pkce: boolean;
-            /** Default Scopes */
-            default_scopes: string[];
         };
         /**
-         * OAuthRotateCredentialsRequest
-         * @description Schema for rotating OAuth credentials
+         * OAuthProvidersMetadataResponse
+         * @description Response for GET /metadata/providers.
          */
-        OAuthRotateCredentialsRequest: {
-            /**
-             * New Client Id
-             * @description New OAuth client ID
-             */
-            new_client_id: string;
-            /**
-             * New Client Secret
-             * @description New OAuth client secret
-             */
-            new_client_secret: string;
-            /**
-             * Reason
-             * @description Reason for rotation
-             */
-            reason?: string | null;
+        OAuthProvidersMetadataResponse: {
+            /** Providers */
+            providers: components["schemas"]["OAuthProviderMetadataItem"][];
         };
         /**
-         * OAuthRotateCredentialsResponse
-         * @description Schema for credential rotation response
+         * PermissionCreateRequest
+         * @description Request body for creating a permission.
          */
-        OAuthRotateCredentialsResponse: {
-            /** Old Version */
-            old_version: number;
-            /** New Version */
-            new_version: number;
-            /** Provider Config Id */
-            provider_config_id: string;
-            /**
-             * Migration Required
-             * @description Whether existing connections need migration
-             */
-            migration_required: boolean;
-            /**
-             * Affected Accounts
-             * @description Number of email accounts using old version
-             */
-            affected_accounts: number;
-        };
-        /**
-         * PermissionCreate
-         * @description Schema for creating a permission
-         */
-        PermissionCreate: {
-            /**
-             * Code
-             * @description Permission code (e.g., 'event:create')
-             */
+        PermissionCreateRequest: {
+            /** Code */
             code: string;
-            /**
-             * Resource
-             * @description Resource name (e.g., 'event')
-             */
+            /** Resource */
             resource: string;
-            /**
-             * Action
-             * @description Action name (e.g., 'create')
-             */
+            /** Action */
             action: string;
-            /**
-             * Description
-             * @description Permission description
-             */
+            /** Description */
             description?: string | null;
         };
         /**
          * PermissionResponse
-         * @description Schema for permission response
+         * @description Permission list/detail response.
          */
         PermissionResponse: {
-            /**
-             * Code
-             * @description Permission code (e.g., 'event:create')
-             */
-            code: string;
-            /**
-             * Resource
-             * @description Resource name (e.g., 'event')
-             */
-            resource: string;
-            /**
-             * Action
-             * @description Action name (e.g., 'create')
-             */
-            action: string;
-            /**
-             * Description
-             * @description Permission description
-             */
-            description?: string | null;
             /** Id */
             id: string;
             /** Tenant Id */
             tenant_id: string;
+            /** Code */
+            code: string;
+            /** Resource */
+            resource: string;
+            /** Action */
+            action: string;
+            /** Description */
+            description: string | null;
         };
         /**
-         * RoleCreate
-         * @description Schema for creating a role
+         * RegisterRequest
+         * @description Request body for public registration (tenant by code).
          */
-        RoleCreate: {
+        RegisterRequest: {
             /**
-             * Code
-             * @description Unique role code
+             * Tenant Code
+             * @description Tenant code (e.g. org slug)
              */
+            tenant_code: string;
+            /** Username */
+            username: string;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /**
+             * Password
+             * @description Password (min 8 characters)
+             */
+            password: string;
+        };
+        /**
+         * RoleCreateRequest
+         * @description Request body for creating a role.
+         */
+        RoleCreateRequest: {
+            /** Code */
             code: string;
-            /**
-             * Name
-             * @description Display name
-             */
+            /** Name */
             name: string;
-            /**
-             * Description
-             * @description Role description
-             */
+            /** Description */
             description?: string | null;
-            /**
-             * Permission Codes
-             * @description List of permission codes to assign to this role
-             */
+            /** Permission Codes */
             permission_codes?: string[];
         };
         /**
          * RolePermissionAssign
-         * @description Schema for assigning permissions to a role
+         * @description Request body for assigning a permission to a role.
          */
         RolePermissionAssign: {
-            /**
-             * Permission Ids
-             * @description List of permission IDs to assign
-             */
-            permission_ids: string[];
+            /** Permission Id */
+            permission_id: string;
+        };
+        /**
+         * RolePermissionAssignedResponse
+         * @description Response for POST /{role_id}/permissions (assignment created).
+         */
+        RolePermissionAssignedResponse: {
+            /** Role Id */
+            role_id: string;
+            /** Permission Id */
+            permission_id: string;
         };
         /**
          * RoleResponse
-         * @description Schema for role response
+         * @description Role list/detail response.
          */
         RoleResponse: {
-            /**
-             * Code
-             * @description Unique role code
-             */
-            code: string;
-            /**
-             * Name
-             * @description Display name
-             */
-            name: string;
-            /**
-             * Description
-             * @description Role description
-             */
-            description?: string | null;
             /** Id */
             id: string;
             /** Tenant Id */
             tenant_id: string;
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string | null;
             /** Is System */
             is_system: boolean;
             /** Is Active */
             is_active: boolean;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
         };
         /**
          * RoleUpdate
-         * @description Schema for updating a role
+         * @description Request body for updating a role (partial).
          */
         RoleUpdate: {
             /** Name */
@@ -2129,54 +1990,10 @@ export interface components {
             is_active?: boolean | null;
         };
         /**
-         * RoleWithPermissions
-         * @description Role response with permissions included
+         * SubjectCreateRequest
+         * @description Request body for creating a subject.
          */
-        RoleWithPermissions: {
-            /**
-             * Code
-             * @description Unique role code
-             */
-            code: string;
-            /**
-             * Name
-             * @description Display name
-             */
-            name: string;
-            /**
-             * Description
-             * @description Role description
-             */
-            description?: string | null;
-            /** Id */
-            id: string;
-            /** Tenant Id */
-            tenant_id: string;
-            /** Is System */
-            is_system: boolean;
-            /** Is Active */
-            is_active: boolean;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-            /**
-             * Permissions
-             * @default []
-             */
-            permissions: components["schemas"]["PermissionResponse"][];
-        };
-        /**
-         * SubjectCreate
-         * @description Schema for creating a subject
-         */
-        SubjectCreate: {
+        SubjectCreateRequest: {
             /** Subject Type */
             subject_type: string;
             /** External Ref */
@@ -2184,7 +2001,7 @@ export interface components {
         };
         /**
          * SubjectResponse
-         * @description Schema for subject responses
+         * @description Subject response (minimal).
          */
         SubjectResponse: {
             /** Id */
@@ -2195,44 +2012,58 @@ export interface components {
             subject_type: string;
             /** External Ref */
             external_ref: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
         };
         /**
          * SubjectUpdate
-         * @description Schema for updating a subject
+         * @description Request body for updating a subject (partial).
          */
         SubjectUpdate: {
             /** External Ref */
             external_ref?: string | null;
         };
         /**
-         * TenantCreate
-         * @description Schema for creating a tenant - status is always ACTIVE by default
+         * TenantCreateRequest
+         * @description Request body for creating a new tenant with admin user.
+         *
+         *     Only name and tenant code are required. Admin password is auto-generated
+         *     and returned in the response. Tenant code is normalized: lowercase,
+         *     spaces replaced with '-'.
          */
-        TenantCreate: {
-            /** Code */
+        TenantCreateRequest: {
+            /**
+             * Code
+             * @description Unique tenant code (normalized to lowercase, hyphen-separated)
+             */
             code: string;
-            /** Name */
+            /**
+             * Name
+             * @description Display name
+             */
             name: string;
         };
         /**
          * TenantCreateResponse
-         * @description Schema for tenant creation response with admin credentials
+         * @description Response after tenant creation. Includes generated admin password (show once, then change).
          */
         TenantCreateResponse: {
-            tenant: components["schemas"]["TenantResponse"];
+            /** Tenant Id */
+            tenant_id: string;
+            /** Tenant Code */
+            tenant_code: string;
+            /** Tenant Name */
+            tenant_name: string;
             /** Admin Username */
             admin_username: string;
-            /** Admin Password */
+            /**
+             * Admin Password
+             * Format: password
+             * @description Auto-generated; show once to the user
+             */
             admin_password: string;
         };
         /**
          * TenantResponse
-         * @description Schema for tenant responses
+         * @description Tenant in list/get responses.
          */
         TenantResponse: {
             /** Id */
@@ -2242,33 +2073,25 @@ export interface components {
             /** Name */
             name: string;
             status: components["schemas"]["TenantStatus"];
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
         };
         /**
          * TenantStatus
-         * @description Tenant status enumeration
+         * @description Tenant lifecycle status.
+         *
+         *     Determines whether a tenant can create events and accept API traffic.
          * @enum {string}
          */
         TenantStatus: "active" | "suspended" | "archived";
         /**
          * TenantStatusUpdate
-         * @description Schema for updating tenant status
+         * @description Request body for PATCH /tenants/{id}/status.
          */
         TenantStatusUpdate: {
             new_status: components["schemas"]["TenantStatus"];
         };
         /**
          * TenantUpdate
-         * @description Schema for updating a tenant
+         * @description Request body for updating a tenant (partial).
          */
         TenantUpdate: {
             /** Name */
@@ -2276,10 +2099,10 @@ export interface components {
             status?: components["schemas"]["TenantStatus"] | null;
         };
         /**
-         * Token
-         * @description Access token response
+         * TokenResponse
+         * @description JWT token response.
          */
-        Token: {
+        TokenResponse: {
             /** Access Token */
             access_token: string;
             /**
@@ -2289,50 +2112,23 @@ export interface components {
             token_type: string;
         };
         /**
-         * TokenRequest
-         * @description Token request (for login)
+         * UserCreateRequest
+         * @description Request body for creating a user (tenant-scoped).
          */
-        TokenRequest: {
+        UserCreateRequest: {
             /** Username */
-            username: string;
-            /** Password */
-            password: string;
-            /**
-             * Tenant Code
-             * @description Tenant code for multi-tenant isolation
-             */
-            tenant_code: string;
-        };
-        /**
-         * UserCreate
-         * @description Schema for user registration
-         */
-        UserCreate: {
-            /**
-             * Tenant Code
-             * @description Tenant code to register under
-             */
-            tenant_code: string;
-            /**
-             * Username
-             * @description Unique username within tenant
-             */
             username: string;
             /**
              * Email
              * Format: email
-             * @description User email address (unique within tenant)
              */
             email: string;
-            /**
-             * Password
-             * @description User password (min 8 characters)
-             */
+            /** Password */
             password: string;
         };
         /**
          * UserResponse
-         * @description Schema for user responses (excludes password)
+         * @description User response (no password).
          */
         UserResponse: {
             /** Id */
@@ -2345,36 +2141,10 @@ export interface components {
             email: string;
             /** Is Active */
             is_active: boolean;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-        };
-        /**
-         * UserRoleAssign
-         * @description Schema for assigning a role to a user
-         */
-        UserRoleAssign: {
-            /**
-             * Role Id
-             * @description Role ID to assign
-             */
-            role_id: string;
-            /**
-             * Expires At
-             * @description Optional expiration time
-             */
-            expires_at?: string | null;
         };
         /**
          * UserUpdate
-         * @description Schema for updating user information
+         * @description Request body for updating current user (partial).
          */
         UserUpdate: {
             /** Email */
@@ -2390,50 +2160,114 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
         /**
-         * WebhookSetupRequest
-         * @description Schema for webhook setup
+         * VerificationJobStartedResponse
+         * @description Response when a background verification job is started (202).
          */
-        WebhookSetupRequest: {
-            /** Callback Url */
-            callback_url: string;
+        VerificationJobStartedResponse: {
+            /** Job Id */
+            job_id: string;
+            /**
+             * Message
+             * @default Verification job started; poll GET /events/verify/tenant/jobs/{job_id} for status.
+             */
+            message: string;
         };
         /**
-         * WorkflowCreate
-         * @description Create workflow request
+         * VerificationJobStatusResponse
+         * @description Status of a background verification job.
          */
-        WorkflowCreate: {
-            /** Name */
-            name: string;
-            /** Description */
-            description?: string | null;
-            /** Trigger Event Type */
-            trigger_event_type: string;
-            /** Trigger Conditions */
-            trigger_conditions?: {
+        VerificationJobStatusResponse: {
+            /** Job Id */
+            job_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "running" | "completed" | "failed";
+            result?: components["schemas"]["ChainVerificationResponse"] | null;
+            /** Error */
+            error?: string | null;
+            /** Total Events */
+            total_events?: number | null;
+        };
+        /**
+         * WebSocketStatusResponse
+         * @description Response for GET /ws/status (connection count).
+         */
+        WebSocketStatusResponse: {
+            /**
+             * Total Connections
+             * @description Number of active WebSocket connections
+             */
+            total_connections: number;
+        };
+        /**
+         * WebhookAckResponse
+         * @description Response for POST webhook (202 Accepted).
+         */
+        WebhookAckResponse: {
+            /**
+             * Detail
+             * @default Webhook received
+             */
+            detail: string;
+            /** Account Id */
+            account_id: string;
+        };
+        /**
+         * WorkflowAction
+         * @description Single workflow action; requires type (e.g. create_event), optional params.
+         */
+        WorkflowAction: {
+            /**
+             * Type
+             * @description Action type
+             */
+            type: string;
+            /** Params */
+            params?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /**
+         * WorkflowCreateRequest
+         * @description Request body for creating a workflow.
+         */
+        WorkflowCreateRequest: {
+            /** Name */
+            name: string;
+            /** Trigger Event Type */
+            trigger_event_type: string;
             /** Actions */
-            actions: {
-                [key: string]: unknown;
-            }[];
-            /**
-             * Execution Order
-             * @default 0
-             */
-            execution_order: number;
-            /** Max Executions Per Day */
-            max_executions_per_day?: number | null;
+            actions: components["schemas"]["WorkflowAction"][];
+            /** Description */
+            description?: string | null;
             /**
              * Is Active
              * @default true
              */
             is_active: boolean;
+            /** Trigger Conditions */
+            trigger_conditions?: {
+                [key: string]: unknown;
+            } | null;
+            /** Max Executions Per Day */
+            max_executions_per_day?: number | null;
+            /**
+             * Execution Order
+             * @default 0
+             */
+            execution_order: number;
         };
         /**
          * WorkflowExecutionResponse
-         * @description Workflow execution response
+         * @description Workflow execution response.
          */
         WorkflowExecutionResponse: {
             /** Id */
@@ -2456,26 +2290,12 @@ export interface components {
             actions_executed: number;
             /** Actions Failed */
             actions_failed: number;
-            /** Execution Log */
-            execution_log: {
-                [key: string]: unknown;
-            }[] | null;
             /** Error Message */
             error_message: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
         };
         /**
          * WorkflowResponse
-         * @description Workflow response
+         * @description Workflow response.
          */
         WorkflowResponse: {
             /** Id */
@@ -2502,48 +2322,26 @@ export interface components {
             max_executions_per_day: number | null;
             /** Execution Order */
             execution_order: number;
-            /** Created By */
-            created_by: string | null;
-            /** Updated By */
-            updated_by: string | null;
-            /** Deleted By */
-            deleted_by: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-            /** Deleted At */
-            deleted_at: string | null;
         };
         /**
          * WorkflowUpdate
-         * @description Update workflow request
+         * @description Request body for updating a workflow (partial).
          */
         WorkflowUpdate: {
             /** Name */
             name?: string | null;
             /** Description */
             description?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
             /** Trigger Conditions */
             trigger_conditions?: {
                 [key: string]: unknown;
             } | null;
-            /** Actions */
-            actions?: {
-                [key: string]: unknown;
-            }[] | null;
-            /** Execution Order */
-            execution_order?: number | null;
             /** Max Executions Per Day */
             max_executions_per_day?: number | null;
-            /** Is Active */
-            is_active?: boolean | null;
+            /** Execution Order */
+            execution_order?: number | null;
         };
     };
     responses: never;
@@ -2554,377 +2352,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    login_auth_token_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TokenRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Token"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_provider_configs_api_oauth_providers_get: {
-        parameters: {
-            query?: {
-                /** @description Include inactive configs */
-                include_inactive?: boolean;
-                skip?: number;
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OAuthProviderListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_provider_config_api_oauth_providers_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OAuthProviderConfigCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OAuthProviderConfigResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_provider_config_api_oauth_providers__config_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                config_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OAuthProviderConfigResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_provider_config_api_oauth_providers__config_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                config_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_provider_config_api_oauth_providers__config_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                config_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OAuthProviderConfigUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OAuthProviderConfigResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    authorize_provider_api_oauth_providers__provider__authorize_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                provider: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OAuthAuthorizeRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OAuthAuthorizeResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    oauth_callback_api_oauth_providers__provider__callback_get: {
-        parameters: {
-            query: {
-                /** @description Authorization code from provider */
-                code?: string;
-                /** @description OAuth state parameter */
-                state: string;
-                /** @description Error from provider */
-                error?: string | null;
-                /** @description Error description from provider */
-                error_description?: string | null;
-            };
-            header?: never;
-            path: {
-                provider: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    rotate_credentials_api_oauth_providers__config_id__rotate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                config_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OAuthRotateCredentialsRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OAuthRotateCredentialsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    check_provider_health_api_oauth_providers__config_id__health_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                config_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OAuthProviderHealthCheck"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_audit_history_api_oauth_providers__config_id__audit_get: {
-        parameters: {
-            query?: {
-                skip?: number;
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                config_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OAuthAuditLogResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_available_providers_api_oauth_providers_metadata_providers_get: {
+    health_check_api_v1_health_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2939,12 +2367,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OAuthProviderMetadata"][];
+                    "application/json": components["schemas"]["HealthResponse"];
                 };
             };
         };
     };
-    register_user_users_register_post: {
+    register_api_v1_auth_register_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2953,7 +2381,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UserCreate"];
+                "application/json": components["schemas"]["RegisterRequest"];
             };
         };
         responses: {
@@ -2977,7 +2405,40 @@ export interface operations {
             };
         };
     };
-    get_current_user_info_users_me_get: {
+    login_api_v1_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_me_api_v1_auth_me_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2997,7 +2458,7 @@ export interface operations {
             };
         };
     };
-    update_current_user_users_me_put: {
+    update_me_api_v1_auth_me_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -3030,7 +2491,7 @@ export interface operations {
             };
         };
     };
-    deactivate_current_user_users_me_delete: {
+    delete_me_api_v1_auth_me_delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -3048,12 +2509,11 @@ export interface operations {
             };
         };
     };
-    list_users_users__get: {
+    list_events_api_v1_events_get: {
         parameters: {
             query?: {
-                /** @description Number of records to skip */
+                subject_id?: string | null;
                 skip?: number;
-                /** @description Max records to return */
                 limit?: number;
             };
             header?: never;
@@ -3068,7 +2528,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserResponse"][];
+                    "application/json": components["schemas"]["EventListResponse"][];
                 };
             };
             /** @description Validation Error */
@@ -3082,12 +2542,197 @@ export interface operations {
             };
         };
     };
-    list_tenants_tenants__get: {
+    create_event_api_v1_events_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    count_events_api_v1_events_count_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventCountResponse"];
+                };
+            };
+        };
+    };
+    verify_tenant_chains_api_v1_events_verify_tenant_all_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainVerificationResponse"];
+                };
+            };
+        };
+    };
+    start_verification_job_api_v1_events_verify_tenant_all_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationJobStartedResponse"];
+                };
+            };
+        };
+    };
+    get_verification_job_status_api_v1_events_verify_tenant_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationJobStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_subject_chain_api_v1_events_verify__subject_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainVerificationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_event_api_v1_events__event_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_tenants_api_v1_tenants_get: {
         parameters: {
             query?: {
                 skip?: number;
                 limit?: number;
-                active_only?: boolean;
             };
             header?: never;
             path?: never;
@@ -3115,7 +2760,7 @@ export interface operations {
             };
         };
     };
-    create_tenant_tenants__post: {
+    create_tenant_api_v1_tenants_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3124,7 +2769,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TenantCreate"];
+                "application/json": components["schemas"]["TenantCreateRequest"];
             };
         };
         responses: {
@@ -3148,7 +2793,7 @@ export interface operations {
             };
         };
     };
-    get_tenant_tenants__tenant_id__get: {
+    get_tenant_api_v1_tenants__tenant_id__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3179,7 +2824,7 @@ export interface operations {
             };
         };
     };
-    update_tenant_tenants__tenant_id__put: {
+    update_tenant_api_v1_tenants__tenant_id__put: {
         parameters: {
             query?: never;
             header?: never;
@@ -3214,7 +2859,7 @@ export interface operations {
             };
         };
     };
-    delete_tenant_tenants__tenant_id__delete: {
+    delete_tenant_api_v1_tenants__tenant_id__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -3243,7 +2888,7 @@ export interface operations {
             };
         };
     };
-    update_tenant_status_tenants__tenant_id__status_patch: {
+    update_tenant_status_api_v1_tenants__tenant_id__status_patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -3278,177 +2923,11 @@ export interface operations {
             };
         };
     };
-    list_subjects_subjects__get: {
+    list_documents_api_v1_documents_get: {
         parameters: {
-            query?: {
-                skip?: number;
-                limit?: number;
-                subject_type?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SubjectResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_subject_subjects__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SubjectCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SubjectResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_subject_subjects__subject_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
+            query: {
                 subject_id: string;
             };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SubjectResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_subject_subjects__subject_id__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                subject_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SubjectUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SubjectResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_subject_subjects__subject_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                subject_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_events_events__get: {
-        parameters: {
-            query?: {
-                /** @description Number of records to skip */
-                skip?: number;
-                /** @description Max records to return */
-                limit?: number;
-                /** @description Event type filter (alphanumeric and underscores only) */
-                event_type?: string | null;
-            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3461,7 +2940,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EventResponse"][];
+                    "application/json": components["schemas"]["DocumentListItem"][];
                 };
             };
             /** @description Validation Error */
@@ -3475,7 +2954,7 @@ export interface operations {
             };
         };
     };
-    create_event_events__post: {
+    upload_document_api_v1_documents_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3484,426 +2963,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EventCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EventResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_subject_timeline_events_subject__subject_id__get: {
-        parameters: {
-            query?: {
-                /** @description Number of records to skip */
-                skip?: number;
-                /** @description Max records to return */
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                subject_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EventResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_event_events__event_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                event_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EventResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    verify_tenant_chains_events_verify_tenant_all_get: {
-        parameters: {
-            query?: {
-                /** @description Max events to verify */
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChainVerificationResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    verify_subject_chain_events_verify__subject_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                subject_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChainVerificationResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_event_schemas_event_schemas__get: {
-        parameters: {
-            query?: {
-                /** @description Number of records to skip */
-                skip?: number;
-                /** @description Max records to return */
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EventSchemaResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_event_schema_event_schemas__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EventSchemaCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EventSchemaResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_schemas_for_event_type_event_schemas_event_type__event_type__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                event_type: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EventSchemaResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_active_schema_event_schemas_event_type__event_type__active_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                event_type: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EventSchemaResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_schema_by_version_event_schemas_event_type__event_type__version__version__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                event_type: string;
-                version: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EventSchemaResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_event_schema_event_schemas__schema_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                schema_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EventSchemaResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_event_schema_event_schemas__schema_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                schema_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_event_schema_event_schemas__schema_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                schema_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EventSchemaUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EventSchemaResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_document_documents_upload_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_document_documents_upload_post"];
+                "multipart/form-data": components["schemas"]["Body_upload_document_api_v1_documents_post"];
             };
         };
         responses: {
@@ -3927,7 +2987,102 @@ export interface operations {
             };
         };
     };
-    download_document_documents__document_id__download_get: {
+    list_documents_by_event_api_v1_documents_event__event_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentListItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_document_versions_api_v1_documents__document_id__versions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentVersionItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_document_download_url_api_v1_documents__document_id__download_url_get: {
+        parameters: {
+            query?: {
+                expires_in_hours?: number;
+            };
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentDownloadUrlResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_document_api_v1_documents__document_id__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3958,166 +3113,7 @@ export interface operations {
             };
         };
     };
-    create_document_documents__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DocumentCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_documents_by_subject_documents_subject__subject_id__get: {
-        parameters: {
-            query?: {
-                include_deleted?: boolean;
-            };
-            header?: never;
-            path: {
-                subject_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_documents_by_event_documents_event__event_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                event_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_document_versions_documents__document_id__versions_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                document_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_document_documents__document_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                document_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_document_documents__document_id__put: {
+    update_document_api_v1_documents__document_id__put: {
         parameters: {
             query?: never;
             header?: never;
@@ -4138,7 +3134,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DocumentResponse"];
+                    "application/json": components["schemas"]["DocumentVersionItem"];
                 };
             };
             /** @description Validation Error */
@@ -4152,7 +3148,7 @@ export interface operations {
             };
         };
     };
-    delete_document_documents__document_id__delete: {
+    delete_document_api_v1_documents__document_id__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -4181,707 +3177,10 @@ export interface operations {
             };
         };
     };
-    list_roles_roles__get: {
+    list_email_accounts_api_v1_email_accounts_get: {
         parameters: {
             query?: {
                 skip?: number;
-                limit?: number;
-                include_inactive?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RoleResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_role_roles__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RoleCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RoleResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_role_roles__role_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                role_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RoleWithPermissions"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_role_roles__role_id__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                role_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RoleUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RoleResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_role_roles__role_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                role_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    assign_permissions_to_role_roles__role_id__permissions_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                role_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RolePermissionAssign"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    remove_permission_from_role_roles__role_id__permissions__permission_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                role_id: string;
-                permission_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_permissions_permissions__get: {
-        parameters: {
-            query?: {
-                skip?: number;
-                limit?: number;
-                /** @description Filter by resource type */
-                resource?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PermissionResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_permission_permissions__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PermissionCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PermissionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_permission_permissions__permission_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                permission_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PermissionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_permission_permissions__permission_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                permission_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_user_roles_users__user_id__roles_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                user_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RoleResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    assign_role_to_user_users__user_id__roles_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                user_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UserRoleAssign"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    remove_role_from_user_users__user_id__roles__role_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                user_id: string;
-                role_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_my_roles_users_me_roles_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RoleResponse"][];
-                };
-            };
-        };
-    };
-    list_workflows_workflows__get: {
-        parameters: {
-            query?: {
-                skip?: number;
-                limit?: number;
-                include_inactive?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkflowResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_workflow_workflows__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WorkflowCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkflowResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_workflow_workflows__workflow_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                workflow_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkflowResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_workflow_workflows__workflow_id__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                workflow_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WorkflowUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkflowResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_workflow_workflows__workflow_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                workflow_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_workflow_executions_workflows__workflow_id__executions_get: {
-        parameters: {
-            query?: {
-                skip?: number;
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                workflow_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkflowExecutionResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_execution_workflows_executions__execution_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                execution_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkflowExecutionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_email_accounts_email_accounts__get: {
-        parameters: {
-            query?: {
-                /** @description Number of records to skip */
-                skip?: number;
-                /** @description Max records to return */
                 limit?: number;
             };
             header?: never;
@@ -4910,7 +3209,7 @@ export interface operations {
             };
         };
     };
-    create_email_account_email_accounts__post: {
+    create_email_account_api_v1_email_accounts_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -4919,7 +3218,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EmailAccountCreate"];
+                "application/json": components["schemas"]["EmailAccountCreateRequest"];
             };
         };
         responses: {
@@ -4943,7 +3242,7 @@ export interface operations {
             };
         };
     };
-    get_email_account_email_accounts__account_id__get: {
+    get_email_account_api_v1_email_accounts__account_id__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -4974,7 +3273,7 @@ export interface operations {
             };
         };
     };
-    delete_email_account_email_accounts__account_id__delete: {
+    delete_email_account_api_v1_email_accounts__account_id__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -5003,7 +3302,7 @@ export interface operations {
             };
         };
     };
-    update_email_account_email_accounts__account_id__patch: {
+    update_email_account_api_v1_email_accounts__account_id__patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -5038,7 +3337,7 @@ export interface operations {
             };
         };
     };
-    sync_email_account_email_accounts__account_id__sync_post: {
+    get_email_account_sync_status_api_v1_email_accounts__account_id__sync_status_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -5047,11 +3346,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EmailSyncRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -5059,7 +3354,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EmailSyncResponse"];
+                    "application/json": components["schemas"]["EmailAccountSyncStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5073,7 +3368,7 @@ export interface operations {
             };
         };
     };
-    sync_email_account_background_email_accounts__account_id__sync_background_post: {
+    trigger_email_sync_api_v1_email_accounts__account_id__sync_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -5082,11 +3377,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EmailSyncRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             202: {
@@ -5094,7 +3385,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["EmailSyncAcceptedResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5108,7 +3399,7 @@ export interface operations {
             };
         };
     };
-    setup_webhook_email_accounts__account_id__webhook_post: {
+    trigger_email_sync_background_api_v1_email_accounts__account_id__sync_background_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -5117,21 +3408,15 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WebhookSetupRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
-            200: {
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["EmailSyncAcceptedResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5141,6 +3426,1600 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    email_account_webhook_api_v1_email_accounts__account_id__webhook_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookAckResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_subjects_api_v1_subjects_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+                subject_type?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_subject_api_v1_subjects_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubjectCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_subject_api_v1_subjects__subject_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_subject_api_v1_subjects__subject_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubjectUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_subject_api_v1_subjects__subject_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_users_api_v1_users_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_user_api_v1_users_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_api_v1_users__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_my_roles_api_v1_users_me_roles_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleResponse"][];
+                };
+            };
+        };
+    };
+    list_user_roles_api_v1_users__user_id__roles_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_role_to_user_api_v1_users__user_id__roles__role_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+                role_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_role_from_user_api_v1_users__user_id__roles__role_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+                role_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_roles_api_v1_roles_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+                include_inactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_role_api_v1_roles_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_role_api_v1_roles__role_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_role_api_v1_roles__role_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_role_api_v1_roles__role_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_permission_to_role_api_v1_roles__role_id__permissions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RolePermissionAssign"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RolePermissionAssignedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_permission_from_role_api_v1_roles__role_id__permissions__permission_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role_id: string;
+                permission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_permissions_api_v1_permissions_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_permission_api_v1_permissions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PermissionCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_permission_api_v1_permissions__permission_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_permission_api_v1_permissions__permission_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_event_schema_api_v1_event_schemas_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventSchemaCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventSchemaResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_schemas_by_event_type_api_v1_event_schemas_event_type__event_type__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventSchemaListItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_active_schema_for_event_type_api_v1_event_schemas_event_type__event_type__active_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventSchemaResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_schema_by_version_api_v1_event_schemas_event_type__event_type__version__version__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_type: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventSchemaResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_event_schema_api_v1_event_schemas__schema_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventSchemaResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_event_schema_api_v1_event_schemas__schema_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_event_schema_api_v1_event_schemas__schema_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventSchemaUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventSchemaResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_workflows_api_v1_workflows_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+                include_inactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_workflow_api_v1_workflows_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_workflow_executions_api_v1_workflows__workflow_id__executions_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowExecutionResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_execution_api_v1_workflows_executions__execution_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                execution_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowExecutionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_workflow_api_v1_workflows__workflow_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_workflow_api_v1_workflows__workflow_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_workflow_api_v1_workflows__workflow_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_oauth_configs_api_v1_oauth_providers_get: {
+        parameters: {
+            query?: {
+                include_inactive?: boolean;
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthConfigResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_oauth_config_api_v1_oauth_providers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthConfigCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_authorize_api_v1_oauth_providers__provider__authorize_post: {
+        parameters: {
+            query?: {
+                return_url?: string | null;
+            };
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthAuthorizeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_callback_api_v1_oauth_providers__provider__callback_get: {
+        parameters: {
+            query: {
+                code: string;
+                state: string;
+            };
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthCallbackTokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_oauth_providers_metadata_api_v1_oauth_providers_metadata_providers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthProvidersMetadataResponse"];
+                };
+            };
+        };
+    };
+    get_active_oauth_config_api_v1_oauth_providers_active_get: {
+        parameters: {
+            query: {
+                provider_type: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_oauth_config_api_v1_oauth_providers__config_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_oauth_config_api_v1_oauth_providers__config_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_oauth_config_api_v1_oauth_providers__config_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthConfigUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rotate_oauth_config_api_v1_oauth_providers__config_id__rotate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthConfigRotateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_oauth_config_health_api_v1_oauth_providers__config_id__health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthHealthResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_oauth_config_audit_api_v1_oauth_providers__config_id__audit_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthConfigAuditResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    websocket_status_api_v1_ws_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebSocketStatusResponse"];
                 };
             };
         };
@@ -5160,27 +5039,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    health_check_health_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
+                    "text/html": string;
                 };
             };
         };

@@ -4,15 +4,66 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
-import { Plus, RefreshCw, Mail, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { Plus, RefreshCw, Mail, CheckCircle, XCircle, Clock, Wifi, WifiOff } from 'lucide-react'
 import { DataTable } from '@/components/ui/DataTable'
 import type { EmailAccountResponse } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
+import {
+  useSyncProgress,
+  getSyncStageText,
+  getSyncStageProgress,
+  type SyncProgressEvent,
+} from '@/hooks/useSyncProgress'
 
 export const Route = createFileRoute('/email-accounts/')({
   component: EmailAccountsPage,
 })
+
+/** Progress bar component for sync status */
+function SyncProgressBar({ progress }: { progress: SyncProgressEvent }) {
+  const percentage = getSyncStageProgress(progress.stage)
+  const stageText = getSyncStageText(progress.stage)
+  const isFailed = progress.stage === 'failed'
+  const isCompleted = progress.stage === 'completed'
+
+  return (
+    <div className="flex flex-col gap-1 min-w-[140px]">
+      <div className="flex items-center justify-between text-xs">
+        <span className={isFailed ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}>
+          {stageText}
+        </span>
+        {!isFailed && !isCompleted && (
+          <span className="text-muted-foreground">{percentage}%</span>
+        )}
+      </div>
+      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+        <div
+          className={`h-full transition-all duration-300 ${
+            isFailed
+              ? 'bg-red-500'
+              : isCompleted
+                ? 'bg-green-500'
+                : 'bg-blue-500'
+          }`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+      {progress.messages_fetched > 0 && (
+        <span className="text-xs text-muted-foreground">
+          {progress.events_created > 0
+            ? `${progress.events_created} events from ${progress.messages_fetched} messages`
+            : `${progress.messages_fetched} messages`}
+        </span>
+      )}
+      {progress.error && (
+        <span className="text-xs text-red-600 dark:text-red-400 truncate" title={progress.error}>
+          {progress.error}
+        </span>
+      )}
+    </div>
+  )
+}
 
 function EmailAccountsPage() {
   const authState = useRequireAuth()
@@ -21,6 +72,20 @@ function EmailAccountsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [syncing, setSyncing] = useState<string | null>(null)
+
+  // Real-time sync progress via WebSocket
+  const { isConnected: wsConnected, getAccountProgress } = useSyncProgress({
+    enabled: !!authState.user,
+    onProgress: (event) => {
+      // Refresh accounts list when sync completes
+      if (event.stage === 'completed') {
+        fetchAccounts()
+        toast.success('Sync completed', `${event.events_created} events created from ${event.messages_fetched} messages`)
+      } else if (event.stage === 'failed') {
+        toast.error('Sync failed', event.error || 'Unknown error')
+      }
+    },
+  })
 
   useEffect(() => {
     if (authState.user) {
@@ -102,7 +167,21 @@ function EmailAccountsPage() {
       id: 'status',
       header: 'Status',
       cell: ({ row }) => {
-        const isActive = row.original.is_active
+        const account = row.original
+        const progress = getAccountProgress(account.id)
+
+        // Show real-time sync progress if available
+        if (progress && progress.stage !== 'completed' && progress.stage !== 'failed') {
+          return <SyncProgressBar progress={progress} />
+        }
+
+        // Show recently completed/failed status briefly
+        if (progress) {
+          return <SyncProgressBar progress={progress} />
+        }
+
+        // Default status display
+        const isActive = account.is_active
         return isActive ? (
           <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
             <CheckCircle className="w-3 h-3" />
@@ -168,15 +247,20 @@ function EmailAccountsPage() {
       header: 'Actions',
       cell: ({ row }) => {
         const account = row.original
+        const progress = getAccountProgress(account.id)
+        const isSyncing =
+          syncing === account.id ||
+          (progress && progress.stage !== 'completed' && progress.stage !== 'failed')
+
         return (
           <div className="flex items-center justify-end gap-1">
             <button
               onClick={() => handleSync(account.id, account.email_address)}
-              disabled={syncing === account.id || !account.is_active}
+              disabled={isSyncing || !account.is_active}
               className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title={!account.is_active ? 'Account inactive' : 'Sync now'}
+              title={!account.is_active ? 'Account inactive' : isSyncing ? 'Sync in progress' : 'Sync now'}
             >
-              {syncing === account.id ? (
+              {isSyncing ? (
                 <LoadingIcon />
               ) : (
                 <RefreshCw className="w-4 h-4" />
@@ -212,7 +296,18 @@ function EmailAccountsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h1 className="text-lg font-bold text-foreground">Email Accounts</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold text-foreground">Email Accounts</h1>
+            {wsConnected ? (
+              <div className="flex items-center gap-1 text-green-600 dark:text-green-400" title="Real-time updates connected">
+                <Wifi className="w-3 h-3" />
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-muted-foreground" title="Real-time updates disconnected">
+                <WifiOff className="w-3 h-3" />
+              </div>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground mt-0.5">
             Connect and manage email accounts for automated event tracking
           </p>

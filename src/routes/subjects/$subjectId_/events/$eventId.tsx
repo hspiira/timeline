@@ -61,11 +61,11 @@ function EventDetailPage() {
         setEvent(eventData)
       }
 
-      // Fetch all events for navigation
-      const { data: eventsData } = await timelineApi.events.list(subjectId)
+      // Fetch all events for navigation (use high limit for navigation purposes)
+      const { data: eventsData } = await timelineApi.events.list(subjectId, { limit: 1000 })
       if (eventsData) {
         // Sort by event_time ascending
-        const sorted = [...eventsData].sort(
+        const sorted = [...eventsData.items].sort(
           (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
         )
         setAllEvents(sorted)

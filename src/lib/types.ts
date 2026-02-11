@@ -18,6 +18,7 @@ export type SubjectUpdate = components['schemas']['SubjectUpdate']
 // Event types
 export type EventResponse = components['schemas']['EventResponse']
 export type EventCreate = components['schemas']['EventCreate']
+export type EventListResponse = components['schemas']['EventListResponse']
 
 // Event Schema types
 export type EventSchemaResponse = components['schemas']['EventSchemaResponse']

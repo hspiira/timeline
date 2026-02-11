@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Calendar, Tag, AlertCircle, ChevronDown, ChevronRight, Activity, FileText, Shield } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Calendar, Tag, AlertCircle, ChevronDown, ChevronRight, Activity, FileText, Shield, ChevronLeft, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
 import { useStore } from '@tanstack/react-store'
 import { timelineApi } from '@/lib/api-client'
 import { authStore } from '@/lib/auth-store'
@@ -17,6 +17,8 @@ import type { SubjectResponse, EventResponse } from '@/lib/types'
 import { LoadingIcon } from '@/components/ui/icons'
 import { Button } from '@/components/ui/button'
 
+const PAGE_SIZE = 50
+
 export const Route = createFileRoute('/events/subject/$subjectId')({
   component: SubjectEventsPage,
 })
@@ -29,6 +31,8 @@ function SubjectEventsPage() {
   const authState = useStore(authStore)
   const [subject, setSubject] = useState<SubjectResponse | null>(null)
   const [events, setEvents] = useState<EventResponse[]>([])
+  const [totalEvents, setTotalEvents] = useState(0)
+  const [currentPage, setCurrentPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set())
@@ -38,18 +42,77 @@ function SubjectEventsPage() {
   const [detailsEventId, setDetailsEventId] = useState<string | null>(null)
   const [documentCounts, setDocumentCounts] = useState<Record<string, number>>({})
 
+  const totalPages = Math.ceil(totalEvents / PAGE_SIZE)
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authState.isLoading && !authState.user) {
-      navigate({ to: '/login' })
+      navigate({ to: '/login', search: { tenant: '' } })
     }
   }, [authState.isLoading, authState.user, navigate])
+
+  const goToPage = (page: number) => {
+    if (page >= 0 && page < totalPages) {
+      setCurrentPage(page)
+    }
+  }
+
+  const fetchEvents = useCallback(async (page: number) => {
+    setLoading(true)
+    try {
+      const skip = page * PAGE_SIZE
+      const { data: eventsData, error: eventsError } = await timelineApi.events.list(
+        subjectId,
+        { skip, limit: PAGE_SIZE }
+      )
+
+      if (eventsError) {
+        // @ts-expect-error - openapi-fetch error handling
+        const errorMessage = eventsError?.message || 'Unable to load events'
+        setError(errorMessage)
+      } else if (eventsData) {
+        setEvents(eventsData.items)
+        setTotalEvents(eventsData.total)
+
+        // Load document counts for current page events
+        const documentPromises = eventsData.items.map(async (event: EventResponse) => {
+          try {
+            const { data: docs, error } = await timelineApi.documents.listByEvent(event.id)
+            if (error) {
+              return { eventId: event.id, count: 0 }
+            }
+            return { eventId: event.id, count: Array.isArray(docs) ? docs.length : 0 }
+          } catch {
+            return { eventId: event.id, count: 0 }
+          }
+        })
+
+        const documentResults = await Promise.all(documentPromises)
+        const counts: Record<string, number> = {}
+        documentResults.forEach(({ eventId, count }: { eventId: string; count: number }) => {
+          counts[eventId] = count
+        })
+        setDocumentCounts(counts)
+      }
+    } catch (err) {
+      setError('An unexpected error occurred')
+      console.error('Error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [subjectId])
 
   useEffect(() => {
     if (authState.user) {
       fetchData()
     }
   }, [subjectId, authState.user])
+
+  useEffect(() => {
+    if (authState.user && subject) {
+      fetchEvents(currentPage)
+    }
+  }, [currentPage, authState.user, subject, fetchEvents])
 
   const fetchData = async () => {
     setLoading(true)
@@ -73,43 +136,10 @@ function SubjectEventsPage() {
         setSubject(subjectData)
       }
 
-      // Fetch events for subject
-      const { data: eventsData, error: eventsError } = await timelineApi.events.list(
-        subjectId
-      )
-
-      if (eventsError) {
-        // @ts-expect-error - openapi-fetch error handling
-        const errorMessage = eventsError?.message || 'Unable to load events'
-        setError(errorMessage)
-      } else if (eventsData) {
-        setEvents(eventsData)
-
-        // Load document counts for all events
-        const documentPromises = eventsData.map(async (event) => {
-          try {
-            const { data: docs, error } = await timelineApi.documents.listByEvent(event.id)
-            if (error) {
-              return { eventId: event.id, count: 0 }
-            }
-            return { eventId: event.id, count: Array.isArray(docs) ? docs.length : 0 }
-          } catch (err) {
-            return { eventId: event.id, count: 0 }
-          }
-        })
-
-        const documentResults = await Promise.all(documentPromises)
-        const counts: Record<string, number> = {}
-        documentResults.forEach(({ eventId, count }) => {
-          counts[eventId] = count
-        })
-        setDocumentCounts(counts)
-      }
+      // Events will be fetched by the useEffect that watches currentPage
     } catch (err) {
       setError('An unexpected error occurred')
       console.error('Error:', err)
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -270,7 +300,7 @@ function SubjectEventsPage() {
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Total Events</p>
               <p className="text-2xl font-bold text-foreground">
-                {events.length}
+                {totalEvents}
               </p>
             </div>
           </div>
@@ -375,6 +405,56 @@ function SubjectEventsPage() {
                   </div>
                 )
               })}
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
+              <div className="text-xs text-muted-foreground">
+                Showing {currentPage * PAGE_SIZE + 1}-{Math.min((currentPage + 1) * PAGE_SIZE, totalEvents)} of {totalEvents} events
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  onClick={() => goToPage(0)}
+                  disabled={currentPage === 0}
+                  variant="ghost"
+                  size="sm"
+                  title="First page"
+                >
+                  <ChevronsLeft className="w-4 h-4" />
+                </Button>
+                <Button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 0}
+                  variant="ghost"
+                  size="sm"
+                  title="Previous page"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <span className="px-3 text-xs text-foreground">
+                  Page {currentPage + 1} of {totalPages}
+                </span>
+                <Button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages - 1}
+                  variant="ghost"
+                  size="sm"
+                  title="Next page"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+                <Button
+                  onClick={() => goToPage(totalPages - 1)}
+                  disabled={currentPage >= totalPages - 1}
+                  variant="ghost"
+                  size="sm"
+                  title="Last page"
+                >
+                  <ChevronsRight className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           )}
         </div>

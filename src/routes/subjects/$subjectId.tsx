@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Calendar, Tag, AlertCircle, Boxes, FileText, Shield } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Calendar, Tag, AlertCircle, Boxes, FileText, Shield, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
 import { useStore } from '@tanstack/react-store'
 import { timelineApi } from '@/lib/api-client'
 import { authStore } from '@/lib/auth-store'
@@ -15,6 +15,8 @@ import type { SubjectResponse, EventResponse } from '@/lib/types'
 import { LoadingIcon } from '@/components/ui/icons'
 import { Button } from '@/components/ui/button'
 
+const PAGE_SIZE = 10
+
 export const Route = createFileRoute('/subjects/$subjectId')({
   component: SubjectDetailPage,
 })
@@ -27,26 +29,37 @@ function SubjectDetailPage() {
   const authState = useStore(authStore)
   const [subject, setSubject] = useState<SubjectResponse | null>(null)
   const [events, setEvents] = useState<EventResponse[]>([])
+  const [totalEvents, setTotalEvents] = useState(0)
+  const [currentPage, setCurrentPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<Tab>('events')
   const [viewingDocument, setViewingDocument] = useState<{ id: string; filename: string; type: string } | null>(null)
   const [documentCounts, setDocumentCounts] = useState<Record<string, number>>({})
 
+  const totalPages = Math.ceil(totalEvents / PAGE_SIZE)
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authState.isLoading && !authState.user) {
-      navigate({ to: '/login' })
+      navigate({ to: '/login', search: { tenant: '' } })
     }
   }, [authState.isLoading, authState.user, navigate])
 
   useEffect(() => {
     if (authState.user) {
-      fetchData()
+      fetchSubject()
     }
   }, [subjectId, authState.user])
 
-  const fetchData = async () => {
+  // Fetch events when page changes
+  useEffect(() => {
+    if (authState.user && subject) {
+      fetchEvents()
+    }
+  }, [currentPage, subject])
+
+  const fetchSubject = async () => {
     setLoading(true)
     setError(null)
 
@@ -67,10 +80,21 @@ function SubjectDetailPage() {
       if (subjectData) {
         setSubject(subjectData)
       }
+    } catch (err) {
+      setError('An unexpected error occurred')
+      console.error('Error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-      // Fetch events for subject
+  const fetchEvents = useCallback(async () => {
+    try {
+      // Fetch events for subject (paginated response)
+      const skip = currentPage * PAGE_SIZE
       const { data: eventsData, error: eventsError } = await timelineApi.events.list(
-        subjectId
+        subjectId,
+        { skip, limit: PAGE_SIZE }
       )
 
       if (eventsError) {
@@ -78,24 +102,25 @@ function SubjectDetailPage() {
         const errorMessage = eventsError?.message || 'Unable to load events'
         setError(errorMessage)
       } else if (eventsData) {
-        setEvents(eventsData)
+        setEvents(eventsData.items)
+        setTotalEvents(eventsData.total)
 
         // Load document counts for all events
-        const documentPromises = eventsData.map(async (event) => {
+        const documentPromises = eventsData.items.map(async (event: EventResponse) => {
           try {
             const { data: docs, error } = await timelineApi.documents.listByEvent(event.id)
             if (error) {
               return { eventId: event.id, count: 0 }
             }
             return { eventId: event.id, count: Array.isArray(docs) ? docs.length : 0 }
-          } catch (err) {
+          } catch {
             return { eventId: event.id, count: 0 }
           }
         })
 
         const documentResults = await Promise.all(documentPromises)
         const counts: Record<string, number> = {}
-        documentResults.forEach(({ eventId, count }) => {
+        documentResults.forEach(({ eventId, count }: { eventId: string; count: number }) => {
           counts[eventId] = count
         })
         setDocumentCounts(counts)
@@ -103,8 +128,12 @@ function SubjectDetailPage() {
     } catch (err) {
       setError('An unexpected error occurred')
       console.error('Error:', err)
-    } finally {
-      setLoading(false)
+    }
+  }, [subjectId, currentPage])
+
+  const goToPage = (page: number) => {
+    if (page >= 0 && page < totalPages) {
+      setCurrentPage(page)
     }
   }
 
@@ -173,7 +202,7 @@ function SubjectDetailPage() {
           </p>
           <div className="flex items-center justify-center gap-3">
             <Button
-              onClick={fetchData}
+              onClick={fetchSubject}
               variant="primary"
               size="sm"
             >
@@ -240,7 +269,7 @@ function SubjectDetailPage() {
           <div className="text-right">
             <p className="text-xs text-muted-foreground">Total Blocks</p>
             <p className="text-2xl font-bold text-foreground">
-              {events.length}
+              {totalEvents}
             </p>
           </div>
         </div>
@@ -300,7 +329,46 @@ function SubjectDetailPage() {
               />
             </div>
           ) : (
-            <EventBlockChain events={events} documentCounts={documentCounts} />
+            <>
+              <EventBlockChain
+                events={events}
+                documentCounts={documentCounts}
+                totalEvents={totalEvents}
+                pageOffset={currentPage * PAGE_SIZE}
+              />
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4 px-4 py-3 bg-card/80 backdrop-blur-sm rounded-xs border border-border/50">
+                  <div className="text-xs text-muted-foreground">
+                    Showing {currentPage * PAGE_SIZE + 1} - {Math.min((currentPage + 1) * PAGE_SIZE, totalEvents)} of {totalEvents} events
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => goToPage(currentPage - 1)}
+                      disabled={currentPage === 0}
+                      variant="ghost"
+                      size="sm"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      Previous
+                    </Button>
+                    <span className="text-xs text-muted-foreground px-2">
+                      Page {currentPage + 1} of {totalPages}
+                    </span>
+                    <Button
+                      onClick={() => goToPage(currentPage + 1)}
+                      disabled={currentPage >= totalPages - 1}
+                      variant="ghost"
+                      size="sm"
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

@@ -152,17 +152,45 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
 export interface EventBlockChainProps {
   events: EventResponse[]
   documentCounts?: Record<string, number>
+  /** Total number of events across all pages (for correct block numbering) */
+  totalEvents?: number
+  /** Current page offset (0-indexed, for correct block numbering) */
+  pageOffset?: number
 }
 
-export function EventBlockChain({ events, documentCounts = {} }: EventBlockChainProps) {
+export function EventBlockChain({
+  events,
+  documentCounts = {},
+  totalEvents,
+  pageOffset = 0,
+}: EventBlockChainProps) {
   if (events.length === 0) return null
 
-  // Build block index map (oldest = 0)
-  const blockIndexMap = new Map(
-    [...events]
-      .sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime())
-      .map((e, i) => [e.id, i])
+  // Sort events by time (oldest first) to determine block indices
+  const sortedByTime = [...events].sort(
+    (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
   )
+
+  // Calculate global block indices
+  // If we have totalEvents, we're paginating newest-first, so calculate from the end
+  // Otherwise fall back to local indexing
+  const blockIndexMap = new Map<string, number>()
+
+  if (totalEvents !== undefined && totalEvents > 0) {
+    // Events are displayed newest-first, but block numbers should be oldest=0
+    // Page 0 shows the newest events (indices: totalEvents-1 down to totalEvents-pageSize)
+    // The oldest event on current page has index: totalEvents - pageOffset - events.length
+    const oldestIndexOnPage = totalEvents - pageOffset - events.length
+
+    sortedByTime.forEach((e, i) => {
+      blockIndexMap.set(e.id, oldestIndexOnPage + i)
+    })
+  } else {
+    // Fallback: local indexing when total is unknown
+    sortedByTime.forEach((e, i) => {
+      blockIndexMap.set(e.id, i)
+    })
+  }
 
   // Display latest first
   const displayEvents = [...events].sort(
