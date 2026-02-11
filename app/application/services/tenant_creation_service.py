@@ -36,17 +36,22 @@ class TenantCreationService:
         self.user_repo = user_repo
         self.init_service = init_service
 
-    async def create_tenant(
-        self,
-        code: str,
-        name: str,
-        admin_password: str | None = None,
-    ) -> TenantCreationResult:
+    async def create_tenant(self, code: str, name: str) -> TenantCreationResult:
         """Create tenant, init RBAC, create admin user, assign admin role.
 
+        Admin password is always auto-generated and returned in the result.
         Caller must run this within a single DB transaction (e.g. use a
         transactional session dependency) so that tenant creation, RBAC init,
         user creation and role assignment are atomic.
+
+        Timeout / cancellation:
+        - Postgres: the whole flow runs in one transaction; on request timeout
+          (e.g. 504) the transaction is rolled back and no partial tenant is left.
+        - Firestore: each write commits immediately. If the request times out
+          mid-flow, you can get partial state (e.g. tenant + some permissions
+          but no admin user). Retrying with the same code will then fail with
+          "tenant already exists". Consider increasing timeout for this
+          endpoint or cleaning up orphaned tenant docs if needed.
         """
         existing = await self.tenant_repo.get_by_code(code)
         if existing:
@@ -63,7 +68,7 @@ class TenantCreationService:
             tenant_id=tenant_id,
         )
 
-        password = admin_password or self._generate_secure_password()
+        password = self._generate_secure_password()
         admin_username = "admin"
         admin_email = f"admin@{code}.tl"
         admin_user = await self.user_repo.create_user(

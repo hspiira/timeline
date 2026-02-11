@@ -137,8 +137,11 @@ async def delete_role(
     role_repo: RoleRepository = Depends(get_role_repo_for_write),
 ):
     """Deactivate role (soft delete). Tenant-scoped."""
+    role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
     result = await role_repo.deactivate(role_id)
-    if not result or result.tenant_id != tenant_id:
+    if not result:
         raise HTTPException(status_code=404, detail="Role not found")
 
 

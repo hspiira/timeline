@@ -109,22 +109,22 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
         max_attempts = 5
         for attempt in range(max_attempts):
             try:
-                version = await self.get_next_version(tenant_id, event_type)
-                schema = EventSchema(
-                    tenant_id=tenant_id,
-                    event_type=event_type,
-                    schema_definition=schema_definition,
-                    version=version,
-                    is_active=is_active,
-                    created_by=created_by,
-                )
-                created = await self.create(schema)
-                return _event_schema_to_result(created)
+                async with self.db.begin_nested():
+                    version = await self.get_next_version(tenant_id, event_type)
+                    schema = EventSchema(
+                        tenant_id=tenant_id,
+                        event_type=event_type,
+                        schema_definition=schema_definition,
+                        version=version,
+                        is_active=is_active,
+                        created_by=created_by,
+                    )
+                    created = await self.create(schema)
+                    return _event_schema_to_result(created)
             except IntegrityError:
-                await self.db.rollback()
                 if attempt == max_attempts - 1:
                     raise
-                # Retry with fresh version on next iteration
+                # Savepoint rolled back; retry with fresh version on next iteration
         raise RuntimeError("create_schema exhausted retries")  # unreachable
 
     async def get_active_schema(
@@ -140,7 +140,7 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
                     if cached.get(key) and isinstance(cached[key], str):
                         cached[key] = datetime.fromisoformat(cached[key])
                 schema = EventSchema(**cached)
-                merged = self.db.merge(schema)
+                merged = await self.db.merge(schema)
                 return _event_schema_to_result(merged)
         result = await self.db.execute(
             select(EventSchema)

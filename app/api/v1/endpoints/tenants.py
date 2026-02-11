@@ -1,4 +1,6 @@
-"""Tenant API: thin routes delegating to TenantCreationService and TenantRepository."""
+"""Tenant API: thin routes delegating to TenantCreationService and tenant repo (Postgres or Firestore)."""
+
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -7,9 +9,9 @@ from app.api.v1.dependencies import (
     get_tenant_repo,
     get_tenant_repo_for_write,
 )
+from app.application.interfaces.repositories import ITenantRepository
 from app.application.services.tenant_creation_service import TenantCreationService
 from app.domain.enums import TenantStatus
-from app.infrastructure.persistence.repositories.tenant_repo import TenantRepository
 from app.schemas.tenant import (
     TenantCreateRequest,
     TenantCreateResponse,
@@ -26,12 +28,11 @@ async def create_tenant(
     body: TenantCreateRequest,
     tenant_svc: TenantCreationService = Depends(get_tenant_creation_service),
 ):
-    """Create a new tenant with admin user and RBAC (permissions, roles, audit schema)."""
+    """Create a new tenant with admin user and RBAC. Only name and tenant code required; admin password is auto-generated."""
     try:
         result = await tenant_svc.create_tenant(
             code=body.code,
             name=body.name,
-            admin_password=body.admin_password,
         )
         return TenantCreateResponse(
             tenant_id=result.tenant_id,
@@ -46,9 +47,9 @@ async def create_tenant(
 
 @router.get("", response_model=list[TenantResponse])
 async def list_tenants(
+    tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo)],
     skip: int = 0,
     limit: int = 100,
-    tenant_repo: TenantRepository = Depends(get_tenant_repo),
 ):
     """List active tenants (paginated)."""
     tenants = await tenant_repo.get_active_tenants(skip=skip, limit=limit)
@@ -61,7 +62,7 @@ async def list_tenants(
 @router.get("/{tenant_id}", response_model=TenantResponse)
 async def get_tenant(
     tenant_id: str,
-    tenant_repo: TenantRepository = Depends(get_tenant_repo),
+    tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo)],
 ):
     """Get tenant by id."""
     tenant = await tenant_repo.get_by_id(tenant_id)
@@ -76,17 +77,14 @@ async def get_tenant(
 async def update_tenant(
     tenant_id: str,
     body: TenantUpdate,
-    tenant_repo: TenantRepository = Depends(get_tenant_repo_for_write),
+    tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo_for_write)],
 ):
     """Update tenant name and/or status."""
-    tenant = await tenant_repo.get_entity_by_id(tenant_id)
-    if not tenant:
+    updated = await tenant_repo.update_tenant(
+        tenant_id, name=body.name, status=body.status
+    )
+    if not updated:
         raise HTTPException(status_code=404, detail="Tenant not found")
-    if body.name is not None:
-        tenant.name = body.name
-    if body.status is not None:
-        tenant.status = body.status.value
-    updated = await tenant_repo.update(tenant)
     return TenantResponse(
         id=updated.id,
         code=updated.code,
@@ -99,7 +97,7 @@ async def update_tenant(
 async def update_tenant_status(
     tenant_id: str,
     body: TenantStatusUpdate,
-    tenant_repo: TenantRepository = Depends(get_tenant_repo_for_write),
+    tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo_for_write)],
 ):
     """Update tenant status (active, suspended, archived)."""
     updated = await tenant_repo.update_status(tenant_id, body.new_status)
@@ -116,9 +114,10 @@ async def update_tenant_status(
 @router.delete("/{tenant_id}", status_code=204)
 async def delete_tenant(
     tenant_id: str,
-    tenant_repo: TenantRepository = Depends(get_tenant_repo_for_write),
+    tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo_for_write)],
 ):
     """Soft-delete tenant by setting status to archived."""
     updated = await tenant_repo.update_status(tenant_id, TenantStatus.ARCHIVED)
     if not updated:
         raise HTTPException(status_code=404, detail="Tenant not found")
+    return None

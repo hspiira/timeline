@@ -142,7 +142,7 @@ class IEventSchemaRepository(Protocol):
 
 
 class ITenantRepository(Protocol):
-    """Protocol for tenant repository (DIP)."""
+    """Protocol for tenant repository (DIP). Postgres and Firestore implementations."""
 
     async def get_by_id(self, tenant_id: str) -> TenantResult | None:
         """Return tenant by ID."""
@@ -158,12 +158,39 @@ class ITenantRepository(Protocol):
         """Create tenant; return created entity with id."""
         ...
 
+    async def get_active_tenants(
+        self, skip: int = 0, limit: int = 100
+    ) -> list[TenantResult]:
+        """Return active tenants with pagination."""
+        ...
+
+    async def update_status(
+        self, tenant_id: str, status: TenantStatus
+    ) -> TenantResult | None:
+        """Update tenant status; return updated result or None."""
+        ...
+
+    async def update_tenant(
+        self,
+        tenant_id: str,
+        name: str | None = None,
+        status: TenantStatus | None = None,
+    ) -> TenantResult | None:
+        """Update tenant name and/or status; return updated result or None."""
+        ...
+
 
 class IUserRepository(Protocol):
-    """Protocol for user repository (DIP)."""
+    """Protocol for user repository (DIP). Postgres and Firestore implementations."""
 
     async def get_by_id(self, user_id: str) -> UserResult | None:
         """Return user by ID."""
+        ...
+
+    async def get_by_id_and_tenant(
+        self, user_id: str, tenant_id: str
+    ) -> UserResult | None:
+        """Return user by ID if they belong to the tenant."""
         ...
 
     async def create_user(

@@ -1,32 +1,42 @@
 """Tenant API schemas."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr, field_validator
 
 from app.domain.enums import TenantStatus
 
 
+def _normalize_tenant_code(value: str) -> str:
+    """Lowercase, no spaces, join with '-' (e.g. 'My Org' -> 'my-org')."""
+    return "-".join(value.strip().lower().split())
+
+
 class TenantCreateRequest(BaseModel):
-    """Request body for creating a new tenant with admin user."""
+    """Request body for creating a new tenant with admin user.
+
+    Only name and tenant code are required. Admin password is auto-generated
+    and returned in the response. Tenant code is normalized: lowercase,
+    spaces replaced with '-'.
+    """
 
     code: str = Field(
-        ..., min_length=1, max_length=64, description="Unique tenant code"
+        ..., min_length=1, max_length=64, description="Unique tenant code (normalized to lowercase, hyphen-separated)"
     )
     name: str = Field(..., min_length=1, max_length=255, description="Display name")
-    admin_password: str | None = Field(
-        default=None,
-        min_length=8,
-        description="Admin user password; generated if omitted",
-    )
+
+    @field_validator("code", mode="before")
+    @classmethod
+    def normalize_code(cls, v: str) -> str:
+        return _normalize_tenant_code(v)
 
 
 class TenantCreateResponse(BaseModel):
-    """Response after tenant creation. Admin password is never serialized in API output."""
+    """Response after tenant creation. Includes generated admin password (show once, then change)."""
 
     tenant_id: str
     tenant_code: str
     tenant_name: str
     admin_username: str
-    admin_password: str = Field(..., exclude=True)
+    admin_password: SecretStr = Field(..., description="Auto-generated; show once to the user")
 
 
 class TenantUpdate(BaseModel):

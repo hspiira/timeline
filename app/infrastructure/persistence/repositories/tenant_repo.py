@@ -111,7 +111,9 @@ class TenantRepository(AuditableRepository[Tenant]):
             await self.cache.set(tenant_key(tenant.id), d, ttl=self.cache_ttl)
         return _tenant_to_result(tenant) if tenant else None
 
-    async def get_active_tenants(self, skip: int = 0, limit: int = 100) -> list[Tenant]:
+    async def get_active_tenants(
+        self, skip: int = 0, limit: int = 100
+    ) -> list[TenantResult]:
         """Get active tenants with pagination."""
         result = await self.db.execute(
             select(Tenant)
@@ -119,25 +121,38 @@ class TenantRepository(AuditableRepository[Tenant]):
             .offset(skip)
             .limit(limit)
         )
-        return list(result.scalars().all())
+        return [_tenant_to_result(t) for t in result.scalars().all()]
 
     async def update_status(
         self, tenant_id: str, status: TenantStatus
-    ) -> Tenant | None:
+    ) -> TenantResult | None:
         """Update tenant status and emit status_changed audit (no generic UPDATED)."""
+        return await self.update_tenant(tenant_id, status=status)
+
+    async def update_tenant(
+        self,
+        tenant_id: str,
+        name: str | None = None,
+        status: TenantStatus | None = None,
+    ) -> TenantResult | None:
+        """Update tenant name and/or status; return updated result or None if not found."""
         tenant = await super().get_by_id(tenant_id)
         if not tenant:
             return None
         old_status = tenant.status
-        tenant.status = status.value
+        if name is not None:
+            tenant.name = name
+        if status is not None:
+            tenant.status = status.value
         updated = await self.update_without_audit(tenant)
         await _invalidate_tenant_cache(self.cache, updated.id, updated.code)
-        await self.emit_custom_audit(
-            updated,
-            AuditAction.STATUS_CHANGED,
-            metadata={"old_status": old_status, "new_status": status.value},
-        )
-        return updated
+        if status is not None:
+            await self.emit_custom_audit(
+                updated,
+                AuditAction.STATUS_CHANGED,
+                metadata={"old_status": old_status, "new_status": updated.status},
+            )
+        return _tenant_to_result(updated)
 
     async def _on_after_create(self, obj: Tenant) -> None:
         await super()._on_after_create(obj)

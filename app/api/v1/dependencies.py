@@ -3,10 +3,16 @@
 Provides FastAPI Depends() for DB sessions and application use cases.
 All use cases are built from infrastructure implementations here;
 routes depend only on these dependencies, not on infra directly.
+
+When database_backend is 'postgres', repositories use SQLAlchemy.
+When database_backend is 'firestore', tenant/user/tenant-creation use Firestore.
+Switch backends via DATABASE_BACKEND in config.
 """
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
+from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request
@@ -22,7 +28,12 @@ from app.application.use_cases.events import EventService
 from app.application.use_cases.subjects import SubjectService
 from app.core.config import get_settings
 from app.infrastructure.external.storage.factory import StorageFactory
-from app.infrastructure.persistence.database import get_db, get_db_transactional
+from app.infrastructure.persistence.database import (
+    AsyncSessionLocal,
+    get_db,
+    get_db_transactional,
+    _ensure_engine,
+)
 from app.infrastructure.persistence.repositories import (
     DocumentRepository,
     EmailAccountRepository,
@@ -44,15 +55,89 @@ from app.infrastructure.services import (
     WorkflowEngine,
 )
 
+# Firestore-backed repos and services (used when database_backend == "firestore")
+from app.infrastructure.firebase._rest_client import FirestoreRESTClient
+from app.infrastructure.firebase.client import get_firestore_client
+from app.infrastructure.firebase.repositories import (
+    FirestoreTenantRepository,
+    FirestoreUserRepository,
+)
+from app.infrastructure.firebase.services import FirestoreTenantInitializationService
 
-def get_tenant_id(request: Request) -> str:
-    """Resolve tenant ID from configured header; raise 400 if missing."""
+
+@dataclass
+class DbOrFirestore:
+    """Either a Postgres session or a Firestore client for swappable backends."""
+
+    db: AsyncSession | None
+    firestore: FirestoreRESTClient | None
+
+
+async def _get_db_or_firestore_read() -> AsyncGenerator[DbOrFirestore, None]:
+    """Yield DB session (read) or Firestore client based on config."""
+    settings = get_settings()
+    if settings.database_backend == "postgres":
+        _ensure_engine()
+        if AsyncSessionLocal is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Postgres not configured (set DATABASE_BACKEND=postgres and DATABASE_URL)",
+            )
+        async with AsyncSessionLocal() as session:
+            yield DbOrFirestore(db=session, firestore=None)
+    else:
+        client = get_firestore_client()
+        if not client:
+            raise HTTPException(
+                status_code=503,
+                detail="Firestore not configured (set FIREBASE_SERVICE_ACCOUNT_KEY or PATH)",
+            )
+        yield DbOrFirestore(db=None, firestore=client)
+
+
+async def _get_db_or_firestore_write() -> AsyncGenerator[DbOrFirestore, None]:
+    """Yield DB session (transactional) or Firestore client based on config."""
+    settings = get_settings()
+    if settings.database_backend == "postgres":
+        _ensure_engine()
+        if AsyncSessionLocal is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Postgres not configured (set DATABASE_BACKEND=postgres and DATABASE_URL)",
+            )
+        async with AsyncSessionLocal() as session:
+            async with session.begin():
+                yield DbOrFirestore(db=session, firestore=None)
+    else:
+        client = get_firestore_client()
+        if not client:
+            raise HTTPException(
+                status_code=503,
+                detail="Firestore not configured (set FIREBASE_SERVICE_ACCOUNT_KEY or PATH)",
+            )
+        yield DbOrFirestore(db=None, firestore=client)
+
+
+async def get_tenant_id(
+    request: Request,
+    tenant_repo: Annotated[
+        TenantRepository | FirestoreTenantRepository,
+        Depends(get_tenant_repo),
+    ],
+) -> str:
+    """Resolve tenant ID from header and validate it exists (Postgres or Firestore)."""
     name = get_settings().tenant_header_name
     value = request.headers.get(name)
     if not value:
         raise HTTPException(
             status_code=400,
             detail=f"Missing required header: {name}",
+        )
+    tenant = await tenant_repo.get_by_id(value)
+    if not tenant:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or unknown tenant",
         )
     return value
 
@@ -106,16 +191,20 @@ async def get_document_repo_for_write(
 
 
 async def get_tenant_creation_service(
-    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_write)],
 ) -> TenantCreationService:
-    """Build TenantCreationService for tenant + admin user + RBAC init."""
-    tenant_repo = TenantRepository(db)
-    user_repo = UserRepository(db)
-    init_service = TenantInitializationService(db)
+    """Build TenantCreationService (Postgres or Firestore from config)."""
+    if backend.db is not None:
+        return TenantCreationService(
+            tenant_repo=TenantRepository(backend.db),
+            user_repo=UserRepository(backend.db),
+            init_service=TenantInitializationService(backend.db),
+        )
+    assert backend.firestore is not None
     return TenantCreationService(
-        tenant_repo=tenant_repo,
-        user_repo=user_repo,
-        init_service=init_service,
+        tenant_repo=FirestoreTenantRepository(backend.firestore),
+        user_repo=FirestoreUserRepository(backend.firestore),
+        init_service=FirestoreTenantInitializationService(backend.firestore),
     )
 
 
@@ -156,17 +245,23 @@ async def get_verification_service(
 
 
 async def get_tenant_repo(
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> TenantRepository:
-    """Tenant repository for read operations (list, get by id)."""
-    return TenantRepository(db, cache_service=None, audit_service=None)
+    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_read)],
+) -> TenantRepository | FirestoreTenantRepository:
+    """Tenant repository (Postgres or Firestore from config)."""
+    if backend.db is not None:
+        return TenantRepository(backend.db, cache_service=None, audit_service=None)
+    assert backend.firestore is not None
+    return FirestoreTenantRepository(backend.firestore)
 
 
 async def get_tenant_repo_for_write(
-    db: Annotated[AsyncSession, Depends(get_db_transactional)],
-) -> TenantRepository:
-    """Tenant repository for write operations (update, status, delete)."""
-    return TenantRepository(db, cache_service=None, audit_service=None)
+    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_write)],
+) -> TenantRepository | FirestoreTenantRepository:
+    """Tenant repository for writes (Postgres or Firestore from config)."""
+    if backend.db is not None:
+        return TenantRepository(backend.db, cache_service=None, audit_service=None)
+    assert backend.firestore is not None
+    return FirestoreTenantRepository(backend.firestore)
 
 
 async def get_subject_service(
@@ -199,17 +294,23 @@ async def get_event_schema_repo_for_write(
 
 
 async def get_user_repo(
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> UserRepository:
-    """User repository for read operations (list, get by id)."""
-    return UserRepository(db, audit_service=None)
+    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_read)],
+) -> UserRepository | FirestoreUserRepository:
+    """User repository (Postgres or Firestore from config)."""
+    if backend.db is not None:
+        return UserRepository(backend.db, audit_service=None)
+    assert backend.firestore is not None
+    return FirestoreUserRepository(backend.firestore)
 
 
 async def get_user_repo_for_write(
-    db: Annotated[AsyncSession, Depends(get_db_transactional)],
-) -> UserRepository:
-    """User repository for create/update (transactional)."""
-    return UserRepository(db, audit_service=None)
+    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_write)],
+) -> UserRepository | FirestoreUserRepository:
+    """User repository for writes (Postgres or Firestore from config)."""
+    if backend.db is not None:
+        return UserRepository(backend.db, audit_service=None)
+    assert backend.firestore is not None
+    return FirestoreUserRepository(backend.firestore)
 
 
 async def get_workflow_repo(

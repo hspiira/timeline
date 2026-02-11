@@ -31,8 +31,16 @@ def _load_key_dict():
         except json.JSONDecodeError as e:
             raise ValueError("FIREBASE_SERVICE_ACCOUNT_KEY is not valid JSON") from e
     path = settings.firebase_service_account_path
-    if path and Path(path).is_file():
-        with open(path, encoding="utf-8") as f:
+    if path:
+        resolved = Path(path).expanduser().resolve() if not Path(path).is_absolute() else Path(path)
+        if not resolved.is_file():
+            logger.warning(
+                "FIREBASE_SERVICE_ACCOUNT_PATH set but file not found: %s (resolved: %s)",
+                path,
+                resolved,
+            )
+            return None
+        with open(resolved, encoding="utf-8") as f:
             return json.load(f)
     return None
 
