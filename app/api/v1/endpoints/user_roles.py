@@ -12,6 +12,7 @@ from app.api.v1.dependencies import (
     get_user_role_repo_for_write,
     require_permission,
 )
+from app.application.dtos.user import UserResult
 from app.core.limiter import limit_writes
 from app.infrastructure.persistence.repositories.role_repo import RoleRepository
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
@@ -25,7 +26,7 @@ router = APIRouter()
 
 @router.get("/me/roles", response_model=list[RoleResponse])
 async def list_my_roles(
-    current_user: Annotated[object, Depends(require_permission("user_role", "read"))],
+    current_user: Annotated[UserResult, Depends(require_permission("user_role", "read"))],
     user_role_repo: UserRoleRepository = Depends(get_user_role_repo),
 ):
     """List roles assigned to the current authenticated user."""

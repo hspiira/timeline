@@ -3,7 +3,7 @@
 from app.schemas.auth import LoginRequest, TokenResponse
 from app.schemas.email_account import EmailAccountResponse
 from app.schemas.health import HealthResponse
-from app.schemas.event import EventCreate, EventListResponse, EventResponse
+from app.schemas.event import EventCreateRequest, EventListResponse, EventResponse
 from app.schemas.oauth_provider_config import OAuthConfigResponse
 from app.schemas.permission import PermissionResponse
 from app.schemas.role import RoleResponse
@@ -26,7 +26,7 @@ __all__ = [
     "RoleResponse",
     "LoginRequest",
     "TokenResponse",
-    "EventCreate",
+    "EventCreateRequest",
     "EventListResponse",
     "EventResponse",
     "EventSchemaCreateRequest",

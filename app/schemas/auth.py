@@ -1,6 +1,6 @@
 """Auth API schemas."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 class LoginRequest(BaseModel):
@@ -20,7 +20,7 @@ class RegisterRequest(BaseModel):
 
     tenant_code: str = Field(..., min_length=1, description="Tenant code (e.g. org slug)")
     username: str = Field(..., min_length=1)
-    email: str = Field(..., min_length=1)
+    email: EmailStr = Field(...)
     password: str = Field(..., min_length=8, description="Password (min 8 characters)")
 
 

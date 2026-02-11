@@ -19,6 +19,7 @@ from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.dtos.user import UserResult
 from app.application.services.authorization_service import AuthorizationService
 from app.application.services.event_schema_validator import EventSchemaValidator
 from app.application.services.hash_service import HashService
@@ -46,6 +47,7 @@ from app.infrastructure.persistence.database import (
     get_db_transactional,
     _ensure_engine,
 )
+from app.infrastructure.persistence.models.user import User
 from app.infrastructure.persistence.repositories import (
     DocumentRepository,
     EmailAccountRepository,
@@ -213,21 +215,35 @@ async def get_tenant_id(
 async def get_event_service(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
 ) -> EventService:
-    """Build EventService with hash chaining, schema validation, and workflow engine."""
+    """Build EventService with hash chaining, schema validation, and workflow engine.
+
+    EventService and WorkflowEngine depend on each other (event creation can trigger
+    workflows; workflows can create events). We break the cycle by:
+    1. Creating EventService with a provider that returns the engine from a holder.
+    2. Creating WorkflowEngine with the event service.
+    3. Storing the engine in the holder so the provider resolves on first use.
+    """
     event_repo = EventRepository(db)
     hash_service = HashService()
     subject_repo = SubjectRepository(db, audit_service=None)
     schema_repo = EventSchemaRepository(db, cache_service=None, audit_service=None)
     schema_validator = EventSchemaValidator(schema_repo)
     workflow_repo = WorkflowRepository(db, audit_service=None)
+
+    workflow_engine_holder: list[WorkflowEngine | None] = [None]
+
+    def get_workflow_engine() -> WorkflowEngine | None:
+        return workflow_engine_holder[0]
+
     event_service = EventService(
         event_repo=event_repo,
         hash_service=hash_service,
         subject_repo=subject_repo,
         schema_validator=schema_validator,
-        workflow_engine_provider=lambda: workflow_engine,
+        workflow_engine_provider=get_workflow_engine,
     )
     workflow_engine = WorkflowEngine(db, event_service, workflow_repo)
+    workflow_engine_holder[0] = workflow_engine
     return event_service
 
 
@@ -558,10 +574,23 @@ def get_user_service(
 _http_bearer = HTTPBearer(auto_error=False)
 
 
+def _to_user_result(user: User | UserResult) -> UserResult:
+    """Normalize repo result (ORM User or UserResult) to UserResult for consistent typing."""
+    if isinstance(user, UserResult):
+        return user
+    return UserResult(
+        id=user.id,
+        tenant_id=user.tenant_id,
+        username=user.username,
+        email=user.email,
+        is_active=user.is_active,
+    )
+
+
 async def get_current_user_optional(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_http_bearer)],
     user_repo: Annotated[UserRepository, Depends(get_user_repo)],
-):
+) -> UserResult | None:
     """Return current user from JWT if present; else None. Use for optional auth routes."""
     if not credentials:
         return None
@@ -576,14 +605,14 @@ async def get_current_user_optional(
         user = await user_repo.get_by_id_and_tenant(user_id, tenant_id)
         if not user or not user.is_active:
             return None
-        return user
+        return _to_user_result(user)
     except (ValueError, KeyError):
         return None
 
 
 async def get_current_user(
-    current_user: Annotated[object | None, Depends(get_current_user_optional)],
-):
+    current_user: Annotated[UserResult | None, Depends(get_current_user_optional)],
+) -> UserResult:
     """Return current user from JWT; raise 401 if missing or invalid."""
     if current_user is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -594,17 +623,15 @@ def require_permission(resource: str, action: str):
     """Dependency factory: require JWT auth and that the user has resource:action."""
 
     async def _require(
-        current_user: Annotated[object, Depends(get_current_user)],
+        current_user: Annotated[UserResult, Depends(get_current_user)],
         tenant_id: Annotated[str, Depends(get_tenant_id)],
         auth_svc: Annotated[AuthorizationService, Depends(get_authorization_service)],
-    ) -> object:
-        user_tenant = getattr(current_user, "tenant_id", None)
-        if user_tenant != tenant_id:
+    ) -> UserResult:
+        if current_user.tenant_id != tenant_id:
             raise HTTPException(status_code=403, detail="Forbidden")
-        user_id = getattr(current_user, "id", None)
-        if not user_id:
-            raise HTTPException(status_code=403, detail="Forbidden")
-        await auth_svc.require_permission(user_id, tenant_id, resource, action)
+        await auth_svc.require_permission(
+            current_user.id, tenant_id, resource, action
+        )
         return current_user
 
     return _require

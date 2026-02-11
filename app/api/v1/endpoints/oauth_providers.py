@@ -5,7 +5,7 @@ Uses only injected get_oauth_provider_config_repo / get_oauth_provider_config_re
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
     OAuthDriverRegistry,
@@ -16,6 +16,7 @@ from app.api.v1.dependencies import (
     get_tenant_id,
     require_permission,
 )
+from app.application.dtos.user import UserResult
 from app.infrastructure.services.oauth_config_service import OAuthConfigService
 from app.core.limiter import limit_writes
 from app.infrastructure.persistence.repositories.oauth_provider_config_repo import (
@@ -25,7 +26,7 @@ from app.schemas.oauth_provider_config import (
     OAuthAuthorizeResponse,
     OAuthCallbackTokenResponse,
     OAuthConfigAuditResponse,
-    OAuthConfigCreate,
+    OAuthConfigCreateRequest,
     OAuthConfigResponse,
     OAuthConfigRotateRequest,
     OAuthConfigUpdate,
@@ -44,8 +45,8 @@ async def list_oauth_configs(
         OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo)
     ],
     include_inactive: bool = False,
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
     _: Annotated[object, Depends(require_permission("oauth_config", "read"))] = None,
 ):
     """List OAuth provider configs for tenant."""
@@ -67,7 +68,7 @@ async def oauth_authorize(
     request: Request,
     provider: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(require_permission("oauth_config", "read"))],
+    current_user: Annotated[UserResult, Depends(require_permission("oauth_config", "read"))],
     oauth_service: OAuthConfigService = Depends(get_oauth_config_service),
     return_url: str | None = None,
 ):
@@ -172,9 +173,9 @@ async def get_oauth_config(
 @limit_writes
 async def create_oauth_config(
     request: Request,
-    body: OAuthConfigCreate,
+    body: OAuthConfigCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(require_permission("oauth_config", "create"))],
+    current_user: Annotated[UserResult, Depends(require_permission("oauth_config", "create"))],
     oauth_service: OAuthConfigService = Depends(get_oauth_config_service),
 ):
     """Create OAuth provider config (envelope-encrypted credentials)."""
@@ -220,7 +221,7 @@ async def delete_oauth_config(
     request: Request,
     config_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(require_permission("oauth_config", "delete"))],
+    current_user: Annotated[UserResult, Depends(require_permission("oauth_config", "delete"))],
     oauth_repo: Annotated[
         OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo_for_write)
     ],
@@ -243,7 +244,7 @@ async def rotate_oauth_config(
     config_id: str,
     body: OAuthConfigRotateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(require_permission("oauth_config", "update"))],
+    current_user: Annotated[UserResult, Depends(require_permission("oauth_config", "update"))],
     oauth_service: OAuthConfigService = Depends(get_oauth_config_service),
 ):
     """Rotate OAuth credentials: create new version with new client_id/client_secret."""

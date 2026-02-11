@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
     get_tenant_id,
@@ -56,8 +56,8 @@ async def get_user(
 @router.get("", response_model=list[UserResponse])
 async def list_users(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
     user_repo: UserRepository = Depends(get_user_repo),
     _: Annotated[object, Depends(require_permission("user", "read"))] = None,
 ):

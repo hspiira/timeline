@@ -3,7 +3,7 @@
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 
 from app.api.v1.dependencies import (
     get_document_query_service,
@@ -127,7 +127,7 @@ async def get_document_versions(
 async def get_document_download_url(
     document_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    expires_in_hours: int = 1,
+    expires_in_hours: int = Query(1, ge=1, le=168),
     query_svc: DocumentQueryService = Depends(get_document_query_service),
     _: Annotated[object, Depends(require_permission("document", "read"))] = None,
 ):

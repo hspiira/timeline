@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
     get_subject_repo_for_write,
@@ -58,8 +58,8 @@ async def get_subject(
 @router.get("", response_model=list[SubjectResponse])
 async def list_subjects(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
     subject_type: str | None = None,
     subject_svc: SubjectService = Depends(get_subject_service),
     _: Annotated[object, Depends(require_permission("subject", "read"))] = None,

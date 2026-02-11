@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.exc import IntegrityError
 
 from app.api.v1.dependencies import (
@@ -20,7 +20,7 @@ from app.infrastructure.persistence.repositories.role_permission_repo import (
 )
 from app.infrastructure.persistence.repositories.role_repo import RoleRepository
 from app.schemas.role import (
-    RoleCreate,
+    RoleCreateRequest,
     RolePermissionAssign,
     RoleResponse,
     RoleUpdate,
@@ -34,7 +34,7 @@ router = APIRouter()
 @limit_writes
 async def create_role(
     request: Request,
-    body: RoleCreate,
+    body: RoleCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     role_service: RoleService = Depends(get_role_service),
     _: Annotated[object, Depends(require_permission("role", "create"))] = None,
@@ -59,8 +59,8 @@ async def create_role(
 @router.get("", response_model=list[RoleResponse])
 async def list_roles(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
     include_inactive: bool = False,
     role_repo: RoleRepository = Depends(get_role_repo),
     _: Annotated[object, Depends(require_permission("role", "read"))] = None,

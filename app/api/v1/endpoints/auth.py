@@ -18,6 +18,7 @@ from app.api.v1.dependencies import (
     get_user_repo_for_write,
     get_user_service,
 )
+from app.application.dtos.user import UserResult
 from app.application.services.user_service import UserService
 from app.core.limiter import limit_auth, limit_writes
 from app.infrastructure.persistence.repositories.tenant_repo import TenantRepository
@@ -89,7 +90,7 @@ async def login(
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(
-    current_user: Annotated[object, Depends(get_current_user)],
+    current_user: Annotated[UserResult, Depends(get_current_user)],
 ):
     """Return the currently authenticated user from JWT.
 
@@ -103,7 +104,7 @@ async def get_me(
 async def update_me(
     request: Request,
     body: UserUpdate,
-    current_user: Annotated[object, Depends(get_current_user)],
+    current_user: Annotated[UserResult, Depends(get_current_user)],
     user_service: UserService = Depends(get_user_service),
 ):
     """Update current user email and/or password. Requires Authorization."""
@@ -126,7 +127,7 @@ async def update_me(
 @limit_writes
 async def delete_me(
     request: Request,
-    current_user: Annotated[object, Depends(get_current_user)],
+    current_user: Annotated[UserResult, Depends(get_current_user)],
     user_repo: UserRepository = Depends(get_user_repo_for_write),
 ):
     """Deactivate current user (soft delete). Requires Authorization."""

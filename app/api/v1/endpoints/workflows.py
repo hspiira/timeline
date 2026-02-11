@@ -162,8 +162,8 @@ async def delete_workflow(
 @router.get("", response_model=list[WorkflowResponse])
 async def list_workflows(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
     include_inactive: bool = False,
     workflow_repo: WorkflowRepository = Depends(get_workflow_repo),
     _: Annotated[object, Depends(require_permission("workflow", "read"))] = None,

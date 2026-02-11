@@ -2,17 +2,17 @@
 
 from typing import Any
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 
 class EventCreateRequest(BaseModel):
     """Payload for creating an event. Schema version must match an active schema."""
 
-    subject_id: str
-    event_type: str
-    schema_version: int
+    subject_id: str = Field(..., min_length=1)
+    event_type: str = Field(..., min_length=1)
+    schema_version: int = Field(..., ge=1)
     event_time: AwareDatetime
-    payload: dict[str, Any]
+    payload: dict[str, Any] = Field(default_factory=dict)
 
 
 class EventListResponse(BaseModel):

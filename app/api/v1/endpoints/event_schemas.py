@@ -10,6 +10,7 @@ from app.api.v1.dependencies import (
     get_tenant_id,
     require_permission,
 )
+from app.application.dtos.user import UserResult
 from app.core.limiter import limit_writes
 from app.infrastructure.persistence.repositories.event_schema_repo import (
     EventSchemaRepository,
@@ -30,7 +31,7 @@ async def create_event_schema(
     request: Request,
     body: EventSchemaCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(require_permission("event_schema", "create"))],
+    current_user: Annotated[UserResult, Depends(require_permission("event_schema", "create"))],
     schema_repo: EventSchemaRepository = Depends(get_event_schema_repo_for_write),
 ):
     """Create a new event schema version (tenant-scoped). created_by from authenticated user."""
@@ -40,7 +41,7 @@ async def create_event_schema(
             event_type=body.event_type,
             schema_definition=body.schema_definition,
             is_active=body.is_active,
-            created_by=getattr(current_user, "id", None),
+            created_by=current_user.id,
         )
         return EventSchemaResponse(
             id=schema.id,

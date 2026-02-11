@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
     get_event_repo,
@@ -22,7 +22,7 @@ from app.infrastructure.persistence.repositories.event_repo import EventReposito
 from app.schemas.event import (
     ChainVerificationResponse,
     EventCountResponse,
-    EventCreate,
+    EventCreateRequest,
     EventListResponse,
     EventResponse,
     EventVerificationResult,
@@ -64,7 +64,7 @@ def _to_verification_response(
 @limit_writes
 async def create_event(
     request: Request,
-    body: EventCreate,
+    body: EventCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     event_svc: Annotated[EventService, Depends(get_event_service)],
     _: Annotated[object, Depends(require_permission("event", "create"))] = None,
@@ -98,8 +98,8 @@ async def list_events(
     event_repo: Annotated[EventRepository, Depends(get_event_repo)],
     _: Annotated[object, Depends(require_permission("event", "read"))] = None,
     subject_id: str | None = None,
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
 ):
     """List events for tenant; optionally filter by subject_id."""
     if subject_id:

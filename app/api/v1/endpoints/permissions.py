@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.exc import IntegrityError
 
 from app.api.v1.dependencies import (
@@ -17,7 +17,7 @@ from app.core.limiter import limit_writes
 from app.infrastructure.persistence.repositories.permission_repo import (
     PermissionRepository,
 )
-from app.schemas.permission import PermissionCreate, PermissionResponse
+from app.schemas.permission import PermissionCreateRequest, PermissionResponse
 
 router = APIRouter()
 
@@ -26,7 +26,7 @@ router = APIRouter()
 @limit_writes
 async def create_permission(
     request: Request,
-    body: PermissionCreate,
+    body: PermissionCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     permission_service: PermissionService = Depends(get_permission_service),
     _: Annotated[object, Depends(require_permission("permission", "create"))] = None,
@@ -51,8 +51,8 @@ async def create_permission(
 @router.get("", response_model=list[PermissionResponse])
 async def list_permissions(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    skip: int = 0,
-    limit: int = 200,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(200, ge=1, le=1000),
     permission_repo: PermissionRepository = Depends(get_permission_repo),
     _: Annotated[object, Depends(require_permission("permission", "read"))] = None,
 ):

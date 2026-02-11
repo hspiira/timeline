@@ -15,7 +15,9 @@ router = APIRouter()
 async def websocket_status(request: Request) -> WebSocketStatusResponse:
     """Return WebSocket connection status for monitoring."""
     manager = getattr(request.app.state, "ws_manager", None)
-    total_connections = manager.connection_count if manager else 0
+    total_connections = (
+        await manager.get_connection_count() if manager else 0
+    )
     return WebSocketStatusResponse(total_connections=total_connections)
 
 
@@ -41,20 +43,22 @@ async def websocket_endpoint(websocket: WebSocket):
         from app.infrastructure.security.jwt import verify_token
 
         payload = verify_token(token)
-        if not payload.get("sub") or not payload.get("tenant_id"):
+        user_id = payload.get("sub")
+        tenant_id = payload.get("tenant_id")
+        if not user_id or not tenant_id:
             await _reject_websocket(websocket, "Invalid token")
             return
     except ValueError:
         await _reject_websocket(websocket, "Invalid token")
         return
-    await manager.connect(websocket)
+
+    await manager.connect(websocket, tenant_id=tenant_id)
     try:
         while True:
-            data = await websocket.receive_text()
-            await websocket.send_text(f"Echo: {data}")
+            await websocket.receive_text()
+            # Placeholder: drain messages until disconnect. Real push/notify
+            # can use manager.broadcast_to_tenant(tenant_id, message).
     except WebSocketDisconnect:
         pass
-    except Exception:
-        raise
     finally:
         await manager.disconnect(websocket)

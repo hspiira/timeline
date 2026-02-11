@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
     get_tenant_creation_service,
@@ -53,8 +53,8 @@ async def create_tenant(
 @router.get("", response_model=list[TenantResponse])
 async def list_tenants(
     tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo)],
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
     _: Annotated[object, Depends(require_permission("tenant", "read"))] = None,
 ):
     """List active tenants (paginated). Requires tenant:read and X-Tenant-ID header."""

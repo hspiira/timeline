@@ -8,7 +8,7 @@ import hmac
 import hashlib
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
     get_email_account_repo,
@@ -24,7 +24,7 @@ from app.infrastructure.persistence.repositories.email_account_repo import (
     EmailAccountRepository,
 )
 from app.schemas.email_account import (
-    EmailAccountCreate,
+    EmailAccountCreateRequest,
     EmailAccountResponse,
     EmailAccountSyncStatusResponse,
     EmailAccountUpdate,
@@ -41,8 +41,8 @@ async def list_email_accounts(
     email_account_repo: Annotated[
         EmailAccountRepository, Depends(get_email_account_repo)
     ],
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
     _: Annotated[object, Depends(require_permission("email_account", "read"))] = None,
 ):
     """List email accounts for tenant (paginated)."""
@@ -74,7 +74,7 @@ async def get_email_account(
 @limit_writes
 async def create_email_account(
     request: Request,
-    body: EmailAccountCreate,
+    body: EmailAccountCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     email_account_service: EmailAccountService = Depends(get_email_account_service),
     _: Annotated[object, Depends(require_permission("email_account", "create"))] = None,

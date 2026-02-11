@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class EmailAccountCreateRequest(BaseModel):
@@ -10,7 +10,7 @@ class EmailAccountCreateRequest(BaseModel):
 
     subject_id: str = Field(..., min_length=1)
     provider_type: str = Field(..., min_length=1, description="e.g. gmail, outlook, imap")
-    email_address: str = Field(..., min_length=1)
+    email_address: EmailStr = Field(...)
     credentials: dict = Field(default_factory=dict, description="Provider credentials (encrypted at rest)")
     connection_params: dict | None = None
     oauth_provider_config_id: str | None = None
@@ -19,7 +19,7 @@ class EmailAccountCreateRequest(BaseModel):
 class EmailAccountUpdate(BaseModel):
     """Request body for PATCH (partial update)."""
 
-    email_address: str | None = Field(None, min_length=1)
+    email_address: EmailStr | None = None
     connection_params: dict | None = None
     is_active: bool | None = None
     sync_status: str | None = None
