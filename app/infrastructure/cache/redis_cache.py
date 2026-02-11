@@ -70,8 +70,22 @@ class CacheService:
         """Close Redis connection. Call on app shutdown."""
         if self.redis:
             await self.redis.close()
+            self.redis = None
             self._connected = False
             logger.info("Redis cache disconnected")
+
+    async def _reconnect(self) -> bool:
+        """Attempt to reconnect after disconnect. Returns True if reconnected."""
+        if self.redis is None:
+            return False
+        try:
+            await self.redis.close()
+        except redis.RedisError:
+            pass
+        self.redis = None
+        self._connected = False
+        await self.connect()
+        return self._connected
 
     def is_available(self) -> bool:
         """Return True if Redis is connected and usable."""
@@ -95,7 +109,19 @@ class CacheService:
                 return json.loads(value)
             logger.debug("Cache MISS: %s", key)
             return None
-        except Exception:
+        except (redis.ConnectionError, redis.TimeoutError):
+            if await self._reconnect():
+                try:
+                    value = await self.redis.get(key)
+                    if value is not None:
+                        return json.loads(value)
+                    return None
+                except redis.RedisError:
+                    logger.exception("Cache get error for key %s after reconnect", key)
+                    return None
+            logger.warning("Cache get unavailable for key %s (Redis disconnected)", key)
+            return None
+        except redis.RedisError:
             logger.exception("Cache get error for key %s", key)
             return None
 
@@ -117,7 +143,16 @@ class CacheService:
             await self.redis.setex(key, ttl, serialized)
             logger.debug("Cache SET: %s (TTL: %ss)", key, ttl)
             return True
-        except Exception:
+        except (redis.ConnectionError, redis.TimeoutError):
+            if await self._reconnect():
+                try:
+                    await self.redis.setex(key, ttl, serialized)
+                    return True
+                except redis.RedisError:
+                    pass
+            logger.warning("Cache set unavailable for key %s (Redis disconnected)", key)
+            return False
+        except redis.RedisError:
             logger.exception("Cache set error for key %s", key)
             return False
 
@@ -136,7 +171,15 @@ class CacheService:
             await self.redis.delete(key)
             logger.debug("Cache DELETE: %s", key)
             return True
-        except Exception:
+        except (redis.ConnectionError, redis.TimeoutError):
+            if await self._reconnect():
+                try:
+                    await self.redis.delete(key)
+                    return True
+                except redis.RedisError:
+                    pass
+            return False
+        except redis.RedisError:
             logger.exception("Cache delete error for key %s", key)
             return False
 
@@ -162,21 +205,26 @@ class CacheService:
                 chunk.append(key)
                 if len(chunk) >= chunk_size:
                     async with self.redis.pipeline(transaction=False) as pipe:
-                        for k in chunk:
-                            pipe.delete(k)
+                        pipe.unlink(*chunk)
                         results = await pipe.execute()
                     deleted += sum(int(r or 0) for r in results)
                     chunk = []
             if chunk:
                 async with self.redis.pipeline(transaction=False) as pipe:
-                    for k in chunk:
-                        pipe.delete(k)
+                    pipe.unlink(*chunk)
                     results = await pipe.execute()
                 deleted += sum(int(r or 0) for r in results)
             if deleted > 0:
                 logger.info("Cache INVALIDATE: %s (%s keys)", pattern, deleted)
             return deleted
-        except Exception:
+        except (redis.ConnectionError, redis.TimeoutError):
+            if await self._reconnect():
+                return await self.delete_pattern(pattern)
+            logger.warning(
+                "Cache delete_pattern unavailable for %s (Redis disconnected)", pattern
+            )
+            return 0
+        except redis.RedisError:
             logger.exception("Cache delete_pattern error for %s", pattern)
             return 0
 
@@ -192,9 +240,38 @@ class CacheService:
             await self.redis.flushdb()
             logger.warning("Cache CLEARED: all keys deleted")
             return True
-        except Exception:
+        except (redis.ConnectionError, redis.TimeoutError):
+            if await self._reconnect():
+                try:
+                    await self.redis.flushdb()
+                    return True
+                except redis.RedisError:
+                    pass
+            return False
+        except redis.RedisError:
             logger.exception("Cache clear error")
             return False
+
+
+def _resolve_cache(args: tuple[Any, ...], kwargs: dict[str, Any]) -> tuple[CacheService | None, tuple[Any, ...], dict[str, Any]]:
+    """Resolve CacheService and args/kwargs for the wrapped function.
+
+    Resolution order: keyword "cache", then args[0].cache, then args[0] if CacheService.
+    Callers must pass cache via keyword "cache" (recommended) or as first arg's .cache
+    attribute or as the first argument.
+    """
+    if "cache" in kwargs and isinstance(kwargs.get("cache"), CacheService):
+        cache = kwargs["cache"]
+        call_kwargs = {k: v for k, v in kwargs.items() if k != "cache"}
+        return cache, args, call_kwargs
+    if args:
+        first = args[0]
+        if isinstance(first, CacheService):
+            return first, args[1:], kwargs
+        cache_attr = getattr(first, "cache", None)
+        if isinstance(cache_attr, CacheService):
+            return cache_attr, args[1:], kwargs
+    return None, args, kwargs
 
 
 def cached(
@@ -204,46 +281,31 @@ def cached(
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator to cache async function results in Redis.
 
+    The wrapped function must receive a CacheService in one of these ways:
+    - keyword argument "cache" (recommended, e.g. from Depends),
+    - first argument has a .cache attribute that is a CacheService,
+    - or first argument is the CacheService instance.
+
     Args:
         key_prefix: Prefix for cache key (e.g. 'permission').
         ttl: Time-to-live in seconds.
         key_builder: Optional callable(args, kwargs) -> key; else built from args/kwargs.
 
     Returns:
-        Decorator that caches return value when CacheService is in args or kwargs.
+        Decorator that caches return value when CacheService is resolved.
     """
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
-            cache: CacheService | None = None
-            # Detect CacheService from first arg, self.cache, or explicit kwarg.
-            if args and isinstance(args[0], CacheService):
-                cache = args[0]
-                func_args = args[1:]
-                call_kwargs = kwargs
-            elif args and hasattr(args[0], "cache") and isinstance(
-                getattr(args[0], "cache"), CacheService
-            ):
-                cache = getattr(args[0], "cache")
-                func_args = args[1:]
-                call_kwargs = kwargs
-            elif "cache" in kwargs and isinstance(kwargs["cache"], CacheService):
-                cache = kwargs["cache"]
-                func_args = args
-                # Do not expose "cache" kwarg to key builders.
-                call_kwargs = {k: v for k, v in kwargs.items() if k != "cache"}
-            else:
-                return await func(*args, **kwargs)
+            cache, func_args, call_kwargs = _resolve_cache(args, kwargs)
             if cache is None:
                 return await func(*args, **kwargs)
             if key_builder:
                 cache_key = key_builder(*func_args, **call_kwargs)
             else:
                 parts = [str(a) for a in func_args]
-                parts.extend(
-                    f"{k}={v}" for k, v in sorted(call_kwargs.items())
-                )
+                parts.extend(f"{k}={v}" for k, v in sorted(call_kwargs.items()))
                 cache_key = f"{key_prefix}:{':'.join(parts)}"
             cached_value = await cache.get(cache_key)
             if cached_value is not None:

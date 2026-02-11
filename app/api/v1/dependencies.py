@@ -102,9 +102,10 @@ def get_envelope_encryptor() -> EnvelopeEncryptor:
     return EnvelopeEncryptor()
 
 
-def get_oauth_driver_registry() -> OAuthDriverRegistry:
-    """OAuth driver registry (composition root)."""
-    return OAuthDriverRegistry()
+def get_oauth_driver_registry(request: Request) -> OAuthDriverRegistry:
+    """OAuth driver registry with shared HTTP client (composition root)."""
+    http_client = getattr(request.app.state, "oauth_http_client", None)
+    return OAuthDriverRegistry(http_client=http_client)
 
 
 @dataclass

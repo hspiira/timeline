@@ -16,8 +16,19 @@ from app.infrastructure.persistence.repositories.auditable_repo import (
 from app.infrastructure.security.password import get_password_hash, verify_password
 from app.shared.enums import AuditAction
 
-# Valid bcrypt hash for constant-time comparison when user is not found (timing-attack mitigation)
-_DUMMY_HASH = get_password_hash("not-a-real-password")
+# Lazy dummy hash for constant-time comparison when user is not found (timing-attack mitigation).
+# Computed on first use in a thread to avoid blocking the event loop at import.
+_dummy_hash_cache: str | None = None
+
+
+async def _get_dummy_hash() -> str:
+    """Return a valid bcrypt hash for dummy comparison; computed once in thread pool."""
+    global _dummy_hash_cache
+    if _dummy_hash_cache is None:
+        _dummy_hash_cache = await asyncio.to_thread(
+            get_password_hash, "not-a-real-password"
+        )
+    return _dummy_hash_cache
 
 if TYPE_CHECKING:
     from app.infrastructure.services.system_audit_service import SystemAuditService
@@ -85,7 +96,8 @@ class UserRepository(AuditableRepository[User]):
     ) -> User | None:
         user = await self.get_by_username_and_tenant(username, tenant_id)
         if not user:
-            await asyncio.to_thread(verify_password, password, _DUMMY_HASH)
+            dummy_hash = await _get_dummy_hash()
+            await asyncio.to_thread(verify_password, password, dummy_hash)
             return None
         if not user.is_active:
             return None

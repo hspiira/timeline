@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, ClassVar
@@ -49,11 +50,13 @@ class OAuthDriver(ABC):
         client_secret: str,
         redirect_uri: str,
         scopes: list[str],
+        http_client: httpx.AsyncClient | None = None,
     ) -> None:
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
         self.scopes = scopes
+        self._shared_http = http_client
 
     PROVIDER_NAME: ClassVar[str]
     PROVIDER_TYPE: ClassVar[str]
@@ -107,16 +110,31 @@ class OAuthDriver(ABC):
         """Provider-specific auth params."""
         ...
 
-    @staticmethod
-    def _http_client(timeout: float = 30.0) -> httpx.AsyncClient:
-        """Shared HTTP client factory (DRY)."""
-        return httpx.AsyncClient(timeout=timeout)
+    def _http_client_cm(self, timeout: float = 30.0):
+        """Async context manager yielding a shared or per-call HTTP client."""
+        if self._shared_http is not None:
+
+            @asynccontextmanager
+            async def _shared():
+                yield self._shared_http
+
+            return _shared()
+
+        @asynccontextmanager
+        async def _new():
+            client = httpx.AsyncClient(timeout=timeout)
+            try:
+                yield client
+            finally:
+                await client.aclose()
+
+        return _new()
 
     async def exchange_code_for_tokens(
         self, code: str, **extra_params: Any
     ) -> OAuthTokens:
         """Exchange authorization code for tokens."""
-        async with self._http_client() as client:
+        async with self._http_client_cm() as client:
             response = await client.post(
                 self.token_endpoint,
                 data={
@@ -142,7 +160,7 @@ class OAuthDriver(ABC):
 
     async def refresh_access_token(self, refresh_token: str) -> OAuthTokens:
         """Refresh access token."""
-        async with self._http_client() as client:
+        async with self._http_client_cm() as client:
             response = await client.post(
                 self.token_endpoint,
                 data={
@@ -216,7 +234,7 @@ class GmailDriver(OAuthDriver):
         }
 
     async def get_user_info(self, access_token: str) -> OAuthUserInfo:
-        async with self._http_client() as client:
+        async with self._http_client_cm() as client:
             response = await client.get(
                 "https://gmail.googleapis.com/gmail/v1/users/me/profile",
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -256,7 +274,7 @@ class OutlookDriver(OAuthDriver):
         return {"response_mode": "query"}
 
     async def get_user_info(self, access_token: str) -> OAuthUserInfo:
-        async with self._http_client() as client:
+        async with self._http_client_cm() as client:
             response = await client.get(
                 "https://graph.microsoft.com/v1.0/me",
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -295,7 +313,7 @@ class YahooDriver(OAuthDriver):
         return {}
 
     async def get_user_info(self, access_token: str) -> OAuthUserInfo:
-        async with self._http_client() as client:
+        async with self._http_client_cm() as client:
             response = await client.get(
                 "https://api.login.yahoo.com/openid/v1/userinfo",
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -328,27 +346,33 @@ class OAuthDriverRegistry:
         "yahoo": YahooDriver,
     }
 
+    def __init__(self, http_client: httpx.AsyncClient | None = None) -> None:
+        self._http_client = http_client
+
     @classmethod
     def register(cls, provider_type: str, driver_class: type[OAuthDriver]) -> None:
         cls._drivers[provider_type] = driver_class
         logger.info("Registered OAuth driver: %s", provider_type)
 
-    @classmethod
     def get_driver(
-        cls,
+        self,
         provider_type: str,
         client_id: str,
         client_secret: str,
         redirect_uri: str,
         scopes: list[str],
     ) -> OAuthDriver:
-        if provider_type not in cls._drivers:
+        if provider_type not in self._drivers:
             raise ValueError(
                 f"Unsupported provider: {provider_type}. "
-                f"Supported: {', '.join(cls._drivers)}"
+                f"Supported: {', '.join(self._drivers)}"
             )
-        return cls._drivers[provider_type](
-            client_id, client_secret, redirect_uri, scopes
+        return self._drivers[provider_type](
+            client_id,
+            client_secret,
+            redirect_uri,
+            scopes,
+            self._http_client,
         )
 
     @classmethod

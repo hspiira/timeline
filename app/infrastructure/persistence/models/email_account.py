@@ -3,7 +3,15 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.persistence.database import Base
@@ -14,6 +22,7 @@ class EmailAccount(MultiTenantModel, Base):
     """Email account config and sync state. Table: email_account."""
 
     __tablename__ = "email_account"
+    __table_args__ = (Index("ix_email_account_tenant_subject", "tenant_id", "subject_id"),)
 
     subject_id: Mapped[str] = mapped_column(
         String, ForeignKey("subject.id"), nullable=False, index=True

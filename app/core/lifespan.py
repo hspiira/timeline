@@ -9,6 +9,7 @@ import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
+import httpx
 from fastapi import FastAPI
 
 from app.core.config import get_settings
@@ -21,8 +22,8 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Run startup then yield; on exit run shutdown.
 
     Startup order: Firebase, WebSocket manager, Redis cache (if enabled),
-    telemetry (if enabled). Shutdown order: cache disconnect, telemetry
-    shutdown, SQL engine dispose (if postgres).
+    telemetry (if enabled). Shutdown order: Firebase close, cache disconnect,
+    telemetry shutdown, SQL engine dispose (if postgres).
     """
     settings = get_settings()
 
@@ -35,6 +36,8 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     from app.api.websocket import ConnectionManager
 
     app.state.ws_manager = ConnectionManager()
+
+    app.state.oauth_http_client = httpx.AsyncClient(timeout=30.0)
 
     if settings.redis_enabled:
         from app.infrastructure.cache.redis_cache import CacheService
@@ -67,6 +70,15 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
     # ---- Shutdown ----
+    from app.infrastructure.firebase import close_firebase
+
+    await close_firebase()
+
+    if getattr(app.state, "oauth_http_client", None) is not None:
+        await app.state.oauth_http_client.aclose()
+        app.state.oauth_http_client = None
+        logger.info("OAuth HTTP client closed")
+
     if getattr(app.state, "cache", None) is not None:
         await app.state.cache.disconnect()
         logger.info("Cache disconnected")

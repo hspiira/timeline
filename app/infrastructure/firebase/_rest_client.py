@@ -7,6 +7,7 @@ All HTTP calls use httpx.AsyncClient so they do not block the event loop.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import AsyncIterator
 from typing import Any
@@ -37,6 +38,7 @@ def _get_access_token(credentials) -> str:
 
 
 async def _request_async(
+    client: httpx.AsyncClient,
     url: str,
     method: str = "GET",
     body: dict | None = None,
@@ -46,23 +48,22 @@ async def _request_async(
     headers = {"Content-Type": "application/json"}
     if access_token:
         headers["Authorization"] = f"Bearer {access_token}"
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        if method == "GET":
-            resp = await client.get(url, headers=headers)
-        elif method == "PATCH":
-            resp = await client.patch(url, headers=headers, json=body)
-        elif method == "DELETE":
-            resp = await client.delete(url, headers=headers)
-        else:
-            raise ValueError(f"Unsupported method: {method!r}")
-        if resp.status_code == 404:
-            return None
-        if resp.status_code not in (200, 204):
-            resp.raise_for_status()
-        if method == "DELETE":
-            return {}
-        raw = resp.content
-        return json.loads(raw.decode()) if raw else {}
+    if method == "GET":
+        resp = await client.get(url, headers=headers)
+    elif method == "PATCH":
+        resp = await client.patch(url, headers=headers, json=body)
+    elif method == "DELETE":
+        resp = await client.delete(url, headers=headers)
+    else:
+        raise ValueError(f"Unsupported method: {method!r}")
+    if resp.status_code == 404:
+        return None
+    if resp.status_code not in (200, 204):
+        resp.raise_for_status()
+    if method == "DELETE":
+        return {}
+    raw = resp.content
+    return json.loads(raw.decode()) if raw else {}
 
 
 class DocumentReference:
@@ -77,13 +78,19 @@ class DocumentReference:
         doc = encode_document(data)
         url = f"{_BASE}/{self._path}"
         await _request_async(
-            url, method="PATCH", body=doc, access_token=self._client._token()
+            self._client._http,
+            url,
+            method="PATCH",
+            body=doc,
+            access_token=await self._client.get_token(),
         )
 
     async def get(self) -> DocumentSnapshot | None:
         """Fetch the document; returns None if not found."""
         url = f"{_BASE}/{self._path}"
-        out = await _request_async(url, access_token=self._client._token())
+        out = await _request_async(
+            self._client._http, url, access_token=await self._client.get_token()
+        )
         if not out:
             return None
         return DocumentSnapshot(
@@ -93,7 +100,12 @@ class DocumentReference:
     async def delete(self) -> None:
         """Delete the document. Idempotent if document is already missing (404)."""
         url = f"{_BASE}/{self._path}"
-        await _request_async(url, method="DELETE", access_token=self._client._token())
+        await _request_async(
+            self._client._http,
+            url,
+            method="DELETE",
+            access_token=await self._client.get_token(),
+        )
 
 
 class DocumentSnapshot:
@@ -120,7 +132,9 @@ class CollectionReference:
     async def stream(self) -> AsyncIterator[DocumentSnapshot]:
         """List documents in the collection (shallow)."""
         url = f"{_BASE}/{self._path}"
-        out = await _request_async(url, access_token=self._client._token())
+        out = await _request_async(
+            self._client._http, url, access_token=await self._client.get_token()
+        )
         if not out:
             return
         for doc in out.get("documents", []):
@@ -136,9 +150,15 @@ class FirestoreRESTClient:
         self._project_id = project_id
         self._credentials = credentials
         self._prefix = f"projects/{project_id}/databases/(default)/documents"
+        self._http = httpx.AsyncClient(timeout=30.0)
 
-    def _token(self) -> str:
-        return _get_access_token(self._credentials)
+    async def aclose(self) -> None:
+        """Close the shared HTTP client (connection pool)."""
+        await self._http.aclose()
+
+    async def get_token(self) -> str:
+        """Return a valid access token; refreshes in thread pool to avoid blocking."""
+        return await asyncio.to_thread(_get_access_token, self._credentials)
 
     def collection(self, collection_id: str) -> CollectionReference:
         return CollectionReference(self, f"{self._prefix}/{collection_id}")

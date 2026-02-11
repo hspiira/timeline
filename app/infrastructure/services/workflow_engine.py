@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+import hashlib
+from datetime import UTC, date, datetime, timedelta
 from typing import Any, Protocol
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.event import CreateEventCommand
@@ -17,6 +18,32 @@ from app.shared.telemetry.logging import get_logger
 from app.shared.utils.datetime import utc_now
 
 logger = get_logger(__name__)
+
+
+def _advisory_lock_key(workflow_id: str, tenant_id: str, day: date) -> int:
+    """Stable 63-bit key for pg_advisory_xact_lock (workflow + tenant + day)."""
+    raw = hashlib.sha256(f"{workflow_id}:{tenant_id}:{day.isoformat()}".encode()).digest()[:8]
+    return int.from_bytes(raw, "big") % (2**63)
+
+
+async def _count_executions_today(
+    db: AsyncSession,
+    workflow_id: str,
+    tenant_id: str,
+) -> int:
+    """Count workflow executions started today (UTC)."""
+    now = utc_now()
+    day_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
+    day_end = day_start + timedelta(days=1)
+    result = await db.execute(
+        select(func.count(WorkflowExecution.id)).where(
+            WorkflowExecution.workflow_id == workflow_id,
+            WorkflowExecution.tenant_id == tenant_id,
+            WorkflowExecution.started_at >= day_start,
+            WorkflowExecution.started_at < day_end,
+        )
+    )
+    return result.scalar_one() or 0
 
 
 class _EventLike(Protocol):
@@ -81,42 +108,50 @@ class WorkflowEngine:
     async def _execute_workflow(
         self, workflow: Workflow, triggered_by: Any
     ) -> WorkflowExecution:
+        now = utc_now()
+        if workflow.max_executions_per_day is not None:
+            # Serialize rate-limit check per (workflow, tenant, day) to avoid TOCTOU.
+            # Requires PostgreSQL (pg_advisory_xact_lock); held until transaction end.
+            lock_key = _advisory_lock_key(
+                workflow.id, workflow.tenant_id, now.date()
+            )
+            await self.db.execute(
+                text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key}
+            )
+            count = await _count_executions_today(
+                self.db, workflow.id, workflow.tenant_id
+            )
+            if count >= workflow.max_executions_per_day:
+                execution = WorkflowExecution(
+                    tenant_id=workflow.tenant_id,
+                    workflow_id=workflow.id,
+                    triggered_by_event_id=triggered_by.id,
+                    triggered_by_subject_id=triggered_by.subject_id,
+                    status=WorkflowExecutionStatus.FAILED.value,
+                    started_at=now,
+                    completed_at=now,
+                    actions_executed=0,
+                    actions_failed=0,
+                    execution_log=[],
+                    error_message=(
+                        f"Rate limit exceeded: max_executions_per_day "
+                        f"({workflow.max_executions_per_day}) reached for today"
+                    ),
+                )
+                self.db.add(execution)
+                await self.db.flush()
+                return execution
+
         execution = WorkflowExecution(
             tenant_id=workflow.tenant_id,
             workflow_id=workflow.id,
             triggered_by_event_id=triggered_by.id,
             triggered_by_subject_id=triggered_by.subject_id,
             status=WorkflowExecutionStatus.RUNNING.value,
-            started_at=utc_now(),
+            started_at=now,
         )
         self.db.add(execution)
         await self.db.flush()
-
-        if workflow.max_executions_per_day is not None:
-            now = utc_now()
-            day_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
-            day_end = day_start + timedelta(days=1)
-            result = await self.db.execute(
-                select(func.count(WorkflowExecution.id)).where(
-                    WorkflowExecution.workflow_id == workflow.id,
-                    WorkflowExecution.tenant_id == workflow.tenant_id,
-                    WorkflowExecution.started_at >= day_start,
-                    WorkflowExecution.started_at < day_end,
-                )
-            )
-            count = result.scalar_one() or 0
-            if count > workflow.max_executions_per_day:
-                execution.status = WorkflowExecutionStatus.FAILED.value
-                execution.error_message = (
-                    f"Rate limit exceeded: max_executions_per_day "
-                    f"({workflow.max_executions_per_day}) reached for today"
-                )
-                execution.completed_at = utc_now()
-                execution.actions_executed = 0
-                execution.actions_failed = 0
-                execution.execution_log = []
-                await self.db.flush()
-                return execution
 
         execution_log: list[dict[str, Any]] = []
         actions_executed = 0

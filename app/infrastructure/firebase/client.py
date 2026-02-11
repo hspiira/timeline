@@ -86,3 +86,12 @@ def get_firestore_client() -> FirestoreRESTClient | None:
     - async for doc in db.collection(name).stream() -> DocumentSnapshot
     """
     return _firestore_client
+
+
+async def close_firebase() -> None:
+    """Close the Firestore client's HTTP connection pool. Call from app shutdown."""
+    global _firestore_client
+    if _firestore_client is not None:
+        await _firestore_client.aclose()
+        _firestore_client = None
+        logger.info("Firestore HTTP client closed")
