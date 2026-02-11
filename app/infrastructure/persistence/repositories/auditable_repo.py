@@ -205,10 +205,12 @@ class TenantScopedRepository(AuditableRepository[ModelType]):
         self._assert_tenant(obj, "create")
         return await super().create(obj)
 
-    async def update(self, obj: ModelType) -> ModelType:
+    async def update(
+        self, obj: ModelType, *, skip_existence_check: bool = False
+    ) -> ModelType:
         """Update only if obj belongs to this tenant."""
         self._assert_tenant(obj, "update")
-        return await super().update(obj)
+        return await super().update(obj, skip_existence_check=skip_existence_check)
 
     async def delete(self, obj: ModelType) -> None:
         """Delete only if obj belongs to this tenant."""

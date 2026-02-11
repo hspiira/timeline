@@ -4,9 +4,10 @@ Uses app.core.config for secret and algorithm; app.shared.utils for UTC time.
 """
 
 from datetime import UTC, datetime, timedelta
-from typing import Any, cast
+from typing import Any
 
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError
 
 from app.core.config import get_settings
 
@@ -33,12 +34,11 @@ def create_access_token(
             minutes=settings.access_token_expire_minutes
         )
     to_encode["exp"] = expire
-    encoded = jwt.encode(
+    return jwt.encode(
         to_encode,
         settings.secret_key.get_secret_value(),
         algorithm=settings.algorithm,
     )
-    return cast(str, encoded)
 
 
 def verify_token(token: str) -> dict[str, Any]:
@@ -62,9 +62,8 @@ def verify_token(token: str) -> dict[str, Any]:
             token,
             settings.secret_key.get_secret_value(),
             algorithms=[settings.algorithm],
-            options={"require_exp": True, "require_sub": True},
         )
-    except JWTError as e:
+    except PyJWTError as e:
         raise ValueError(f"Invalid token: {e!s}") from e
     if "sub" not in payload:
         raise ValueError("Token missing required claim: sub")

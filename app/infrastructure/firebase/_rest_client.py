@@ -146,15 +146,23 @@ class CollectionReference:
 class FirestoreRESTClient:
     """Lightweight Firestore client using REST API (no firebase-admin)."""
 
-    def __init__(self, project_id: str, credentials) -> None:
+    def __init__(
+        self,
+        project_id: str,
+        credentials,
+        *,
+        http_client: httpx.AsyncClient | None = None,
+    ) -> None:
         self._project_id = project_id
         self._credentials = credentials
         self._prefix = f"projects/{project_id}/databases/(default)/documents"
-        self._http = httpx.AsyncClient(timeout=30.0)
+        self._http = http_client if http_client is not None else httpx.AsyncClient(timeout=30.0)
+        self._owns_http = http_client is None
 
     async def aclose(self) -> None:
-        """Close the shared HTTP client (connection pool)."""
-        await self._http.aclose()
+        """Close the HTTP client only if we created it (do not close injected client)."""
+        if self._owns_http:
+            await self._http.aclose()
 
     async def get_token(self) -> str:
         """Return a valid access token; refreshes in thread pool to avoid blocking."""

@@ -28,16 +28,17 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
 
     # ---- Startup ----
+    # Shared HTTP client for OAuth, Firebase, and other outbound calls (connection reuse).
+    app.state.oauth_http_client = httpx.AsyncClient(timeout=30.0)
+
     from app.infrastructure.firebase import init_firebase
 
-    fb_initialized = init_firebase()
+    fb_initialized = init_firebase(http_client=app.state.oauth_http_client)
     logger.info("Firebase initialized: %s", fb_initialized)
 
     from app.api.websocket import ConnectionManager
 
     app.state.ws_manager = ConnectionManager()
-
-    app.state.oauth_http_client = httpx.AsyncClient(timeout=30.0)
 
     if settings.redis_enabled:
         from app.infrastructure.cache.redis_cache import CacheService

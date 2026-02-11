@@ -11,12 +11,6 @@ from app.main import app
 
 
 @pytest.fixture
-def anyio_backend() -> str:
-    """Use asyncio for pytest-asyncio."""
-    return "asyncio"
-
-
-@pytest.fixture
 async def client() -> AsyncClient:
     """Async HTTP client against the FastAPI app (ASGI)."""
     transport = ASGITransport(app=app)

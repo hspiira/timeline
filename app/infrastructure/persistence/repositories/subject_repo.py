@@ -120,6 +120,20 @@ class SubjectRepository(TenantScopedRepository[Subject]):
             return None
         return await self.get_by_id(subject_id)
 
+    async def get_by_ids_and_tenant(
+        self, tenant_id: str, subject_ids: set[str]
+    ) -> list[SubjectResult]:
+        """Return subjects for the given ids in this tenant (batch; one query)."""
+        if tenant_id != self._tenant_id or not subject_ids:
+            return []
+        result = await self.db.execute(
+            select(Subject).where(
+                Subject.tenant_id == self._tenant_id,
+                Subject.id.in_(subject_ids),
+            )
+        )
+        return [_subject_to_result(s) for s in result.scalars().all()]
+
     async def create_subject(
         self,
         tenant_id: str,

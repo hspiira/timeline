@@ -10,6 +10,8 @@ import json
 import logging
 from pathlib import Path
 
+import httpx
+
 logger = logging.getLogger(__name__)
 
 from app.core.config import get_settings  # noqa: E402
@@ -45,7 +47,7 @@ def _load_key_dict():
     return None
 
 
-def init_firebase() -> bool:
+def init_firebase(*, http_client: httpx.AsyncClient | None = None) -> bool:
     """Initialize the Firestore client (REST API + google-auth).
 
     Uses FIREBASE_SERVICE_ACCOUNT_KEY (full JSON string) if set, otherwise
@@ -53,6 +55,10 @@ def init_firebase() -> bool:
     (no-op). Idempotent if already initialized. On invalid/malformed credentials
     or any initialization error, logs the exception and returns False so the app
     can start without Firebase.
+
+    Args:
+        http_client: Optional shared httpx.AsyncClient for connection reuse.
+            When provided, the client is not closed on aclose().
 
     Returns:
         True if Firestore was initialized, False if disabled or on error.
@@ -69,7 +75,7 @@ def init_firebase() -> bool:
             return False
 
         cred = _get_credentials(key_dict)
-        _firestore_client = FirestoreRESTClient(project_id, cred)
+        _firestore_client = FirestoreRESTClient(project_id, cred, http_client=http_client)
         return True
     except Exception:
         logger.exception("Firebase initialization failed")

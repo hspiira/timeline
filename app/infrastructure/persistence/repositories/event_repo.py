@@ -54,6 +54,28 @@ class EventRepository(BaseRepository[Event]):
         row = result.scalar_one_or_none()
         return _event_to_result(row) if row else None
 
+    async def get_last_events_for_subjects(
+        self, tenant_id: str, subject_ids: set[str]
+    ) -> dict[str, EventResult | None]:
+        """Return the latest event per subject (batch; one query). Missing subjects have None."""
+        if not subject_ids:
+            return {}
+        result = await self.db.execute(
+            select(Event)
+            .where(
+                Event.tenant_id == tenant_id,
+                Event.subject_id.in_(subject_ids),
+            )
+            .order_by(Event.subject_id, desc(Event.event_time), desc(Event.id))
+        )
+        rows = result.scalars().all()
+        # First row per subject_id is the latest (ordered by event_time desc, id desc).
+        out: dict[str, EventResult | None] = {sid: None for sid in subject_ids}
+        for e in rows:
+            if out.get(e.subject_id) is None:
+                out[e.subject_id] = _event_to_result(e)
+        return out
+
     async def create_event(
         self,
         tenant_id: str,

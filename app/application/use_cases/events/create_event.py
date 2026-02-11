@@ -124,21 +124,23 @@ class EventService:
             return []
 
         subject_ids = {e.subject_id for e in events}
-        for subject_id in subject_ids:
-            subject = await self.subject_repo.get_by_id_and_tenant(
-                subject_id, tenant_id
-            )
-            if not subject:
-                raise ResourceNotFoundException("subject", subject_id)
-
-        # Fetch last event per subject so each subject has an independent hash chain.
-        chain_state: dict[str, tuple[str | None, datetime | None]] = {}
+        subjects = await self.subject_repo.get_by_ids_and_tenant(tenant_id, subject_ids)
+        found_ids = {s.id for s in subjects}
         for sid in subject_ids:
-            prev_ev = await self.event_repo.get_last_event(sid, tenant_id)
-            chain_state[sid] = (
-                prev_ev.hash if prev_ev else None,
-                prev_ev.event_time if prev_ev else None,
+            if sid not in found_ids:
+                raise ResourceNotFoundException("subject", sid)
+
+        # Fetch last event per subject in one query (batch).
+        last_events = await self.event_repo.get_last_events_for_subjects(
+            tenant_id, subject_ids
+        )
+        chain_state: dict[str, tuple[str | None, datetime | None]] = {
+            sid: (
+                (last_events[sid].hash, last_events[sid].event_time)
+                if last_events.get(sid) else (None, None)
             )
+            for sid in subject_ids
+        }
 
         to_persist: list[EventToPersist] = []
         for event_data in events:

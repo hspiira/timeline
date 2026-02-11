@@ -155,7 +155,7 @@ class DocumentRepository(AuditableRepository[Document]):
         orm.is_latest_version = document.is_latest_version
         orm.deleted_at = document.deleted_at
         orm.document_type = document.document_type
-        updated = await super().update(orm)
+        updated = await super().update(orm, skip_existence_check=True)
         return _document_to_result(updated)
 
     async def get_by_subject(
@@ -236,6 +236,6 @@ class DocumentRepository(AuditableRepository[Document]):
         if not orm:
             return None
         orm.deleted_at = utc_now()
-        updated = await super().update(orm)
+        updated = await super().update(orm, skip_existence_check=True)
         await self.emit_custom_audit(updated, AuditAction.DELETED)
         return _document_to_result(updated)

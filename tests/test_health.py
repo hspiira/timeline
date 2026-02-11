@@ -1,10 +1,8 @@
 """Smoke tests for health and app wiring."""
 
-import pytest
 from httpx import AsyncClient
 
 
-@pytest.mark.asyncio
 async def test_health_returns_ok(client: AsyncClient) -> None:
     """GET /api/v1/health returns 200 and status ok."""
     response = await client.get("/api/v1/health")
@@ -13,7 +11,6 @@ async def test_health_returns_ok(client: AsyncClient) -> None:
     assert data.get("status") == "ok"
 
 
-@pytest.mark.asyncio
 async def test_root_returns_html(client: AsyncClient) -> None:
     """GET / returns HTML landing page."""
     response = await client.get("/")

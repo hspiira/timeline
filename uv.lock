@@ -494,18 +494,6 @@ wheels = [
 ]
 
 [[package]]
-name = "ecdsa"
-version = "0.19.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "six" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c0/1f/924e3caae75f471eae4b26bd13b698f6af2c44279f67af317439c2f4c46a/ecdsa-0.19.1.tar.gz", hash = "sha256:478cba7b62555866fcb3bb3fe985e06decbdb68ef55713c4e5ab98c57d508e61", size = 201793, upload-time = "2025-03-13T11:52:43.25Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cb/a3/460c57f094a4a165c84a1341c373b0a4f5ec6ac244b998d5021aade89b77/ecdsa-0.19.1-py2.py3-none-any.whl", hash = "sha256:30638e27cf77b7e15c4c4cc1973720149e1033827cfd00661ca5c8cc0cdb24c3", size = 150607, upload-time = "2025-03-13T11:52:41.757Z" },
-]
-
-[[package]]
 name = "email-validator"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -665,18 +653,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/9b/af/fbfe3c4b5a657d79e5c47a2827a362f9e1b763336a52f926126aa6dc7123/flake8-7.3.0.tar.gz", hash = "sha256:fe044858146b9fc69b551a4b490d69cf960fcb78ad1edcb84e7fbb1b4a8e3872", size = 48326, upload-time = "2025-06-20T19:31:35.838Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9f/56/13ab06b4f93ca7cac71078fbe37fcea175d3216f31f85c3168a6bbd0bb9a/flake8-7.3.0-py2.py3-none-any.whl", hash = "sha256:b9696257b9ce8beb888cdbe31cf885c90d31928fe202be0889a7cdafad32f01e", size = 57922, upload-time = "2025-06-20T19:31:34.425Z" },
-]
-
-[[package]]
-name = "freezegun"
-version = "1.5.5"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "python-dateutil" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/95/dd/23e2f4e357f8fd3bdff613c1fe4466d21bfb00a6177f238079b17f7b1c84/freezegun-1.5.5.tar.gz", hash = "sha256:ac7742a6cc6c25a2c35e9292dfd554b897b517d2dec26891a2e8debf205cb94a", size = 35914, upload-time = "2025-08-09T10:39:08.338Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5e/2e/b41d8a1a917d6581fc27a35d05561037b048e47df50f27f8ac9c7e27a710/freezegun-1.5.5-py3-none-any.whl", hash = "sha256:cd557f4a75cf074e84bc374249b9dd491eaeacd61376b9eb3c423282211619d2", size = 19266, upload-time = "2025-08-09T10:39:06.636Z" },
 ]
 
 [[package]]
@@ -1784,20 +1760,6 @@ wheels = [
 ]
 
 [[package]]
-name = "python-jose"
-version = "3.5.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "ecdsa" },
-    { name = "pyasn1" },
-    { name = "rsa" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c6/77/3a1c9039db7124eb039772b935f2244fbb73fc8ee65b9acf2375da1c07bf/python_jose-3.5.0.tar.gz", hash = "sha256:fb4eaa44dbeb1c26dcc69e4bd7ec54a1cb8dd64d3b4d81ef08d90ff453f2b01b", size = 92726, upload-time = "2025-05-28T17:31:54.288Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d9/c3/0bd11992072e6a1c513b16500a5d07f91a24017c5909b02c72c62d7ad024/python_jose-3.5.0-py2.py3-none-any.whl", hash = "sha256:abd1202f23d34dfad2c3d28cb8617b90acf34132c7afd60abd0b0b7d3cb55771", size = 34624, upload-time = "2025-05-28T17:31:52.802Z" },
-]
-
-[[package]]
 name = "python-multipart"
 version = "0.0.22"
 source = { registry = "https://pypi.org/simple" }
@@ -2230,7 +2192,6 @@ dependencies = [
     { name = "cuid2" },
     { name = "fastapi", extra = ["standard"] },
     { name = "google-auth" },
-    { name = "greenlet" },
     { name = "jsonschema" },
     { name = "nh3" },
     { name = "opentelemetry-api" },
@@ -2242,7 +2203,7 @@ dependencies = [
     { name = "opentelemetry-sdk" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
-    { name = "python-jose" },
+    { name = "pyjwt" },
     { name = "python-multipart" },
     { name = "redis" },
     { name = "slowapi" },
@@ -2254,7 +2215,6 @@ dev = [
     { name = "autoflake" },
     { name = "black" },
     { name = "flake8" },
-    { name = "freezegun" },
     { name = "httpx" },
     { name = "isort" },
     { name = "mypy" },
@@ -2284,10 +2244,8 @@ requires-dist = [
     { name = "cuid2", specifier = ">=2.0.1" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.128.6" },
     { name = "flake8", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-    { name = "freezegun", marker = "extra == 'dev'", specifier = ">=1.5.1" },
     { name = "google-api-python-client", marker = "extra == 'email'", specifier = ">=2.187.0" },
     { name = "google-auth", specifier = ">=2.45.0" },
-    { name = "greenlet", specifier = ">=3.0.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27.0" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "jsonschema", specifier = ">=4.25.1" },
@@ -2303,9 +2261,9 @@ requires-dist = [
     { name = "opentelemetry-sdk", specifier = ">=1.39.1" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.0.0" },
+    { name = "pyjwt", specifier = ">=2.10.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.2" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24.0" },
-    { name = "python-jose", specifier = ">=3.5.0" },
     { name = "python-multipart", specifier = ">=0.0.21" },
     { name = "redis", specifier = ">=7.1.0" },
     { name = "slowapi", specifier = ">=0.1.9" },

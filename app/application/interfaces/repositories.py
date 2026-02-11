@@ -30,6 +30,12 @@ class IEventRepository(Protocol):
         """Return the most recent event for subject in tenant."""
         ...
 
+    async def get_last_events_for_subjects(
+        self, tenant_id: str, subject_ids: set[str]
+    ) -> dict[str, EventResult | None]:
+        """Return the latest event per subject (batch). Missing subjects have None."""
+        ...
+
     async def create_event(
         self,
         tenant_id: str,
@@ -76,6 +82,12 @@ class ISubjectRepository(Protocol):
         self, subject_id: str, tenant_id: str
     ) -> SubjectResult | None:
         """Return subject by ID if it belongs to tenant."""
+        ...
+
+    async def get_by_ids_and_tenant(
+        self, tenant_id: str, subject_ids: set[str]
+    ) -> list[SubjectResult]:
+        """Return subjects for the given ids in this tenant (batch)."""
         ...
 
     async def get_by_tenant(
