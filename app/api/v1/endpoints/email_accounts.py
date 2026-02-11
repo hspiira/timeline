@@ -4,16 +4,20 @@ Uses only injected get_email_account_repo / get_email_account_repo_for_write.
 Integration metadata for Gmail, Outlook, IMAP.
 """
 
+import hmac
+import hashlib
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import (
-    get_current_user,
     get_email_account_repo,
     get_email_account_repo_for_write,
     get_tenant_id,
+    require_permission,
 )
+from app.core.config import get_settings
+from app.core.limiter import limit_writes
 from app.infrastructure.external.email.encryption import CredentialEncryptor
 from app.infrastructure.persistence.models.email_account import EmailAccount
 from app.infrastructure.persistence.repositories.email_account_repo import (
@@ -32,16 +36,14 @@ router = APIRouter()
 @router.get("", response_model=list[EmailAccountResponse])
 async def list_email_accounts(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(get_current_user)],
     email_account_repo: Annotated[
         EmailAccountRepository, Depends(get_email_account_repo)
     ],
     skip: int = 0,
     limit: int = 100,
+    _: Annotated[object, Depends(require_permission("email_account", "read"))] = None,
 ):
-    """List email accounts for tenant (paginated). Requires authentication."""
-    if getattr(current_user, "tenant_id", None) != tenant_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
+    """List email accounts for tenant (paginated)."""
     accounts = await email_account_repo.get_by_tenant(
         tenant_id=tenant_id,
         skip=skip,
@@ -54,14 +56,12 @@ async def list_email_accounts(
 async def get_email_account(
     account_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(get_current_user)],
     email_account_repo: Annotated[
         EmailAccountRepository, Depends(get_email_account_repo)
     ],
+    _: Annotated[object, Depends(require_permission("email_account", "read"))] = None,
 ):
-    """Get email account by id (tenant-scoped). Requires authentication."""
-    if getattr(current_user, "tenant_id", None) != tenant_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
+    """Get email account by id (tenant-scoped)."""
     account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
     if not account:
         raise HTTPException(status_code=404, detail="Email account not found")
@@ -69,17 +69,17 @@ async def get_email_account(
 
 
 @router.post("", response_model=EmailAccountResponse, status_code=201)
+@limit_writes
 async def create_email_account(
+    request: Request,
     body: EmailAccountCreate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(get_current_user)],
     email_account_repo: Annotated[
         EmailAccountRepository, Depends(get_email_account_repo_for_write)
     ],
+    _: Annotated[object, Depends(require_permission("email_account", "create"))] = None,
 ):
     """Create email account (credentials encrypted at rest)."""
-    if getattr(current_user, "tenant_id", None) != tenant_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
     encryptor = CredentialEncryptor()
     credentials_encrypted = encryptor.encrypt(body.credentials)
     account = EmailAccount(
@@ -98,18 +98,18 @@ async def create_email_account(
 
 
 @router.patch("/{account_id}", response_model=EmailAccountResponse)
+@limit_writes
 async def update_email_account(
+    request: Request,
     account_id: str,
     body: EmailAccountUpdate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(get_current_user)],
     email_account_repo: Annotated[
         EmailAccountRepository, Depends(get_email_account_repo_for_write)
     ],
+    _: Annotated[object, Depends(require_permission("email_account", "update"))] = None,
 ):
     """Partially update email account."""
-    if getattr(current_user, "tenant_id", None) != tenant_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
     account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
     if not account:
         raise HTTPException(status_code=404, detail="Email account not found")
@@ -126,17 +126,17 @@ async def update_email_account(
 
 
 @router.delete("/{account_id}", status_code=204)
+@limit_writes
 async def delete_email_account(
+    request: Request,
     account_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(get_current_user)],
     email_account_repo: Annotated[
         EmailAccountRepository, Depends(get_email_account_repo_for_write)
     ],
+    _: Annotated[object, Depends(require_permission("email_account", "delete"))] = None,
 ):
     """Delete email account (hard delete)."""
-    if getattr(current_user, "tenant_id", None) != tenant_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
     account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
     if not account:
         raise HTTPException(status_code=404, detail="Email account not found")
@@ -151,14 +151,12 @@ async def delete_email_account(
 async def get_email_account_sync_status(
     account_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(get_current_user)],
     email_account_repo: Annotated[
         EmailAccountRepository, Depends(get_email_account_repo)
     ],
+    _: Annotated[object, Depends(require_permission("email_account", "read"))] = None,
 ):
     """Return last sync time, status, and error for the email account."""
-    if getattr(current_user, "tenant_id", None) != tenant_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
     account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
     if not account:
         raise HTTPException(status_code=404, detail="Email account not found")
@@ -175,17 +173,17 @@ async def get_email_account_sync_status(
 
 
 @router.post("/{account_id}/sync", status_code=202)
+@limit_writes
 async def trigger_email_sync(
+    request: Request,
     account_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(get_current_user)],
     email_account_repo: Annotated[
         EmailAccountRepository, Depends(get_email_account_repo_for_write)
     ],
+    _: Annotated[object, Depends(require_permission("email_account", "update"))] = None,
 ):
     """Trigger sync for the email account (in-process). Returns 202 when accepted."""
-    if getattr(current_user, "tenant_id", None) != tenant_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
     account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
     if not account:
         raise HTTPException(status_code=404, detail="Email account not found")
@@ -199,17 +197,17 @@ async def trigger_email_sync(
 
 
 @router.post("/{account_id}/sync-background", status_code=202)
+@limit_writes
 async def trigger_email_sync_background(
+    request: Request,
     account_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(get_current_user)],
     email_account_repo: Annotated[
         EmailAccountRepository, Depends(get_email_account_repo_for_write)
     ],
+    _: Annotated[object, Depends(require_permission("email_account", "update"))] = None,
 ):
     """Enqueue background sync for the email account. Returns 202 when accepted."""
-    if getattr(current_user, "tenant_id", None) != tenant_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
     account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
     if not account:
         raise HTTPException(status_code=404, detail="Email account not found")
@@ -222,15 +220,34 @@ async def trigger_email_sync_background(
     return {"detail": "Background sync enqueued", "account_id": account_id}
 
 
+def _verify_webhook_signature(body: bytes, signature_header: str | None, secret: str) -> bool:
+    """Return True if X-Webhook-Signature-256 matches HMAC-SHA256(secret, body)."""
+    if not signature_header or not signature_header.startswith("sha256="):
+        return False
+    expected = hmac.new(
+        secret.encode(), body, hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(signature_header[7:].strip(), expected)
+
+
 @router.post("/{account_id}/webhook", status_code=202)
+@limit_writes
 async def email_account_webhook(
+    request: Request,
     account_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     email_account_repo: Annotated[
         EmailAccountRepository, Depends(get_email_account_repo)
     ],
 ):
-    """Provider callback (e.g. Gmail push). Verify signature and enqueue sync; returns 202."""
+    """Provider callback (e.g. Gmail push). If EMAIL_WEBHOOK_SECRET is set, X-Webhook-Signature-256 is required."""
+    body = await request.body()
+    settings = get_settings()
+    if settings.email_webhook_secret:
+        sig = request.headers.get("X-Webhook-Signature-256")
+        secret = settings.email_webhook_secret.get_secret_value()
+        if not _verify_webhook_signature(body, sig, secret):
+            raise HTTPException(status_code=401, detail="Invalid or missing webhook signature")
     account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
     if not account:
         raise HTTPException(status_code=404, detail="Email account not found")

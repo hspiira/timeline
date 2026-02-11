@@ -5,15 +5,16 @@ Uses only injected get_oauth_provider_config_repo / get_oauth_provider_config_re
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import (
-    get_current_user,
     get_oauth_provider_config_repo,
     get_oauth_provider_config_repo_for_write,
     get_oauth_state_repo,
     get_tenant_id,
+    require_permission,
 )
+from app.core.limiter import limit_writes
 from app.infrastructure.external.email.envelope_encryption import EnvelopeEncryptor
 from app.infrastructure.external.email.oauth_drivers import OAuthDriverRegistry
 from app.infrastructure.persistence.repositories.oauth_provider_config_repo import (
@@ -46,6 +47,7 @@ async def list_oauth_configs(
     include_inactive: bool = False,
     skip: int = 0,
     limit: int = 100,
+    _: Annotated[object, Depends(require_permission("oauth_config", "read"))] = None,
 ):
     """List OAuth provider configs for tenant."""
     configs = await oauth_repo.list_configs(
@@ -61,10 +63,12 @@ async def list_oauth_configs(
     "/{provider}/authorize",
     response_model=OAuthAuthorizeResponse,
 )
+@limit_writes
 async def oauth_authorize(
+    request: Request,
     provider: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(get_current_user)],
+    current_user: Annotated[object, Depends(require_permission("oauth_config", "read"))],
     oauth_repo: Annotated[
         OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo)
     ],
@@ -119,7 +123,9 @@ async def oauth_authorize(
     "/{provider}/callback",
     response_model=OAuthCallbackTokenResponse,
 )
+@limit_writes
 async def oauth_callback(
+    request: Request,
     provider: str,
     code: str,
     state: str,
@@ -130,6 +136,7 @@ async def oauth_callback(
     state_repo: Annotated[
         OAuthStateRepository, Depends(get_oauth_state_repo)
     ],
+    _: Annotated[object, Depends(require_permission("oauth_config", "read"))] = None,
 ):
     """Exchange code for tokens; verify state and return tokens."""
     from app.infrastructure.external.email.envelope_encryption import (
@@ -189,7 +196,9 @@ async def oauth_callback(
     "/metadata/providers",
     response_model=OAuthProvidersMetadataResponse,
 )
-async def list_oauth_providers_metadata():
+async def list_oauth_providers_metadata(
+    _: Annotated[object, Depends(require_permission("oauth_config", "read"))] = None,
+):
     """Return list of supported OAuth providers (gmail, outlook, yahoo) and their endpoints."""
     providers = []
     for pt in OAuthDriverRegistry.list_providers():
@@ -213,6 +222,7 @@ async def get_active_oauth_config(
         OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo)
     ],
     provider_type: str,
+    _: Annotated[object, Depends(require_permission("oauth_config", "read"))] = None,
 ):
     """Get active OAuth provider config for tenant and provider type."""
     config = await oauth_repo.get_active_config(
@@ -231,6 +241,7 @@ async def get_oauth_config(
     oauth_repo: Annotated[
         OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo)
     ],
+    _: Annotated[object, Depends(require_permission("oauth_config", "read"))] = None,
 ):
     """Get OAuth provider config by id (tenant-scoped)."""
     config = await oauth_repo.get_by_id_and_tenant(config_id, tenant_id)
@@ -240,10 +251,12 @@ async def get_oauth_config(
 
 
 @router.post("", response_model=OAuthConfigResponse, status_code=201)
+@limit_writes
 async def create_oauth_config(
+    request: Request,
     body: OAuthConfigCreate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(get_current_user)],
+    current_user: Annotated[object, Depends(require_permission("oauth_config", "create"))],
     oauth_repo: Annotated[
         OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo_for_write)
     ],
@@ -268,13 +281,16 @@ async def create_oauth_config(
 
 
 @router.patch("/{config_id}", response_model=OAuthConfigResponse)
+@limit_writes
 async def update_oauth_config(
+    request: Request,
     config_id: str,
     body: OAuthConfigUpdate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     oauth_repo: Annotated[
         OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo_for_write)
     ],
+    _: Annotated[object, Depends(require_permission("oauth_config", "update"))] = None,
 ):
     """Partially update OAuth provider config (display_name, redirect_uri, scopes)."""
     config = await oauth_repo.get_by_id_and_tenant(config_id, tenant_id)
@@ -297,10 +313,12 @@ async def update_oauth_config(
 
 
 @router.delete("/{config_id}", status_code=204)
+@limit_writes
 async def delete_oauth_config(
+    request: Request,
     config_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(get_current_user)],
+    current_user: Annotated[object, Depends(require_permission("oauth_config", "delete"))],
     oauth_repo: Annotated[
         OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo_for_write)
     ],
@@ -317,11 +335,13 @@ async def delete_oauth_config(
 
 
 @router.post("/{config_id}/rotate", response_model=OAuthConfigResponse)
+@limit_writes
 async def rotate_oauth_config(
+    request: Request,
     config_id: str,
     body: OAuthConfigRotateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    current_user: Annotated[object, Depends(get_current_user)],
+    current_user: Annotated[object, Depends(require_permission("oauth_config", "update"))],
     oauth_repo: Annotated[
         OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo_for_write)
     ],
@@ -358,6 +378,7 @@ async def get_oauth_config_health(
     oauth_repo: Annotated[
         OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo)
     ],
+    _: Annotated[object, Depends(require_permission("oauth_config", "read"))] = None,
 ):
     """Return health status for the OAuth provider config."""
     config = await oauth_repo.get_by_id_and_tenant(config_id, tenant_id)
@@ -377,6 +398,7 @@ async def get_oauth_config_audit(
     oauth_repo: Annotated[
         OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo)
     ],
+    _: Annotated[object, Depends(require_permission("oauth_config", "read"))] = None,
 ):
     """Return audit log entries for this OAuth config (stub: empty list until audit repo)."""
     config = await oauth_repo.get_by_id_and_tenant(config_id, tenant_id)

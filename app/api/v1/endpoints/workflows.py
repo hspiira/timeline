@@ -2,14 +2,16 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
     get_tenant_id,
     get_workflow_execution_repo,
     get_workflow_repo,
     get_workflow_repo_for_write,
+    require_permission,
 )
+from app.core.limiter import limit_writes
 from app.infrastructure.persistence.repositories.workflow_repo import (
     WorkflowExecutionRepository,
     WorkflowRepository,
@@ -25,10 +27,13 @@ router = APIRouter()
 
 
 @router.post("", response_model=WorkflowResponse, status_code=201)
+@limit_writes
 async def create_workflow(
+    request: Request,
     body: WorkflowCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     workflow_repo: WorkflowRepository = Depends(get_workflow_repo_for_write),
+    _: Annotated[object, Depends(require_permission("workflow", "create"))] = None,
 ):
     """Create a workflow (tenant-scoped)."""
     try:
@@ -61,6 +66,7 @@ async def get_workflow_executions(
     ),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+    _: Annotated[object, Depends(require_permission("workflow", "read"))] = None,
 ):
     """Get execution history for a workflow. Tenant-scoped."""
     workflow = await workflow_repo.get_by_id_and_tenant(workflow_id, tenant_id)
@@ -85,6 +91,7 @@ async def get_execution(
     execution_repo: WorkflowExecutionRepository = Depends(
         get_workflow_execution_repo
     ),
+    _: Annotated[object, Depends(require_permission("workflow", "read"))] = None,
 ):
     """Get workflow execution by id. Tenant-scoped."""
     execution = await execution_repo.get_by_id(execution_id, tenant_id)
@@ -98,6 +105,7 @@ async def get_workflow(
     workflow_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     workflow_repo: WorkflowRepository = Depends(get_workflow_repo),
+    _: Annotated[object, Depends(require_permission("workflow", "read"))] = None,
 ):
     """Get workflow by id (tenant-scoped)."""
     workflow = await workflow_repo.get_by_id_and_tenant(workflow_id, tenant_id)
@@ -107,11 +115,14 @@ async def get_workflow(
 
 
 @router.put("/{workflow_id}", response_model=WorkflowResponse)
+@limit_writes
 async def update_workflow(
+    request: Request,
     workflow_id: str,
     body: WorkflowUpdate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     workflow_repo: WorkflowRepository = Depends(get_workflow_repo_for_write),
+    _: Annotated[object, Depends(require_permission("workflow", "update"))] = None,
 ):
     """Update workflow (tenant-scoped)."""
     workflow = await workflow_repo.get_by_id_and_tenant(workflow_id, tenant_id)
@@ -134,10 +145,13 @@ async def update_workflow(
 
 
 @router.delete("/{workflow_id}", status_code=204)
+@limit_writes
 async def delete_workflow(
+    request: Request,
     workflow_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     workflow_repo: WorkflowRepository = Depends(get_workflow_repo_for_write),
+    _: Annotated[object, Depends(require_permission("workflow", "delete"))] = None,
 ):
     """Soft-delete workflow. Tenant-scoped."""
     result = await workflow_repo.soft_delete(workflow_id, tenant_id)
@@ -152,6 +166,7 @@ async def list_workflows(
     limit: int = 100,
     include_inactive: bool = False,
     workflow_repo: WorkflowRepository = Depends(get_workflow_repo),
+    _: Annotated[object, Depends(require_permission("workflow", "read"))] = None,
 ):
     """List workflows for tenant (paginated)."""
     workflows = await workflow_repo.get_by_tenant(

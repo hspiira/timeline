@@ -58,7 +58,7 @@ class StorageFactory:
                 region=s.s3_region,
                 endpoint_url=s.s3_endpoint_url,
                 access_key=s.s3_access_key,
-                secret_key=s.s3_secret_key,
+                secret_key=s.s3_secret_key.get_secret_value() if s.s3_secret_key else None,
             )
         raise ValueError(
             f"Unknown storage backend: {backend}. Supported: 'local', 's3'"

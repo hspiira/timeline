@@ -24,7 +24,7 @@ _firestore_client: FirestoreRESTClient | None = None
 def _load_key_dict():
     """Return service account dict from env key or file path."""
     settings = get_settings()
-    key_json = settings.firebase_service_account_key
+    key_json = settings.firebase_service_account_key.get_secret_value() if settings.firebase_service_account_key else None
     if key_json:
         try:
             return json.loads(key_json)

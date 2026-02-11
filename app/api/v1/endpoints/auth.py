@@ -16,7 +16,7 @@ from app.api.v1.dependencies import (
     get_user_repo,
     get_user_repo_for_write,
 )
-from app.core.limiter import limiter
+from app.core.limiter import limit_auth, limit_writes
 from app.infrastructure.persistence.repositories.tenant_repo import TenantRepository
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
 from app.infrastructure.security.jwt import create_access_token
@@ -28,7 +28,9 @@ router = APIRouter()
 
 
 @router.post("/register", response_model=UserResponse, status_code=201)
+@limit_auth
 async def register(
+    request: Request,
     body: RegisterRequest,
     user_repo: UserRepository = Depends(get_user_repo_for_write),
     tenant_repo: TenantRepository = Depends(get_tenant_repo),
@@ -53,7 +55,7 @@ async def register(
 
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("10/minute")
+@limit_auth
 async def login(
     request: Request,
     body: LoginRequest,
@@ -102,7 +104,9 @@ async def get_me(
 
 
 @router.put("/me", response_model=UserResponse)
+@limit_writes
 async def update_me(
+    request: Request,
     body: UserUpdate,
     current_user: Annotated[object, Depends(get_current_user)],
     user_repo: UserRepository = Depends(get_user_repo_for_write),
@@ -136,7 +140,9 @@ async def update_me(
 
 
 @router.delete("/me", status_code=204)
+@limit_writes
 async def delete_me(
+    request: Request,
     current_user: Annotated[object, Depends(get_current_user)],
     user_repo: UserRepository = Depends(get_user_repo_for_write),
 ):

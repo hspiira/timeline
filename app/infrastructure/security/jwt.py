@@ -35,7 +35,7 @@ def create_access_token(
     to_encode["exp"] = expire
     encoded = jwt.encode(
         to_encode,
-        settings.secret_key,
+        settings.secret_key.get_secret_value(),
         algorithm=settings.algorithm,
     )
     return cast(str, encoded)
@@ -60,7 +60,7 @@ def verify_token(token: str) -> dict[str, Any]:
     try:
         payload = jwt.decode(
             token,
-            settings.secret_key,
+            settings.secret_key.get_secret_value(),
             algorithms=[settings.algorithm],
             options={"require_exp": True, "require_sub": True},
         )

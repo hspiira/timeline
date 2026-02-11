@@ -61,7 +61,7 @@ class EnvelopeEncryptor:
 
     def _derive_master_key(self) -> bytes:
         """Derive master key from ENCRYPTION_SALT and a persisted KDF salt (use KMS in production)."""
-        password = self.settings.encryption_salt.encode()
+        password = self.settings.encryption_salt.get_secret_value().encode()
         salt = self._get_or_create_kdf_salt()
         key = hashlib.pbkdf2_hmac(
             "sha256",
@@ -183,7 +183,7 @@ class OAuthStateManager:
             salt=None,
             info=_OAUTH_STATE_KEY_INFO,
         )
-        return hkdf.derive(self.settings.secret_key.encode())
+        return hkdf.derive(self.settings.secret_key.get_secret_value().encode())
 
     def create_signed_state(self, state_id: str) -> str:
         """Return state_id:signature."""

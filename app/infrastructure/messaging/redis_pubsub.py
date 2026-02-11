@@ -80,7 +80,7 @@ class _RedisPubSubBase:
                     host=self.settings.redis_host,
                     port=self.settings.redis_port,
                     db=self.settings.redis_db,
-                    password=self.settings.redis_password or None,
+                    password=self.settings.redis_password.get_secret_value() if self.settings.redis_password else None,
                     decode_responses=True,
                     socket_connect_timeout=5,
                 )

@@ -7,7 +7,7 @@ validated at load time.
 
 from functools import lru_cache
 
-from pydantic import model_validator
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -36,10 +36,12 @@ class Settings(BaseSettings):
     db_disable_jit: bool = True
 
     # Security
-    secret_key: str = ""
+    secret_key: SecretStr = SecretStr("")
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 480  # 8 hours
-    encryption_salt: str = ""
+    encryption_salt: SecretStr = SecretStr("")
+    # Credential storage (email/OAuth): use a separate secret so JWT key rotation does not break stored credentials.
+    credential_encryption_secret: SecretStr | None = None
     # Optional KDF salt for envelope encryption: set ENCRYPTION_KDF_SALT (base64) or
     # ENCRYPTION_KDF_SALT_PATH (file path); if unset, a default path under storage_root is used.
     encryption_kdf_salt: str = ""
@@ -56,7 +58,7 @@ class Settings(BaseSettings):
     s3_region: str = "us-east-1"
     s3_endpoint_url: str | None = None
     s3_access_key: str | None = None
-    s3_secret_key: str | None = None
+    s3_secret_key: SecretStr | None = None
     max_upload_size: int = 100 * 1024 * 1024  # 100MB
     allowed_mime_types: str = "*/*"
 
@@ -67,15 +69,17 @@ class Settings(BaseSettings):
     # Run purge_oauth_audit_pii (e.g. via cron) to anonymize after this period.
     oauth_audit_pii_retention_days: int = 90
 
+    # Email webhook: if set, POST /email-accounts/{id}/webhook must send
+    # X-Webhook-Signature-256: sha256=<hex(hmac_sha256(secret, body))>.
+    email_webhook_secret: SecretStr | None = None
+
     # Request / middleware
     request_timeout_seconds: int = 60
     request_id_header: str = "X-Request-ID"
     correlation_id_header: str = "X-Correlation-ID"
 
     # Firebase / Firestore: use key (env) or path (file). For Vercel, use key.
-    firebase_service_account_key: str | None = (
-        None  # Full JSON string (e.g. FIREBASE_SERVICE_ACCOUNT_KEY)
-    )
+    firebase_service_account_key: SecretStr | None = None
     firebase_service_account_path: str | None = None  # Path to JSON file
 
     # Redis Cache
@@ -83,7 +87,7 @@ class Settings(BaseSettings):
     redis_host: str = "localhost"
     redis_port: int = 6379
     redis_db: int = 0
-    redis_password: str | None = None
+    redis_password: SecretStr | None = None
     redis_max_connections: int = 10
     cache_ttl_permissions: int = 300
     cache_ttl_schemas: int = 600
@@ -118,10 +122,8 @@ class Settings(BaseSettings):
                     "Set in environment or .env file."
                 )
         elif self.database_backend == "firestore":
-            if (
-                not self.firebase_service_account_key
-                and not self.firebase_service_account_path
-            ):
+            has_key = self.firebase_service_account_key and self.firebase_service_account_key.get_secret_value()
+            if not has_key and not self.firebase_service_account_path:
                 raise ValueError(
                     "When database_backend is 'firestore', set FIREBASE_SERVICE_ACCOUNT_KEY (full JSON string) "
                     "or FIREBASE_SERVICE_ACCOUNT_PATH (path to JSON file)."
@@ -130,12 +132,12 @@ class Settings(BaseSettings):
             raise ValueError(
                 f"database_backend must be 'postgres' or 'firestore', got: {self.database_backend!r}"
             )
-        if not self.secret_key:
+        if not self.secret_key.get_secret_value():
             raise ValueError(
                 "SECRET_KEY is required. Generate with: openssl rand -hex 32. "
                 "On Vercel: set in Project → Settings → Environment Variables."
             )
-        if not self.encryption_salt:
+        if not self.encryption_salt.get_secret_value():
             raise ValueError(
                 "ENCRYPTION_SALT is required. Generate with: openssl rand -hex 16. "
                 "On Vercel: set in Project → Settings → Environment Variables."

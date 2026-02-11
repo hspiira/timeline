@@ -118,6 +118,26 @@ async def _get_db_or_firestore_write() -> AsyncGenerator[DbOrFirestore, None]:
         yield DbOrFirestore(db=None, firestore=client)
 
 
+async def get_tenant_repo(
+    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_read)],
+) -> TenantRepository | FirestoreTenantRepository:
+    """Tenant repository (Postgres or Firestore from config)."""
+    if backend.db is not None:
+        return TenantRepository(backend.db, cache_service=None, audit_service=None)
+    assert backend.firestore is not None
+    return FirestoreTenantRepository(backend.firestore)
+
+
+async def get_tenant_repo_for_write(
+    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_write)],
+) -> TenantRepository | FirestoreTenantRepository:
+    """Tenant repository for writes (Postgres or Firestore from config)."""
+    if backend.db is not None:
+        return TenantRepository(backend.db, cache_service=None, audit_service=None)
+    assert backend.firestore is not None
+    return FirestoreTenantRepository(backend.firestore)
+
+
 async def get_tenant_id(
     request: Request,
     tenant_repo: Annotated[
@@ -242,26 +262,6 @@ async def get_verification_service(
 ) -> VerificationService:
     """Verification service for event chain integrity (hash + previous_hash)."""
     return VerificationService(event_repo=event_repo, hash_service=HashService())
-
-
-async def get_tenant_repo(
-    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_read)],
-) -> TenantRepository | FirestoreTenantRepository:
-    """Tenant repository (Postgres or Firestore from config)."""
-    if backend.db is not None:
-        return TenantRepository(backend.db, cache_service=None, audit_service=None)
-    assert backend.firestore is not None
-    return FirestoreTenantRepository(backend.firestore)
-
-
-async def get_tenant_repo_for_write(
-    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_write)],
-) -> TenantRepository | FirestoreTenantRepository:
-    """Tenant repository for writes (Postgres or Firestore from config)."""
-    if backend.db is not None:
-        return TenantRepository(backend.db, cache_service=None, audit_service=None)
-    assert backend.firestore is not None
-    return FirestoreTenantRepository(backend.firestore)
 
 
 async def get_subject_service(
@@ -432,3 +432,23 @@ async def get_current_user(
     if current_user is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return current_user
+
+
+def require_permission(resource: str, action: str):
+    """Dependency factory: require JWT auth and that the user has resource:action."""
+
+    async def _require(
+        current_user: Annotated[object, Depends(get_current_user)],
+        tenant_id: Annotated[str, Depends(get_tenant_id)],
+        auth_svc: Annotated[AuthorizationService, Depends(get_authorization_service)],
+    ) -> object:
+        user_tenant = getattr(current_user, "tenant_id", None)
+        if user_tenant != tenant_id:
+            raise HTTPException(status_code=403, detail="Forbidden")
+        user_id = getattr(current_user, "id", None)
+        if not user_id:
+            raise HTTPException(status_code=403, detail="Forbidden")
+        await auth_svc.require_permission(user_id, tenant_id, resource, action)
+        return current_user
+
+    return _require

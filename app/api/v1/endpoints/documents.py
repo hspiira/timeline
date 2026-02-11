@@ -3,15 +3,17 @@
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 
 from app.api.v1.dependencies import (
     get_document_repo,
     get_document_repo_for_write,
     get_document_service,
     get_tenant_id,
+    require_permission,
 )
 from app.application.use_cases.documents import DocumentService
+from app.core.limiter import limit_writes
 from app.domain.exceptions import ResourceNotFoundException
 from app.infrastructure.persistence.repositories.document_repo import (
     DocumentRepository,
@@ -22,7 +24,9 @@ router = APIRouter()
 
 
 @router.post("", status_code=201)
+@limit_writes
 async def upload_document(
+    request: Request,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_id: str = Form(...),
     document_type: str = Form(...),
@@ -31,6 +35,7 @@ async def upload_document(
     created_by: str | None = Form(None),
     parent_document_id: str | None = Form(None),
     doc_svc: DocumentService = Depends(get_document_service),
+    _: Annotated[object, Depends(require_permission("document", "create"))] = None,
 ):
     """Upload a document for a subject (storage + document record)."""
     if not file.filename:
@@ -61,6 +66,7 @@ async def list_documents(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_id: str,
     doc_svc: DocumentService = Depends(get_document_service),
+    _: Annotated[object, Depends(require_permission("document", "read"))] = None,
 ):
     """List documents for a subject (tenant-scoped). subject_id is required."""
     items = await doc_svc.list_documents(tenant_id=tenant_id, subject_id=subject_id)
@@ -72,6 +78,7 @@ async def list_documents_by_event(
     event_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     document_repo: DocumentRepository = Depends(get_document_repo),
+    _: Annotated[object, Depends(require_permission("document", "read"))] = None,
 ):
     """List documents linked to an event (tenant-scoped)."""
     docs = await document_repo.get_by_event(event_id=event_id, tenant_id=tenant_id)
@@ -92,6 +99,7 @@ async def get_document_versions(
     document_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     document_repo: DocumentRepository = Depends(get_document_repo),
+    _: Annotated[object, Depends(require_permission("document", "read"))] = None,
 ):
     """Get this document and its version chain (tenant-scoped)."""
     doc = await document_repo.get_by_id(document_id)
@@ -118,6 +126,7 @@ async def get_document_download_url(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     expires_in_hours: int = 1,
     doc_svc: DocumentService = Depends(get_document_service),
+    _: Annotated[object, Depends(require_permission("document", "read"))] = None,
 ):
     """Get temporary download URL for document (tenant-scoped). Defined before /{document_id} for route precedence."""
     try:
@@ -136,6 +145,7 @@ async def get_document(
     document_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     doc_svc: DocumentService = Depends(get_document_service),
+    _: Annotated[object, Depends(require_permission("document", "read"))] = None,
 ):
     """Get document metadata by id (tenant-scoped)."""
     try:
@@ -149,11 +159,14 @@ async def get_document(
 
 
 @router.put("/{document_id}")
+@limit_writes
 async def update_document(
+    request: Request,
     document_id: str,
     body: DocumentUpdate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     document_repo: DocumentRepository = Depends(get_document_repo_for_write),
+    _: Annotated[object, Depends(require_permission("document", "update"))] = None,
 ):
     """Update document metadata (e.g. document_type). Tenant-scoped."""
     doc = await document_repo.get_by_id(document_id)
@@ -176,10 +189,13 @@ async def update_document(
 
 
 @router.delete("/{document_id}", status_code=204)
+@limit_writes
 async def delete_document(
+    request: Request,
     document_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     document_repo: DocumentRepository = Depends(get_document_repo_for_write),
+    _: Annotated[object, Depends(require_permission("document", "delete"))] = None,
 ):
     """Soft-delete document. Tenant-scoped."""
     doc = await document_repo.get_by_id(document_id)

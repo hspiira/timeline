@@ -1,6 +1,6 @@
 """Tenant API schemas."""
 
-from pydantic import BaseModel, Field, SecretStr, field_validator
+from pydantic import BaseModel, Field, SecretStr, field_serializer, field_validator
 
 from app.domain.enums import TenantStatus
 
@@ -37,6 +37,10 @@ class TenantCreateResponse(BaseModel):
     tenant_name: str
     admin_username: str
     admin_password: SecretStr = Field(..., description="Auto-generated; show once to the user")
+
+    @field_serializer("admin_password", when_used="json")
+    def _serialize_admin_password(self, v: SecretStr) -> str:
+        return v.get_secret_value()
 
 
 class TenantUpdate(BaseModel):

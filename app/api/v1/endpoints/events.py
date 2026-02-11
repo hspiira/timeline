@@ -2,19 +2,21 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
     get_event_repo,
     get_event_service,
     get_tenant_id,
     get_verification_service,
+    require_permission,
 )
 from app.application.services.verification_service import (
     ChainVerificationResult,
     VerificationService,
 )
 from app.application.use_cases.events import EventService
+from app.core.limiter import limit_writes
 from app.infrastructure.persistence.repositories.event_repo import EventRepository
 from app.schemas.event import (
     ChainVerificationResponse,
@@ -57,10 +59,13 @@ def _to_verification_response(
 
 
 @router.post("", response_model=EventResponse, status_code=201)
+@limit_writes
 async def create_event(
+    request: Request,
     body: EventCreate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     event_svc: Annotated[EventService, Depends(get_event_service)],
+    _: Annotated[object, Depends(require_permission("event", "create"))] = None,
 ):
     """Create a single event (hash chaining, optional schema validation, workflows)."""
     try:
@@ -82,6 +87,7 @@ async def create_event(
 async def list_events(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     event_repo: Annotated[EventRepository, Depends(get_event_repo)],
+    _: Annotated[object, Depends(require_permission("event", "read"))] = None,
     subject_id: str | None = None,
     skip: int = 0,
     limit: int = 100,
@@ -107,6 +113,7 @@ async def list_events(
 async def count_events(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     event_repo: Annotated[EventRepository, Depends(get_event_repo)],
+    _: Annotated[object, Depends(require_permission("event", "read"))] = None,
 ):
     """Get total event count for the tenant (for dashboard stats)."""
     total = await event_repo.count_by_tenant(tenant_id)
@@ -121,6 +128,7 @@ async def verify_tenant_chains(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     verification_svc: Annotated[VerificationService, Depends(get_verification_service)],
     limit: int = Query(1, ge=1, le=10000, description="Max events to verify"),
+    _: Annotated[object, Depends(require_permission("event", "read"))] = None,
 ):
     """Verify cryptographic integrity of all event chains for current tenant."""
     result = await verification_svc.verify_tenant_chains(
@@ -137,6 +145,7 @@ async def verify_subject_chain(
     subject_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     verification_svc: Annotated[VerificationService, Depends(get_verification_service)],
+    _: Annotated[object, Depends(require_permission("event", "read"))] = None,
 ):
     """Verify cryptographic integrity of event chain for a subject."""
     result = await verification_svc.verify_subject_chain(
@@ -150,6 +159,7 @@ async def get_event(
     event_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     event_repo: Annotated[EventRepository, Depends(get_event_repo)],
+    _: Annotated[object, Depends(require_permission("event", "read"))] = None,
 ):
     """Get event by id (tenant-scoped)."""
     event = await event_repo.get_by_id_and_tenant(event_id, tenant_id)

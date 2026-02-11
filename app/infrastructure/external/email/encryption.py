@@ -20,15 +20,20 @@ class CredentialEncryptor:
         self._fernet = Fernet(self._get_encryption_key())
 
     def _get_encryption_key(self) -> bytes:
-        """Derive 32-byte key from secret_key + encryption_salt via PBKDF2-HMAC-SHA256."""
+        """Derive 32-byte key from credential_encryption_secret (or secret_key) + encryption_salt via PBKDF2."""
         settings = get_settings()
+        raw_secret = (
+            settings.credential_encryption_secret.get_secret_value()
+            if settings.credential_encryption_secret
+            else settings.secret_key.get_secret_value()
+        )
+        key_material = raw_secret.encode()
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
-            salt=settings.encryption_salt.encode(),
+            salt=settings.encryption_salt.get_secret_value().encode(),
             iterations=100_000,
         )
-        key_material = settings.secret_key.encode()
         derived = kdf.derive(key_material)
         return base64.urlsafe_b64encode(derived)
 

@@ -2,14 +2,16 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import (
     get_subject_repo_for_write,
     get_subject_service,
     get_tenant_id,
+    require_permission,
 )
 from app.application.use_cases.subjects import SubjectService
+from app.core.limiter import limit_writes
 from app.domain.exceptions import ResourceNotFoundException
 from app.infrastructure.persistence.repositories.subject_repo import SubjectRepository
 from app.schemas.subject import SubjectCreateRequest, SubjectResponse, SubjectUpdate
@@ -18,11 +20,14 @@ router = APIRouter()
 
 
 @router.post("", response_model=SubjectResponse, status_code=201)
+@limit_writes
 async def create_subject(
+    request: Request,
     body: SubjectCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_svc: SubjectService = Depends(get_subject_service),
-    ):
+    _: Annotated[object, Depends(require_permission("subject", "create"))] = None,
+):
     """Create a subject (tenant-scoped)."""
     created = await subject_svc.create_subject(
         tenant_id=tenant_id,
@@ -37,7 +42,8 @@ async def get_subject(
     subject_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_svc: SubjectService = Depends(get_subject_service),
-    ):
+    _: Annotated[object, Depends(require_permission("subject", "read"))] = None,
+):
     """Get subject by id (tenant-scoped)."""
     try:
         subject = await subject_svc.get_subject(
@@ -56,6 +62,7 @@ async def list_subjects(
     limit: int = 100,
     subject_type: str | None = None,
     subject_svc: SubjectService = Depends(get_subject_service),
+    _: Annotated[object, Depends(require_permission("subject", "read"))] = None,
 ):
     """List subjects for tenant (optional type filter)."""
     subjects = await subject_svc.list_subjects(
@@ -68,11 +75,14 @@ async def list_subjects(
 
 
 @router.put("/{subject_id}", response_model=SubjectResponse)
+@limit_writes
 async def update_subject(
+    request: Request,
     subject_id: str,
     body: SubjectUpdate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_repo: SubjectRepository = Depends(get_subject_repo_for_write),
+    _: Annotated[object, Depends(require_permission("subject", "update"))] = None,
 ):
     """Update subject (e.g. external_ref). Tenant-scoped."""
     subject = await subject_repo.get_entity_by_id_and_tenant(subject_id, tenant_id)
@@ -90,10 +100,13 @@ async def update_subject(
 
 
 @router.delete("/{subject_id}", status_code=204)
+@limit_writes
 async def delete_subject(
+    request: Request,
     subject_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_repo: SubjectRepository = Depends(get_subject_repo_for_write),
+    _: Annotated[object, Depends(require_permission("subject", "delete"))] = None,
 ):
     """Delete subject. Tenant-scoped."""
     subject = await subject_repo.get_entity_by_id_and_tenant(subject_id, tenant_id)
