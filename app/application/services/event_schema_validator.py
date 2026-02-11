@@ -7,7 +7,6 @@ from typing import Any
 import jsonschema
 
 from app.application.interfaces.repositories import IEventSchemaRepository
-from app.application.interfaces.services import IEventSchemaValidator
 from app.domain.exceptions import ResourceNotFoundException, SchemaValidationException
 
 

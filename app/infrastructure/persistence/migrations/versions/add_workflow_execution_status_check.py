@@ -11,7 +11,6 @@ pending, running, completed, failed are allowed (aligned with WorkflowExecutionS
 from collections.abc import Sequence
 from typing import Union
 
-import sqlalchemy as sa
 from alembic import op
 
 revision: str = "a0b1c2d3e4f5"

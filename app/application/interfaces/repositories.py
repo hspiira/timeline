@@ -6,7 +6,7 @@ All types reference application DTOs or schemas only; no infrastructure imports.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from app.domain.enums import TenantStatus
 

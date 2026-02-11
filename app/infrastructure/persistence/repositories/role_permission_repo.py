@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -15,7 +15,6 @@ from app.infrastructure.persistence.models.permission import (
 )
 from app.shared.context import get_current_actor_id, get_current_actor_type
 from app.shared.enums import ActorType, AuditAction
-from app.shared.utils.datetime import utc_now
 
 if TYPE_CHECKING:
     from app.infrastructure.services.system_audit_service import SystemAuditService

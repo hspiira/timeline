@@ -10,7 +10,6 @@ Create Date: (generated)
 from collections.abc import Sequence
 from typing import Union
 
-from alembic import op
 
 revision: str = "d7e8f9a0b1c2"
 down_revision: Union[str, Sequence[str], None] = "0808a66fe6bf"
