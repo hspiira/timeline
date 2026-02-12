@@ -8,9 +8,11 @@ const client = createClient<paths>({
 
 // Auth token management
 let authToken: string | null = null
+let tenantId: string | null = null
 
 if (typeof window !== 'undefined') {
   authToken = localStorage.getItem('auth_token')
+  tenantId = localStorage.getItem('tenant_id')
 }
 
 export function setAuthToken(token: string | null) {
@@ -28,13 +30,32 @@ export function getAuthToken(): string | null {
   return authToken
 }
 
+export function setTenantId(id: string | null) {
+  tenantId = id
+  if (typeof window !== 'undefined') {
+    if (id) {
+      localStorage.setItem('tenant_id', id)
+    } else {
+      localStorage.removeItem('tenant_id')
+    }
+  }
+}
+
+export function getTenantId(): string | null {
+  return tenantId
+}
+
 // Add auth and content-type interceptor
 client.use({
   onRequest({ request }) {
-    // Always read current token at request time (not cached module-level authToken)
+    // Always read current token/tenant at request time
     const currentToken = getAuthToken()
     if (currentToken) {
       request.headers.set('Authorization', `Bearer ${currentToken}`)
+    }
+    const currentTenantId = getTenantId()
+    if (currentTenantId) {
+      request.headers.set('X-Tenant-ID', currentTenantId)
     }
     // Set Content-Type for non-FormData requests
     // For FormData, let the browser set Content-Type with proper boundary
@@ -277,11 +298,13 @@ export const timelineApi = {
       const url = `${baseUrl}/api/v1/documents`
 
       try {
+        const headers: Record<string, string> = {}
+        if (authToken) headers['Authorization'] = `Bearer ${authToken}`
+        if (tenantId) headers['X-Tenant-ID'] = tenantId
+
         const response = await fetch(url, {
           method: 'POST',
-          headers: {
-            'Authorization': authToken ? `Bearer ${authToken}` : '',
-          },
+          headers,
           body: data,
           // Explicitly do NOT set Content-Type - let browser set it with boundary
         })

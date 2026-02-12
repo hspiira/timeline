@@ -1,5 +1,5 @@
 import { Store } from '@tanstack/store'
-import { timelineApi, setAuthToken, getAuthToken } from './api-client'
+import { timelineApi, setAuthToken, getAuthToken, setTenantId } from './api-client'
 import type { UserResponse } from '@/lib/types'
 
 // Auth state interface
@@ -43,8 +43,12 @@ export const authActions = {
       if (userResponse.error) {
         // Clear token if user fetch fails to prevent inconsistent state
         setAuthToken(null)
+        setTenantId(null)
         throw new Error('Failed to fetch user info')
       }
+
+      // Set tenant ID for X-Tenant-ID header on subsequent requests
+      setTenantId(userResponse.data.tenant_id)
 
       authStore.setState({
         user: userResponse.data,
@@ -55,8 +59,9 @@ export const authActions = {
 
       return userResponse.data
     } catch (error) {
-      // Ensure token is cleared on any error to prevent inconsistent state
+      // Ensure token and tenant are cleared on any error
       setAuthToken(null)
+      setTenantId(null)
       const errorMessage =
         error instanceof Error ? error.message : 'Login failed'
       authStore.setState({
@@ -97,6 +102,7 @@ export const authActions = {
 
   logout() {
     setAuthToken(null)
+    setTenantId(null)
     authStore.setState({
       user: null,
       token: null,
@@ -120,6 +126,7 @@ export const authActions = {
       if (response.error) {
         // Token invalid, clear it
         setAuthToken(null)
+        setTenantId(null)
         authStore.setState({
           user: null,
           token: null,
@@ -129,6 +136,9 @@ export const authActions = {
         return
       }
 
+      // Restore tenant ID from user data
+      setTenantId(response.data.tenant_id)
+
       authStore.setState({
         user: response.data,
         token,
@@ -137,6 +147,7 @@ export const authActions = {
       })
     } catch (error) {
       setAuthToken(null)
+      setTenantId(null)
       authStore.setState({
         user: null,
         token: null,
