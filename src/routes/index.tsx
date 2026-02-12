@@ -32,7 +32,7 @@ function HomePage() {
     subjects: [],
     workflows: [],
   })
-  const [loading, setLoading] = useState(true)
+  const [_loading, setLoading] = useState(true)
   const [errors, setErrors] = useState<FetchError[]>([])
 
   // Calculate today's events

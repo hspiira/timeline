@@ -222,15 +222,13 @@ function VerifyPage() {
               <ChainVisualization
                 events={verification.event_results?.map((event) => ({
                     id: event.event_id,
-                    tenant_id: verification.tenant_id,
                     subject_id: verification.subject_id || subjectId,
                     event_type: event.event_type,
                     schema_version: 1,
                     event_time: event.event_time,
                     payload: {},
                     hash: event.actual_hash || event.expected_hash || '',
-                    previous_hash: event.previous_hash || null,
-                    created_at: event.event_time,
+                    previous_hash: null,
                     verified: event.is_valid,
                     expected_hash: event.expected_hash || '',
                     actual_hash: event.actual_hash || '',

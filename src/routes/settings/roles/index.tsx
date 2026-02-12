@@ -24,8 +24,12 @@ export const Route = createFileRoute('/settings/roles/')({
 })
 
 type RoleResponse = components['schemas']['RoleResponse']
-type RoleWithPermissions = components['schemas']['RoleWithPermissions']
 type PermissionResponse = components['schemas']['PermissionResponse']
+
+// RoleWithPermissions doesn't exist in the API schema — define locally
+type RoleWithPermissions = RoleResponse & {
+  permissions?: PermissionResponse[]
+}
 
 function RolesPage() {
   const authState = useRequireAuth()
@@ -562,7 +566,7 @@ function ManageRolePermissionsModal({
   onError: (error: string) => void
 }) {
   const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(
-    new Set(role.permissions?.map((p) => p.id) || [])
+    new Set(role.permissions?.map((p: PermissionResponse) => p.id) || [])
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -584,17 +588,17 @@ function ManageRolePermissionsModal({
     setLoading(true)
 
     try {
+      const existingIds = role.permissions?.map((p: PermissionResponse) => p.id) || []
       const toAssign = Array.from(selectedPermissions).filter(
-        (id) => !role.permissions?.map((p) => p.id).includes(id)
+        (id: string) => !existingIds.includes(id)
       )
 
-      const toRemove =
-        role.permissions?.map((p) => p.id).filter((id) => !selectedPermissions.has(id)) || []
+      const toRemove = existingIds.filter((id: string) => !selectedPermissions.has(id))
 
-      // Assign new permissions
-      if (toAssign.length > 0) {
+      // Assign new permissions one at a time (API takes single permission_id)
+      for (const permId of toAssign) {
         const { error: apiError } = await timelineApi.roles.assignPermissions(role.id, {
-          permission_ids: toAssign,
+          permission_id: permId,
         })
 
         if (apiError) {

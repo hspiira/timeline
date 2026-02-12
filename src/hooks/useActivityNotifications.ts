@@ -30,11 +30,11 @@ export function useActivityNotifications(preferences: NotificationPreferences = 
     enableNotifications = true,
     showForActions = ['created', 'verified'],
     showForResourceTypes = [],
-    groupByResourceType = false,
+    groupByResourceType: _groupByResourceType = false,
     autoCloseDuration = 5000,
   } = preferences
 
-  const { toast } = useToast()
+  const toast = useToast()
   const notificationCountRef = useRef<number>(0)
 
   const shouldNotify = useCallback(
@@ -77,18 +77,12 @@ export function useActivityNotifications(preferences: NotificationPreferences = 
       if (!shouldNotify(activity)) return
 
       notificationCountRef.current += 1
-      const count = notificationCountRef.current
 
       const actionEmoji = getActionEmoji(activity.action)
       const title = `${actionEmoji} ${activity.action.charAt(0).toUpperCase() + activity.action.slice(1)}`
       const description = `${activity.resourceType}: ${activity.resourceName.substring(0, 30)}${activity.resourceName.length > 30 ? '...' : ''}`
 
-      toast({
-        title,
-        description,
-        variant: 'default',
-        duration: autoCloseDuration,
-      })
+      toast.info(title, description)
     },
     [shouldNotify, getActionEmoji, toast, autoCloseDuration]
   )
@@ -101,14 +95,9 @@ export function useActivityNotifications(preferences: NotificationPreferences = 
       const title = `${actionEmoji} Updated`
       const description = `${activity.resourceType}: ${activity.resourceName.substring(0, 30)}${activity.resourceName.length > 30 ? '...' : ''}`
 
-      toast({
-        title,
-        description,
-        variant: 'default',
-        duration: autoCloseDuration,
-      })
+      toast.info(title, description)
     },
-    [enableNotifications, getActionEmoji, toast, autoCloseDuration]
+    [enableNotifications, getActionEmoji, toast]
   )
 
   const clearNotifications = useCallback(() => {

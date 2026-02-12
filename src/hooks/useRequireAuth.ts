@@ -9,7 +9,7 @@ export function useRequireAuth() {
 
 useEffect(() => {
     if (!authState.isLoading && !authState.user) {
-        navigate({ to: '/login' })
+        navigate({ to: '/login', search: { tenant: '' } })
     }
     }, [authState.isLoading, authState.user, navigate])
 

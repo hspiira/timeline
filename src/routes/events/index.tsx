@@ -9,7 +9,7 @@ import { EventDocumentsModal } from '@/components/documents/EventDocumentsModal'
 import { EventDetailsModal } from '@/components/events/EventDetailsModal'
 import { EventCard } from '@/components/events/EventCard'
 import { EmptyState } from '@/components/ui/EmptyState'
-import type { EventResponse } from '@/lib/types'
+import type { EventResponse, EventListResponse } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 
@@ -33,7 +33,7 @@ function EventsPage() {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authState.isLoading && !authState.user) {
-      navigate({ to: '/login' })
+      navigate({ to: '/login', search: { tenant: '' } })
     }
   }, [authState.isLoading, authState.user, navigate])
 
@@ -48,32 +48,40 @@ function EventsPage() {
     setError(null)
     try {
       const params = filterEventType ? { event_type: filterEventType } : undefined
-      const { data, error: apiError } = await timelineApi.events.listAll(params)
+      const { data: listData, error: apiError } = await timelineApi.events.listAll(params)
 
       if (apiError) {
-        const errorMessage = 
+        const errorMessage =
           (apiError as { message?: string })?.message || 'Unable to connect to the server'
         setError(errorMessage)
         console.error('API error:', apiError)
-      } else if (data) {
-        setEvents(data)
-
-        // Extract unique event types for filter
-        const types = [...new Set(data.map((e: EventResponse) => e.event_type))]
+      } else if (listData) {
+        // Extract unique event types from slim list
+        const types = [...new Set(listData.map((e: EventListResponse) => e.event_type))]
         setEventTypes(types)
 
+        // Fetch full event details (needed for EventCard payload display)
+        const fullEvents = await Promise.all(
+          listData.map(async (item: EventListResponse) => {
+            const { data } = await timelineApi.events.get(item.id)
+            return data
+          })
+        )
+        const validEvents = fullEvents.filter((e): e is EventResponse => e != null)
+        setEvents(validEvents)
+
         // Load document counts for all events in parallel
-        const documentPromises = data.map(async (event) => {
+        const documentPromises = listData.map(async (item: EventListResponse) => {
           try {
-            const { data: docs, error } = await timelineApi.documents.listByEvent(event.id)
+            const { data: docs, error } = await timelineApi.documents.listByEvent(item.id)
             if (error) {
-              console.warn(`API error loading documents for event ${event.id}:`, error)
-              return { eventId: event.id, count: 0 }
+              console.warn(`API error loading documents for event ${item.id}:`, error)
+              return { eventId: item.id, count: 0 }
             }
-            return { eventId: event.id, count: Array.isArray(docs) ? docs.length : 0 }
+            return { eventId: item.id, count: Array.isArray(docs) ? docs.length : 0 }
           } catch (err) {
-            console.error(`Failed to load documents for event ${event.id}:`, err)
-            return { eventId: event.id, count: 0 }
+            console.error(`Failed to load documents for event ${item.id}:`, err)
+            return { eventId: item.id, count: 0 }
           }
         })
 

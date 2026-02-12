@@ -185,22 +185,25 @@ function OAuthProvidersPage() {
       ),
     },
     {
-      accessorKey: 'redirect_uri',
-      header: 'Redirect URI',
-      cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground font-mono truncate max-w-[200px] block">
-          {row.original.redirect_uri}
-        </span>
-      ),
-    },
-    {
-      id: 'rate_limit',
-      header: 'Rate Limit',
-      cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground">
-          {row.original.current_hour_connections}/{row.original.rate_limit_connections_per_hour}/hr
-        </span>
-      ),
+      id: 'health',
+      header: 'Health',
+      cell: ({ row }) => {
+        const status = row.original.health_status
+        if (status === 'healthy') {
+          return (
+            <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+              <CheckCircle className="w-3 h-3" />
+              <span className="text-xs">Healthy</span>
+            </div>
+          )
+        }
+        if (status) {
+          return (
+            <span className="text-xs text-amber-600 dark:text-amber-400">{status}</span>
+          )
+        }
+        return <span className="text-xs text-muted-foreground">—</span>
+      },
     },
     {
       id: 'status',
@@ -433,13 +436,12 @@ function OAuthProviderFormModal({
   const [clientId, setClientId] = useState('')
   const [clientSecret, setClientSecret] = useState('')
   const [redirectUri, setRedirectUri] = useState(
-    provider?.redirect_uri || `${window.location.origin.replace(':3000', ':8000')}/api/oauth-providers/${providerType}/callback`
+    `${window.location.origin.replace(':3000', ':8000')}/api/oauth-providers/${providerType}/callback`
   )
   const [scopes, setScopes] = useState<string>(
     provider ? '' : (PROVIDER_INFO[providerType]?.defaultScopes || []).join('\n')
   )
-  const [isActive, setIsActive] = useState(provider?.is_active ?? true)
-  const [rateLimit, setRateLimit] = useState(provider?.rate_limit_connections_per_hour?.toString() || '100')
+  const [displayName, setDisplayName] = useState(provider?.display_name || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showSecret, setShowSecret] = useState(false)
@@ -478,24 +480,18 @@ function OAuthProviderFormModal({
     setLoading(true)
     try {
       if (provider) {
-        // Update existing provider
-        const updateData: OAuthProviderUpdate = {
-          is_active: isActive,
-          rate_limit_connections_per_hour: parseInt(rateLimit, 10) || 100,
-        }
+        // Update existing provider — OAuthConfigUpdate only supports display_name,
+        // redirect_uri, redirect_uri_whitelist, allowed_scopes, default_scopes, tenant_configured_scopes
+        const updateData: OAuthProviderUpdate = {}
 
-        // Only include credentials if they were provided
-        if (clientId.trim()) {
-          updateData.client_id = clientId.trim()
+        if (displayName.trim() && displayName.trim() !== provider.display_name) {
+          updateData.display_name = displayName.trim()
         }
-        if (clientSecret.trim()) {
-          updateData.client_secret = clientSecret.trim()
-        }
-        if (redirectUri.trim() !== provider.redirect_uri) {
+        if (redirectUri.trim()) {
           updateData.redirect_uri = redirectUri.trim()
         }
         if (scopes.trim()) {
-          updateData.scopes = scopes.split('\n').map(s => s.trim()).filter(Boolean)
+          updateData.tenant_configured_scopes = scopes.split('\n').map(s => s.trim()).filter(Boolean)
         }
 
         const { data, error: apiError } = await timelineApi.oauthProviders.update(provider.id, updateData)
@@ -675,38 +671,20 @@ function OAuthProviderFormModal({
           />
         </div>
 
-        {/* Rate Limit (only for editing) */}
+        {/* Display Name (only for editing) */}
         {provider && (
           <div>
             <label className="block text-sm font-medium text-foreground/90 mb-2">
-              Rate Limit (connections/hour)
+              Display Name
             </label>
             <input
-              type="number"
-              value={rateLimit}
-              onChange={(e) => setRateLimit(e.target.value)}
-              min="1"
-              max="1000"
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder={provider.display_name}
               className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={loading}
             />
-          </div>
-        )}
-
-        {/* Active Toggle (only for editing) */}
-        {provider && (
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="is_active"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-              className="w-4 h-4 rounded border-input"
-              disabled={loading}
-            />
-            <label htmlFor="is_active" className="text-sm font-medium text-foreground cursor-pointer">
-              Active (allow new connections)
-            </label>
           </div>
         )}
 

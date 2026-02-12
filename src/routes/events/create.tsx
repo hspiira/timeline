@@ -98,43 +98,6 @@ function CreateEventPage() {
     }
   }, [state.eventType])
 
-  // Detect document field in schema
-  const documentFieldName = useMemo(() => {
-    if (!schema?.properties) return null
-
-    const allFields = Object.keys(schema.properties)
-
-    // First, check for explicitly named document fields (required or optional)
-    for (const field of allFields) {
-      const fieldName = field.toLowerCase()
-      if (['documents', 'document_ids', 'attachments', 'evidence', 'supporting_documents'].includes(fieldName)) {
-        return field
-      }
-    }
-
-    // Then look for array fields (required or optional) that could be documents
-    for (const field of allFields) {
-      const fieldSchema = schema.properties[field]
-      // Check if it's an array of strings (likely IDs)
-      if (fieldSchema?.type === 'array' && fieldSchema?.items?.type === 'string') {
-        const fieldNameLower = field.toLowerCase()
-        // Check if name or description suggests documents
-        if (
-          fieldNameLower.includes('doc') ||
-          fieldNameLower.includes('attach') ||
-          fieldNameLower.includes('evidence') ||
-          fieldNameLower.includes('file') ||
-          fieldSchema.description?.toLowerCase().includes('document') ||
-          fieldSchema.description?.toLowerCase().includes('attachment')
-        ) {
-          return field
-        }
-      }
-    }
-
-    return null
-  }, [schema])
-
   // Validate payload against schema
   const validatePayload = useMemo(() => {
     const errors: Record<string, string> = {}

@@ -1,5 +1,4 @@
 import React, { createContext, ReactNode, useCallback, useState } from 'react'
-import type { Activity } from '@/lib/types/activity'
 
 interface ActivityContextType {
   selected: string | null

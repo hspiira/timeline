@@ -21,7 +21,7 @@ export function useActivityFeed({
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [cursor, setCursor] = useState<string | null>(null)
+  const [_cursor, setCursor] = useState<string | null>(null)
 
   /**
    * Fetch activities from API
@@ -31,7 +31,7 @@ export function useActivityFeed({
    * - Activity generation from events
    */
   const fetchActivities = useCallback(
-    async (nextCursor?: string) => {
+    async (_nextCursor?: string) => {
       setLoading(true)
       setError(null)
 

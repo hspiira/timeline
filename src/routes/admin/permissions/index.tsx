@@ -47,7 +47,7 @@ function PermissionsPage() {
   const [confirmingDelete, setConfirmingDelete] = useState<{ id: string; code: string } | null>(null)
   const [filterResource, setFilterResource] = useState('')
   const [viewingRoles, setViewingRoles] = useState<{ permId: string; permCode: string; roles: RoleResponse[] } | null>(null)
-  const [loadingRoles, setLoadingRoles] = useState(false)
+  const [_loadingRoles, _setLoadingRoles] = useState(false)
 
   useEffect(() => {
     if (authState.user) {
@@ -160,7 +160,7 @@ function PermissionsPage() {
         <ViewRolesModal
           permCode={viewingRoles.permCode}
           roles={viewingRoles.roles}
-          loading={loadingRoles}
+          loading={_loadingRoles}
           onClose={() => setViewingRoles(null)}
         />
       )}

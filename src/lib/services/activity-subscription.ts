@@ -62,7 +62,7 @@ class ActivitySubscriptionService {
   /**
    * Internal: notify matching subscribers
    */
-  private notifySubscribers(activity: Activity, type: 'new' | 'update') {
+  private notifySubscribers(activity: Activity, _type: 'new' | 'update') {
     this.subscribers.forEach(subscriber => {
       // Check if activity matches subscriber's filter
       if (subscriber.filter && !this.matchesFilter(activity, subscriber.filter)) {

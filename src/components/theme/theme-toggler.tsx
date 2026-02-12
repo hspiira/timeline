@@ -10,15 +10,15 @@ import {
 import { useTheme } from "./theme-provider";
 
 interface ThemeToggleProps {
-  variant?: "default" | "outline" | "ghost";
-  size?: "sm" | "default" | "lg";
+  variant?: "outline" | "ghost";
+  size?: "sm" | "md" | "lg";
   showLabel?: boolean;
   align?: "start" | "center" | "end";
 }
 
 export function ThemeToggle({
   variant = "ghost",
-  size = "default",
+  size = "md",
   showLabel = false,
   align = "end",
 }: ThemeToggleProps) {
@@ -184,7 +184,7 @@ export function ThemeToggleSimple() {
   return (
     <Button
       variant="ghost"
-      size="default"
+      size="md"
       onClick={handleToggle}
       className={`
         relative overflow-hidden aspect-square

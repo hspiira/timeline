@@ -12,11 +12,9 @@ export const Route = createFileRoute('/register')({
 })
 
 interface TenantCreationResult {
-  tenant: {
-    id: string
-    code: string
-    name: string
-  }
+  tenant_id: string
+  tenant_code: string
+  tenant_name: string
   admin_username: string
   admin_password: string
 }
@@ -62,7 +60,7 @@ function RegisterTenantPage() {
       // Navigate to login with the tenant code pre-filled
       navigate({
         to: '/login',
-        search: { tenant: createdTenant.tenant.code },
+        search: { tenant: createdTenant.tenant_code },
       })
     }
   }
@@ -90,7 +88,7 @@ function RegisterTenantPage() {
               </div>
               <div>
                 <h1 className="text-lg font-bold text-foreground">Tenant Created</h1>
-                <p className="text-sm text-muted-foreground">{createdTenant.tenant.name}</p>
+                <p className="text-sm text-muted-foreground">{createdTenant.tenant_name}</p>
               </div>
             </div>
 
@@ -98,7 +96,7 @@ function RegisterTenantPage() {
             <div className="space-y-3 mb-6">
               <div className="flex items-center justify-between py-2 border-b border-border">
                 <span className="text-sm text-muted-foreground">Tenant Code</span>
-                <code className="text-sm font-mono text-foreground">{createdTenant.tenant.code}</code>
+                <code className="text-sm font-mono text-foreground">{createdTenant.tenant_code}</code>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-border">
                 <span className="text-sm text-muted-foreground">Admin Username</span>
