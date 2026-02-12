@@ -60,16 +60,12 @@ export function SchemaViewModal({ schema, onClose }: SchemaViewModalProps) {
               <span className="text-muted-foreground">Inactive</span>
             )}
           </div>
-          <div>
-            <span className="text-muted-foreground">Created: </span>
-            <span className="text-foreground">
-              {new Date(schema.created_at).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })}
-            </span>
-          </div>
+          {schema.created_by && (
+            <div>
+              <span className="text-muted-foreground">Created by: </span>
+              <span className="text-foreground">{schema.created_by}</span>
+            </div>
+          )}
         </div>
 
         {/* View Mode Toggle */}

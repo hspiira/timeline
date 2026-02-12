@@ -117,7 +117,7 @@ function EmailAccountsPage() {
   const handleSync = async (accountId: string, emailAddress: string) => {
     setSyncing(accountId)
     try {
-      const { error: apiError } = await timelineApi.emailAccounts.sync(accountId, true)
+      const { error: apiError } = await timelineApi.emailAccounts.sync(accountId)
 
       if (apiError) {
         const errorMsg =
@@ -230,15 +230,11 @@ function EmailAccountsPage() {
       },
     },
     {
-      accessorKey: 'created_at',
-      header: 'Connected',
+      id: 'sync_status',
+      header: 'Sync Status',
       cell: ({ row }) => (
-        <span className="text-muted-foreground text-sm">
-          {new Date(row.original.created_at).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-          })}
+        <span className="text-muted-foreground text-sm capitalize">
+          {row.original.sync_status}
         </span>
       ),
     },

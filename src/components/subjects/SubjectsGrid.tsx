@@ -40,12 +40,6 @@ export function SubjectsGrid({ data, onEdit }: SubjectsGridProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {data.map((subject) => {
         const { icon: Icon, bgColor, textColor, borderColor, headerBg } = getSubjectIcon(subject.subject_type)
-        const createdDate = new Date(subject.created_at).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        })
-
         return (
           <div
             key={subject.id}
@@ -78,12 +72,6 @@ export function SubjectsGrid({ data, onEdit }: SubjectsGridProps) {
 
             {/* Body with metadata */}
             <div className="p-4 space-y-3">
-              {/* Created Date */}
-              <div className="flex items-center gap-2 text-xs">
-                <Calendar className="w-4 h-4 text-muted-foreground/60" />
-                <span className="text-muted-foreground">Created {createdDate}</span>
-              </div>
-
               {/* Events Count */}
               <div className="flex items-center gap-2 text-xs">
                 <Activity className="w-4 h-4 text-muted-foreground/60" />

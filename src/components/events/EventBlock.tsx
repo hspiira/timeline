@@ -113,7 +113,7 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
       </td>
 
       <td className={`${cell} ${colStyles.hash}`}>
-        <HashCell hash={event.hash} copiedHash={copiedHash} onCopy={copyHash} />
+        <HashCell hash={event.hash as string} copiedHash={copiedHash} onCopy={copyHash} />
       </td>
 
       <td className={`${cell} ${colStyles.prevHash}`}>
@@ -122,7 +122,7 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
             <span className="text-xs text-muted-foreground">—</span>
           </Link>
         ) : (
-          <HashCell hash={event.previous_hash} isLink copiedHash={copiedHash} onCopy={copyHash} />
+          <HashCell hash={event.payload.previous_hash as string} isLink copiedHash={copiedHash} onCopy={copyHash} />
         )}
       </td>
 

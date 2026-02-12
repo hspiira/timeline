@@ -31,9 +31,9 @@ export const Route = createFileRoute('/settings/oauth-providers/')({
   component: OAuthProvidersPage,
 })
 
-type OAuthProviderConfig = components['schemas']['OAuthProviderConfigResponse']
-type OAuthProviderCreate = components['schemas']['OAuthProviderConfigCreate']
-type OAuthProviderUpdate = components['schemas']['OAuthProviderConfigUpdate']
+type OAuthProviderConfig = components['schemas']['OAuthConfigResponse']
+type OAuthProviderCreate = components['schemas']['OAuthConfigCreateRequest']
+type OAuthProviderUpdate = components['schemas']['OAuthConfigUpdate']
 
 const PROVIDER_INFO: Record<string, { name: string; icon: typeof Mail; color: string; defaultScopes: string[] }> = {
   gmail: {
@@ -93,7 +93,7 @@ function OAuthProvidersPage() {
           (apiError as any)?.message || (isNoAccess ? 'No permission to view OAuth providers' : 'Unable to load OAuth providers')
         setError(errorMsg)
       } else {
-        setProviders(data?.providers || [])
+        setProviders(data || [])
       }
     } catch (err) {
       setError('An unexpected error occurred')
@@ -141,10 +141,10 @@ function OAuthProvidersPage() {
       if (apiError) {
         toast.error('Health check failed', (apiError as any)?.message || 'Could not check provider health')
       } else if (data) {
-        if (data.is_operational) {
+        if (data.health_status === 'healthy') {
           toast.success('Provider healthy', `${provider.display_name} is operational`)
         } else {
-          toast.warning('Provider issue', data.last_error || 'Provider may have issues')
+          toast.warning('Provider issue', data.last_health_error || 'Provider may have issues')
         }
       }
     } finally {

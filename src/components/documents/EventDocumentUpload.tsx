@@ -133,6 +133,7 @@ export function EventDocumentUpload({
         </div>
 
         <Button
+          children={<Upload className="w-4 h-4" />}
           variant="ghost"
           onClick={() => inputRef.current?.click()}
           className="absolute inset-0 opacity-0"

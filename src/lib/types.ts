@@ -7,37 +7,38 @@ import type { components } from '@/lib/timeline-api'
 
 // Auth & User types
 export type UserResponse = components['schemas']['UserResponse']
-export type UserCreate = components['schemas']['UserCreate']
+export type UserCreateRequest = components['schemas']['UserCreateRequest']
 export type UserUpdate = components['schemas']['UserUpdate']
+export type RegisterRequest = components['schemas']['RegisterRequest']
+export type TokenResponse = components['schemas']['TokenResponse']
 
 // Subject types
 export type SubjectResponse = components['schemas']['SubjectResponse']
-export type SubjectCreate = components['schemas']['SubjectCreate']
+export type SubjectCreateRequest = components['schemas']['SubjectCreateRequest']
 export type SubjectUpdate = components['schemas']['SubjectUpdate']
 
 // Event types
 export type EventResponse = components['schemas']['EventResponse']
-export type EventCreate = components['schemas']['EventCreate']
+export type EventCreateRequest = components['schemas']['EventCreateRequest']
 export type EventListResponse = components['schemas']['EventListResponse']
 
 // Event Schema types
 export type EventSchemaResponse = components['schemas']['EventSchemaResponse']
-export type EventSchemaCreate = components['schemas']['EventSchemaCreate']
+export type EventSchemaCreateRequest = components['schemas']['EventSchemaCreateRequest']
 
 // Tenant types
 export type TenantResponse = components['schemas']['TenantResponse']
-export type TenantCreate = components['schemas']['TenantCreate']
+export type TenantCreateRequest = components['schemas']['TenantCreateRequest']
+export type TenantCreateResponse = components['schemas']['TenantCreateResponse']
 
 // Workflow types
 export type WorkflowResponse = components['schemas']['WorkflowResponse']
-export type WorkflowCreate = components['schemas']['WorkflowCreate']
+export type WorkflowCreateRequest = components['schemas']['WorkflowCreateRequest']
 
 // Document types
-export type DocumentResponse = components['schemas']['DocumentResponse']
+export type DocumentListItem = components['schemas']['DocumentListItem']
+export type DocumentVersionItem = components['schemas']['DocumentVersionItem']
 
 // Email Account types
 export type EmailAccountResponse = components['schemas']['EmailAccountResponse']
-export type EmailAccountCreate = components['schemas']['EmailAccountCreate']
-
-// Token types
-export type Token = components['schemas']['Token']
+export type EmailAccountCreateRequest = components['schemas']['EmailAccountCreateRequest']

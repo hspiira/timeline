@@ -54,7 +54,7 @@ export const timelineApi = {
   // Auth
   auth: {
     login: async (username: string, password: string, tenant_code: string) => {
-      return client.POST('/auth/token', {
+      return client.POST('/api/v1/auth/login', {
         body: {
           username,
           password,
@@ -62,56 +62,55 @@ export const timelineApi = {
         },
       })
     },
-    register: (data: components['schemas']['UserCreate']) =>
-      client.POST('/users/register', { body: data }),
+    register: (data: components['schemas']['RegisterRequest']) =>
+      client.POST('/api/v1/auth/register', { body: data }),
   },
 
   // Users
   users: {
-    me: () => client.GET('/users/me'),
+    me: () => client.GET('/api/v1/auth/me'),
     update: (data: components['schemas']['UserUpdate']) =>
-      client.PUT('/users/me', { body: data }),
-    deactivate: () => client.DELETE('/users/me'),
+      client.PUT('/api/v1/auth/me', { body: data }),
+    deactivate: () => client.DELETE('/api/v1/auth/me'),
     list: (params?: { skip?: number; limit?: number }) =>
-      client.GET('/users/', { params: { query: params } }),
+      client.GET('/api/v1/users', { params: { query: params } }),
     getRoles: (userId: string) =>
-      client.GET('/users/{user_id}/roles', {
+      client.GET('/api/v1/users/{user_id}/roles', {
         params: { path: { user_id: userId } },
       }),
-    assignRole: (userId: string, data: components['schemas']['UserRoleAssign']) =>
-      client.POST('/users/{user_id}/roles', {
-        params: { path: { user_id: userId } },
-        body: data,
-      }),
-    removeRole: (userId: string, roleId: string) =>
-      client.DELETE('/users/{user_id}/roles/{role_id}', {
+    assignRole: (userId: string, roleId: string) =>
+      client.POST('/api/v1/users/{user_id}/roles/{role_id}', {
         params: { path: { user_id: userId, role_id: roleId } },
       }),
-    getMyRoles: () => client.GET('/users/me/roles'),
+    removeRole: (userId: string, roleId: string) =>
+      client.DELETE('/api/v1/users/{user_id}/roles/{role_id}', {
+        params: { path: { user_id: userId, role_id: roleId } },
+      }),
+    getMyRoles: () => client.GET('/api/v1/users/me/roles'),
   },
 
   // Tenants
   tenants: {
     list: (params?: { skip?: number; limit?: number; active_only?: boolean }) =>
-      client.GET('/tenants/', { params: { query: params } }),
+      client.GET('/api/v1/tenants', { params: { query: params } }),
     get: (id: string) =>
-      client.GET('/tenants/{tenant_id}', {
+      client.GET('/api/v1/tenants/{tenant_id}', {
         params: { path: { tenant_id: id } },
       }),
-    create: (data: components['schemas']['TenantCreate']) =>
-      client.POST('/tenants/', { body: data }),
+    create: (data: components['schemas']['TenantCreateRequest']) =>
+      client.POST('/api/v1/tenants', { body: data }),
     update: (id: string, data: components['schemas']['TenantUpdate']) =>
-      client.PUT('/tenants/{tenant_id}', {
+      client.PUT('/api/v1/tenants/{tenant_id}', {
         params: { path: { tenant_id: id } },
         body: data,
       }),
     updateStatus: (id: string, data: components['schemas']['TenantStatusUpdate']) =>
-      client.PATCH('/tenants/{tenant_id}/status', {
+      client.PATCH('/api/v1/tenants/{tenant_id}/status', {
         params: { path: { tenant_id: id } },
         body: data,
       }),
     delete: (id: string) =>
-      client.DELETE('/tenants/{tenant_id}', {
+      client.DELETE('/api/v1/tenants/{tenant_id}', {
         params: { path: { tenant_id: id } },
       }),
   },
@@ -119,31 +118,31 @@ export const timelineApi = {
   // Roles
   roles: {
     list: (params?: { skip?: number; limit?: number; include_inactive?: boolean }) =>
-      client.GET('/roles/', {
+      client.GET('/api/v1/roles', {
         params: { query: params },
       }),
     get: (id: string) =>
-      client.GET('/roles/{role_id}', {
+      client.GET('/api/v1/roles/{role_id}', {
         params: { path: { role_id: id } },
       }),
-    create: (data: components['schemas']['RoleCreate']) =>
-      client.POST('/roles/', { body: data }),
+    create: (data: components['schemas']['RoleCreateRequest']) =>
+      client.POST('/api/v1/roles', { body: data }),
     update: (id: string, data: components['schemas']['RoleUpdate']) =>
-      client.PUT('/roles/{role_id}', {
+      client.PUT('/api/v1/roles/{role_id}', {
         params: { path: { role_id: id } },
         body: data,
       }),
     delete: (id: string) =>
-      client.DELETE('/roles/{role_id}', {
+      client.DELETE('/api/v1/roles/{role_id}', {
         params: { path: { role_id: id } },
       }),
     assignPermissions: (roleId: string, data: components['schemas']['RolePermissionAssign']) =>
-      client.POST('/roles/{role_id}/permissions', {
+      client.POST('/api/v1/roles/{role_id}/permissions', {
         params: { path: { role_id: roleId } },
         body: data,
       }),
     removePermission: (roleId: string, permissionId: string) =>
-      client.DELETE('/roles/{role_id}/permissions/{permission_id}', {
+      client.DELETE('/api/v1/roles/{role_id}/permissions/{permission_id}', {
         params: { path: { role_id: roleId, permission_id: permissionId } },
       }),
   },
@@ -151,17 +150,17 @@ export const timelineApi = {
   // Permissions
   permissions: {
     list: (params?: { skip?: number; limit?: number; resource?: string }) =>
-      client.GET('/permissions/', {
+      client.GET('/api/v1/permissions', {
         params: { query: params },
       }),
     get: (id: string) =>
-      client.GET('/permissions/{permission_id}', {
+      client.GET('/api/v1/permissions/{permission_id}', {
         params: { path: { permission_id: id } },
       }),
-    create: (data: components['schemas']['PermissionCreate']) =>
-      client.POST('/permissions/', { body: data }),
+    create: (data: components['schemas']['PermissionCreateRequest']) =>
+      client.POST('/api/v1/permissions', { body: data }),
     delete: (id: string) =>
-      client.DELETE('/permissions/{permission_id}', {
+      client.DELETE('/api/v1/permissions/{permission_id}', {
         params: { path: { permission_id: id } },
       }),
   },
@@ -176,22 +175,22 @@ export const timelineApi = {
         q?: string
       }
     ) =>
-      client.GET('/subjects/', {
+      client.GET('/api/v1/subjects', {
         params: { query: params },
       }),
     get: (id: string) =>
-      client.GET('/subjects/{subject_id}', {
+      client.GET('/api/v1/subjects/{subject_id}', {
         params: { path: { subject_id: id } },
       }),
-    create: (data: components['schemas']['SubjectCreate']) =>
-      client.POST('/subjects/', { body: data }),
+    create: (data: components['schemas']['SubjectCreateRequest']) =>
+      client.POST('/api/v1/subjects', { body: data }),
     update: (id: string, data: components['schemas']['SubjectUpdate']) =>
-      client.PUT('/subjects/{subject_id}', {
+      client.PUT('/api/v1/subjects/{subject_id}', {
         params: { path: { subject_id: id } },
         body: data,
       }),
     delete: (id: string) =>
-      client.DELETE('/subjects/{subject_id}', {
+      client.DELETE('/api/v1/subjects/{subject_id}', {
         params: { path: { subject_id: id } },
       }),
   },
@@ -199,60 +198,60 @@ export const timelineApi = {
   // Events
   events: {
     listAll: (params?: { event_type?: string; skip?: number; limit?: number }) =>
-      client.GET('/events/', {
+      client.GET('/api/v1/events', {
         params: { query: params },
       }),
     list: (
       subjectId: string,
       params?: { event_type?: string; skip?: number; limit?: number }
     ) =>
-      client.GET('/events/subject/{subject_id}', {
+      client.GET('/api/v1/events', {
         params: {
-          path: { subject_id: subjectId },
-          query: params,
+          query: { subject_id: subjectId, ...params },
         },
       }),
     get: (id: string) =>
-      client.GET('/events/{event_id}', {
+      client.GET('/api/v1/events/{event_id}', {
         params: { path: { event_id: id } },
       }),
-    count: () => client.GET('/events/count'),
-    create: (data: components['schemas']['EventCreate']) =>
-      client.POST('/events/', { body: data }),
+    count: () => client.GET('/api/v1/events/count'),
+    create: (data: components['schemas']['EventCreateRequest']) =>
+      client.POST('/api/v1/events', { body: data }),
     verify: (subjectId: string) =>
-      client.GET('/events/verify/{subject_id}', {
+      client.GET('/api/v1/events/verify/{subject_id}', {
         params: { path: { subject_id: subjectId } },
       }),
-    verifyTenant: (params?: { limit?: number }) =>
-      client.GET('/events/verify/tenant/all', {
-        params: { query: params },
-      }),
+    verifyTenant: () =>
+      client.GET('/api/v1/events/verify/tenant/all'),
   },
 
   // Event Schemas
   eventSchemas: {
-    list: () => client.GET('/event-schemas/'),
+    listByEventType: (eventType: string) =>
+      client.GET('/api/v1/event-schemas/event-type/{event_type}', {
+        params: { path: { event_type: eventType } },
+      }),
     get: (id: string) =>
-      client.GET('/event-schemas/{schema_id}', {
+      client.GET('/api/v1/event-schemas/{schema_id}', {
         params: { path: { schema_id: id } },
       }),
     getActive: (eventType: string) =>
-      client.GET('/event-schemas/event-type/{event_type}/active', {
+      client.GET('/api/v1/event-schemas/event-type/{event_type}/active', {
         params: { path: { event_type: eventType } },
       }),
     getByVersion: (eventType: string, version: number) =>
-      client.GET('/event-schemas/event-type/{event_type}/version/{version}', {
+      client.GET('/api/v1/event-schemas/event-type/{event_type}/version/{version}', {
         params: { path: { event_type: eventType, version } },
       }),
-    create: (data: components['schemas']['EventSchemaCreate']) =>
-      client.POST('/event-schemas/', { body: data }),
+    create: (data: components['schemas']['EventSchemaCreateRequest']) =>
+      client.POST('/api/v1/event-schemas', { body: data }),
     update: (id: string, data: components['schemas']['EventSchemaUpdate']) =>
-      client.PATCH('/event-schemas/{schema_id}', {
+      client.PATCH('/api/v1/event-schemas/{schema_id}', {
         params: { path: { schema_id: id } },
         body: data,
       }),
     delete: (id: string) =>
-      client.DELETE('/event-schemas/{schema_id}', {
+      client.DELETE('/api/v1/event-schemas/{schema_id}', {
         params: { path: { schema_id: id } },
       }),
   },
@@ -260,22 +259,22 @@ export const timelineApi = {
   // Documents
   documents: {
     listBySubject: (subjectId: string) =>
-      client.GET('/documents/subject/{subject_id}', {
-        params: { path: { subject_id: subjectId } },
+      client.GET('/api/v1/documents', {
+        params: { query: { subject_id: subjectId } },
       }),
     listByEvent: (eventId: string) =>
-      client.GET('/documents/event/{event_id}', {
+      client.GET('/api/v1/documents/event/{event_id}', {
         params: { path: { event_id: eventId } },
       }),
     get: (id: string) =>
-      client.GET('/documents/{document_id}', {
+      client.GET('/api/v1/documents/{document_id}', {
         params: { path: { document_id: id } },
       }),
     upload: async (data: FormData) => {
       // Use native fetch for FormData instead of openapi-fetch
       // because openapi-fetch doesn't handle FormData correctly
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-      const url = `${baseUrl}/documents/upload`
+      const url = `${baseUrl}/api/v1/documents`
 
       try {
         const response = await fetch(url, {
@@ -300,19 +299,19 @@ export const timelineApi = {
       }
     },
     download: (id: string) =>
-      client.GET('/documents/{document_id}/download', {
+      client.GET('/api/v1/documents/{document_id}/download-url', {
         params: { path: { document_id: id } },
       }),
     delete: (id: string) =>
-      client.DELETE('/documents/{document_id}', {
+      client.DELETE('/api/v1/documents/{document_id}', {
         params: { path: { document_id: id } },
       }),
     getVersions: (id: string) =>
-      client.GET('/documents/{document_id}/versions', {
+      client.GET('/api/v1/documents/{document_id}/versions', {
         params: { path: { document_id: id } },
       }),
     update: (id: string, data: components['schemas']['DocumentUpdate']) =>
-      client.PUT('/documents/{document_id}', {
+      client.PUT('/api/v1/documents/{document_id}', {
         params: { path: { document_id: id } },
         body: data,
       }),
@@ -320,109 +319,105 @@ export const timelineApi = {
 
   // Workflows
   workflows: {
-    list: () => client.GET('/workflows/'),
+    list: () => client.GET('/api/v1/workflows'),
     get: (id: string) =>
-      client.GET('/workflows/{workflow_id}', {
+      client.GET('/api/v1/workflows/{workflow_id}', {
         params: { path: { workflow_id: id } },
       }),
-    create: (data: components['schemas']['WorkflowCreate']) =>
-      client.POST('/workflows/', { body: data }),
+    create: (data: components['schemas']['WorkflowCreateRequest']) =>
+      client.POST('/api/v1/workflows', { body: data }),
     update: (id: string, data: components['schemas']['WorkflowUpdate']) =>
-      client.PUT('/workflows/{workflow_id}', {
+      client.PUT('/api/v1/workflows/{workflow_id}', {
         params: { path: { workflow_id: id } },
         body: data,
       }),
     delete: (id: string) =>
-      client.DELETE('/workflows/{workflow_id}', {
+      client.DELETE('/api/v1/workflows/{workflow_id}', {
         params: { path: { workflow_id: id } },
       }),
     getExecutions: (workflowId: string) =>
-      client.GET('/workflows/{workflow_id}/executions', {
+      client.GET('/api/v1/workflows/{workflow_id}/executions', {
         params: { path: { workflow_id: workflowId } },
       }),
     getExecution: (executionId: string) =>
-      client.GET('/workflows/executions/{execution_id}', {
+      client.GET('/api/v1/workflows/executions/{execution_id}', {
         params: { path: { execution_id: executionId } },
       }),
   },
 
   // Email Accounts
   emailAccounts: {
-    list: () => client.GET('/email-accounts/'),
+    list: () => client.GET('/api/v1/email-accounts'),
     get: (id: string) =>
-      client.GET('/email-accounts/{account_id}', {
+      client.GET('/api/v1/email-accounts/{account_id}', {
         params: { path: { account_id: id } },
       }),
-    create: (data: components['schemas']['EmailAccountCreate']) =>
-      client.POST('/email-accounts/', { body: data }),
+    create: (data: components['schemas']['EmailAccountCreateRequest']) =>
+      client.POST('/api/v1/email-accounts', { body: data }),
     update: (id: string, data: components['schemas']['EmailAccountUpdate']) =>
-      client.PATCH('/email-accounts/{account_id}', {
+      client.PATCH('/api/v1/email-accounts/{account_id}', {
         params: { path: { account_id: id } },
         body: data,
       }),
     delete: (id: string) =>
-      client.DELETE('/email-accounts/{account_id}', {
+      client.DELETE('/api/v1/email-accounts/{account_id}', {
         params: { path: { account_id: id } },
       }),
-    sync: (id: string, incremental: boolean = true) =>
-      client.POST('/email-accounts/{account_id}/sync', {
+    sync: (id: string) =>
+      client.POST('/api/v1/email-accounts/{account_id}/sync', {
         params: { path: { account_id: id } },
-        body: { incremental },
       }),
-    syncBackground: (id: string, incremental: boolean = true) =>
-      client.POST('/email-accounts/{account_id}/sync-background', {
+    syncBackground: (id: string) =>
+      client.POST('/api/v1/email-accounts/{account_id}/sync-background', {
         params: { path: { account_id: id } },
-        body: { incremental },
       }),
-    setupWebhook: (id: string, data: components['schemas']['WebhookSetupRequest']) =>
-      client.POST('/email-accounts/{account_id}/webhook', {
+    getSyncStatus: (id: string) =>
+      client.GET('/api/v1/email-accounts/{account_id}/sync-status', {
         params: { path: { account_id: id } },
-        body: data,
       }),
   },
 
   // OAuth Providers
   oauthProviders: {
     list: (params?: { include_inactive?: boolean; skip?: number; limit?: number }) =>
-      client.GET('/api/oauth-providers', {
+      client.GET('/api/v1/oauth-providers', {
         params: { query: params },
       }),
     get: (configId: string) =>
-      client.GET('/api/oauth-providers/{config_id}', {
+      client.GET('/api/v1/oauth-providers/{config_id}', {
         params: { path: { config_id: configId } },
       }),
-    create: (data: components['schemas']['OAuthProviderConfigCreate']) =>
-      client.POST('/api/oauth-providers', { body: data }),
-    update: (configId: string, data: components['schemas']['OAuthProviderConfigUpdate']) =>
-      client.PATCH('/api/oauth-providers/{config_id}', {
+    create: (data: components['schemas']['OAuthConfigCreateRequest']) =>
+      client.POST('/api/v1/oauth-providers', { body: data }),
+    update: (configId: string, data: components['schemas']['OAuthConfigUpdate']) =>
+      client.PATCH('/api/v1/oauth-providers/{config_id}', {
         params: { path: { config_id: configId } },
         body: data,
       }),
     delete: (configId: string) =>
-      client.DELETE('/api/oauth-providers/{config_id}', {
+      client.DELETE('/api/v1/oauth-providers/{config_id}', {
         params: { path: { config_id: configId } },
       }),
-    authorize: (provider: string, data: components['schemas']['OAuthAuthorizeRequest']) =>
-      client.POST('/api/oauth-providers/{provider}/authorize', {
+    authorize: (provider: string) =>
+      client.POST('/api/v1/oauth-providers/{provider}/authorize', {
         params: { path: { provider } },
-        body: data,
       }),
     rotateCredentials: (
       configId: string,
-      data: components['schemas']['OAuthRotateCredentialsRequest']
+      data: components['schemas']['OAuthConfigRotateRequest']
     ) =>
-      client.POST('/api/oauth-providers/{config_id}/rotate', {
+      client.POST('/api/v1/oauth-providers/{config_id}/rotate', {
         params: { path: { config_id: configId } },
         body: data,
       }),
     getHealth: (configId: string) =>
-      client.GET('/api/oauth-providers/{config_id}/health', {
+      client.GET('/api/v1/oauth-providers/{config_id}/health', {
         params: { path: { config_id: configId } },
       }),
-    getAudit: (configId: string, params?: { skip?: number; limit?: number }) =>
-      client.GET('/api/oauth-providers/{config_id}/audit', {
-        params: { path: { config_id: configId }, query: params },
+    getAudit: (configId: string) =>
+      client.GET('/api/v1/oauth-providers/{config_id}/audit', {
+        params: { path: { config_id: configId } },
       }),
-    listAvailableProviders: () => client.GET('/api/oauth-providers/metadata/providers'),
+    listAvailableProviders: () => client.GET('/api/v1/oauth-providers/metadata/providers'),
   },
 }

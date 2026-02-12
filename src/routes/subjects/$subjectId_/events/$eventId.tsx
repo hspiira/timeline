@@ -20,7 +20,7 @@ import { SkeletonBreadcrumbs, Skeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/button'
 import { DocumentList } from '@/components/documents/DocumentList'
 import { LoadingIcon } from '@/components/ui/icons'
-import type { EventResponse } from '@/lib/types'
+import type { EventResponse, EventListResponse } from '@/lib/types'
 
 export const Route = createFileRoute('/subjects/$subjectId_/events/$eventId')({
   component: EventDetailPage,
@@ -32,7 +32,7 @@ function EventDetailPage() {
   const authState = useRequireAuth()
 
   const [event, setEvent] = useState<EventResponse | null>(null)
-  const [allEvents, setAllEvents] = useState<EventResponse[]>([])
+  const [allEvents, setAllEvents] = useState<EventListResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
@@ -61,11 +61,11 @@ function EventDetailPage() {
         setEvent(eventData)
       }
 
-      // Fetch all events for navigation (use high limit for navigation purposes)
-      const { data: eventsData } = await timelineApi.events.list(subjectId, { limit: 1000 })
+      // Fetch all events for navigation — events.list returns flat EventListResponse[]
+      const { data: eventsData } = await timelineApi.events.list(subjectId)
       if (eventsData) {
         // Sort by event_time ascending
-        const sorted = [...eventsData.items].sort(
+        const sorted = [...eventsData].sort(
           (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
         )
         setAllEvents(sorted)
@@ -300,10 +300,8 @@ function EventDetailPage() {
             <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xs">
               <Calendar className="w-5 h-5 text-muted-foreground" />
               <div>
-                <p className="text-xs text-muted-foreground">Created At</p>
-                <p className="text-sm font-medium">
-                  {new Date(event.created_at).toLocaleString()}
-                </p>
+                <p className="text-xs text-muted-foreground">Schema Version</p>
+                <p className="text-sm font-medium">v{event.schema_version}</p>
               </div>
             </div>
           </div>
@@ -317,15 +315,15 @@ function EventDetailPage() {
 
             <HashField label="Event Hash" value={event.hash} fieldKey="hash" />
 
-            {event.previous_hash ? (
-              <HashField label="Previous Hash" value={event.previous_hash} fieldKey="prev_hash" />
-            ) : (
+            {isGenesis ? (
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">Previous Hash</label>
                 <div className="px-3 py-2 bg-primary/5 border border-primary/20 rounded-xs text-xs text-primary">
                   Genesis block - no previous hash
                 </div>
               </div>
+            ) : (
+              <HashField label="Previous Hash" value={(event.payload as any)?.previous_hash ?? null} fieldKey="prev_hash" />
             )}
 
             {/* Chain Link Visualization */}

@@ -119,12 +119,12 @@ function EmailAccountDetailPage() {
     }
   }
 
-  const handleSync = async (incremental: boolean = true) => {
+  const handleSync = async () => {
     if (!account) return
 
     setSyncing(true)
     try {
-      const { error: apiError } = await timelineApi.emailAccounts.sync(accountId, incremental)
+      const { error: apiError } = await timelineApi.emailAccounts.sync(accountId)
 
       if (apiError) {
         const errorMsg =
@@ -214,7 +214,7 @@ function EmailAccountDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button
-            onClick={() => handleSync(true)}
+            onClick={() => handleSync()}
             disabled={syncing || !account.is_active}
             variant="secondary"
             size="md"
@@ -301,26 +301,12 @@ function EmailAccountDetailPage() {
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Connected On</label>
+              <label className="text-sm font-medium text-muted-foreground">Sync Status</label>
               <div className="flex items-center gap-2 mt-1">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
-                <p className="text-foreground text-sm">
-                  {new Date(account.created_at).toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </p>
+                <p className="text-foreground text-sm capitalize">{account.sync_status}</p>
               </div>
             </div>
-            {account.connection_params && (account.connection_params as any).imap_host && (
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">IMAP Server</label>
-                <p className="text-foreground mt-1">
-                  {(account.connection_params as any).imap_host}:{(account.connection_params as any).imap_port || 993}
-                </p>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -355,60 +341,6 @@ function EmailAccountDetailPage() {
               )
             })()}
 
-            {/* Token Health Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border/50">
-              {account.token_last_refreshed_at && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Last Token Refresh</label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Key className="w-4 h-4 text-muted-foreground" />
-                    <p className="text-foreground text-sm">
-                      {new Date(account.token_last_refreshed_at).toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                  </div>
-                </div>
-              )}
-              {account.granted_scopes && account.granted_scopes.length > 0 && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Granted Scopes</label>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {account.granted_scopes.map((scope, idx) => (
-                      <span
-                        key={idx}
-                        className="text-[10px] px-1.5 py-0.5 bg-secondary text-muted-foreground rounded font-mono"
-                        title={scope}
-                      >
-                        {scope.split('/').pop()}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Error Info */}
-            {account.last_auth_error && (
-              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-red-800 dark:text-red-200">Authentication Error</p>
-                    <p className="text-xs text-red-700 dark:text-red-300 mt-1">{account.last_auth_error}</p>
-                    {account.last_auth_error_at && (
-                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                        {new Date(account.last_auth_error_at).toLocaleString()}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Re-authenticate Button for failed states */}
             {account.oauth_status &&
               ['refresh_failed', 'consent_denied', 'revoked', 'expired'].includes(account.oauth_status) && (
@@ -435,7 +367,7 @@ function EmailAccountDetailPage() {
           </p>
           <div className="flex items-center gap-2">
             <Button
-              onClick={() => handleSync(true)}
+              onClick={() => handleSync()}
               disabled={syncing || !account.is_active}
               variant="secondary"
               size="md"
@@ -448,33 +380,11 @@ function EmailAccountDetailPage() {
               ) : (
                 <>
                   <RefreshCw className="w-4 h-4" />
-                  Incremental Sync
-                </>
-              )}
-            </Button>
-            <Button
-              onClick={() => handleSync(false)}
-              disabled={syncing || !account.is_active}
-              variant="secondary"
-              size="md"
-            >
-              {syncing ? (
-                <>
-                  <LoadingIcon />
-                  Syncing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-4 h-4" />
-                  Full Sync
+                  Sync Now
                 </>
               )}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            <strong>Incremental Sync:</strong> Only sync new emails since last sync. <strong>Full Sync:</strong> Re-sync all emails
-            from the beginning.
-          </p>
         </div>
       </div>
 

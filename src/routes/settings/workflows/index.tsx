@@ -16,7 +16,7 @@ export const Route = createFileRoute('/settings/workflows/')({
 })
 
 type Workflow = components['schemas']['WorkflowResponse']
-type WorkflowCreate = components['schemas']['WorkflowCreate']
+type WorkflowCreate = components['schemas']['WorkflowCreateRequest']
 
 function WorkflowsPage() {
   const authState = useRequireAuth()
@@ -244,14 +244,11 @@ function WorkflowsPage() {
       },
     },
     {
-      accessorKey: 'created_at',
-      header: 'Created',
+      id: 'execution_order',
+      header: 'Order',
       cell: ({ row }) => (
         <span className="text-muted-foreground text-sm">
-          {new Date(row.original.created_at).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-          })}
+          {row.original.execution_order}
         </span>
       ),
     },

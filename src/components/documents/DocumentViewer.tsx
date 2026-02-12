@@ -105,7 +105,7 @@ export function DocumentViewer({ documentId, filename, fileType, onClose }: Docu
       }
 
       if (data) {
-        const url = window.URL.createObjectURL(data as Blob)
+        const url = window.URL.createObjectURL(data as unknown as Blob)
         const a = document.createElement('a')
         a.href = url
         a.download = filename

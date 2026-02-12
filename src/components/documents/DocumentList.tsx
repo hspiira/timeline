@@ -20,7 +20,7 @@ export interface DocumentListProps {
   onError?: (error: string) => void
 }
 
-type Document = components['schemas']['DocumentResponse']
+type Document = components['schemas']['DocumentListItem']
 
 const FILE_ICONS: Record<string, string> = {
   'application/pdf': '📄',
@@ -40,7 +40,7 @@ function getMimeType(doc: Document): string {
 }
 
 function getDisplayName(doc: Document): string {
-  return doc.original_filename || doc.filename
+  return doc.filename
 }
 
 function getFileSize(doc: Document): number {
@@ -99,17 +99,11 @@ export function DocumentList({ subjectId, eventId, readOnly, onDelete, onError }
       },
     },
     {
-      accessorKey: 'created_at',
-      header: 'Uploaded',
+      accessorKey: 'version',
+      header: 'Version',
       cell: ({ row }) => (
         <span className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap">
-          {new Date(row.original.created_at).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+          {row.original.version != null ? `v${row.original.version}` : '—'}
         </span>
       ),
     },
@@ -247,14 +241,14 @@ export function DocumentList({ subjectId, eventId, readOnly, onDelete, onError }
         return
       }
 
-      if (data) {
-        const url = window.URL.createObjectURL(data as Blob)
+      if (data?.url) {
         const a = document.createElement('a')
-        a.href = url
+        a.href = data.url
         a.download = filename
+        a.target = '_blank'
+        a.rel = 'noopener noreferrer'
         document.body.appendChild(a)
         a.click()
-        window.URL.revokeObjectURL(url)
         document.body.removeChild(a)
       }
     } catch (err) {

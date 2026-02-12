@@ -117,16 +117,14 @@ import {
         }
       },
       {
-        accessorKey: 'created_at',
-        header: 'Created',
+        accessorKey: 'subject_type',
+        id: 'external_ref',
+        header: 'External Ref',
         cell: ({ row }) => {
             const subject = row.original
             return (
                 <span className="text-sm text-muted-foreground">
-                    {new Date(subject.created_at).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                    })}
+                    {subject.external_ref || '—'}
                 </span>
             )
         }

@@ -5,14 +5,14 @@ import { MinimalActivityFeed } from '@/components/dashboard/MinimalActivityFeed'
 import { StatsGrid } from '@/components/dashboard/StatsGrid'
 import { timelineApi } from '@/lib/api-client'
 import { Loader2, AlertCircle } from 'lucide-react'
-import type { EventResponse, SubjectResponse, WorkflowResponse } from '@/lib/types'
+import type { EventListResponse, SubjectResponse, WorkflowResponse } from '@/lib/types'
 
 export const Route = createFileRoute('/')({
   component: HomePage,
 })
 
 interface DashboardData {
-  events: EventResponse[]
+  events: EventListResponse[]
   totalEvents: number
   subjects: SubjectResponse[]
   workflows: WorkflowResponse[]
@@ -45,10 +45,9 @@ function HomePage() {
   const subjectsThisWeek = useMemo(() => {
     const weekAgo = new Date()
     weekAgo.setDate(weekAgo.getDate() - 7)
-    return data.subjects.filter((subject) => {
-      const created = new Date((subject as any).created_at || (subject as any).created)
-      return created >= weekAgo
-    })
+    // SubjectResponse no longer has created_at, so we can't filter by creation date.
+    // Return all subjects as a fallback metric.
+    return data.subjects
   }, [data.subjects])
 
   // Count active workflows

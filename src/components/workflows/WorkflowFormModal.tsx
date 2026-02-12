@@ -5,10 +5,10 @@ import type { components } from '@/lib/timeline-api'
 import { Modal } from '../ui/Modal'
 import { Input } from '../ui/input'
 import { Select } from '../ui/select'
-import { Button } from '../ui/Button'
+import { Button } from '../ui/button'
 import { LoadingIcon, ErrorIcon } from '../ui/icons'
 
-type WorkflowCreate = components['schemas']['WorkflowCreate']
+type WorkflowCreate = components['schemas']['WorkflowCreateRequest']
 
 interface WorkflowFormModalProps {
   onClose: () => void
@@ -50,9 +50,10 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
   const fetchEventTypes = async () => {
     setLoadingEventTypes(true)
     try {
-      const { data, error: apiError } = await timelineApi.eventSchemas.list()
+      // No "list all schemas" endpoint exists; derive event types from events list
+      const { data, error: apiError } = await timelineApi.events.listAll()
       if (!apiError && data) {
-        const types = [...new Set(data.map((s) => s.event_type))]
+        const types = [...new Set(data.map((e: { event_type: string }) => e.event_type).filter(Boolean))]
         setEventTypes(types)
       }
     } catch (err) {

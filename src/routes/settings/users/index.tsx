@@ -141,15 +141,6 @@ function UsersPage() {
         ),
     },
     {
-      accessorKey: 'created_at',
-      header: 'Created',
-      cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground">
-          {new Date(row.original.created_at).toLocaleDateString()}
-        </span>
-      ),
-    },
-    {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => {
@@ -494,7 +485,7 @@ function ManageUserRolesModal({
 
       // Assign new roles
       for (const roleId of toAssign) {
-        const { error: apiError } = await timelineApi.users.assignRole(user.id, { role_id: roleId })
+        const { error: apiError } = await timelineApi.users.assignRole(user.id, roleId)
         if (apiError) {
           const errorMsg = (apiError as any)?.message || 'Failed to assign role'
           setError(errorMsg)

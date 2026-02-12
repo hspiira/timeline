@@ -6,16 +6,17 @@ import { timelineApi } from '@/lib/api-client'
 import { ArrowLeft, Mail, Lock, Server, CheckCircle, Cloud, Inbox, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
+import SubjectSelector from '@/components/subjects/SubjectSelector'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/email-accounts/create')({
   component: CreateEmailAccountPage,
 })
 
-type OAuthProviderConfig = components['schemas']['OAuthProviderConfigResponse']
+type OAuthProviderConfig = components['schemas']['OAuthConfigResponse']
 
 type EmailProvider = 'gmail' | 'outlook' | 'imap' | 'icloud' | 'yahoo'
-type EmailAccountCreate = components['schemas']['EmailAccountCreate']
+type EmailAccountCreate = components['schemas']['EmailAccountCreateRequest']
 
 interface ProviderConfig {
   name: string
@@ -79,7 +80,8 @@ function CreateEmailAccountPage() {
   const [oauthConfigs, setOauthConfigs] = useState<OAuthProviderConfig[]>([])
   const [loadingOAuth, setLoadingOAuth] = useState(true)
 
-  // Form state for IMAP
+  // Form state
+  const [subjectId, setSubjectId] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [imapServer, setImapServer] = useState('')
@@ -91,8 +93,8 @@ function CreateEmailAccountPage() {
     const fetchOAuthProviders = async () => {
       try {
         const { data } = await timelineApi.oauthProviders.list({ include_inactive: false })
-        if (data?.providers) {
-          setOauthConfigs(data.providers)
+        if (data && Array.isArray(data)) {
+          setOauthConfigs(data)
         }
       } catch (err) {
         console.error('Failed to fetch OAuth providers:', err)
@@ -140,21 +142,16 @@ function CreateEmailAccountPage() {
     setLoading(true)
     setError(null)
     try {
-      // Get the current URL as the return URL after OAuth completes
-      const returnUrl = `${window.location.origin}/email-accounts/oauth/callback`
-
-      const { data, error: apiError } = await timelineApi.oauthProviders.authorize(provider, {
-        return_url: returnUrl,
-      })
+      const { data, error: apiError } = await timelineApi.oauthProviders.authorize(provider)
 
       if (apiError) {
         const errorObj = apiError as { detail?: string }
         throw new Error(errorObj?.detail || 'Failed to initiate OAuth flow')
       }
 
-      if (data?.auth_url) {
+      if (data?.authorization_url) {
         // Redirect user to the OAuth provider's authorization page
-        window.location.href = data.auth_url
+        window.location.href = data.authorization_url
       } else {
         throw new Error('No authorization URL returned')
       }
@@ -212,6 +209,11 @@ function CreateEmailAccountPage() {
       return
     }
 
+    if (!subjectId) {
+      setError('Please select a subject')
+      return
+    }
+
     if (!connectionTested) {
       setError('Please test the connection before saving')
       return
@@ -222,6 +224,7 @@ function CreateEmailAccountPage() {
 
     try {
       const accountData: EmailAccountCreate = {
+        subject_id: subjectId,
         provider_type: selectedProvider,
         email_address: email,
         credentials: {
@@ -366,6 +369,17 @@ function CreateEmailAccountPage() {
       {step === 'configure' && selectedProvider && (
         <div className="max-w-2xl">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Subject Selection */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Subject <span className="text-red-500">*</span>
+              </label>
+              <SubjectSelector value={subjectId} onChange={(value) => setSubjectId(value)} />
+              <p className="text-xs text-muted-foreground mt-1">
+                The subject this email account will be linked to
+              </p>
+            </div>
+
             {/* Email Address */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">

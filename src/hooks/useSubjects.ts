@@ -43,16 +43,14 @@ export function useSubjects({ filterType, search }: UseSubjectsProps = {}) {
           try {
             const { data: eventsResponse } = await timelineApi.events.list(subject.id)
 
-            // Get event count and last event date from paginated response
+            // events.list returns a flat array of EventListResponse
             let eventCount = 0
             let lastEventDate: string | undefined
 
-            if (eventsResponse && eventsResponse.total > 0) {
-              eventCount = eventsResponse.total
+            if (eventsResponse && eventsResponse.length > 0) {
+              eventCount = eventsResponse.length
               // Events are sorted by date descending, so first item is most recent
-              if (eventsResponse.items.length > 0) {
-                lastEventDate = eventsResponse.items[0].created_at
-              }
+              lastEventDate = eventsResponse[0].event_time
             }
 
             return {

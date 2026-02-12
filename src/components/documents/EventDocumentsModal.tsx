@@ -95,7 +95,7 @@ export function EventDocumentsModal({
       }
 
       // Create a new "document_update" event to maintain audit trail
-      const eventCreateData: components['schemas']['EventCreate'] = {
+      const eventCreateData: components['schemas']['EventCreateRequest'] = {
         subject_id: subjectId,
         event_type: 'document_update',
         schema_version: 1,

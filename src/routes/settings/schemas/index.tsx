@@ -16,16 +16,18 @@ export const Route = createFileRoute('/settings/schemas/')({
   component: SchemasPage,
 })
 
-type Schema = components['schemas']['EventSchemaResponse']
+type SchemaListItem = components['schemas']['EventSchemaListItem']
+type SchemaFull = components['schemas']['EventSchemaResponse']
 
 function SchemasPage() {
   const authState = useRequireAuth()
-  const [schemas, setSchemas] = useState<Schema[]>([])
+  const [schemas, setSchemas] = useState<SchemaListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [viewingSchema, setViewingSchema] = useState<Schema | null>(null)
-  const [deletingSchema, setDeletingSchema] = useState<Schema | null>(null)
+  const [viewingSchema, setViewingSchema] = useState<SchemaFull | null>(null)
+  const [loadingSchema, setLoadingSchema] = useState(false)
+  const [deletingSchema, setDeletingSchema] = useState<SchemaListItem | null>(null)
 
   useEffect(() => {
     if (authState.user) {
@@ -37,17 +39,32 @@ function SchemasPage() {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: apiError } = await timelineApi.eventSchemas.list()
-
-      if (apiError) {
-        const errorMsg =
-          typeof apiError === 'object' && 'message' in apiError
-            ? (apiError as any).message
-            : 'Failed to load schemas'
-        setError(errorMsg)
-      } else if (data) {
-        setSchemas(data)
+      // No "list all schemas" endpoint; derive event types from events, then fetch schemas per type
+      const eventsRes = await timelineApi.events.listAll()
+      if (eventsRes.error) {
+        setError('Failed to load event types')
+        return
       }
+
+      const eventTypes = [...new Set((eventsRes.data || []).map((e) => e.event_type).filter(Boolean))]
+
+      if (eventTypes.length === 0) {
+        setSchemas([])
+        return
+      }
+
+      const results = await Promise.allSettled(
+        eventTypes.map((et) => timelineApi.eventSchemas.listByEventType(et))
+      )
+
+      const allSchemas: SchemaListItem[] = []
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value.data) {
+          allSchemas.push(...result.value.data)
+        }
+      }
+
+      setSchemas(allSchemas)
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unexpected error loading schemas'
       setError(errorMsg)
@@ -74,7 +91,8 @@ function SchemasPage() {
       }
 
       if (data) {
-        setSchemas((prev) => [data, ...prev])
+        const { schema_definition: _, ...listItem } = data
+        setSchemas((prev) => [listItem, ...prev])
         setShowCreateModal(false)
         return true
       }
@@ -86,7 +104,7 @@ function SchemasPage() {
     }
   }
 
-  const handleDeleteSchema = (schema: Schema) => {
+  const handleDeleteSchema = (schema: SchemaListItem) => {
     setDeletingSchema(schema)
   }
 
@@ -120,7 +138,7 @@ function SchemasPage() {
   }
 
   // Define columns for DataTable
-  const columns: ColumnDef<Schema>[] = [
+  const columns: ColumnDef<SchemaListItem>[] = [
     {
       accessorKey: 'event_type',
       header: 'Event Type',
@@ -149,14 +167,11 @@ function SchemasPage() {
         ),
     },
     {
-      accessorKey: 'created_at',
-      header: 'Created',
+      id: 'created_by',
+      header: 'Created By',
       cell: ({ row }) => (
         <span className="text-muted-foreground text-sm">
-          {new Date(row.original.created_at).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-          })}
+          {row.original.created_by || '—'}
         </span>
       ),
     },
@@ -166,7 +181,18 @@ function SchemasPage() {
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
           <Button
-            onClick={() => setViewingSchema(row.original)}
+            onClick={async () => {
+              setLoadingSchema(true)
+              try {
+                const { data } = await timelineApi.eventSchemas.get(row.original.id)
+                if (data) setViewingSchema(data)
+              } catch {
+                setError('Failed to load schema details')
+              } finally {
+                setLoadingSchema(false)
+              }
+            }}
+            disabled={loadingSchema}
             variant="ghost"
             size="sm"
             title="View Schema"

@@ -13,7 +13,7 @@ import { EventDocumentsModal } from '@/components/documents/EventDocumentsModal'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { SkeletonBreadcrumbs, SkeletonEventTimeline, Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
-import type { SubjectResponse, EventResponse } from '@/lib/types'
+import type { SubjectResponse, EventResponse, EventListResponse } from '@/lib/types'
 import { LoadingIcon } from '@/components/ui/icons'
 import { Button } from '@/components/ui/button'
 
@@ -60,30 +60,39 @@ function SubjectEventsPage() {
   const fetchEvents = useCallback(async (page: number) => {
     setLoading(true)
     try {
-      const skip = page * PAGE_SIZE
-      const { data: eventsData, error: eventsError } = await timelineApi.events.list(
-        subjectId,
-        { skip, limit: PAGE_SIZE }
-      )
+      // events.list returns a flat EventListResponse[] array
+      const { data: eventsList, error: eventsError } = await timelineApi.events.list(subjectId)
 
       if (eventsError) {
         // @ts-expect-error - openapi-fetch error handling
         const errorMessage = eventsError?.message || 'Unable to load events'
         setError(errorMessage)
-      } else if (eventsData) {
-        setEvents(eventsData.items)
-        setTotalEvents(eventsData.total)
+      } else if (eventsList) {
+        setTotalEvents(eventsList.length)
+
+        // Paginate client-side
+        const start = page * PAGE_SIZE
+        const pageItems = eventsList.slice(start, start + PAGE_SIZE)
+
+        // Fetch full event details for the current page (needed for EventCard)
+        const fullEvents = await Promise.all(
+          pageItems.map(async (item: EventListResponse) => {
+            const { data } = await timelineApi.events.get(item.id)
+            return data
+          })
+        )
+        setEvents(fullEvents.filter((e): e is EventResponse => e != null))
 
         // Load document counts for current page events
-        const documentPromises = eventsData.items.map(async (event: EventResponse) => {
+        const documentPromises = pageItems.map(async (item: EventListResponse) => {
           try {
-            const { data: docs, error } = await timelineApi.documents.listByEvent(event.id)
+            const { data: docs, error } = await timelineApi.documents.listByEvent(item.id)
             if (error) {
-              return { eventId: event.id, count: 0 }
+              return { eventId: item.id, count: 0 }
             }
-            return { eventId: event.id, count: Array.isArray(docs) ? docs.length : 0 }
+            return { eventId: item.id, count: Array.isArray(docs) ? docs.length : 0 }
           } catch {
-            return { eventId: event.id, count: 0 }
+            return { eventId: item.id, count: 0 }
           }
         })
 
@@ -293,7 +302,7 @@ function SubjectEventsPage() {
                 )}
                 <div className="flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
-                  <span>Created {new Date(subject.created_at).toLocaleDateString()}</span>
+                  <span>{totalEvents} event{totalEvents !== 1 ? 's' : ''}</span>
                 </div>
               </div>
             </div>
