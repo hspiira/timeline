@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
@@ -36,6 +36,21 @@ function UsersPage() {
   const [users, setUsers] = useState<UserResponse[]>([])
   const [roles, setRoles] = useState<RoleResponse[]>([])
 
+  const fetchUsersAndRoles = useCallback(async () => {
+    const usersRes = await timelineApi.users.list({ skip: 0, limit: 100 })
+    if (usersRes.error != null) {
+      return { error: usersRes.error, response: usersRes.response }
+    }
+    const rolesRes = await timelineApi.roles.list({ skip: 0, limit: 100 })
+    const rolesList = rolesRes.data || []
+    return {
+      data: {
+        users: usersRes.data || [],
+        roles: rolesList,
+      },
+    }
+  }, [])
+
   const {
     data: fetchedData,
     error,
@@ -43,23 +58,10 @@ function UsersPage() {
     hasNoAccess,
     refetch,
     setError,
-  } = useFetchWithError<{ users: UserResponse[]; roles: RoleResponse[] }>(
-    async () => {
-      const usersRes = await timelineApi.users.list({ skip: 0, limit: 100 })
-      if (usersRes.error != null) {
-        return { error: usersRes.error, response: usersRes.response }
-      }
-      const rolesRes = await timelineApi.roles.list({ skip: 0, limit: 100 })
-      const rolesList = rolesRes.data || []
-      return {
-        data: {
-          users: usersRes.data || [],
-          roles: rolesList,
-        },
-      }
-    },
-    { defaultErrorMessage: 'Unable to load users', enabled: !!authState.user }
-  )
+  } = useFetchWithError<{ users: UserResponse[]; roles: RoleResponse[] }>(fetchUsersAndRoles, {
+    defaultErrorMessage: 'Unable to load users',
+    enabled: !!authState.user,
+  })
 
   useEffect(() => {
     if (authState.user) refetch()

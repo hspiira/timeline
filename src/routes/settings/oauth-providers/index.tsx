@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
@@ -57,6 +57,11 @@ function OAuthProvidersPage() {
   const [providers, setProviders] = useState<OAuthProviderConfig[]>([])
   const [includeInactive, setIncludeInactive] = useState(false)
 
+  const fetchProviders = useCallback(async () => {
+    const r = await timelineApi.oauthProviders.list({ include_inactive: includeInactive })
+    return r.error != null ? { error: r.error, response: r.response } : { data: r.data || [] }
+  }, [includeInactive])
+
   const {
     data: fetchedProviders,
     error,
@@ -64,13 +69,10 @@ function OAuthProvidersPage() {
     hasNoAccess,
     refetch,
     setError,
-  } = useFetchWithError<OAuthProviderConfig[]>(
-    () =>
-      timelineApi.oauthProviders.list({ include_inactive: includeInactive }).then((r) =>
-        r.error != null ? { error: r.error, response: r.response } : { data: r.data || [] }
-      ),
-    { defaultErrorMessage: 'Unable to load OAuth providers', enabled: !!authState.user }
-  )
+  } = useFetchWithError<OAuthProviderConfig[]>(fetchProviders, {
+    defaultErrorMessage: 'Unable to load OAuth providers',
+    enabled: !!authState.user,
+  })
 
   useEffect(() => {
     if (authState.user) refetch()

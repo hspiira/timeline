@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { useFetchWithError } from '@/hooks/useFetchWithError'
@@ -36,6 +36,20 @@ function RolesPage() {
   const [permissions, setPermissions] = useState<PermissionResponse[]>([])
   const [includeInactive, setIncludeInactive] = useState(false)
 
+  const fetchRolesAndPermissions = useCallback(async () => {
+    const rolesRes = await timelineApi.roles.list({
+      skip: 0,
+      limit: 100,
+      include_inactive: includeInactive,
+    })
+    if (rolesRes.error != null) {
+      return { error: rolesRes.error, response: rolesRes.response }
+    }
+    const permRes = await timelineApi.permissions.list({ skip: 0, limit: 1000 })
+    const permissionsList = !permRes.error && permRes.data ? permRes.data : []
+    return { data: { roles: rolesRes.data || [], permissions: permissionsList } }
+  }, [includeInactive])
+
   const {
     data: fetchedData,
     error,
@@ -43,22 +57,10 @@ function RolesPage() {
     hasNoAccess,
     refetch,
     setError,
-  } = useFetchWithError<{ roles: RoleResponse[]; permissions: PermissionResponse[] }>(
-    async () => {
-      const rolesRes = await timelineApi.roles.list({
-        skip: 0,
-        limit: 100,
-        include_inactive: includeInactive,
-      })
-      if (rolesRes.error != null) {
-        return { error: rolesRes.error, response: rolesRes.response }
-      }
-      const permRes = await timelineApi.permissions.list({ skip: 0, limit: 1000 })
-      const permissionsList = !permRes.error && permRes.data ? permRes.data : []
-      return { data: { roles: rolesRes.data || [], permissions: permissionsList } }
-    },
-    { defaultErrorMessage: 'Unable to load roles', enabled: !!authState.user }
-  )
+  } = useFetchWithError<{ roles: RoleResponse[]; permissions: PermissionResponse[] }>(fetchRolesAndPermissions, {
+    defaultErrorMessage: 'Unable to load roles',
+    enabled: !!authState.user,
+  })
 
   useEffect(() => {
     if (authState.user) refetch()

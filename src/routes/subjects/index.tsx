@@ -41,14 +41,9 @@ function SubjectsPage() {
   const [filterType, setFilterType] = useState<string>('')
   const [search, setSearch] = useState('')
   const [allSubjectTypes, setAllSubjectTypes] = useState<string[]>([])
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    // Initialize from localStorage on mount
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('subjects-view-mode')
-      return (saved === 'table' ? 'table' : 'grid') as ViewMode
-    }
-    return 'grid'
-  })
+  // Always start with 'grid' so SSR and first client render match; read localStorage after mount
+  const [viewMode, setViewMode] = useState<ViewMode>('grid')
+  const [hasMounted, setHasMounted] = useState(false)
 
   // Get filtered subjects
   const { subjects, isLoading, isError, error } = useSubjects({
@@ -56,10 +51,20 @@ function SubjectsPage() {
     search,
   })
 
-  // Persist view mode to localStorage
   useEffect(() => {
-    localStorage.setItem('subjects-view-mode', viewMode)
-  }, [viewMode])
+    setHasMounted(true)
+  }, [])
+
+  // After mount: restore view mode from localStorage; then persist changes
+  useEffect(() => {
+    if (!hasMounted) return
+    const saved = localStorage.getItem('subjects-view-mode')
+    if (saved === 'table') setViewMode('table')
+  }, [hasMounted])
+
+  useEffect(() => {
+    if (hasMounted) localStorage.setItem('subjects-view-mode', viewMode)
+  }, [hasMounted, viewMode])
 
   // Track all available subject types (from initial load and subsequent data)
   useEffect(() => {
@@ -133,7 +138,12 @@ function SubjectsPage() {
 
   const authState = useStore(authStore)
 
-  if (authState.isLoading) {
+  // Use a single loading UI for both SSR and initial client render to avoid hydration mismatch.
+  // After mount, auth state is stable and we can branch on isLoading / user.
+  const showLoading =
+    !hasMounted || authState.isLoading
+
+  if (showLoading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] bg-background flex items-center justify-center">
         <div className="flex items-center gap-3 text-muted-foreground">

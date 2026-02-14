@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { timelineApi } from '@/lib/api-client'
@@ -23,15 +23,20 @@ function VerifyPage() {
   const authState = useRequireAuth()
   const { subjectId } = Route.useParams()
 
+  const fetchVerification = useCallback(
+    () => timelineApi.events.verify(subjectId),
+    [subjectId]
+  )
+
   const {
     data: verification,
     error,
     loading,
     refetch,
-  } = useFetchWithError<ChainVerificationResponse>(
-    () => timelineApi.events.verify(subjectId),
-    { defaultErrorMessage: 'Failed to verify chain', enabled: !!authState.user && !!subjectId }
-  )
+  } = useFetchWithError<ChainVerificationResponse>(fetchVerification, {
+    defaultErrorMessage: 'Failed to verify chain',
+    enabled: !!authState.user && !!subjectId,
+  })
 
   useEffect(() => {
     if (authState.user && subjectId) refetch()

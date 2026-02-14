@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
@@ -26,6 +26,20 @@ function WorkflowsPage() {
   const toast = useToast()
   const [workflows, setWorkflows] = useState<Workflow[]>([])
   const [eventTypes, setEventTypes] = useState<string[]>([])
+  const fetchWorkflowsAndTypes = useCallback(async () => {
+    const result = await timelineApi.workflows.list()
+    if (result.error != null) {
+      return { error: result.error, response: result.response }
+    }
+    if (result.data) {
+      const schemaRes = await timelineApi.eventSchemas.list({ limit: 500 })
+      const schemaList = Array.isArray(schemaRes.data) ? schemaRes.data : []
+      const types: string[] = [...new Set(schemaList.map((s) => s.event_type).filter((x): x is string => Boolean(x)))]
+      return { data: { workflows: result.data, eventTypes: types } }
+    }
+    return {}
+  }, [])
+
   const {
     data: fetchedData,
     error,
@@ -33,22 +47,10 @@ function WorkflowsPage() {
     hasNoAccess,
     refetch,
     setError,
-  } = useFetchWithError<{ workflows: Workflow[]; eventTypes: string[] }>(
-    async () => {
-      const result = await timelineApi.workflows.list()
-      if (result.error != null) {
-        return { error: result.error, response: result.response }
-      }
-      if (result.data) {
-        const schemaRes = await timelineApi.eventSchemas.list({ limit: 500 })
-        const schemaList = Array.isArray(schemaRes.data) ? schemaRes.data : []
-        const types: string[] = [...new Set(schemaList.map((s) => s.event_type).filter((x): x is string => Boolean(x)))]
-        return { data: { workflows: result.data, eventTypes: types } }
-      }
-      return {}
-    },
-    { defaultErrorMessage: 'Failed to load workflows', enabled: !!authState.user }
-  )
+  } = useFetchWithError<{ workflows: Workflow[]; eventTypes: string[] }>(fetchWorkflowsAndTypes, {
+    defaultErrorMessage: 'Failed to load workflows',
+    enabled: !!authState.user,
+  })
 
   useEffect(() => {
     if (authState.user) refetch()

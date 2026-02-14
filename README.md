@@ -57,6 +57,10 @@ Default when not set: `http://localhost:8000`.
 
 ## Troubleshooting
 
+### CORS / "No 'Access-Control-Allow-Origin' header" when calling the API
+
+The app (port 3000) calls the API at `http://localhost:8000` by default. The backend must allow origin `http://localhost:3000` and send `Access-Control-Allow-Origin` on responses. If you see CORS, the backend is often returning an error (e.g. 500) without CORS headers—check backend logs and fix the underlying error. Set `VITE_API_URL` to point at a different API URL if needed.
+
 ### "Failed to fetch dynamically imported module" (e.g. `src/routes/index.tsx?tsr-split=component`)
 
 This usually happens when the dev server or browser is using a stale route chunk (e.g. after a restart or a change that invalidated the module graph). Try:

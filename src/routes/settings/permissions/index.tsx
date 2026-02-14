@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
@@ -43,6 +43,11 @@ function PermissionsPage() {
   const toast = useToast()
   const [permissions, setPermissions] = useState<PermissionResponse[]>([])
 
+  const fetchPermissions = useCallback(async () => {
+    const r = await timelineApi.permissions.list({ skip: 0, limit: 1000 })
+    return r.error != null ? { error: r.error, response: r.response } : { data: r.data || [] }
+  }, [])
+
   const {
     data: fetchedPermissions,
     error,
@@ -50,14 +55,10 @@ function PermissionsPage() {
     hasNoAccess,
     refetch,
     setError,
-  } = useFetchWithError<PermissionResponse[]>(
-    () =>
-      timelineApi.permissions.list({
-        skip: 0,
-        limit: 1000,
-      }).then((r) => (r.error != null ? { error: r.error, response: r.response } : { data: r.data || [] })),
-    { defaultErrorMessage: 'Unable to load permissions', enabled: !!authState.user }
-  )
+  } = useFetchWithError<PermissionResponse[]>(fetchPermissions, {
+    defaultErrorMessage: 'Unable to load permissions',
+    enabled: !!authState.user,
+  })
 
   useEffect(() => {
     if (authState.user) refetch()
