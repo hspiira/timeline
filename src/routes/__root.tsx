@@ -18,6 +18,8 @@ import { ThemeToggle } from '@/components/theme/theme-toggler'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import { SettingsButton } from '@/components/header/SettingsButton'
 import { ToastContainer } from '@/components/toast/ToastContainer'
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
+import { NotFound } from '@/components/ui/NotFound'
 
 import appCss from '@/styles.css?url'
 
@@ -28,6 +30,7 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+  notFoundComponent: () => <NotFound fullPage />,
   head: () => ({
     meta: [
       {
@@ -106,6 +109,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="h-full overflow-x-hidden">
         <ThemeProvider defaultTheme="system" storageKey="timeline-theme">
+          <ErrorBoundary>
           {/* Header - only show on non-auth pages */}
           {authState.user && (
             <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
@@ -165,6 +169,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           )}
 
           <ToastContainer />
+          </ErrorBoundary>
 
           <TanStackDevtools
             config={{

@@ -111,11 +111,11 @@ const colorSchemes: Record<string, ColorScheme> = {
     bgCard: 'bg-card/80 backdrop-blur-sm',
   },
   documents: {
-    header: 'bg-linear-to-r from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20',
-    headerText: 'text-amber-900 dark:text-amber-200',
-    border: 'border-amber-200 dark:border-amber-800',
-    hoverBg: 'hover:bg-amber-50/50 dark:hover:bg-amber-950/20',
-    rowBorder: 'border-b border-amber-100 dark:border-amber-900/30',
+    header: 'bg-muted/50',
+    headerText: 'text-foreground',
+    border: 'border-border',
+    hoverBg: 'hover:bg-muted/50',
+    rowBorder: 'border-b border-border',
     bgCard: '',
   },
   subjects: {

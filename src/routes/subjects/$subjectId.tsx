@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Calendar, Tag, AlertCircle, Boxes, FileText, Shield, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Calendar, Tag, AlertCircle, Boxes, FileText, Shield, ChevronLeft, ChevronRight, Upload } from 'lucide-react'
 import { useEffect, useState, useCallback } from 'react'
 import { useStore } from '@tanstack/react-store'
 import { timelineApi } from '@/lib/api-client'
@@ -17,14 +17,18 @@ import { Button } from '@/components/ui/button'
 
 const PAGE_SIZE = 10
 
+type Tab = 'events' | 'documents'
+
 export const Route = createFileRoute('/subjects/$subjectId')({
   component: SubjectDetailPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: (search.tab === 'documents' ? 'documents' : 'events') as Tab,
+  }),
 })
-
-type Tab = 'events' | 'documents'
 
 function SubjectDetailPage() {
   const { subjectId } = Route.useParams()
+  const { tab: activeTab } = Route.useSearch({ strict: false })
   const navigate = useNavigate()
   const authState = useStore(authStore)
   const [subject, setSubject] = useState<SubjectResponse | null>(null)
@@ -33,9 +37,11 @@ function SubjectDetailPage() {
   const [currentPage, setCurrentPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<Tab>('events')
   const [viewingDocument, setViewingDocument] = useState<{ id: string; filename: string; type: string } | null>(null)
   const [documentCounts, setDocumentCounts] = useState<Record<string, number>>({})
+  const [subjectDocumentCount, setSubjectDocumentCount] = useState<number | null>(null)
+  const [documentsRefreshKey, setDocumentsRefreshKey] = useState(0)
+  const [showUploadPanel, setShowUploadPanel] = useState(false)
 
   const totalPages = Math.ceil(totalEvents / PAGE_SIZE)
 
@@ -52,12 +58,27 @@ function SubjectDetailPage() {
     }
   }, [subjectId, authState.user])
 
+  useEffect(() => {
+    setSubjectDocumentCount(null)
+  }, [subjectId])
+
   // Fetch events when page changes
   useEffect(() => {
     if (authState.user && subject) {
       fetchEvents()
     }
   }, [currentPage, subject])
+
+  const fetchSubjectDocumentCount = useCallback(async () => {
+    const { data, error } = await timelineApi.documents.listBySubject(subjectId)
+    if (!error && Array.isArray(data)) setSubjectDocumentCount(data.length)
+    else setSubjectDocumentCount(0)
+  }, [subjectId])
+
+  useEffect(() => {
+    if (activeTab !== 'documents' || !subjectId || !authState.user || subjectDocumentCount !== null) return
+    fetchSubjectDocumentCount()
+  }, [activeTab, subjectId, authState.user, subjectDocumentCount, fetchSubjectDocumentCount])
 
   const fetchSubject = async () => {
     setLoading(true)
@@ -295,10 +316,10 @@ function SubjectDetailPage() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs — persisted in URL so reload keeps tab */}
       <div className="flex gap-1 mb-3 border-b border-border">
         <button
-          onClick={() => setActiveTab('events')}
+          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'events' } })}
           className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-t-xs flex items-center gap-2 ${
             activeTab === 'events'
               ? 'bg-muted/40 border-primary text-foreground'
@@ -309,7 +330,7 @@ function SubjectDetailPage() {
           Event Chain
         </button>
         <button
-          onClick={() => setActiveTab('documents')}
+          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'documents' } })}
           className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-t-xs flex items-center gap-2 ${
             activeTab === 'documents'
               ? 'bg-muted/40 border-primary text-foreground'
@@ -381,25 +402,87 @@ function SubjectDetailPage() {
         </div>
       )}
 
-      {/* Documents Tab */}
+      {/* Documents Tab — only upload when no docs (no library section); library + Upload button when has docs */}
       {activeTab === 'documents' && (
-        <div className="space-y-4">
-          {/* Documents List */}
-          <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50">
-            <h2 className="text-sm font-semibold text-foreground mb-4">Documents</h2>
-            <DocumentList
-              subjectId={subjectId}
-              onError={(err) => console.error('Documents error:', err)}
-            />
-          </div>
+        <div className="relative overflow-hidden rounded-lg animate-in fade-in duration-300">
+          <div
+            className="absolute inset-0 -z-[1] opacity-[0.4] dark:opacity-[0.08]"
+            style={{
+              backgroundImage: `radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.4 0.02 260 / 0.12), transparent),
+                radial-gradient(ellipse 60% 40% at 100% 100%, oklch(0.35 0.02 260 / 0.08), transparent)`,
+            }}
+          />
+          <div className="relative space-y-6 p-1">
+            {(subjectDocumentCount === null || subjectDocumentCount === 0) && (
+              <section
+                className="rounded-lg border border-border/60 bg-card/90 backdrop-blur-sm shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-1 duration-250"
+                style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}
+              >
+                <div className="border-l-[3px] border-primary bg-muted/20 dark:bg-muted/10 px-4 py-3 flex items-center gap-2">
+                  <Upload className="w-4 h-4 text-primary shrink-0" aria-hidden />
+                  <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    Add documents
+                  </span>
+                </div>
+                <div className="p-4 sm:p-5 space-y-4">
+                  <DocumentUpload
+                    subjectId={subjectId}
+                    onError={(err) => console.error('Upload error:', err)}
+                    onUploadComplete={() => {
+                      fetchSubjectDocumentCount()
+                    }}
+                  />
+                  <p className="text-sm text-muted-foreground text-center">
+                    No documents yet. Upload files above.
+                  </p>
+                </div>
+              </section>
+            )}
 
-          {/* Upload Section */}
-          <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50">
-            <h2 className="text-sm font-semibold text-foreground mb-4">Upload New Document</h2>
-            <DocumentUpload
-              subjectId={subjectId}
-              onError={(err) => console.error('Upload error:', err)}
-            />
+            {(subjectDocumentCount ?? 0) > 0 && (
+              <section
+                className="rounded-lg border border-border/60 bg-card/90 backdrop-blur-sm shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-1 duration-250"
+                style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}
+              >
+                <div className="border-l-[3px] border-border bg-muted/15 dark:bg-muted/10 px-4 py-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden />
+                    <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      Document library
+                    </span>
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setShowUploadPanel((v) => !v)}
+                    className="shrink-0"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    {showUploadPanel ? 'Hide upload' : 'Upload'}
+                  </Button>
+                </div>
+                {showUploadPanel && (
+                  <div className="border-t border-border/60 bg-muted/10 px-4 py-4">
+                    <DocumentUpload
+                      subjectId={subjectId}
+                      onError={(err) => console.error('Upload error:', err)}
+                      onUploadComplete={() => {
+                        setDocumentsRefreshKey((k) => k + 1)
+                        setShowUploadPanel(false)
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="p-4 sm:p-5">
+                  <DocumentList
+                    key={documentsRefreshKey}
+                    subjectId={subjectId}
+                    onError={(err) => console.error('Documents error:', err)}
+                    onDocumentsLoaded={setSubjectDocumentCount}
+                  />
+                </div>
+              </section>
+            )}
           </div>
         </div>
       )}

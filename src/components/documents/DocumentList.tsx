@@ -18,6 +18,7 @@ export interface DocumentListProps {
   readOnly?: boolean
   onDelete?: (documentId: string) => void
   onError?: (error: string) => void
+  onDocumentsLoaded?: (count: number) => void
 }
 
 type Document = components['schemas']['DocumentListItem']
@@ -47,7 +48,7 @@ function getFileSize(doc: Document): number {
   return doc.file_size || 0
 }
 
-export function DocumentList({ subjectId, eventId, readOnly, onDelete, onError }: DocumentListProps) {
+export function DocumentList({ subjectId, eventId, readOnly, onDelete, onError, onDocumentsLoaded }: DocumentListProps) {
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -73,7 +74,7 @@ export function DocumentList({ subjectId, eventId, readOnly, onDelete, onError }
             onClick={() => {
               row.getIsSelected?.() ? null : handleView(doc)
             }}
-            className="flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer group h-auto p-0"
+            className="flex items-center gap-2 text-foreground hover:text-foreground/90 transition-colors cursor-pointer group h-auto p-0"
             title="Click to view"
           >
             <span className="text-sm sm:text-base shrink-0">{icon}</span>
@@ -139,7 +140,7 @@ export function DocumentList({ subjectId, eventId, readOnly, onDelete, onError }
                 title="Delete"
                 isLoading={deleting === doc.id}
               >
-                {deleting !== doc.id && <Trash2 className="w-3 sm:w-4 h-3 sm:h-4 text-red-500" />}
+                {deleting !== doc.id && <Trash2 className="w-3 sm:w-4 h-3 sm:h-4 text-destructive" />}
               </Button>
             )}
           </div>
@@ -168,8 +169,10 @@ export function DocumentList({ subjectId, eventId, readOnly, onDelete, onError }
         onError?.(errorMsg)
       } else if (response.data && Array.isArray(response.data)) {
         setDocuments(response.data)
+        onDocumentsLoaded?.(response.data.length)
       } else {
         setDocuments([])
+        onDocumentsLoaded?.(0)
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unexpected error loading documents'
@@ -178,7 +181,7 @@ export function DocumentList({ subjectId, eventId, readOnly, onDelete, onError }
     } finally {
       setLoading(false)
     }
-  }, [subjectId, eventId, onError])
+  }, [subjectId, eventId, onError, onDocumentsLoaded])
 
   useEffect(() => {
     if (subjectId || eventId) {
@@ -264,11 +267,11 @@ export function DocumentList({ subjectId, eventId, readOnly, onDelete, onError }
 
   if (error && documents.length === 0) {
     return (
-      <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs flex gap-3">
-        <ErrorIcon className="text-red-600 dark:text-red-400 mt-0.5" />
+      <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xs flex gap-3">
+        <ErrorIcon className="text-destructive mt-0.5" />
         <div>
-          <h3 className="font-semibold text-red-900 dark:text-red-200 text-sm">Error loading documents</h3>
-          <p className="text-xs text-red-800 dark:text-red-300">{error}</p>
+          <h3 className="font-semibold text-foreground text-sm">Error loading documents</h3>
+          <p className="text-xs text-muted-foreground">{error}</p>
         </div>
       </div>
     )
