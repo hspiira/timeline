@@ -1,4 +1,4 @@
-import { Clock, Code, Eye, FileText, User, X } from 'lucide-react'
+import { CalendarPlus, Clock, Code, Eye, FileText, User, UserPlus, X } from 'lucide-react'
 import { useState } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { DocumentList } from '@/components/documents/DocumentList'
@@ -13,9 +13,15 @@ export interface EventDetailsModalProps {
 
 type ViewMode = 'modern' | 'json'
 
+/** Backend may return created_by / created_at even if not in OpenAPI schema */
+type EventWithAudit = EventResponse & { created_by?: string | null; created_at?: string | null }
+
 export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('modern')
   const [documentCount, setDocumentCount] = useState<number | null>(null)
+  const ev = event as EventWithAudit
+  const hasCreatedBy = ev.created_by != null && ev.created_by !== ''
+  const hasCreatedAt = ev.created_at != null && ev.created_at !== ''
   return (
     <Modal isOpen={true} onClose={onClose} maxWidth="max-w-3xl" closeButton={false}>
       {/* Custom Header with gradient background */}
@@ -57,6 +63,28 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
                 {formatFullDateTime(event.event_time)}
               </p>
             </div>
+
+            {hasCreatedBy && (
+              <div className="p-3 bg-muted/50 rounded-none border border-border/50">
+                <div className="flex items-center gap-2 mb-1">
+                  <UserPlus className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground">Created by</span>
+                </div>
+                <p className="text-sm text-foreground">{ev.created_by}</p>
+              </div>
+            )}
+
+            {hasCreatedAt && (
+              <div className="p-3 bg-muted/50 rounded-none border border-border/50">
+                <div className="flex items-center gap-2 mb-1">
+                  <CalendarPlus className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground">Record created</span>
+                </div>
+                <p className="text-sm text-foreground">
+                  {formatFullDateTime(ev.created_at!)}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Payload */}

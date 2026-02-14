@@ -1,24 +1,20 @@
-import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from '@tanstack/react-table'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { SubjectWithMetadata } from '@/hooks/useSubjects'
 import { SquarePen } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 import { getSubjectTypeTheme } from '@/lib/subject-type-theme'
 import { formatShortDate } from '@/lib/format-date'
+import { DataTable } from '@/components/ui/DataTable'
 
 interface SubjectsTableProps {
-    data: SubjectWithMetadata[]
-    onEdit?: (subject: SubjectWithMetadata) => void
-  }
+  data: SubjectWithMetadata[]
+  onEdit?: (subject: SubjectWithMetadata) => void
+}
 
-  export function SubjectsTable({ data, onEdit }: SubjectsTableProps) {
-    const navigate = useNavigate()
+export function SubjectsTable({ data, onEdit }: SubjectsTableProps) {
+  const navigate = useNavigate()
 
-    const columns: ColumnDef<SubjectWithMetadata>[] = [
+  const columns: ColumnDef<SubjectWithMetadata>[] = [
       {
         accessorKey: 'id',
         header: 'Subject',
@@ -116,57 +112,21 @@ interface SubjectsTableProps {
       },
     ]
 
-    const table = useReactTable({
-      data,
-      columns,
-      getCoreRowModel: getCoreRowModel(),
-    })
-  
-    const handleSubjectClick = (subjectId: string) => {
-      navigate({ to: `/subjects/${subjectId}` })
-    }
-  
-    return (
-      <div className="bg-card/80 backdrop-blur-sm rounded-none border border-border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-max">
-            <thead className="bg-muted/50 border-b border-border sticky top-0">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold text-foreground whitespace-nowrap"
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody className="divide-y divide-border">
-              {table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  onClick={() => handleSubjectClick(row.original.id)}
-                  className="hover:bg-muted/50 transition-colors cursor-pointer focus-within:bg-muted/30"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    )
+  const handleSubjectClick = (subject: SubjectWithMetadata) => {
+    navigate({ to: `/subjects/${subject.id}` })
   }
-  
+
+  return (
+    <div className="bg-card/80 backdrop-blur-sm rounded-none border border-border overflow-hidden">
+      <DataTable<SubjectWithMetadata>
+        data={data}
+        columns={columns}
+        onRowClick={handleSubjectClick}
+        variant="subjects"
+        enablePagination
+        pageSize={20}
+        isEmpty={data.length === 0}
+      />
+    </div>
+  )
+}

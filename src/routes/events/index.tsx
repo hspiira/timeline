@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Plus, Activity, Calendar } from 'lucide-react'
+import { Plus, Activity, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
 import { useEffect, useState } from 'react'
 import { useStore } from '@tanstack/react-store'
@@ -12,6 +12,9 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import type { EventResponse, EventListResponse } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
+
+const EVENTS_PAGE_SIZE_OPTIONS = [10, 20, 50]
+const DEFAULT_EVENTS_PAGE_SIZE = 20
 
 export const Route = createFileRoute('/events/')({
   component: EventsPage,
@@ -28,6 +31,9 @@ function EventsPage() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [detailsEventId, setDetailsEventId] = useState<string | null>(null)
   const [documentCounts, setDocumentCounts] = useState<Record<string, number>>({})
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(DEFAULT_EVENTS_PAGE_SIZE)
+  const [totalCount, setTotalCount] = useState<number | null>(null)
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -36,11 +42,16 @@ function EventsPage() {
     }
   }, [authState.isLoading, authState.user, navigate])
 
+  // Reset to first page when filter changes
+  useEffect(() => {
+    setPage(0)
+  }, [filterEventType])
+
   useEffect(() => {
     if (authState.user) {
       fetchEvents()
     }
-  }, [filterEventType, authState.user])
+  }, [filterEventType, authState.user, page, pageSize])
 
   const fetchEvents = async () => {
     setLoading(true)
@@ -52,8 +63,15 @@ function EventsPage() {
       const types: string[] = [...new Set(schemaList.map((s) => s.event_type).filter((x): x is string => Boolean(x)))]
       setEventTypes(types)
 
-      const params = filterEventType ? { event_type: filterEventType } : undefined
-      const { data: listData, error: apiError } = await timelineApi.events.listAll(params)
+      const listParams = {
+        skip: page * pageSize,
+        limit: pageSize,
+        ...(filterEventType ? { event_type: filterEventType } : {}),
+      }
+      const [{ data: listData, error: apiError }, countRes] = await Promise.all([
+        timelineApi.events.listAll(listParams),
+        timelineApi.events.count(),
+      ])
 
       if (apiError) {
         const errorMessage =
@@ -61,6 +79,9 @@ function EventsPage() {
         setError(errorMessage)
         console.error('API error:', apiError)
       } else if (listData) {
+        // Total count is only accurate when not filtering by event_type
+        setTotalCount(filterEventType ? null : (countRes.data?.total ?? null))
+
         // Fetch full event details (needed for EventsTable payload display)
         const fullEvents = await Promise.all(
           listData.map(async (item: EventListResponse) => {
@@ -71,7 +92,7 @@ function EventsPage() {
         const validEvents = fullEvents.filter((e): e is EventResponse => e != null)
         setEvents(validEvents)
 
-        // Load document counts for all events in parallel
+        // Load document counts for current page only
         const documentPromises = listData.map(async (item: EventListResponse) => {
           try {
             const { data: docs, error } = await timelineApi.documents.listByEvent(item.id)
@@ -228,6 +249,65 @@ function EventsPage() {
               onViewDetails={(e) => setDetailsEventId(e.id)}
               onViewDocuments={(e) => setSelectedEventId(e.id)}
             />
+            {/* Pagination */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-3 border-t border-border">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Show</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value))
+                    setPage(0)
+                  }}
+                  className="bg-background border border-input rounded-none text-foreground px-2.5 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {EVENTS_PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+                <span>per page</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>
+                  {totalCount !== null
+                    ? `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, totalCount)} of ${totalCount}`
+                    : `${page * pageSize + 1}–${page * pageSize + events.length}`}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  variant="ghost"
+                  size="sm"
+                  title="Previous page"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <span className="px-2 text-sm text-muted-foreground">
+                  {totalCount !== null
+                    ? `Page ${page + 1} of ${Math.ceil(totalCount / pageSize) || 1}`
+                    : `Page ${page + 1}`}
+                </span>
+                <Button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={
+                    totalCount !== null
+                      ? (page + 1) * pageSize >= totalCount
+                      : events.length < pageSize
+                  }
+                  variant="ghost"
+                  size="sm"
+                  title="Next page"
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
