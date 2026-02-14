@@ -42,6 +42,7 @@ from app.infrastructure.persistence.repositories.subject_snapshot_repo import (
 from app.infrastructure.persistence.repositories.subject_type_repo import (
     SubjectTypeRepository,
 )
+from app.infrastructure.persistence.repositories.task_repo import TaskRepository
 from app.infrastructure.persistence.repositories.tenant_repo import TenantRepository
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
 from app.infrastructure.persistence.repositories.workflow_repo import (
@@ -68,6 +69,7 @@ __all__ = [
     "SubjectRepository",
     "SubjectSnapshotRepository",
     "SubjectTypeRepository",
+    "TaskRepository",
     "TenantRepository",
     "UserRepository",
     "WorkflowExecutionRepository",

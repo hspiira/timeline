@@ -10,9 +10,14 @@ from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.event import EventCreate
-from app.application.interfaces.services import IEventService
+from app.application.interfaces.services import (
+    IEventService,
+    INotificationService,
+    IWorkflowRecipientResolver,
+)
 from app.infrastructure.persistence.models.workflow import Workflow, WorkflowExecution
 from app.infrastructure.persistence.repositories.workflow_repo import WorkflowRepository
+from app.infrastructure.services.workflow_template_renderer import WorkflowTemplateRenderer
 from app.shared.enums import WorkflowExecutionStatus
 from app.shared.telemetry.logging import get_logger
 from app.shared.utils.datetime import utc_now
@@ -53,17 +58,28 @@ class _EventLike(Protocol):
 
 
 class WorkflowEngine:
-    """Finds and runs workflows for an event (create_event actions, etc.)."""
+    """Finds and runs workflows for an event (create_event, notify, create_task)."""
 
     def __init__(
         self,
         db: AsyncSession,
         event_service: IEventService,
         workflow_repo: WorkflowRepository,
+        *,
+        notification_service: INotificationService | None = None,
+        recipient_resolver: IWorkflowRecipientResolver | None = None,
+        template_renderer: WorkflowTemplateRenderer | None = None,
+        task_repo: Any = None,
+        role_repo: Any = None,
     ) -> None:
         self.db = db
         self.event_service = event_service
         self.workflow_repo = workflow_repo
+        self._notification_service = notification_service
+        self._recipient_resolver = recipient_resolver
+        self._template_renderer = template_renderer
+        self._task_repo = task_repo
+        self._role_repo = role_repo
 
     async def process_event_triggers(
         self, event: Any, tenant_id: str
@@ -188,6 +204,115 @@ class WorkflowEngine:
                             {"action": action_type, "status": "failed", "error": str(e)}
                         )
                         actions_failed += 1
+                elif action_type == "notify":
+                    params = action.get("params", {})
+                    role_code = params.get("role")
+                    template_key = params.get("template")
+                    data = params.get("data")
+                    if not role_code or not template_key:
+                        execution_log.append(
+                            {
+                                "action": action_type,
+                                "status": "failed",
+                                "error": "notify requires params.role and params.template",
+                            }
+                        )
+                        actions_failed += 1
+                    elif not self._recipient_resolver or not self._template_renderer or not self._notification_service:
+                        execution_log.append(
+                            {
+                                "action": action_type,
+                                "status": "skipped",
+                                "reason": "notify not configured (missing resolver/templates/notification)",
+                            }
+                        )
+                    else:
+                        try:
+                            emails = await self._recipient_resolver.get_emails_for_role(
+                                workflow.tenant_id, role_code
+                            )
+                            payload = getattr(triggered_by, "payload", None) or {}
+                            subject, body = self._template_renderer.render(
+                                template_key, triggered_by, payload, data
+                            )
+                            await self._notification_service.send(emails, subject, body)
+                            execution_log.append(
+                                {
+                                    "action": action_type,
+                                    "status": "success",
+                                    "recipients_count": len(emails),
+                                }
+                            )
+                            actions_executed += 1
+                        except KeyError as e:
+                            execution_log.append(
+                                {"action": action_type, "status": "failed", "error": str(e)}
+                            )
+                            actions_failed += 1
+                        except Exception as e:
+                            execution_log.append(
+                                {"action": action_type, "status": "failed", "error": str(e)}
+                            )
+                            actions_failed += 1
+                elif action_type == "create_task":
+                    params = action.get("params", {})
+                    title = params.get("title") or ""
+                    assigned_to_role_code = params.get("assigned_to_role")
+                    assigned_to_user_id = params.get("assigned_to_user_id")
+                    due_at_str = params.get("due_at")
+                    if not title:
+                        execution_log.append(
+                            {
+                                "action": action_type,
+                                "status": "failed",
+                                "error": "create_task requires params.title",
+                            }
+                        )
+                        actions_failed += 1
+                    elif not self._task_repo:
+                        execution_log.append(
+                            {
+                                "action": action_type,
+                                "status": "skipped",
+                                "reason": "task repository not configured",
+                            }
+                        )
+                    else:
+                        try:
+                            assigned_to_role_id: str | None = None
+                            if assigned_to_role_code and self._role_repo:
+                                role_result = await self._role_repo.get_by_code_and_tenant(
+                                    assigned_to_role_code, workflow.tenant_id
+                                )
+                                if role_result:
+                                    assigned_to_role_id = role_result.id
+                            due_at_dt: datetime | None = None
+                            if due_at_str:
+                                due_at_dt = datetime.fromisoformat(
+                                    due_at_str.replace("Z", "+00:00")
+                                )
+                            task = await self._task_repo.create(
+                                tenant_id=workflow.tenant_id,
+                                subject_id=triggered_by.subject_id,
+                                event_id=getattr(triggered_by, "id", None),
+                                title=title,
+                                assigned_to_role_id=assigned_to_role_id,
+                                assigned_to_user_id=assigned_to_user_id,
+                                due_at=due_at_dt,
+                            )
+                            execution_log.append(
+                                {
+                                    "action": action_type,
+                                    "status": "success",
+                                    "task_id": task.id,
+                                }
+                            )
+                            actions_executed += 1
+                        except Exception as e:
+                            execution_log.append(
+                                {"action": action_type, "status": "failed", "error": str(e)}
+                            )
+                            actions_failed += 1
                 else:
                     execution_log.append(
                         {

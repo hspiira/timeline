@@ -6,15 +6,21 @@ get_firestore_client() from app.infrastructure.firebase.client instead.
 
 Engine and session factory are created lazily on first use (get_db /
 get_db_transactional) so import does not trigger Settings validation.
+
+When RLS is enabled, get_db and get_db_transactional set app.current_tenant_id
+from the tenant context (set by TenantContextMiddleware) so row-level security
+policies restrict rows to the current tenant.
 """
 
 import logging
 from typing import Any
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
 from app.core.config import get_settings
+from app.core.tenant_context import get_tenant_id as get_current_tenant_id
 from app.domain.exceptions import SqlNotConfiguredError
 
 logger = logging.getLogger(__name__)
@@ -74,10 +80,20 @@ class Base(DeclarativeBase):
     """Base class for all SQLAlchemy declarative models."""
 
 
+async def _set_tenant_context(session: AsyncSession) -> None:
+    """Set app.current_tenant_id on the session for RLS (when tenant context is set)."""
+    tenant_id = get_current_tenant_id()
+    if tenant_id:
+        await session.execute(
+            text("SET LOCAL app.current_tenant_id = :tid"), {"tid": tenant_id}
+        )
+
+
 async def get_db():
     """Database session dependency for read operations.
 
     Does not commit; use get_db_transactional for writes.
+    When tenant context is set (middleware), runs SET LOCAL app.current_tenant_id for RLS.
     Yields a session and closes it on exit.
     Raises SqlNotConfiguredError when database_backend is not 'postgres'.
     """
@@ -89,6 +105,7 @@ async def get_db():
         )
         raise SqlNotConfiguredError()
     async with AsyncSessionLocal() as session:
+        await _set_tenant_context(session)
         yield session
 
 
@@ -96,6 +113,7 @@ async def get_db_transactional():
     """Database session dependency for write operations.
 
     Begins a transaction, commits on success, rolls back on exception.
+    When tenant context is set (middleware), runs SET LOCAL app.current_tenant_id for RLS.
     Use for POST, PUT, PATCH, DELETE endpoints.
     Raises SqlNotConfiguredError when database_backend is not 'postgres'.
     """
@@ -108,4 +126,5 @@ async def get_db_transactional():
         raise SqlNotConfiguredError()
     async with AsyncSessionLocal() as session:
         async with session.begin():
+            await _set_tenant_context(session)
             yield session

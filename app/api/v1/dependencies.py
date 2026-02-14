@@ -83,7 +83,13 @@ from app.infrastructure.persistence.repositories import (
     UserRoleRepository,
     WorkflowExecutionRepository,
     WorkflowRepository,
+    TaskRepository,
 )
+from app.infrastructure.services.workflow_notification_service import (
+    LogOnlyNotificationService,
+    WorkflowRecipientResolver,
+)
+from app.infrastructure.services.workflow_template_renderer import WorkflowTemplateRenderer
 from app.infrastructure.services import (
     PermissionResolver,
     SystemAuditService,
@@ -294,7 +300,21 @@ async def get_event_service(
         schema_validator=schema_validator,
         workflow_engine_provider=get_workflow_engine,
     )
-    workflow_engine = WorkflowEngine(db, event_service, workflow_repo)
+    notification_service = LogOnlyNotificationService()
+    recipient_resolver = WorkflowRecipientResolver(db)
+    template_renderer = WorkflowTemplateRenderer()
+    task_repo = TaskRepository(db)
+    role_repo = RoleRepository(db, audit_service=None)
+    workflow_engine = WorkflowEngine(
+        db,
+        event_service,
+        workflow_repo,
+        notification_service=notification_service,
+        recipient_resolver=recipient_resolver,
+        template_renderer=template_renderer,
+        task_repo=task_repo,
+        role_repo=role_repo,
+    )
     workflow_engine_holder[0] = workflow_engine
     return event_service
 

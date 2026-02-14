@@ -24,6 +24,7 @@ from app.middleware import (
     RequestIDMiddleware,
     RequestSizeLimitMiddleware,
     SecurityHeadersMiddleware,
+    TenantContextMiddleware,
     TimeoutMiddleware,
 )
 from app.pages import render_root_page
@@ -53,6 +54,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.add_middleware(AuditLogMiddleware)
+    app.add_middleware(TenantContextMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(
         CorrelationIDMiddleware,

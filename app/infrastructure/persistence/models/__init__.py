@@ -30,6 +30,7 @@ from app.infrastructure.persistence.models.permission import (
 from app.infrastructure.persistence.models.role import Role
 from app.infrastructure.persistence.models.subject import Subject
 from app.infrastructure.persistence.models.subject_snapshot import SubjectSnapshot
+from app.infrastructure.persistence.models.task import Task
 from app.infrastructure.persistence.models.tenant import Tenant
 from app.infrastructure.persistence.models.user import User
 from app.infrastructure.persistence.models.workflow import Workflow, WorkflowExecution
@@ -40,6 +41,7 @@ __all__ = [
     "User",
     "Subject",
     "SubjectSnapshot",
+    "Task",
     "Event",
     "Document",
     "EventSchema",

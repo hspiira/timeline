@@ -77,6 +77,27 @@ class IWorkflowEngine(Protocol):
         """Find and execute workflows for event; return executions."""
 
 
+# Notification service interface (workflow notify action)
+class INotificationService(Protocol):
+    """Protocol for sending notifications (e.g. email) to a list of recipients."""
+
+    async def send(
+        self,
+        to_emails: list[str],
+        subject: str,
+        body: str,
+    ) -> None:
+        """Send notification (e.g. email) to the given addresses. No-op or log if not configured."""
+
+
+# Workflow recipient resolver: resolve user emails by role code (for notify action)
+class IWorkflowRecipientResolver(Protocol):
+    """Protocol for resolving notification recipients by tenant and role code."""
+
+    async def get_emails_for_role(self, tenant_id: str, role_code: str) -> list[str]:
+        """Return list of email addresses for users who have the given role in the tenant."""
+
+
 # Tenant initialization service interface
 class ITenantInitializationService(Protocol):
     """Protocol for initializing new tenant RBAC and audit infrastructure."""

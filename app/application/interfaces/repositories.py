@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from app.application.dtos.subject import SubjectResult
     from app.application.dtos.subject_snapshot import SubjectSnapshotResult
     from app.application.dtos.subject_type import SubjectTypeResult
+    from app.application.dtos.task import TaskResult
     from app.application.dtos.tenant import TenantResult
     from app.application.dtos.user import UserResult
 
@@ -458,6 +459,26 @@ class IRolePermissionRepository(Protocol):
         self, role_id: str, permission_id: str, tenant_id: str
     ) -> None:
         """Assign a permission to a role in the tenant. Raises DuplicateAssignmentException if already assigned."""
+
+
+# Task repository interface (workflow create_task action)
+class ITaskRepository(Protocol):
+    """Protocol for task repository (workflow-created tasks)."""
+
+    async def create(
+        self,
+        tenant_id: str,
+        subject_id: str,
+        event_id: str | None,
+        title: str,
+        *,
+        assigned_to_role_id: str | None = None,
+        assigned_to_user_id: str | None = None,
+        due_at: datetime | None = None,
+        status: str = "open",
+        description: str | None = None,
+    ) -> "TaskResult":
+        """Create a task; return created result. At least one of assigned_to_role_id or assigned_to_user_id recommended."""
 
 
 # Search repository interface (full-text search)
