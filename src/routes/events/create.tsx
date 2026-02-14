@@ -6,11 +6,12 @@ import SubjectSelector from '@/components/subjects/SubjectSelector'
 import EventTypeSelector from '@/components/events/EventTypeSelector'
 import { JsonSchemaForm } from '@/components/shared/JsonSchemaForm'
 import { EventDocumentUpload } from '@/components/documents/EventDocumentUpload'
-import { AlertCircle } from 'lucide-react'
+import { ErrorModal } from '@/components/ui/ErrorModal'
 import type { components } from '@/lib/timeline-api'
 import { Input } from '@/components/ui/input'
 import { LoadingIcon } from '@/components/ui/icons'
 import { Button } from '@/components/ui/button'
+import { getApiErrorDisplay } from '@/lib/api-utils'
 
 export const Route = createFileRoute('/events/create')({
   component: CreateEventPage,
@@ -43,6 +44,11 @@ function CreateEventPage() {
   const [schemaError, setSchemaError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Initialize event time after hydration (must be deterministic for SSR)
   // Format for datetime-local input: YYYY-MM-DDTHH:MM in local time
@@ -129,17 +135,11 @@ function CreateEventPage() {
           }
         }
 
-        if (res.error) {
-          const msg =
-            typeof res.error === 'object' && res.error !== null && 'message' in res.error
-              ? String((res.error as { message?: string }).message)
-              : typeof res.error === 'object' && res.error !== null && 'detail' in res.error
-                ? String((res.error as { detail?: string }).detail)
-                : 'Schema not found or not active'
-          setSchemaError(msg)
-        } else {
-          setSchemaError('No schema found for this event type')
-        }
+        setSchemaError(
+          res.error
+            ? 'No active schema for this event type. Create one in Settings → Event Schemas and set it active.'
+            : 'No schema found for this event type'
+        )
         setSchema(null)
         setSchemaVersion(null)
       } catch (err) {
@@ -231,11 +231,25 @@ function CreateEventPage() {
       const { data, error: createError } = await timelineApi.events.create(eventCreateData)
 
       if (createError) {
-        const errorMessage =
-          typeof createError === 'object' && 'message' in createError
-            ? (createError as any).message
-            : 'Failed to create event'
-        setApiError(errorMessage)
+        const display = getApiErrorDisplay(
+          { error: createError },
+          'Failed to create event'
+        )
+        setApiError(display.message)
+        if (display.fieldErrors && display.fieldErrors.length > 0) {
+          setState((prev) => ({
+            ...prev,
+            fieldErrors: {
+              ...prev.fieldErrors,
+              ...Object.fromEntries(
+                display.fieldErrors!.map((e) => {
+                  const key = e.field.replace(/^payload\.?/, '') || 'payload'
+                  return [key, e.message]
+                })
+              ),
+            },
+          }))
+        }
         setLoading(false)
         return
       }
@@ -280,7 +294,8 @@ function CreateEventPage() {
     }
   }
 
-  if (authState.isLoading) {
+  // Same output on server and first client paint to avoid hydration mismatch (auth/store can differ)
+  if (!mounted || authState.isLoading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] bg-background flex items-center justify-center">
         <div className="flex items-center gap-2 text-muted-foreground">
@@ -293,21 +308,23 @@ function CreateEventPage() {
 
   if (!authState.user) return null
 
+  const errorMessage = apiError ?? (schemaError ? `Could not load schema for "${state.eventType}". ${schemaError}` : null)
+
   return (
     <>
+        <ErrorModal
+          open={!!errorMessage}
+          onClose={() => {
+            setApiError(null)
+            setSchemaError(null)
+          }}
+          title="Error"
+          message={errorMessage ?? ''}
+        />
+
         <h1 className="text-lg font-bold mb-3">Create Event</h1>
 
         <form onSubmit={handleSubmit} className="space-y-5 bg-card/80 p-5 rounded-none border border-border/50">
-          {apiError && (
-            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-none flex gap-2" role="alert">
-              <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-foreground text-sm">Error</h3>
-                <p className="text-sm text-muted-foreground">{apiError}</p>
-              </div>
-            </div>
-          )}
-
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">
@@ -357,8 +374,8 @@ function CreateEventPage() {
                 <span className="ml-2 text-sm text-muted-foreground">Loading schema...</span>
               </div>
             ) : schemaError ? (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-none text-sm text-destructive">
-                Could not load schema for &quot;{state.eventType}&quot;. {schemaError}
+              <div className="text-sm text-muted-foreground italic p-4 rounded-none border border-border/50 bg-muted/20">
+                Could not load schema for this event type.
               </div>
             ) : schema?.properties ? (
               <div className="space-y-3 p-4 rounded-none border border-border/50 bg-muted/20">

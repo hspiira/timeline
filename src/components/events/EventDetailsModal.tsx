@@ -4,6 +4,7 @@ import { Modal } from '@/components/ui/Modal'
 import { DocumentList } from '@/components/documents/DocumentList'
 import { formatFullDateTime } from '@/lib/format-date'
 import type { EventResponse } from '@/lib/types'
+import { PayloadModernView } from './PayloadModernView'
 
 export interface EventDetailsModalProps {
   event: EventResponse
@@ -14,6 +15,7 @@ type ViewMode = 'modern' | 'json'
 
 export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('modern')
+  const [documentCount, setDocumentCount] = useState<number | null>(null)
   return (
     <Modal isOpen={true} onClose={onClose} maxWidth="max-w-3xl" closeButton={false}>
       {/* Custom Header with gradient background */}
@@ -93,38 +95,7 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
 
             {viewMode === 'modern' && event.payload && (
               <div className="bg-slate-50 dark:bg-slate-900/30 rounded-none border border-slate-200 dark:border-slate-700 p-3">
-                <div className="space-y-2">
-                  {Object.entries(event.payload).map(([key, value]) => {
-                    const displayValue = (() => {
-                      if (value === null) return <span className="text-muted-foreground italic">null</span>
-                      if (value === undefined) return <span className="text-muted-foreground italic">undefined</span>
-                      if (typeof value === 'boolean') {
-                        return (
-                          <span className={value ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
-                            {value ? 'true' : 'false'}
-                          </span>
-                        )
-                      }
-                      if (typeof value === 'number') {
-                        return <span className="text-blue-600 dark:text-blue-400">{value}</span>
-                      }
-                      if (typeof value === 'object') {
-                        return <span className="text-slate-600 dark:text-slate-300 font-mono text-xs">{JSON.stringify(value)}</span>
-                      }
-                      return <span className="text-foreground">{String(value)}</span>
-                    })()
-
-                    return (
-                      <div key={key} className="flex gap-2">
-                        <span className="font-medium text-slate-600 dark:text-slate-400 text-sm min-w-fit">{key}:</span>
-                        <span className="text-foreground text-sm wrap-break-word">{displayValue}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-                {Object.keys(event.payload).length === 0 && (
-                  <p className="text-xs text-muted-foreground italic">No data</p>
-                )}
+                <PayloadModernView payload={event.payload} />
               </div>
             )}
 
@@ -143,13 +114,19 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
             )}
           </div>
 
-        {/* Documents */}
+        {/* Documents — label always shows count; list container hidden when count is 0 */}
         <div>
           <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
             <FileText className="w-4 h-4" />
-            Linked Documents
+            Linked Documents: {documentCount ?? '…'}
           </h3>
-          <DocumentList eventId={event.id} readOnly={true} />
+          {documentCount !== 0 && (
+            <DocumentList
+              eventId={event.id}
+              readOnly={true}
+              onDocumentsLoaded={setDocumentCount}
+            />
+          )}
         </div>
       </div>
     </Modal>

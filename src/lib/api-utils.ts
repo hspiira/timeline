@@ -37,6 +37,36 @@ export function getApiErrorDisplay(
     return { message, code: 'VALIDATION_ERROR', fieldErrors }
   }
 
+  // Schema validation error: { error: "SCHEMA_VALIDATION_ERROR", message: "...", details: { schema_type, errors: [] } }
+  const code = typeof obj?.error === 'string' ? obj.error : undefined
+  const details = obj && typeof obj.details === 'object' && obj.details !== null ? (obj.details as Record<string, unknown>) : null
+  const detailsErrors = details && Array.isArray(details.errors) ? details.errors : []
+  if (code === 'SCHEMA_VALIDATION_ERROR' && detailsErrors.length > 0) {
+    const fieldErrors: ApiFieldError[] = detailsErrors
+      .map((e: unknown) => {
+        if (typeof e === 'string') return { field: 'payload', message: e }
+        if (e && typeof e === 'object' && 'message' in e) {
+          const msg = (e as { message?: string }).message
+          const path = (e as { path?: string | string[] }).path
+          const field = path
+            ? Array.isArray(path)
+              ? path.join('.')
+              : String(path)
+            : 'payload'
+          return { field, message: typeof msg === 'string' ? msg : 'Validation failed' }
+        }
+        return null
+      })
+      .filter((e): e is ApiFieldError => e !== null)
+    const baseMessage = typeof obj?.message === 'string' ? obj.message : defaultMessage
+    const schemaType = details && typeof details.schema_type === 'string' ? details.schema_type : undefined
+    const message =
+      fieldErrors.length > 0
+        ? [baseMessage, ...fieldErrors.map((e) => (e.field ? `${e.field}: ${e.message}` : e.message))].join(' — ')
+        : baseMessage + (schemaType ? ` (${schemaType})` : '')
+    return { message, code, fieldErrors }
+  }
+
   if (obj && typeof obj.message === 'string') {
     return {
       message: obj.message,

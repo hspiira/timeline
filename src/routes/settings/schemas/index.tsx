@@ -4,8 +4,8 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { timelineApi } from '@/lib/api-client'
 import { Plus, Eye, Trash2, CheckCircle } from 'lucide-react'
-import { ErrorIcon } from '@/components/ui/icons'
 import { SchemaFormModal } from '@/components/schemas/SchemaFormModal'
+import { ErrorModal } from '@/components/ui/ErrorModal'
 import { SchemaViewModal } from '@/components/schemas/SchemaViewModal'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { DataTable } from '@/components/ui/DataTable'
@@ -61,8 +61,8 @@ function SchemasPage() {
       const { data, error: apiError } = await timelineApi.eventSchemas.create({
         event_type: eventType,
         schema_definition: definition,
-        version: 1,
-      } as any)
+        is_active: true,
+      })
 
       if (apiError) {
         const errorMsg =
@@ -229,16 +229,12 @@ function SchemasPage() {
         />
       )}
 
-      {/* Error Alert */}
-      {error && (
-        <div className="mb-3 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none flex gap-2">
-          <ErrorIcon className="text-red-600 dark:text-red-400 mt-0.5" />
-          <div className="flex-1">
-            <h3 className="font-semibold text-red-900 dark:text-red-200 text-sm">Error</h3>
-            <p className="text-sm text-red-800 dark:text-red-300 mt-0.5">{error}</p>
-          </div>
-        </div>
-      )}
+      <ErrorModal
+        open={!!error}
+        onClose={() => setError(null)}
+        title="Error"
+        message={error ?? ''}
+      />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-3">

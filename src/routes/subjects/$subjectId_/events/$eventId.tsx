@@ -20,6 +20,7 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { SkeletonBreadcrumbs, Skeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/button'
 import { DocumentList } from '@/components/documents/DocumentList'
+import { PayloadModernView } from '@/components/events/PayloadModernView'
 import { LoadingIcon } from '@/components/ui/icons'
 import type { EventResponse, EventListResponse } from '@/lib/types'
 
@@ -37,12 +38,17 @@ function EventDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [documentCount, setDocumentCount] = useState<number | null>(null)
 
   useEffect(() => {
     if (authState.user) {
       fetchData()
     }
   }, [eventId, subjectId, authState.user])
+
+  useEffect(() => {
+    setDocumentCount(null)
+  }, [eventId])
 
   const fetchData = async () => {
     setLoading(true)
@@ -331,29 +337,33 @@ function EventDetailPage() {
             )}
           </div>
 
-          {/* Payload */}
+          {/* Payload — modern format: JSON-like structure, no quotes on keys or nested values */}
           <div className="space-y-2">
             <h3 className="text-sm font-semibold">Event Payload</h3>
-            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-none border border-slate-200 dark:border-slate-700 overflow-hidden">
-              <pre className="p-4 text-xs font-mono text-foreground overflow-x-auto max-h-96">
-                {JSON.stringify(event.payload, null, 2)}
-              </pre>
+            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-none border border-slate-200 dark:border-slate-700 overflow-hidden p-4 overflow-x-auto max-h-96">
+              <PayloadModernView payload={event.payload ?? {}} />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Documents Section */}
+      {/* Documents Section — label always shows count; list container hidden when count is 0 */}
       <div className="bg-card rounded-none border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-muted/30">
           <h2 className="text-sm font-semibold flex items-center gap-2">
             <FileText className="w-4 h-4" />
-            Attached Documents
+            Attached Documents: {documentCount ?? '…'}
           </h2>
         </div>
-        <div className="p-4">
-          <DocumentList eventId={eventId} onError={(err) => console.error('Documents error:', err)} />
-        </div>
+        {documentCount !== 0 && (
+          <div className="p-4">
+            <DocumentList
+              eventId={eventId}
+              onError={(err) => console.error('Documents error:', err)}
+              onDocumentsLoaded={setDocumentCount}
+            />
+          </div>
+        )}
       </div>
     </>
   )

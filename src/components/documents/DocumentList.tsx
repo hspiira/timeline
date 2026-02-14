@@ -210,7 +210,11 @@ export function DocumentList({ subjectId, eventId, readOnly, onDelete, onError, 
         throw new Error(errorMsg)
       }
 
-      setDocuments((prev) => prev.filter((doc) => doc.id !== documentId))
+      setDocuments((prev) => {
+        const next = prev.filter((doc) => doc.id !== documentId)
+        onDocumentsLoaded?.(next.length)
+        return next
+      })
       onDelete?.(documentId)
       toast.success('Document deleted', `"${filename}" has been removed`)
     } catch (err) {
