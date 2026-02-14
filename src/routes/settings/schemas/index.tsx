@@ -39,32 +39,15 @@ function SchemasPage() {
     setLoading(true)
     setError(null)
     try {
-      // No "list all schemas" endpoint; derive event types from events, then fetch schemas per type
-      const eventsRes = await timelineApi.events.listAll()
-      if (eventsRes.error) {
-        setError('Failed to load event types')
+      const { data, error: apiError } = await timelineApi.eventSchemas.list({
+        skip: 0,
+        limit: 500,
+      })
+      if (apiError) {
+        setError('Failed to load schemas')
         return
       }
-
-      const eventTypes = [...new Set((eventsRes.data || []).map((e) => e.event_type).filter(Boolean))]
-
-      if (eventTypes.length === 0) {
-        setSchemas([])
-        return
-      }
-
-      const results = await Promise.allSettled(
-        eventTypes.map((et) => timelineApi.eventSchemas.listByEventType(et))
-      )
-
-      const allSchemas: SchemaListItem[] = []
-      for (const result of results) {
-        if (result.status === 'fulfilled' && result.value.data) {
-          allSchemas.push(...result.value.data)
-        }
-      }
-
-      setSchemas(allSchemas)
+      setSchemas(data ?? [])
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unexpected error loading schemas'
       setError(errorMsg)

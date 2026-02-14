@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { timelineApi } from '@/lib/api-client'
 import type { Activity, ActivityFeed, ActivityFilter } from '@/lib/types/activity'
 import { eventToActivity } from '@/lib/types/activity'
@@ -9,11 +9,15 @@ interface UseActivityFeedOptions {
   autoFetch?: boolean
 }
 
+const DEFAULT_PAGE_SIZE = 20
+const MAX_TOTAL_ITEMS = 1000
+
 export function useActivityFeed({
-  limit = 20,
+  limit = DEFAULT_PAGE_SIZE,
   filter,
   autoFetch = true,
 }: UseActivityFeedOptions = {}) {
+  const pageSize = limit
   const [feed, setFeed] = useState<ActivityFeed>({
     items: [],
     hasMore: false,
@@ -21,24 +25,20 @@ export function useActivityFeed({
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [_cursor, setCursor] = useState<string | null>(null)
 
   /**
-   * Fetch activities from API
-   * In a real scenario, the backend would handle:
-   * - Pagination with cursor
-   * - Filtering
-   * - Activity generation from events
+   * Fetch first page of activities from API (server-side skip/limit).
    */
   const fetchActivities = useCallback(
-    async (_nextCursor?: string) => {
+    async () => {
       setLoading(true)
       setError(null)
 
       try {
-        // For now, convert events to activities
-        // In production, this would call a dedicated activity endpoint
-        const { data: events, error: apiError } = await timelineApi.events.listAll()
+        const { data: events, error: apiError } = await timelineApi.events.listAll({
+          skip: 0,
+          limit: pageSize,
+        })
 
         if (apiError) {
           setError('Failed to load activities')
@@ -46,96 +46,76 @@ export function useActivityFeed({
         }
 
         if (!events || !Array.isArray(events)) {
-          setFeed({
-            items: [],
-            hasMore: false,
-            total: 0,
-          })
+          setFeed({ items: [], hasMore: false, total: 0 })
           return
         }
 
-        // Convert events to activities
-        let activities = events
+        const activities = events
           .map(event => eventToActivity(event))
           .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
 
-        // Apply filters
-        if (filter) {
-          activities = applyActivityFilters(activities, filter)
-        }
-
-        // Simulate pagination
-        const start = 0
-        const end = start + limit
-        const items = activities.slice(start, end)
-        const hasMore = activities.length > end
+        const hasMore = events.length === pageSize && events.length + 0 < MAX_TOTAL_ITEMS
 
         setFeed({
-          items,
+          items: activities,
           hasMore,
-          cursor: hasMore ? end.toString() : undefined,
           total: activities.length,
           lastFetch: new Date(),
         })
-        setCursor(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error')
       } finally {
         setLoading(false)
       }
     },
-    [limit, filter]
+    [pageSize]
   )
 
   /**
-   * Load more activities with pagination
+   * Load next page and append (server-side pagination).
    */
   const fetchMore = useCallback(async () => {
     if (!feed.hasMore || loading) return
+    const skip = feed.items.length
+    if (skip >= MAX_TOTAL_ITEMS) return
 
     setLoading(true)
     setError(null)
 
     try {
-      const { data: events } = await timelineApi.events.listAll()
+      const { data: events, error: apiError } = await timelineApi.events.listAll({
+        skip,
+        limit: pageSize,
+      })
 
-      if (!events || !Array.isArray(events)) {
+      if (apiError || !events || !Array.isArray(events)) {
+        setFeed(prev => ({ ...prev, hasMore: false }))
         return
       }
 
-      let activities = events
+      const newActivities = events
         .map(event => eventToActivity(event))
         .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
 
-      if (filter) {
-        activities = applyActivityFilters(activities, filter)
-      }
-
-      const currentCount = feed.items.length
-      const start = currentCount
-      const end = start + limit
-      const newItems = activities.slice(start, end)
-      const hasMore = activities.length > end
+      const hasMore = events.length === pageSize && skip + events.length < MAX_TOTAL_ITEMS
 
       setFeed(prev => ({
         ...prev,
-        items: [...prev.items, ...newItems],
+        items: [...prev.items, ...newActivities],
         hasMore,
-        cursor: hasMore ? end.toString() : undefined,
-        total: activities.length,
+        total: prev.total + newActivities.length,
       }))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(false)
     }
-  }, [feed.hasMore, feed.items.length, limit, filter, loading])
+  }, [feed.hasMore, feed.items.length, pageSize, loading])
 
   /**
    * Refresh activities from the beginning
    */
   const refresh = useCallback(async () => {
-    setCursor(null)
     await fetchActivities()
   }, [fetchActivities])
 
@@ -173,7 +153,14 @@ export function useActivityFeed({
     }))
   }, [])
 
-  // Auto-fetch on mount
+  const displayedFeed = useMemo(() => {
+    if (!filter) return feed
+    return {
+      ...feed,
+      items: applyActivityFilters(feed.items, filter),
+    }
+  }, [feed, filter])
+
   useEffect(() => {
     if (autoFetch) {
       fetchActivities()
@@ -181,7 +168,7 @@ export function useActivityFeed({
   }, [autoFetch, fetchActivities])
 
   return {
-    feed,
+    feed: displayedFeed,
     loading,
     error,
     fetchActivities,

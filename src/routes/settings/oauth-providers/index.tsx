@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
+import { getApiErrorDisplay, isAuthOrPermissionError } from '@/lib/api-utils'
 import {
   Plus,
   Trash2,
@@ -77,21 +78,17 @@ function OAuthProvidersPage() {
     setHasNoAccess(false)
 
     try {
-      const { data, error: apiError } = await timelineApi.oauthProviders.list({
+      const { data, error: apiError, response } = await timelineApi.oauthProviders.list({
         include_inactive: includeInactive,
       })
 
       if (apiError) {
-        const errorStr = JSON.stringify(apiError).toLowerCase()
-        const isNoAccess =
-          errorStr.includes('permission') ||
-          errorStr.includes('401') ||
-          errorStr.includes('403') ||
-          errorStr.includes('unauthorized')
-        setHasNoAccess(isNoAccess)
-        const errorMsg =
-          (apiError as any)?.message || (isNoAccess ? 'No permission to view OAuth providers' : 'Unable to load OAuth providers')
-        setError(errorMsg)
+        const display = getApiErrorDisplay(
+          { error: apiError, status: response?.status },
+          'Unable to load OAuth providers'
+        )
+        setHasNoAccess(isAuthOrPermissionError(display, response?.status))
+        setError(display.message)
       } else {
         setProviders(data || [])
       }

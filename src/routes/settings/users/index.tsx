@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
+import { getApiErrorDisplay, isAuthOrPermissionError } from '@/lib/api-utils'
 import {
   Loader2,
   Shield,
@@ -54,22 +55,18 @@ function UsersPage() {
 
     try {
       // Fetch users
-      const { data: usersData, error: usersError } = await timelineApi.users.list({
+      const { data: usersData, error: usersError, response: usersResponse } = await timelineApi.users.list({
         skip: 0,
         limit: 100,
       })
 
       if (usersError) {
-        const errorStr = JSON.stringify(usersError).toLowerCase()
-        const isNoAccess =
-          errorStr.includes('permission') ||
-          errorStr.includes('401') ||
-          errorStr.includes('403') ||
-          errorStr.includes('unauthorized')
-        setHasNoAccess(isNoAccess)
-        const errorMsg =
-          (usersError as any)?.message || (isNoAccess ? 'No permission to view users' : 'Unable to load users')
-        setError(errorMsg)
+        const display = getApiErrorDisplay(
+          { error: usersError, status: usersResponse?.status },
+          'Unable to load users'
+        )
+        setHasNoAccess(isAuthOrPermissionError(display, usersResponse?.status))
+        setError(display.message)
       } else {
         setUsers(usersData || [])
       }

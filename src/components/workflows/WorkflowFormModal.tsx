@@ -6,7 +6,8 @@ import { Modal } from '../ui/Modal'
 import { Input } from '../ui/input'
 import { Select } from '../ui/select'
 import { Button } from '../ui/button'
-import { LoadingIcon, ErrorIcon } from '../ui/icons'
+import { LoadingIcon } from '../ui/icons'
+import { ErrorAlert } from '../ui/ErrorAlert'
 
 type WorkflowCreate = components['schemas']['WorkflowCreateRequest']
 
@@ -138,13 +139,7 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
   return (
     <Modal isOpen={true} onClose={onClose} title={title} maxWidth="max-w-2xl" closeButton={!loading}>
       <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Error Alert */}
-          {error && (
-            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xs flex items-center gap-2">
-              <ErrorIcon size="md" className="text-destructive" />
-              <p className="text-sm text-destructive">{error}</p>
-            </div>
-          )}
+          {error && <ErrorAlert message={error} />}
 
           {/* Workflow Name */}
           <div>

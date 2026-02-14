@@ -4,8 +4,10 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
-import { Plus, Play, Pause, Trash2, CheckCircle } from 'lucide-react'
+import { getApiErrorDisplay, isAuthOrPermissionError } from '@/lib/api-utils'
+import { Plus, Play, Pause, Trash2, CheckCircle, SquarePen } from 'lucide-react'
 import { WorkflowFormModal } from '@/components/workflows/WorkflowFormModal'
+import { WorkflowEditModal } from '@/components/workflows/WorkflowEditModal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { DataTable } from '@/components/ui/DataTable'
 import type { components } from '@/lib/timeline-api'
@@ -28,6 +30,7 @@ function WorkflowsPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState<{ id: string; name: string } | null>(null)
+  const [editingWorkflow, setEditingWorkflow] = useState<Workflow | null>(null)
   const [eventTypes, setEventTypes] = useState<string[]>([])
   const [filterEventType, setFilterEventType] = useState<string>('')
   const [hasNoAccess, setHasNoAccess] = useState(false)
@@ -43,27 +46,16 @@ function WorkflowsPage() {
     setError(null)
     setHasNoAccess(false)
     try {
-      const { data, error: apiError } = await timelineApi.workflows.list()
+      const { data, error: apiError, response } = await timelineApi.workflows.list()
 
       if (apiError) {
-        const errorObj = apiError as any
-        const errorDetail = errorObj?.detail || errorObj?.message || String(apiError)
-        const errorStr = errorDetail.toLowerCase()
-
-        const isNoAccess =
-          errorStr.includes('permission') ||
-          errorStr.includes('401') ||
-          errorStr.includes('403') ||
-          errorStr.includes('unauthorized') ||
-          errorStr.includes('forbidden') ||
-          errorStr.includes('not allowed')
-
-        if (isNoAccess) {
-          setHasNoAccess(true)
-          setError(null)
-        } else {
-          setError('Failed to load workflows')
-        }
+        const display = getApiErrorDisplay(
+          { error: apiError, status: response?.status },
+          'Failed to load workflows'
+        )
+        const isNoAccess = isAuthOrPermissionError(display, response?.status)
+        setHasNoAccess(isNoAccess)
+        setError(isNoAccess ? null : display.message)
       } else if (data) {
         setWorkflows(data)
         const types = [
@@ -112,6 +104,26 @@ function WorkflowsPage() {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unexpected error creating workflow'
       setError(errorMsg)
+      return false
+    }
+  }
+
+  const handleUpdateWorkflow = async (workflowId: string, data: { name?: string; description?: string; execution_order?: number; is_active?: boolean }) => {
+    if (hasNoAccess) return false
+    try {
+      const { error: apiError } = await timelineApi.workflows.update(workflowId, data)
+      if (apiError) return false
+      setWorkflows((prev) =>
+        prev.map((w) =>
+          w.id === workflowId
+            ? { ...w, ...data, name: data.name ?? w.name, description: data.description ?? w.description, execution_order: data.execution_order ?? w.execution_order, is_active: data.is_active ?? w.is_active }
+            : w
+        )
+      )
+      setEditingWorkflow(null)
+      toast.success('Workflow updated', 'Changes saved successfully')
+      return true
+    } catch {
       return false
     }
   }
@@ -260,6 +272,14 @@ function WorkflowsPage() {
         return (
           <div className="flex items-center justify-end gap-1">
             <button
+              onClick={() => setEditingWorkflow(workflow)}
+              disabled={hasNoAccess}
+              className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={hasNoAccess ? 'No permission to update' : 'Edit name, description, order'}
+            >
+              <SquarePen className="w-4 h-4" />
+            </button>
+            <button
               onClick={() => handleToggleWorkflow(workflow.id, workflow.is_active)}
               disabled={toggling === workflow.id || hasNoAccess}
               className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -306,6 +326,15 @@ function WorkflowsPage() {
           onClose={() => setShowCreateModal(false)}
           onSubmit={handleCreateWorkflow}
           title="Create Workflow"
+        />
+      )}
+
+      {/* Edit Workflow Modal */}
+      {editingWorkflow && !hasNoAccess && (
+        <WorkflowEditModal
+          workflow={editingWorkflow}
+          onClose={() => setEditingWorkflow(null)}
+          onSave={handleUpdateWorkflow}
         />
       )}
 

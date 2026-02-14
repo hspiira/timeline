@@ -1,12 +1,10 @@
 import createClient from 'openapi-fetch'
 import type { paths, components } from './timeline-api'
 
-// Create API client
 const client = createClient<paths>({
   baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:8000',
 })
 
-// Auth token management
 let authToken: string | null = null
 let tenantId: string | null = null
 
@@ -45,10 +43,8 @@ export function getTenantId(): string | null {
   return tenantId
 }
 
-// Add auth and content-type interceptor
 client.use({
   onRequest({ request }) {
-    // Always read current token/tenant at request time
     const currentToken = getAuthToken()
     if (currentToken) {
       request.headers.set('Authorization', `Bearer ${currentToken}`)
@@ -57,22 +53,16 @@ client.use({
     if (currentTenantId) {
       request.headers.set('X-Tenant-ID', currentTenantId)
     }
-    // Set Content-Type for non-FormData requests
-    // For FormData, let the browser set Content-Type with proper boundary
     if (request.body && !(request.body instanceof FormData)) {
       request.headers.set('Content-Type', 'application/json')
     } else if (request.body instanceof FormData) {
-      // Explicitly do NOT set Content-Type for FormData
-      // The browser will set it automatically with the correct boundary
       request.headers.delete('Content-Type')
     }
     return request
   },
 })
 
-// Type-safe Timeline API
 export const timelineApi = {
-  // Auth
   auth: {
     login: async (username: string, password: string, tenant_code: string) => {
       return client.POST('/api/v1/auth/login', {
@@ -87,7 +77,6 @@ export const timelineApi = {
       client.POST('/api/v1/auth/register', { body: data }),
   },
 
-  // Users
   users: {
     me: () => client.GET('/api/v1/auth/me'),
     update: (data: components['schemas']['UserUpdate']) =>
@@ -110,7 +99,6 @@ export const timelineApi = {
     getMyRoles: () => client.GET('/api/v1/users/me/roles'),
   },
 
-  // Tenants
   tenants: {
     list: (params?: { skip?: number; limit?: number; active_only?: boolean }) =>
       client.GET('/api/v1/tenants', { params: { query: params } }),
@@ -136,7 +124,6 @@ export const timelineApi = {
       }),
   },
 
-  // Roles
   roles: {
     list: (params?: { skip?: number; limit?: number; include_inactive?: boolean }) =>
       client.GET('/api/v1/roles', {
@@ -168,7 +155,6 @@ export const timelineApi = {
       }),
   },
 
-  // Permissions
   permissions: {
     list: (params?: { skip?: number; limit?: number; resource?: string }) =>
       client.GET('/api/v1/permissions', {
@@ -186,14 +172,12 @@ export const timelineApi = {
       }),
   },
 
-  // Subjects
   subjects: {
     list: (
       params?: {
         skip?: number
         limit?: number
         subject_type?: string
-        q?: string
       }
     ) =>
       client.GET('/api/v1/subjects', {
@@ -216,7 +200,6 @@ export const timelineApi = {
       }),
   },
 
-  // Events
   events: {
     listAll: (params?: { event_type?: string; skip?: number; limit?: number }) =>
       client.GET('/api/v1/events', {
@@ -244,10 +227,18 @@ export const timelineApi = {
       }),
     verifyTenant: () =>
       client.GET('/api/v1/events/verify/tenant/all'),
+    startVerificationJob: () =>
+      client.POST('/api/v1/events/verify/tenant/all/start'),
+    getVerificationJobStatus: (jobId: string) =>
+      client.GET('/api/v1/events/verify/tenant/jobs/{job_id}', {
+        params: { path: { job_id: jobId } },
+      }),
   },
 
-  // Event Schemas
   eventSchemas: {
+    list: (params?: { skip?: number; limit?: number }) =>
+      // @ts-expect-error GET /event-schemas list not in generated OpenAPI
+      client.GET('/api/v1/event-schemas', { params: { query: params } }),
     listByEventType: (eventType: string) =>
       client.GET('/api/v1/event-schemas/event-type/{event_type}', {
         params: { path: { event_type: eventType } },
@@ -277,7 +268,6 @@ export const timelineApi = {
       }),
   },
 
-  // Documents
   documents: {
     listBySubject: (subjectId: string) =>
       client.GET('/api/v1/documents', {
@@ -292,21 +282,20 @@ export const timelineApi = {
         params: { path: { document_id: id } },
       }),
     upload: async (data: FormData) => {
-      // Use native fetch for FormData instead of openapi-fetch
-      // because openapi-fetch doesn't handle FormData correctly
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
       const url = `${baseUrl}/api/v1/documents`
 
       try {
         const headers: Record<string, string> = {}
-        if (authToken) headers['Authorization'] = `Bearer ${authToken}`
-        if (tenantId) headers['X-Tenant-ID'] = tenantId
+        const token = getAuthToken()
+        const tid = getTenantId()
+        if (token) headers['Authorization'] = `Bearer ${token}`
+        if (tid) headers['X-Tenant-ID'] = tid
 
         const response = await fetch(url, {
           method: 'POST',
           headers,
           body: data,
-          // Explicitly do NOT set Content-Type - let browser set it with boundary
         })
 
         if (!response.ok) {
@@ -340,9 +329,9 @@ export const timelineApi = {
       }),
   },
 
-  // Workflows
   workflows: {
-    list: () => client.GET('/api/v1/workflows'),
+    list: (params?: { skip?: number; limit?: number; include_inactive?: boolean }) =>
+      client.GET('/api/v1/workflows', { params: { query: params } }),
     get: (id: string) =>
       client.GET('/api/v1/workflows/{workflow_id}', {
         params: { path: { workflow_id: id } },
@@ -368,7 +357,6 @@ export const timelineApi = {
       }),
   },
 
-  // Email Accounts
   emailAccounts: {
     list: () => client.GET('/api/v1/email-accounts'),
     get: (id: string) =>
@@ -400,7 +388,6 @@ export const timelineApi = {
       }),
   },
 
-  // OAuth Providers
   oauthProviders: {
     list: (params?: { include_inactive?: boolean; skip?: number; limit?: number }) =>
       client.GET('/api/v1/oauth-providers', {

@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect, useCallback } from 'react'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { timelineApi } from '@/lib/api-client'
-import { getApiErrorMessage } from '@/lib/api-utils'
+import { getApiErrorDisplay } from '@/lib/api-utils'
 import { CheckCircle, AlertTriangle, AlertCircle, DownloadIcon } from 'lucide-react'
 import { ChainVisualization } from '@/components/verify/ChainVisualization'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
@@ -31,21 +31,19 @@ function VerifyPage() {
     setError(null)
     try {
       // Call the real verify endpoint
-      const { data: verificationData, error: verifyError } = await timelineApi.events.verify(subjectId)
+      const { data: verificationData, error: verifyError, response: verifyResponse } = await timelineApi.events.verify(subjectId)
 
       if (verifyError) {
-        const errorMsg = getApiErrorMessage(verifyError, 'Failed to verify chain')
-        const errorStr = errorMsg.toLowerCase()
-
-        let displayMsg = errorMsg
-
-        // Check for specific permission/auth errors to provide contextual messages
-        if (errorStr.includes('403') || errorStr.includes('forbidden') || errorStr.includes('permission') || errorStr.includes('not allowed')) {
+        const display = getApiErrorDisplay(
+          { error: verifyError, status: verifyResponse?.status },
+          'Failed to verify chain'
+        )
+        let displayMsg = display.message
+        if (verifyResponse?.status === 403 || display.code === 'PERMISSION_DENIED' || display.code === 'AUTHORIZATION_ERROR') {
           displayMsg = 'You do not have permission to verify this chain. Please contact your administrator if you believe this is an error.'
-        } else if (errorStr.includes('401') || errorStr.includes('unauthorized')) {
+        } else if (verifyResponse?.status === 401 || display.code === 'AUTHENTICATION_ERROR') {
           displayMsg = 'Your session has expired. Please log in again to verify the chain.'
         }
-
         setError(displayMsg)
       } else if (verificationData) {
         setVerification(verificationData)

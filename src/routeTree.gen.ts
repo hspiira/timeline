@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SubjectsIndexRouteImport } from './routes/subjects/index'
 import { Route as EventsIndexRouteImport } from './routes/events/index'
 import { Route as EmailAccountsIndexRouteImport } from './routes/email-accounts/index'
+import { Route as VerifyTenantRouteImport } from './routes/verify/tenant'
 import { Route as VerifySubjectIdRouteImport } from './routes/verify/$subjectId'
 import { Route as SubjectsSubjectIdRouteImport } from './routes/subjects/$subjectId'
 import { Route as EventsCreateRouteImport } from './routes/events/create'
@@ -66,6 +67,11 @@ const EventsIndexRoute = EventsIndexRouteImport.update({
 const EmailAccountsIndexRoute = EmailAccountsIndexRouteImport.update({
   id: '/email-accounts/',
   path: '/email-accounts/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyTenantRoute = VerifyTenantRouteImport.update({
+  id: '/verify/tenant',
+  path: '/verify/tenant',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VerifySubjectIdRoute = VerifySubjectIdRouteImport.update({
@@ -163,6 +169,7 @@ export interface FileRoutesByFullPath {
   '/events/create': typeof EventsCreateRoute
   '/subjects/$subjectId': typeof SubjectsSubjectIdRoute
   '/verify/$subjectId': typeof VerifySubjectIdRoute
+  '/verify/tenant': typeof VerifyTenantRoute
   '/email-accounts': typeof EmailAccountsIndexRoute
   '/events': typeof EventsIndexRoute
   '/subjects': typeof SubjectsIndexRoute
@@ -188,6 +195,7 @@ export interface FileRoutesByTo {
   '/events/create': typeof EventsCreateRoute
   '/subjects/$subjectId': typeof SubjectsSubjectIdRoute
   '/verify/$subjectId': typeof VerifySubjectIdRoute
+  '/verify/tenant': typeof VerifyTenantRoute
   '/email-accounts': typeof EmailAccountsIndexRoute
   '/events': typeof EventsIndexRoute
   '/subjects': typeof SubjectsIndexRoute
@@ -214,6 +222,7 @@ export interface FileRoutesById {
   '/events/create': typeof EventsCreateRoute
   '/subjects/$subjectId': typeof SubjectsSubjectIdRoute
   '/verify/$subjectId': typeof VerifySubjectIdRoute
+  '/verify/tenant': typeof VerifyTenantRoute
   '/email-accounts/': typeof EmailAccountsIndexRoute
   '/events/': typeof EventsIndexRoute
   '/subjects/': typeof SubjectsIndexRoute
@@ -241,6 +250,7 @@ export interface FileRouteTypes {
     | '/events/create'
     | '/subjects/$subjectId'
     | '/verify/$subjectId'
+    | '/verify/tenant'
     | '/email-accounts'
     | '/events'
     | '/subjects'
@@ -266,6 +276,7 @@ export interface FileRouteTypes {
     | '/events/create'
     | '/subjects/$subjectId'
     | '/verify/$subjectId'
+    | '/verify/tenant'
     | '/email-accounts'
     | '/events'
     | '/subjects'
@@ -291,6 +302,7 @@ export interface FileRouteTypes {
     | '/events/create'
     | '/subjects/$subjectId'
     | '/verify/$subjectId'
+    | '/verify/tenant'
     | '/email-accounts/'
     | '/events/'
     | '/subjects/'
@@ -317,6 +329,7 @@ export interface RootRouteChildren {
   EventsCreateRoute: typeof EventsCreateRoute
   SubjectsSubjectIdRoute: typeof SubjectsSubjectIdRoute
   VerifySubjectIdRoute: typeof VerifySubjectIdRoute
+  VerifyTenantRoute: typeof VerifyTenantRoute
   EmailAccountsIndexRoute: typeof EmailAccountsIndexRoute
   EventsIndexRoute: typeof EventsIndexRoute
   SubjectsIndexRoute: typeof SubjectsIndexRoute
@@ -376,6 +389,13 @@ declare module '@tanstack/react-router' {
       path: '/email-accounts'
       fullPath: '/email-accounts'
       preLoaderRoute: typeof EmailAccountsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify/tenant': {
+      id: '/verify/tenant'
+      path: '/verify/tenant'
+      fullPath: '/verify/tenant'
+      preLoaderRoute: typeof VerifyTenantRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/verify/$subjectId': {
@@ -525,6 +545,7 @@ const rootRouteChildren: RootRouteChildren = {
   EventsCreateRoute: EventsCreateRoute,
   SubjectsSubjectIdRoute: SubjectsSubjectIdRoute,
   VerifySubjectIdRoute: VerifySubjectIdRoute,
+  VerifyTenantRoute: VerifyTenantRoute,
   EmailAccountsIndexRoute: EmailAccountsIndexRoute,
   EventsIndexRoute: EventsIndexRoute,
   SubjectsIndexRoute: SubjectsIndexRoute,

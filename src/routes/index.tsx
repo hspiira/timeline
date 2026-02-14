@@ -59,11 +59,12 @@ function HomePage() {
     setLoading(true)
     setErrors([])
     try {
+      const DASHBOARD_LIMIT = 100
       const results = await Promise.allSettled([
-        timelineApi.events.listAll(),
+        timelineApi.events.listAll({ skip: 0, limit: DASHBOARD_LIMIT }),
         timelineApi.events.count(),
-        timelineApi.subjects.list(),
-        timelineApi.workflows.list(),
+        timelineApi.subjects.list({ skip: 0, limit: DASHBOARD_LIMIT }),
+        timelineApi.workflows.list({ skip: 0, limit: DASHBOARD_LIMIT }),
       ])
 
       const newErrors: FetchError[] = []

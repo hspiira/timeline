@@ -1,8 +1,8 @@
 import { Store } from '@tanstack/store'
 import { timelineApi, setAuthToken, getAuthToken, setTenantId } from './api-client'
+import { getApiErrorDisplay } from './api-utils'
 import type { UserResponse } from '@/lib/types'
 
-// Auth state interface
 interface AuthState {
   user: UserResponse | null
   token: string | null
@@ -10,7 +10,6 @@ interface AuthState {
   error: string | null
 }
 
-// Initial state
 const initialState: AuthState = {
   user: null,
   token: getAuthToken(),
@@ -18,10 +17,8 @@ const initialState: AuthState = {
   error: null,
 }
 
-// Create auth store
 export const authStore = new Store(initialState)
 
-// Auth actions
 export const authActions = {
   async login(username: string, password: string, tenant_code: string) {
     authStore.setState((state) => ({ ...state, isLoading: true, error: null }))
@@ -30,36 +27,50 @@ export const authActions = {
       const response = await timelineApi.auth.login(username, password, tenant_code)
 
       if (response.error) {
-        throw new Error('Invalid credentials')
+        const display = getApiErrorDisplay(
+          { error: response.error, status: response.response?.status },
+          'Invalid credentials'
+        )
+        throw new Error(display.message)
       }
 
       const { access_token } = response.data
-      // Temporarily set token for the user fetch request
       setAuthToken(access_token)
 
-      // Fetch user info
-      const userResponse = await timelineApi.users.me()
+      const userResponse = await timelineApi.users.me() as {
+        data?: UserResponse
+        error?: unknown
+        response?: { status?: number }
+      }
 
       if (userResponse.error) {
-        // Clear token if user fetch fails to prevent inconsistent state
+        setAuthToken(null)
+        setTenantId(null)
+        const display = getApiErrorDisplay(
+          { error: userResponse.error, status: userResponse.response?.status },
+          'Failed to fetch user info'
+        )
+        throw new Error(display.message)
+      }
+
+      const user = userResponse.data
+      if (!user) {
         setAuthToken(null)
         setTenantId(null)
         throw new Error('Failed to fetch user info')
       }
 
-      // Set tenant ID for X-Tenant-ID header on subsequent requests
-      setTenantId(userResponse.data.tenant_id)
+      setTenantId(user.tenant_id)
 
       authStore.setState({
-        user: userResponse.data,
+        user,
         token: access_token,
         isLoading: false,
         error: null,
       })
 
-      return userResponse.data
+      return user
     } catch (error) {
-      // Ensure token and tenant are cleared on any error
       setAuthToken(null)
       setTenantId(null)
       const errorMessage =
@@ -118,13 +129,17 @@ export const authActions = {
       return
     }
 
+    if (typeof window !== 'undefined') {
+      const stored = window.localStorage.getItem('tenant_id')
+      if (stored) setTenantId(stored)
+    }
+
     authStore.setState((state) => ({ ...state, isLoading: true }))
 
     try {
       const response = await timelineApi.users.me()
 
       if (response.error) {
-        // Token invalid, clear it
         setAuthToken(null)
         setTenantId(null)
         authStore.setState({
@@ -136,7 +151,6 @@ export const authActions = {
         return
       }
 
-      // Restore tenant ID from user data
       setTenantId(response.data.tenant_id)
 
       authStore.setState({

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { getAuthToken } from '@/lib/api-client'
 import type { Activity } from '@/lib/types/activity'
 
 interface UseActivitySubscriptionOptions {
@@ -76,10 +77,17 @@ export function useActivitySubscription({
       return
     }
 
+    const token = getAuthToken()
+    if (!token) {
+      console.warn('No auth token available for WebSocket connection')
+      return
+    }
+
     try {
-      // Get WebSocket URL from environment or construct from current URL
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const wsUrl = `${protocol}//${window.location.host}/ws/activities`
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const wsProtocol = apiUrl.startsWith('https') ? 'wss:' : 'ws:'
+      const apiHost = new URL(apiUrl).host
+      const wsUrl = `${wsProtocol}//${apiHost}/api/v1/ws?token=${encodeURIComponent(token)}`
 
       wsRef.current = new WebSocket(wsUrl)
 

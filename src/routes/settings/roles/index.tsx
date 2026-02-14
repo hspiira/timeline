@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
+import { getApiErrorDisplay, isAuthOrPermissionError } from '@/lib/api-utils'
 import {
   Plus,
   Trash2,
@@ -60,24 +61,19 @@ function RolesPage() {
     setHasNoAccess(false)
 
     try {
-      const { data, error: apiError } = await timelineApi.roles.list({
+      const { data, error: apiError, response } = await timelineApi.roles.list({
         skip: 0,
         limit: 100,
         include_inactive: includeInactive,
       })
 
       if (apiError) {
-        const errorStr = JSON.stringify(apiError).toLowerCase()
-        const isNoAccess =
-          errorStr.includes('permission') ||
-          errorStr.includes('401') ||
-          errorStr.includes('403') ||
-          errorStr.includes('unauthorized')
-        setHasNoAccess(isNoAccess)
-        const errorMsg =
-          // @ts-expect-error
-          apiError?.message || (isNoAccess ? 'No permission to view roles' : 'Unable to load roles')
-        setError(errorMsg)
+        const display = getApiErrorDisplay(
+          { error: apiError, status: response?.status },
+          'Unable to load roles'
+        )
+        setHasNoAccess(isAuthOrPermissionError(display, response?.status))
+        setError(display.message)
       } else {
         setRoles(data || [])
       }
@@ -91,7 +87,7 @@ function RolesPage() {
 
   const fetchPermissions = async () => {
     try {
-      const { data, error: apiError } = await timelineApi.permissions.list({
+      const { data, error: apiError, response } = await timelineApi.permissions.list({
         skip: 0,
         limit: 1000,
       })

@@ -67,16 +67,11 @@ export function useSyncProgress({
         if (message.type === 'sync_progress') {
           const progressEvent = message as unknown as SyncProgressEvent
 
-          // Update state for this account
           setSyncProgress((prev) => ({
             ...prev,
             [progressEvent.account_id]: progressEvent,
           }))
-
-          // Call progress callback
           onProgress?.(progressEvent)
-
-          // Clear completed/failed syncs after a delay
           if (progressEvent.stage === 'completed' || progressEvent.stage === 'failed') {
             setTimeout(() => {
               setSyncProgress((prev) => {
@@ -114,11 +109,10 @@ export function useSyncProgress({
     }
 
     try {
-      // Get WebSocket URL from environment or construct from API URL
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
       const wsProtocol = apiUrl.startsWith('https') ? 'wss:' : 'ws:'
       const apiHost = new URL(apiUrl).host
-      const wsUrl = `${wsProtocol}//${apiHost}/ws/sync-progress?token=${encodeURIComponent(token)}`
+      const wsUrl = `${wsProtocol}//${apiHost}/api/v1/ws?token=${encodeURIComponent(token)}`
 
       wsRef.current = new WebSocket(wsUrl)
 
@@ -140,7 +134,6 @@ export function useSyncProgress({
         console.log('Sync progress WebSocket closed:', event.code, event.reason)
         setIsConnected(false)
 
-        // Don't reconnect if closed due to auth failure
         if (event.code === 4001 || event.code === 4002) {
           console.warn('WebSocket auth failed, not reconnecting')
           return
@@ -206,8 +199,6 @@ export function useSyncProgress({
   useEffect(() => {
     if (enabled) {
       connect()
-
-      // Send ping every 30 seconds to keep connection alive
       const pingInterval = setInterval(ping, 30000)
 
       return () => {

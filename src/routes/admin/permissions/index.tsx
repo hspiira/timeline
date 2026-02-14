@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
+import { getApiErrorDisplay, isAuthOrPermissionError } from '@/lib/api-utils'
 import {
   AlertCircle,
   Loader2,
@@ -61,23 +62,18 @@ function PermissionsPage() {
     setHasNoAccess(false)
 
     try {
-      const { data, error: apiError } = await timelineApi.permissions.list({
+      const { data, error: apiError, response } = await timelineApi.permissions.list({
         skip: 0,
         limit: 1000,
       })
 
       if (apiError) {
-        const errorStr = JSON.stringify(apiError).toLowerCase()
-        const isNoAccess =
-          errorStr.includes('permission') ||
-          errorStr.includes('401') ||
-          errorStr.includes('403') ||
-          errorStr.includes('unauthorized')
-        setHasNoAccess(isNoAccess)
-        const errorMsg =
-          // @ts-expect-error
-          apiError?.message || (isNoAccess ? 'No permission to view permissions' : 'Unable to load permissions')
-        setError(errorMsg)
+        const display = getApiErrorDisplay(
+          { error: apiError, status: response?.status },
+          'Unable to load permissions'
+        )
+        setHasNoAccess(isAuthOrPermissionError(display, response?.status))
+        setError(display.message)
       } else {
         setPermissions(data || [])
       }
