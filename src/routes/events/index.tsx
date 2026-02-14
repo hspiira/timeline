@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Plus, Activity, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
+import { Plus, Activity, Calendar } from 'lucide-react'
 import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
 import { useEffect, useState } from 'react'
 import { useStore } from '@tanstack/react-store'
@@ -7,7 +7,7 @@ import { timelineApi } from '@/lib/api-client'
 import { authStore } from '@/lib/auth-store'
 import { EventDocumentsModal } from '@/components/documents/EventDocumentsModal'
 import { EventDetailsModal } from '@/components/events/EventDetailsModal'
-import { EventCard } from '@/components/events/EventCard'
+import { EventsTable } from '@/components/events/EventsTable'
 import { EmptyState } from '@/components/ui/EmptyState'
 import type { EventResponse, EventListResponse } from '@/lib/types'
 import { Button } from '@/components/ui/button'
@@ -28,7 +28,6 @@ function EventsPage() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [detailsEventId, setDetailsEventId] = useState<string | null>(null)
   const [documentCounts, setDocumentCounts] = useState<Record<string, number>>({})
-  const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set())
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -47,6 +46,13 @@ function EventsPage() {
     setLoading(true)
     setError(null)
     try {
+      // Load all registered event types from schemas (so filter shows every type, not only those with events)
+      const { data: schemaList } = await timelineApi.eventSchemas.list({ limit: 500 })
+      const types = schemaList
+        ? [...new Set(schemaList.map((s: { event_type: string }) => s.event_type).filter(Boolean))]
+        : []
+      setEventTypes(types)
+
       const params = filterEventType ? { event_type: filterEventType } : undefined
       const { data: listData, error: apiError } = await timelineApi.events.listAll(params)
 
@@ -56,11 +62,7 @@ function EventsPage() {
         setError(errorMessage)
         console.error('API error:', apiError)
       } else if (listData) {
-        // Extract unique event types from slim list
-        const types = [...new Set(listData.map((e: EventListResponse) => e.event_type))]
-        setEventTypes(types)
-
-        // Fetch full event details (needed for EventCard payload display)
+        // Fetch full event details (needed for EventsTable payload display)
         const fullEvents = await Promise.all(
           listData.map(async (item: EventListResponse) => {
             const { data } = await timelineApi.events.get(item.id)
@@ -99,32 +101,6 @@ function EventsPage() {
       setLoading(false)
     }
   }
-
-  const toggleDate = (date: string) => {
-    setCollapsedDates((prev) => {
-      const next = new Set(prev)
-      if (next.has(date)) {
-        next.delete(date)
-      } else {
-        next.add(date)
-      }
-      return next
-    })
-  }
-
-  // Group events by date
-  const eventsByDate = events.reduce((acc, event) => {
-    const date = new Date(event.event_time).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-    if (!acc[date]) {
-      acc[date] = []
-    }
-    acc[date].push(event)
-    return acc
-  }, {} as Record<string, EventResponse[]>)
 
   if (authState.isLoading) {
     return (
@@ -244,48 +220,15 @@ function EventsPage() {
         ) : (
           <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50">
             <h2 className="text-sm font-semibold text-foreground mb-4">
-              Event Timeline
+              Events
             </h2>
-            <div className="space-y-6">
-              {Object.entries(eventsByDate).map(([date, dateEvents]) => {
-                const isDateCollapsed = collapsedDates.has(date)
-
-                return (
-                  <div key={date}>
-                    {/* Date Header */}
-                    <Button
-                      onClick={() => toggleDate(date)}
-                      variant="ghost"
-                      size="sm"
-                    >
-                      {isDateCollapsed ? <ChevronRight /> : <ChevronDown />}
-                      <span className="font-semibold">{date}</span>
-                      <span className="text-xs text-muted-foreground">
-                        ({dateEvents.length})
-                      </span>
-                    </Button>
-
-                    {/* Events for this date */}
-                    {!isDateCollapsed && (
-                      <div className="ml-6 space-y-2">
-                        {dateEvents.map((event) => {
-                          const docCount = documentCounts[event.id] || 0
-                          return (
-                            <EventCard
-                              key={event.id}
-                              event={event}
-                              documentCount={docCount}
-                              onViewDetails={() => setDetailsEventId(event.id)}
-                              onViewDocuments={() => setSelectedEventId(event.id)}
-                            />
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+            <EventsTable
+              events={events}
+              documentCounts={documentCounts}
+              showSubjectColumn
+              onViewDetails={(e) => setDetailsEventId(e.id)}
+              onViewDocuments={(e) => setSelectedEventId(e.id)}
+            />
           </div>
         )}
 

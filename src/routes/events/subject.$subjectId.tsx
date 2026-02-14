@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Calendar, Tag, AlertCircle, ChevronDown, ChevronRight, Activity, FileText, Shield, ChevronLeft, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { Calendar, Tag, AlertCircle, Activity, FileText, Shield, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { useEffect, useState, useCallback } from 'react'
 import { useStore } from '@tanstack/react-store'
 import { timelineApi } from '@/lib/api-client'
@@ -7,7 +7,7 @@ import { authStore } from '@/lib/auth-store'
 import { DocumentUpload } from '@/components/documents/DocumentUpload'
 import { DocumentList } from '@/components/documents/DocumentList'
 import { DocumentViewer } from '@/components/documents/DocumentViewer'
-import { EventCard } from '@/components/events/EventCard'
+import { EventsTable } from '@/components/events/EventsTable'
 import { EventDetailsModal } from '@/components/events/EventDetailsModal'
 import { EventDocumentsModal } from '@/components/documents/EventDocumentsModal'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
@@ -35,7 +35,6 @@ function SubjectEventsPage() {
   const [currentPage, setCurrentPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set())
   const [activeTab, setActiveTab] = useState<Tab>('events')
   const [viewingDocument, setViewingDocument] = useState<{ id: string; filename: string; type: string } | null>(null)
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
@@ -151,32 +150,6 @@ function SubjectEventsPage() {
       console.error('Error:', err)
     }
   }
-
-  const toggleDate = (date: string) => {
-    setCollapsedDates((prev) => {
-      const next = new Set(prev)
-      if (next.has(date)) {
-        next.delete(date)
-      } else {
-        next.add(date)
-      }
-      return next
-    })
-  }
-
-  // Group events by date
-  const eventsByDate = events.reduce((acc, event) => {
-    const date = new Date(event.event_time).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-    if (!acc[date]) {
-      acc[date] = []
-    }
-    acc[date].push(event)
-    return acc
-  }, {} as Record<string, EventResponse[]>)
 
   if (authState.isLoading) {
     return (
@@ -375,46 +348,13 @@ function SubjectEventsPage() {
               }}
             />
           ) : (
-            <div className="space-y-6">
-              {Object.entries(eventsByDate).map(([date, dateEvents]) => {
-                const isDateCollapsed = collapsedDates.has(date)
-
-                return (
-                  <div key={date}>
-                    {/* Date Header */}
-                    <Button
-                      onClick={() => toggleDate(date)}
-                      variant="ghost"
-                      size="sm"
-                    >
-                      {isDateCollapsed ? <ChevronRight /> : <ChevronDown />}
-                      <span className="font-semibold">{date}</span>
-                      <span className="text-xs text-muted-foreground">
-                        ({dateEvents.length})
-                      </span>
-                    </Button>
-
-                    {/* Events for this date */}
-                    {!isDateCollapsed && (
-                      <div className="ml-6 space-y-2">
-                        {dateEvents.map((event) => {
-                          const docCount = documentCounts[event.id] || 0
-                          return (
-                            <EventCard
-                              key={event.id}
-                              event={event}
-                              documentCount={docCount}
-                              onViewDetails={() => setDetailsEventId(event.id)}
-                              onViewDocuments={() => setSelectedEventId(event.id)}
-                            />
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+            <EventsTable
+              events={events}
+              documentCounts={documentCounts}
+              showSubjectColumn={false}
+              onViewDetails={(e) => setDetailsEventId(e.id)}
+              onViewDocuments={(e) => setSelectedEventId(e.id)}
+            />
           )}
 
           {/* Pagination Controls */}

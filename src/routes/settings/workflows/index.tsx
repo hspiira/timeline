@@ -58,15 +58,11 @@ function WorkflowsPage() {
         setError(isNoAccess ? null : display.message)
       } else if (data) {
         setWorkflows(data)
-        const types = [
-          ...new Set(
-            data
-              .map((w: Workflow) => {
-                return (w as any).trigger?.event_type || 'unknown'
-              })
-              .filter((t: string) => t !== 'unknown')
-          ),
-        ]
+        // Load all registered event types from schemas so filter shows every type
+        const { data: schemaList } = await timelineApi.eventSchemas.list({ limit: 500 })
+        const types = schemaList
+          ? [...new Set(schemaList.map((s: { event_type: string }) => s.event_type).filter(Boolean))]
+          : []
         setEventTypes(types)
       }
     } catch (err) {

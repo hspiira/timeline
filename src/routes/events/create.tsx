@@ -40,6 +40,7 @@ function CreateEventPage() {
   const [schema, setSchema] = useState<Record<string, any> | null>(null)
   const [schemaVersion, setSchemaVersion] = useState<number | null>(null)
   const [schemaLoading, setSchemaLoading] = useState(false)
+  const [schemaError, setSchemaError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
 
@@ -66,29 +67,87 @@ function CreateEventPage() {
     if (!state.eventType) {
       setSchema(null)
       setSchemaVersion(null)
+      setSchemaError(null)
       return
     }
 
     let mounted = true
+    setSchemaError(null)
+
+    const normalizeSchemaDef = (def: unknown): Record<string, any> | null => {
+      if (def == null) return null
+      if (typeof def === 'string') {
+        try {
+          return JSON.parse(def) as Record<string, any>
+        } catch {
+          return null
+        }
+      }
+      return typeof def === 'object' && !Array.isArray(def) ? (def as Record<string, any>) : null
+    }
+
+    const applySchema = (data: { schema_definition?: unknown; version?: number }) => {
+      const schemaObj = normalizeSchemaDef(data.schema_definition)
+      setSchema(schemaObj)
+      setSchemaVersion(data.version ?? null)
+      setSchemaError(null)
+    }
+
     const fetchSchema = async () => {
       setSchemaLoading(true)
       try {
         const res = await timelineApi.eventSchemas.getActive(state.eventType)
         if (!mounted) return
 
-        if (res.data) {
-          setSchema(res.data.schema_definition || null)
-          setSchemaVersion(res.data.version)
-        } else {
-          setSchema(null)
-          setSchemaVersion(null)
+        if (!res.error && res.data) {
+          applySchema(res.data)
+          return
         }
+
+        // Fallback: get active failed — try listing versions for this event type and use first
+        const listRes = await timelineApi.eventSchemas.listByEventType(state.eventType)
+        if (!mounted) return
+        if (listRes.data && Array.isArray(listRes.data) && listRes.data.length > 0) {
+          const first = listRes.data[0] as { id?: string; version?: number; schema_definition?: unknown }
+          const active = listRes.data.find((s: { is_active?: boolean }) => s.is_active)
+          const chosen = active ?? first
+          if (chosen.id) {
+            const fullRes = await timelineApi.eventSchemas.get(chosen.id)
+            if (!mounted) return
+            if (!fullRes.error && fullRes.data) {
+              applySchema(fullRes.data)
+              return
+            }
+          }
+          if (chosen.schema_definition != null) {
+            const schemaObj = normalizeSchemaDef(chosen.schema_definition)
+            setSchema(schemaObj)
+            setSchemaVersion(chosen.version ?? null)
+            setSchemaError(null)
+            return
+          }
+        }
+
+        if (res.error) {
+          const msg =
+            typeof res.error === 'object' && res.error !== null && 'message' in res.error
+              ? String((res.error as { message?: string }).message)
+              : typeof res.error === 'object' && res.error !== null && 'detail' in res.error
+                ? String((res.error as { detail?: string }).detail)
+                : 'Schema not found or not active'
+          setSchemaError(msg)
+        } else {
+          setSchemaError('No schema found for this event type')
+        }
+        setSchema(null)
+        setSchemaVersion(null)
       } catch (err) {
         console.error('Failed to fetch schema:', err)
+        setSchemaError(err instanceof Error ? err.message : 'Failed to load schema')
         setSchema(null)
         setSchemaVersion(null)
       } finally {
-        setSchemaLoading(false)
+        if (mounted) setSchemaLoading(false)
       }
     }
 
@@ -237,65 +296,86 @@ function CreateEventPage() {
     <>
         <h1 className="text-lg font-bold mb-3">Create Event</h1>
 
-        <form onSubmit={handleSubmit} className="space-y-3 bg-card/80 p-3 rounded-xs border border-border/50">
-          {/* API Error Alert */}
+        <form onSubmit={handleSubmit} className="space-y-5 bg-card/80 p-5 rounded-[var(--radius)] border border-border/50">
           {apiError && (
-            <div className="p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs flex gap-2">
-              <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-[var(--radius)] flex gap-2" role="alert">
+              <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-red-900 dark:text-red-200 text-sm">Error</h3>
-                <p className="text-sm text-red-800 dark:text-red-300">{apiError}</p>
+                <h3 className="font-semibold text-foreground text-sm">Error</h3>
+                <p className="text-sm text-muted-foreground">{apiError}</p>
               </div>
             </div>
           )}
 
-          {/* Subject Selection */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Subject <span className="text-red-500">*</span>
-            </label>
-            <SubjectSelector value={state.subjectId} onChange={(value) => setState((prev) => ({ ...prev, subjectId: value }))} />
-            {state.fieldErrors.subjectId && <p className="text-sm text-red-500 mt-0.5">{state.fieldErrors.subjectId}</p>}
-          </div>
-
-          {/* Event Type Selection */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Event Type <span className="text-red-500">*</span>
-            </label>
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <EventTypeSelector value={state.eventType} onChange={(value) => setState((prev) => ({ ...prev, eventType: value }))} />
-              </div>
-              {schemaVersion && (
-                <div className="px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xs text-xs">
-                  <span className="text-blue-900 dark:text-blue-200 font-medium">Schema v{schemaVersion}</span>
-                </div>
-              )}
-            </div>
-            {state.fieldErrors.eventType && <p className="text-sm text-red-500 mt-0.5">{state.fieldErrors.eventType}</p>}
-          </div>
-
-          {/* Event Time */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Event Time</label>
-            <Input 
-              type="datetime-local"
-              value={state.eventTime}
-              onChange={(e) => setState((prev) => ({ ...prev, eventTime: e.target.value }))}
-              className="w-full px-2.5 py-1.5 bg-background border border-input rounded-xs text-sm"
-            />
-            <p className="text-sm text-muted-foreground mt-0.5">Defaults to current time</p>
-          </div>
-
-          {/* Document Upload - Optional */}
-          {state.subjectId && (
+          <div className="grid gap-5 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium mb-1.5">
-                Supporting Documents
-                <span className="text-muted-foreground text-xs ml-2">(optional)</span>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Subject <span className="text-destructive">*</span>
               </label>
-              <div className="p-3 bg-background/50 rounded-xs border border-border/50">
+              <SubjectSelector value={state.subjectId} onChange={(value) => setState((prev) => ({ ...prev, subjectId: value }))} />
+              {state.fieldErrors.subjectId && <p className="text-sm text-destructive mt-1">{state.fieldErrors.subjectId}</p>}
+            </div>
+
+            <div className="min-h-[3.5rem]">
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Event Type <span className="text-destructive">*</span>
+              </label>
+              <div className="flex items-stretch gap-2">
+                <div className="flex-1 min-w-0">
+                  <EventTypeSelector value={state.eventType} onChange={(value) => setState((prev) => ({ ...prev, eventType: value }))} />
+                </div>
+                {schemaVersion != null && (
+                  <div className="px-2.5 py-1.5 bg-muted rounded-[var(--radius)] text-xs flex items-center">
+                    <span className="text-muted-foreground font-medium">v{schemaVersion}</span>
+                  </div>
+                )}
+              </div>
+              {state.fieldErrors.eventType && <p className="text-sm text-destructive mt-1">{state.fieldErrors.eventType}</p>}
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-foreground mb-1.5">Event Time</label>
+              <Input
+                type="datetime-local"
+                value={state.eventTime}
+                onChange={(e) => setState((prev) => ({ ...prev, eventTime: e.target.value }))}
+                className="w-full max-w-sm px-2.5 py-1.5 bg-background border border-input rounded-[var(--radius)] text-sm"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Defaults to current time</p>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">
+              Event Data
+              {schema?.required?.length ? <span className="text-destructive ml-0.5">*</span> : ''}
+            </label>
+            {schemaLoading ? (
+              <div className="flex items-center justify-center py-8 rounded-[var(--radius)] border border-border/50 bg-muted/30">
+                <LoadingIcon />
+                <span className="ml-2 text-sm text-muted-foreground">Loading schema...</span>
+              </div>
+            ) : schemaError ? (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-[var(--radius)] text-sm text-destructive">
+                Could not load schema for &quot;{state.eventType}&quot;. {schemaError}
+              </div>
+            ) : schema?.properties ? (
+              <div className="space-y-3 p-4 rounded-[var(--radius)] border border-border/50 bg-muted/20">
+                <JsonSchemaForm schema={schema} value={state.payload} onChange={handlePayloadChange} errors={state.fieldErrors} />
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground italic p-4 rounded-[var(--radius)] border border-border/50 bg-muted/20">
+                {state.eventType ? 'No fields defined for this event type.' : 'Select an event type to see available fields'}
+              </div>
+            )}
+          </div>
+
+          {state.subjectId && (
+            <div className="pt-4 border-t border-border/50">
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Supporting Documents <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <div className="p-4 rounded-[var(--radius)] border border-dashed border-border bg-muted/10">
                 <EventDocumentUpload
                   subjectId={state.subjectId}
                   onFilesChanged={(files) => setState((prev) => ({ ...prev, stagedDocuments: files }))}
@@ -304,35 +384,11 @@ function CreateEventPage() {
                 />
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                Documents will be uploaded and linked to this event after creation. You can also add documents later.
+                Files are uploaded and linked to this event after creation. You can add more later.
               </p>
             </div>
           )}
 
-          {/* Payload / Dynamic Form */}
-          <div>
-            <label className="block text-sm font-medium mb-1.5">
-              Event Data
-              {schema?.required?.length ? ' ' : ''}
-            </label>
-
-            {schemaLoading ? (
-              <div className="flex items-center justify-center py-4">
-                <LoadingIcon />
-                Loading schema...
-              </div>
-            ) : schema?.properties ? (
-              <div className="space-y-2 p-2.5 bg-background/50 rounded-xs border border-border/50">
-                <JsonSchemaForm schema={schema} value={state.payload} onChange={handlePayloadChange} errors={state.fieldErrors} />
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground italic p-2.5 bg-background/50 rounded-xs border border-border/50">
-                Select an event type to see available fields
-              </div>
-            )}
-          </div>
-
-          {/* Actions */}
           <div className="flex items-center gap-2 pt-2">
             <Button
               type="submit"

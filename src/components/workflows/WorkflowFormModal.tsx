@@ -51,10 +51,9 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
   const fetchEventTypes = async () => {
     setLoadingEventTypes(true)
     try {
-      // No "list all schemas" endpoint exists; derive event types from events list
-      const { data, error: apiError } = await timelineApi.events.listAll()
-      if (!apiError && data) {
-        const types = [...new Set(data.map((e: { event_type: string }) => e.event_type).filter(Boolean))]
+      const { data } = await timelineApi.eventSchemas.list({ limit: 500 })
+      if (data) {
+        const types = [...new Set(data.map((s: { event_type: string }) => s.event_type).filter(Boolean))]
         setEventTypes(types)
       }
     } catch (err) {
