@@ -15,7 +15,7 @@ class EventSchemaCreateRequest(BaseModel):
 
     event_type: str = Field(..., min_length=1, max_length=128)
     schema_definition: dict[str, Any] = Field(...)
-    is_active: bool = False
+    is_active: bool = True
 
 
 class EventSchemaListItem(BaseModel):

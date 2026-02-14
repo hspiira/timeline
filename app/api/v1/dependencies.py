@@ -68,6 +68,7 @@ from app.infrastructure.persistence.repositories import (
 )
 from app.infrastructure.services import (
     PermissionResolver,
+    SystemAuditService,
     TenantInitializationService,
     WorkflowEngine,
 )
@@ -166,6 +167,13 @@ async def _get_db_or_firestore_write() -> AsyncGenerator[DbOrFirestore, None]:
         yield DbOrFirestore(db=None, firestore=client)
 
 
+async def get_system_audit_service(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> SystemAuditService:
+    """Build SystemAuditService for Postgres write path (same session as request)."""
+    return SystemAuditService(db, HashService())
+
+
 async def get_tenant_repo(
     backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_read)],
 ) -> TenantRepository | FirestoreTenantRepository:
@@ -181,7 +189,10 @@ async def get_tenant_repo_for_write(
 ) -> TenantRepository | FirestoreTenantRepository:
     """Tenant repository for writes (Postgres or Firestore from config)."""
     if backend.db is not None:
-        return TenantRepository(backend.db, cache_service=None, audit_service=None)
+        audit_svc = SystemAuditService(backend.db, HashService())
+        return TenantRepository(
+            backend.db, cache_service=None, audit_service=audit_svc
+        )
     assert backend.firestore is not None
     return FirestoreTenantRepository(backend.firestore)
 
@@ -233,6 +244,8 @@ async def get_tenant_id(
 
 async def get_event_service(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> EventService:
     """Build EventService with hash chaining, schema validation, and workflow engine.
 
@@ -244,10 +257,12 @@ async def get_event_service(
     """
     event_repo = EventRepository(db)
     hash_service = HashService()
-    subject_repo = SubjectRepository(db, audit_service=None)
-    schema_repo = EventSchemaRepository(db, cache_service=None, audit_service=None)
+    subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=audit_svc)
+    schema_repo = EventSchemaRepository(
+        db, cache_service=None, audit_service=audit_svc
+    )
     schema_validator = EventSchemaValidator(schema_repo)
-    workflow_repo = WorkflowRepository(db, audit_service=None)
+    workflow_repo = WorkflowRepository(db, audit_service=audit_svc)
 
     workflow_engine_holder: list[WorkflowEngine | None] = [None]
 
@@ -268,10 +283,11 @@ async def get_event_service(
 
 async def get_document_upload_service(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> DocumentUploadService:
     """Build DocumentUploadService for upload (storage + document/tenant repos)."""
     storage = StorageFactory.create_storage_service()
-    document_repo = DocumentRepository(db)
+    document_repo = DocumentRepository(db, audit_service=audit_svc)
     tenant_repo = TenantRepository(db)
     return DocumentUploadService(
         storage_service=storage,
@@ -301,9 +317,10 @@ async def get_document_repo(
 
 async def get_document_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> DocumentRepository:
     """Document repository for update/soft-delete."""
-    return DocumentRepository(db, audit_service=None)
+    return DocumentRepository(db, audit_service=audit_svc)
 
 
 async def get_tenant_creation_service(
@@ -311,10 +328,12 @@ async def get_tenant_creation_service(
 ) -> TenantCreationService:
     """Build TenantCreationService (Postgres or Firestore from config)."""
     if backend.db is not None:
+        audit_svc = SystemAuditService(backend.db, HashService())
         return TenantCreationService(
             tenant_repo=TenantRepository(backend.db),
-            user_repo=UserRepository(backend.db),
+            user_repo=UserRepository(backend.db, audit_service=audit_svc),
             init_service=TenantInitializationService(backend.db),
+            audit_service=audit_svc,
         )
     assert backend.firestore is not None
     return TenantCreationService(
@@ -369,18 +388,24 @@ async def get_verification_service(
 async def get_subject_service(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
     tenant_id: Annotated[str, Depends(get_tenant_id)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> SubjectService:
     """Subject service for create/get/list (transactional, tenant-scoped)."""
-    subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=None)
+    subject_repo = SubjectRepository(
+        db, tenant_id=tenant_id, audit_service=audit_svc
+    )
     return SubjectService(subject_repo)
 
 
 async def get_subject_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
     tenant_id: Annotated[str, Depends(get_tenant_id)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> SubjectRepository:
     """Subject repository for update/delete (transactional, tenant-scoped)."""
-    return SubjectRepository(db, tenant_id=tenant_id, audit_service=None)
+    return SubjectRepository(
+        db, tenant_id=tenant_id, audit_service=audit_svc
+    )
 
 
 async def get_event_schema_repo(
@@ -392,9 +417,12 @@ async def get_event_schema_repo(
 
 async def get_event_schema_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> EventSchemaRepository:
     """Event schema repository for create/update (transactional)."""
-    return EventSchemaRepository(db, cache_service=None, audit_service=None)
+    return EventSchemaRepository(
+        db, cache_service=None, audit_service=audit_svc
+    )
 
 
 async def get_user_repo(
@@ -412,7 +440,8 @@ async def get_user_repo_for_write(
 ) -> UserRepository | FirestoreUserRepository:
     """User repository for writes (Postgres or Firestore from config)."""
     if backend.db is not None:
-        return UserRepository(backend.db, audit_service=None)
+        audit_svc = SystemAuditService(backend.db, HashService())
+        return UserRepository(backend.db, audit_service=audit_svc)
     assert backend.firestore is not None
     return FirestoreUserRepository(backend.firestore)
 
@@ -426,9 +455,10 @@ async def get_workflow_repo(
 
 async def get_workflow_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> WorkflowRepository:
     """Workflow repository for create/update/delete (transactional)."""
-    return WorkflowRepository(db, audit_service=None)
+    return WorkflowRepository(db, audit_service=audit_svc)
 
 
 async def get_workflow_execution_repo(
@@ -447,9 +477,10 @@ async def get_role_repo(
 
 async def get_role_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> RoleRepository:
     """Role repository for create/update/delete."""
-    return RoleRepository(db, audit_service=None)
+    return RoleRepository(db, audit_service=audit_svc)
 
 
 async def get_permission_repo(
@@ -461,9 +492,10 @@ async def get_permission_repo(
 
 async def get_permission_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> PermissionRepository:
     """Permission repository for create/update/delete (transactional)."""
-    return PermissionRepository(db, audit_service=None)
+    return PermissionRepository(db, audit_service=audit_svc)
 
 
 async def get_role_permission_repo(
@@ -475,9 +507,10 @@ async def get_role_permission_repo(
 
 async def get_role_permission_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> RolePermissionRepository:
     """Role–permission repository for assign/remove (transactional)."""
-    return RolePermissionRepository(db, audit_service=None)
+    return RolePermissionRepository(db, audit_service=audit_svc)
 
 
 async def get_user_role_repo(
@@ -489,9 +522,10 @@ async def get_user_role_repo(
 
 async def get_user_role_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> UserRoleRepository:
     """User–role repository for assign/remove (transactional)."""
-    return UserRoleRepository(db, audit_service=None)
+    return UserRoleRepository(db, audit_service=audit_svc)
 
 
 async def get_oauth_provider_config_repo(
@@ -503,9 +537,10 @@ async def get_oauth_provider_config_repo(
 
 async def get_oauth_provider_config_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> OAuthProviderConfigRepository:
     """OAuth provider config repository for create/update/delete (transactional)."""
-    return OAuthProviderConfigRepository(db, audit_service=None)
+    return OAuthProviderConfigRepository(db, audit_service=audit_svc)
 
 
 async def get_oauth_state_repo(

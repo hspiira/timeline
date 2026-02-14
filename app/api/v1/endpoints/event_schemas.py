@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
     get_event_schema_repo,
@@ -54,6 +54,31 @@ async def create_event_schema(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.get("", response_model=list[EventSchemaListItem])
+async def list_all_schemas(
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    schema_repo: Annotated[EventSchemaRepository, Depends(get_event_schema_repo)],
+    _: Annotated[object, Depends(require_permission("event_schema", "read"))] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+):
+    """List all event schema versions for the tenant (any event type)."""
+    schemas = await schema_repo.get_all_for_tenant(
+        tenant_id=tenant_id, skip=skip, limit=limit
+    )
+    return [
+        EventSchemaListItem(
+            id=s.id,
+            tenant_id=s.tenant_id,
+            event_type=s.event_type,
+            version=s.version,
+            is_active=s.is_active,
+            created_by=s.created_by,
+        )
+        for s in schemas
+    ]
 
 
 @router.get("/event-type/{event_type}", response_model=list[EventSchemaListItem])

@@ -6,6 +6,7 @@ email sync flows and WebSocket to push progress to clients.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from collections.abc import AsyncIterator
@@ -276,6 +277,50 @@ class SyncProgressSubscriber(_RedisPubSubBase):
             await pubsub.unsubscribe(channel)
             await pubsub.close()
             logger.info("Unsubscribed from %s", channel)
+
+
+async def run_sync_progress_broadcast(app: Any) -> None:
+    """Subscribe to Redis sync_progress:* and broadcast each message to the tenant's WebSocket connections.
+
+    Call as a background task from lifespan when Redis is enabled. Cancelling the task stops the loop.
+    """
+
+    subscriber = SyncProgressSubscriber()
+    await subscriber.connect()
+    if not subscriber.is_available() or subscriber.redis is None:
+        logger.warning("Redis not available, sync progress broadcast not started")
+        return
+    pubsub = subscriber.redis.pubsub()
+    try:
+        await pubsub.psubscribe(f"{SyncProgressSubscriber.CHANNEL_PREFIX}:*")
+        logger.info("Subscribed to %s:* for WebSocket broadcast", SyncProgressSubscriber.CHANNEL_PREFIX)
+        async for message in pubsub.listen():
+            if message["type"] != "pmessage":
+                continue
+            channel = message.get("channel")
+            try:
+                channel_str = channel.decode() if isinstance(channel, bytes) else (channel or "")
+            except Exception:
+                channel_str = str(channel) if channel else ""
+            if not channel_str or ":" not in channel_str:
+                continue
+            tenant_id = channel_str.split(":", 1)[1]
+            try:
+                data = json.loads(message["data"])
+            except (json.JSONDecodeError, KeyError, TypeError):
+                logger.exception("Failed to parse sync progress message")
+                continue
+            payload = {**data, "type": "sync_progress"}
+            manager = getattr(app.state, "ws_manager", None)
+            if manager is not None:
+                await manager.broadcast_to_tenant(tenant_id, payload)
+    except asyncio.CancelledError:
+        logger.info("Sync progress broadcast task cancelled")
+    except Exception:
+        logger.exception("Sync progress broadcast error")
+    finally:
+        await pubsub.punsubscribe()
+        await pubsub.close()
 
 
 _publisher: SyncProgressPublisher | None = None

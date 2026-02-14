@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import secrets
 import string
+from typing import TYPE_CHECKING
 
 from app.application.dtos.tenant import TenantCreationResult
 from app.application.interfaces.repositories import ITenantRepository, IUserRepository
 from app.application.interfaces.services import ITenantInitializationService
 from app.domain.enums import TenantStatus
 from app.domain.exceptions import TenantAlreadyExistsException
+from app.shared.enums import ActorType, AuditAction
+
+if TYPE_CHECKING:
+    from app.application.interfaces.services import IAuditService
 
 
 class TenantCreationService:
@@ -20,10 +25,12 @@ class TenantCreationService:
         tenant_repo: ITenantRepository,
         user_repo: IUserRepository,
         init_service: ITenantInitializationService,
+        audit_service: IAuditService | None = None,
     ) -> None:
         self.tenant_repo = tenant_repo
         self.user_repo = user_repo
         self.init_service = init_service
+        self.audit_service = audit_service
 
     async def create_tenant(self, code: str, name: str) -> TenantCreationResult:
         """Create tenant, init RBAC, create admin user, assign admin role.
@@ -71,6 +78,28 @@ class TenantCreationService:
             tenant_id=tenant_id,
             admin_user_id=admin_user.id,
         )
+
+        if self.audit_service is not None:
+            status_value = (
+                created_tenant.status.value
+                if hasattr(created_tenant.status, "value")
+                else str(created_tenant.status)
+            )
+            await self.audit_service.emit_audit_event(
+                tenant_id=tenant_id,
+                entity_type="tenant",
+                action=AuditAction.CREATED,
+                entity_id=tenant_id,
+                entity_data={
+                    "id": tenant_id,
+                    "code": created_tenant.code,
+                    "name": created_tenant.name,
+                    "status": status_value,
+                },
+                actor_id=None,
+                actor_type=ActorType.SYSTEM,
+                metadata=None,
+            )
 
         return TenantCreationResult(
             tenant_id=tenant_id,

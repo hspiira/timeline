@@ -97,7 +97,7 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
         tenant_id: str,
         event_type: str,
         schema_definition: dict[str, Any],
-        is_active: bool = False,
+        is_active: bool = True,
         created_by: str | None = None,
     ) -> EventSchemaResult:
         """Create event schema with next version; return created entity.
@@ -118,6 +118,25 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
                         created_by=created_by,
                     )
                     created = await self.create(schema)
+                    if is_active:
+                        # Deactivate any other active schema for this (tenant_id, event_type)
+                        other = await self.db.execute(
+                            select(EventSchema).where(
+                                and_(
+                                    EventSchema.tenant_id == tenant_id,
+                                    EventSchema.event_type == event_type,
+                                    EventSchema.is_active.is_(True),
+                                    EventSchema.id != created.id,
+                                )
+                            )
+                        )
+                        for other_schema in other.scalars().all():
+                            other_schema.is_active = False
+                            await self.update(other_schema)
+                            await self.emit_custom_audit(other_schema, AuditAction.DEACTIVATED)
+                        await _invalidate_schema_cache(
+                            self.cache, tenant_id, event_type
+                        )
                     return _event_schema_to_result(created)
             except IntegrityError:
                 if attempt == max_attempts - 1:
@@ -202,6 +221,19 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
                 )
             )
             .order_by(EventSchema.version.desc())
+        )
+        return [_event_schema_to_result(s) for s in result.scalars().all()]
+
+    async def get_all_for_tenant(
+        self, tenant_id: str, skip: int = 0, limit: int = 100
+    ) -> list[EventSchemaResult]:
+        """Return all event schemas for the tenant (any event type), ordered by event_type and version desc."""
+        result = await self.db.execute(
+            select(EventSchema)
+            .where(EventSchema.tenant_id == tenant_id)
+            .order_by(EventSchema.event_type.asc(), EventSchema.version.desc())
+            .offset(skip)
+            .limit(limit)
         )
         return [_event_schema_to_result(s) for s in result.scalars().all()]
 

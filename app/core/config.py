@@ -52,7 +52,7 @@ class Settings(BaseSettings):
 
     # Storage
     storage_backend: str = "local"
-    storage_root: str = "/var/timeline/storage"
+    storage_root: str = "./storage"  # Dev-friendly default; set STORAGE_ROOT for production (e.g. /var/timeline/storage)
     storage_base_url: str | None = None
     s3_bucket: str | None = None
     s3_region: str = "us-east-1"

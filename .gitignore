@@ -27,3 +27,19 @@ serviceAccountKey*.json
 **/google-credentials*.json
 **/*-service-account-*.json
 .env*.local
+
+# Local development files
+.vscode/
+.idea/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+.coverage.xml
+.coverage.json
+.coverage.json.gz
+.coverage.json.bz2
+
+# Storage
+storage/
