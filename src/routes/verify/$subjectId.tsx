@@ -1,8 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect } from 'react'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { timelineApi } from '@/lib/api-client'
-import { getApiErrorDisplay } from '@/lib/api-utils'
+import { formatFullDateTime } from '@/lib/format-date'
 import { CheckCircle, AlertTriangle, AlertCircle, DownloadIcon } from 'lucide-react'
 import { ChainVisualization } from '@/components/verify/ChainVisualization'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
@@ -22,45 +23,19 @@ function VerifyPage() {
   const authState = useRequireAuth()
   const { subjectId } = Route.useParams()
 
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [verification, setVerification] = useState<ChainVerificationResponse | null>(null)
-
-  const verifyChain = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      // Call the real verify endpoint
-      const { data: verificationData, error: verifyError, response: verifyResponse } = await timelineApi.events.verify(subjectId)
-
-      if (verifyError) {
-        const display = getApiErrorDisplay(
-          { error: verifyError, status: verifyResponse?.status },
-          'Failed to verify chain'
-        )
-        let displayMsg = display.message
-        if (verifyResponse?.status === 403 || display.code === 'PERMISSION_DENIED' || display.code === 'AUTHORIZATION_ERROR') {
-          displayMsg = 'You do not have permission to verify this chain. Please contact your administrator if you believe this is an error.'
-        } else if (verifyResponse?.status === 401 || display.code === 'AUTHENTICATION_ERROR') {
-          displayMsg = 'Your session has expired. Please log in again to verify the chain.'
-        }
-        setError(displayMsg)
-      } else if (verificationData) {
-        setVerification(verificationData)
-      }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Unexpected error verifying chain'
-      setError(errorMsg)
-    } finally {
-      setLoading(false)
-    }
-  }, [subjectId])
+  const {
+    data: verification,
+    error,
+    loading,
+    refetch,
+  } = useFetchWithError<ChainVerificationResponse>(
+    () => timelineApi.events.verify(subjectId),
+    { defaultErrorMessage: 'Failed to verify chain', enabled: !!authState.user && !!subjectId }
+  )
 
   useEffect(() => {
-    if (authState.user) {
-      verifyChain()
-    }
-  }, [authState.user, subjectId, verifyChain])
+    if (authState.user && subjectId) refetch()
+  }, [authState.user, subjectId, refetch])
 
   const handleExportReport = () => {
     if (!verification) return
@@ -172,7 +147,7 @@ function VerifyPage() {
             <p className="text-xs text-red-800 dark:text-red-300 mt-0.5">{error}</p>
           </div>
           <button
-            onClick={verifyChain}
+            onClick={() => refetch()}
             className="px-2.5 py-0.5 text-xs bg-red-600 text-white rounded-none hover:bg-red-700 transition-colors shrink-0"
           >
             Retry
@@ -209,7 +184,7 @@ function VerifyPage() {
 
             <p className="text-xs text-muted-foreground">Subject ID: {subjectId}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Verified: {new Date(verification.verified_at).toLocaleString()}
+              Verified: {formatFullDateTime(verification.verified_at)}
             </p>
           </div>
 

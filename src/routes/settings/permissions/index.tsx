@@ -3,15 +3,15 @@ import { useEffect, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
+import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { timelineApi } from '@/lib/api-client'
-import { getApiErrorDisplay, isAuthOrPermissionError } from '@/lib/api-utils'
 import {
   Loader2,
   Plus,
   Trash2,
   Eye,
 } from 'lucide-react'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { Modal } from '@/components/ui/Modal'
 import { FormError } from '@/components/ui/FormField'
 import { Button } from '@/components/ui/button'
@@ -42,50 +42,36 @@ function PermissionsPage() {
   const authState = useRequireAuth()
   const toast = useToast()
   const [permissions, setPermissions] = useState<PermissionResponse[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [hasNoAccess, setHasNoAccess] = useState(false)
+
+  const {
+    data: fetchedPermissions,
+    error,
+    loading,
+    hasNoAccess,
+    refetch,
+    setError,
+  } = useFetchWithError<PermissionResponse[]>(
+    () =>
+      timelineApi.permissions.list({
+        skip: 0,
+        limit: 1000,
+      }).then((r) => (r.error != null ? { error: r.error, response: r.response } : { data: r.data || [] })),
+    { defaultErrorMessage: 'Unable to load permissions', enabled: !!authState.user }
+  )
+
+  useEffect(() => {
+    if (authState.user) refetch()
+  }, [authState.user, refetch])
+
+  useEffect(() => {
+    if (fetchedPermissions) setPermissions(fetchedPermissions)
+  }, [fetchedPermissions])
 
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [deletingPermId, setDeletingPermId] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState<{ id: string; code: string } | null>(null)
   const [filterResource, setFilterResource] = useState('')
   const [viewingRoles, setViewingRoles] = useState<{ permId: string; permCode: string; roles: RoleResponse[] } | null>(null)
-
-  useEffect(() => {
-    if (authState.user) {
-      fetchPermissions()
-    }
-  }, [authState.user])
-
-  const fetchPermissions = async () => {
-    setLoading(true)
-    setError(null)
-    setHasNoAccess(false)
-
-    try {
-      const { data, error: apiError, response } = await timelineApi.permissions.list({
-        skip: 0,
-        limit: 1000,
-      })
-
-      if (apiError) {
-        const display = getApiErrorDisplay(
-          { error: apiError, status: response?.status },
-          'Unable to load permissions'
-        )
-        setHasNoAccess(isAuthOrPermissionError(display, response?.status))
-        setError(display.message)
-      } else {
-        setPermissions(data || [])
-      }
-    } catch (err) {
-      setError('An unexpected error occurred')
-      console.error('Error:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleDeleteClick = (perm: PermissionResponse) => {
     if (hasNoAccess) {
@@ -107,11 +93,13 @@ function PermissionsPage() {
           apiError?.message || 'Failed to delete permission'
         setError(errorMsg)
         toast.error('Failed to delete', errorMsg)
-      } else {
-        setPermissions((prev) => prev.filter((p) => p.id !== confirmingDelete.id))
-        toast.success('Permission deleted', `"${confirmingDelete.code}" has been deleted`)
-        setConfirmingDelete(null)
+        throw new Error(errorMsg)
       }
+
+      setPermissions((prev) => prev.filter((p) => p.id !== confirmingDelete.id))
+      toast.success('Permission deleted', `"${confirmingDelete.code}" has been deleted`)
+    } catch (err) {
+      throw err
     } finally {
       setDeletingPermId(null)
     }
@@ -313,16 +301,15 @@ function PermissionsPage() {
       />
 
       {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
+      <ConfirmModal
         isOpen={!!confirmingDelete}
+        onClose={() => setConfirmingDelete(null)}
         title="Delete Permission?"
         message={`Are you sure you want to delete "${confirmingDelete?.code}"? This action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
         isDestructive={true}
-        isLoading={deletingPermId === confirmingDelete?.id}
         onConfirm={handleConfirmDelete}
-        onCancel={() => setConfirmingDelete(null)}
       />
     </>
   )

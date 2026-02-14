@@ -50,7 +50,7 @@ export function ErrorDisplay({
           {retryable && (
             <Button
               type="button"
-              variant="default"
+              variant="primary"
               size="sm"
               onClick={onRetry}
               className="mt-3"

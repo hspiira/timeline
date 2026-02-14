@@ -28,7 +28,7 @@ export const Route = createFileRoute('/subjects/$subjectId')({
 
 function SubjectDetailPage() {
   const { subjectId } = Route.useParams()
-  const { tab: activeTab } = Route.useSearch({ strict: false })
+  const { tab: activeTab } = Route.useSearch()
   const navigate = useNavigate()
   const authState = useStore(authStore)
   const [subject, setSubject] = useState<SubjectResponse | null>(null)

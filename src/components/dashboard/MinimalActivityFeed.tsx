@@ -14,6 +14,7 @@ import { useActivityFeed } from '@/hooks/useActivityFeed'
 import { ActivityProvider } from '@/context/ActivityContext'
 import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
 import { Button } from '@/components/ui/button'
+import { formatShortDate } from '@/lib/format-date'
 import type { Activity as ActivityType } from '@/lib/types/activity'
 import { ACTIVITY_CONFIG } from '@/lib/types/activity'
 
@@ -50,7 +51,7 @@ function formatRelativeTime(date: Date): string {
   if (diffMins < 60) return `${diffMins}m ago`
   if (diffHours < 24) return `${diffHours}h ago`
   if (diffDays < 7) return `${diffDays}d ago`
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return formatShortDate(date)
 }
 
 function ActivityRow({ activity }: { activity: ActivityType }) {

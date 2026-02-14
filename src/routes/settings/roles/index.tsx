@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
+import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { timelineApi } from '@/lib/api-client'
-import { getApiErrorDisplay, isAuthOrPermissionError } from '@/lib/api-utils'
 import {
   Plus,
   Trash2,
@@ -13,7 +13,7 @@ import {
   CheckCircle,
   Loader2,
 } from 'lucide-react'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { Modal } from '@/components/ui/Modal'
 import { FormError } from '@/components/ui/FormField'
 import { Button } from '@/components/ui/button'
@@ -37,10 +37,6 @@ function RolesPage() {
   const toast = useToast()
   const [roles, setRoles] = useState<RoleResponse[]>([])
   const [permissions, setPermissions] = useState<PermissionResponse[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [hasNoAccess, setHasNoAccess] = useState(false)
-
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingRole, setEditingRole] = useState<RoleResponse | null>(null)
   const [managingPermissions, setManagingPermissions] = useState<RoleWithPermissions | null>(null)
@@ -48,57 +44,45 @@ function RolesPage() {
   const [confirmingDelete, setConfirmingDelete] = useState<{ id: string; name: string } | null>(null)
   const [includeInactive, setIncludeInactive] = useState(false)
 
-  useEffect(() => {
-    if (authState.user) {
-      fetchRoles()
-      fetchPermissions()
-    }
-  }, [authState.user, includeInactive])
-
-  const fetchRoles = async () => {
-    setLoading(true)
-    setError(null)
-    setHasNoAccess(false)
-
-    try {
-      const { data, error: apiError, response } = await timelineApi.roles.list({
+  const {
+    data: fetchedData,
+    error,
+    loading,
+    hasNoAccess,
+    refetch,
+    setError,
+  } = useFetchWithError<{ roles: RoleResponse[]; permissions: PermissionResponse[] }>(
+    async () => {
+      const rolesRes = await timelineApi.roles.list({
         skip: 0,
         limit: 100,
         include_inactive: includeInactive,
       })
-
-      if (apiError) {
-        const display = getApiErrorDisplay(
-          { error: apiError, status: response?.status },
-          'Unable to load roles'
-        )
-        setHasNoAccess(isAuthOrPermissionError(display, response?.status))
-        setError(display.message)
-      } else {
-        setRoles(data || [])
+      if (rolesRes.error != null) {
+        return { error: rolesRes.error, response: rolesRes.response }
       }
-    } catch (err) {
-      setError('An unexpected error occurred')
-      console.error('Error:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchPermissions = async () => {
-    try {
-      const { data, error: apiError, response } = await timelineApi.permissions.list({
-        skip: 0,
-        limit: 1000,
-      })
-
-      if (!apiError && data) {
-        setPermissions(data)
+      const permRes = await timelineApi.permissions.list({ skip: 0, limit: 1000 })
+      const permissionsList = !permRes.error && permRes.data ? permRes.data : []
+      return {
+        data: {
+          roles: rolesRes.data || [],
+          permissions: permissionsList,
+        },
       }
-    } catch (err) {
-      console.error('Error fetching permissions:', err)
+    },
+    { defaultErrorMessage: 'Unable to load roles', enabled: !!authState.user }
+  )
+
+  useEffect(() => {
+    if (authState.user) refetch()
+  }, [authState.user, includeInactive, refetch])
+
+  useEffect(() => {
+    if (fetchedData) {
+      setRoles(fetchedData.roles)
+      setPermissions(fetchedData.permissions)
     }
-  }
+  }, [fetchedData])
 
   const handleDeleteClick = (role: RoleResponse) => {
     if (hasNoAccess) {
@@ -126,11 +110,13 @@ function RolesPage() {
           apiError?.message || 'Failed to delete role'
         setError(errorMsg)
         toast.error('Failed to delete', errorMsg)
-      } else {
-        setRoles((prev) => prev.filter((r) => r.id !== confirmingDelete.id))
-        toast.success('Role deleted', `"${confirmingDelete.name}" has been deleted`)
-        setConfirmingDelete(null)
+        throw new Error(errorMsg)
       }
+
+      setRoles((prev) => prev.filter((r) => r.id !== confirmingDelete.id))
+      toast.success('Role deleted', `"${confirmingDelete.name}" has been deleted`)
+    } catch (err) {
+      throw err
     } finally {
       setDeletingRoleId(null)
     }
@@ -376,16 +362,15 @@ function RolesPage() {
       />
 
       {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
+      <ConfirmModal
         isOpen={!!confirmingDelete}
+        onClose={() => setConfirmingDelete(null)}
         title="Delete Role?"
         message={`Are you sure you want to delete "${confirmingDelete?.name}"? This action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
         isDestructive={true}
-        isLoading={deletingRoleId === confirmingDelete?.id}
         onConfirm={handleConfirmDelete}
-        onCancel={() => setConfirmingDelete(null)}
       />
     </>
   )

@@ -111,18 +111,19 @@ function CreateEventPage() {
           const first = listRes.data[0] as { id?: string; version?: number; schema_definition?: unknown }
           const active = listRes.data.find((s: { is_active?: boolean }) => s.is_active)
           const chosen = active ?? first
-          if (chosen.id) {
-            const fullRes = await timelineApi.eventSchemas.get(chosen.id)
+          const chosenWithDef = chosen as { id?: string; version?: number; schema_definition?: unknown }
+          if (chosenWithDef.id) {
+            const fullRes = await timelineApi.eventSchemas.get(chosenWithDef.id)
             if (!mounted) return
             if (!fullRes.error && fullRes.data) {
               applySchema(fullRes.data)
               return
             }
           }
-          if (chosen.schema_definition != null) {
-            const schemaObj = normalizeSchemaDef(chosen.schema_definition)
+          if (chosenWithDef.schema_definition != null) {
+            const schemaObj = normalizeSchemaDef(chosenWithDef.schema_definition)
             setSchema(schemaObj)
-            setSchemaVersion(chosen.version ?? null)
+            setSchemaVersion(chosenWithDef.version ?? null)
             setSchemaError(null)
             return
           }

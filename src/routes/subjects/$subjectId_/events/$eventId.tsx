@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { timelineApi } from '@/lib/api-client'
+import { formatFullDateTime } from '@/lib/format-date'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { SkeletonBreadcrumbs, Skeleton } from '@/components/ui/Skeleton'
@@ -284,15 +285,7 @@ function EventDetailPage() {
               <div>
                 <p className="text-xs text-muted-foreground">Event Time</p>
                 <p className="text-sm font-medium">
-                  {new Date(event.event_time).toLocaleString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                  })}
+                  {formatFullDateTime(event.event_time)}
                 </p>
               </div>
             </div>

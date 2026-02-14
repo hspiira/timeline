@@ -40,7 +40,7 @@ export { buttonVariants }
 interface ButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
-  children: ReactNode
+  children?: ReactNode
   isLoading?: boolean
 }
 

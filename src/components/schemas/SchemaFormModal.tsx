@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Plus, Trash2, Eye, EyeOff } from 'lucide-react'
+import { useFormSubmit } from '@/hooks/useFormSubmit'
 import { Modal } from '@/components/ui/Modal'
-import { FormError } from '@/components/ui/FormField'
+import { FormError, FormField, FormInput, FormTextarea } from '@/components/ui/FormField'
+import { FormModalActions } from '@/components/ui/FormModalActions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { LoadingIcon } from '@/components/ui/icons'
 import { validateAlphanumericUnderscore } from '@/lib/validation'
 
 interface SchemaField {
@@ -53,8 +54,7 @@ const STRING_FORMATS = [
 export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalProps) {
   const [eventType, setEventType] = useState('')
   const [fields, setFields] = useState<SchemaField[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const { execute, loading, error, setError } = useFormSubmit()
   const [showJsonPreview, setShowJsonPreview] = useState(false)
   const [editingField, setEditingField] = useState<EditingField | null>(null)
   const [editMode, setEditMode] = useState<'form' | 'json'>('form')
@@ -302,16 +302,11 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
       schema = generateJsonSchema()
     }
 
-    setLoading(true)
-    try {
-      const success = await onSubmit(eventType.toLowerCase(), schema)
-      if (!success) {
-        setError('Failed to create schema. Please try again.')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred')
-    } finally {
-      setLoading(false)
+    const success = await execute(() => onSubmit(eventType.toLowerCase(), schema))
+    if (success) {
+      onClose()
+    } else {
+      setError('Failed to create schema. Please try again.')
     }
   }
 
@@ -348,20 +343,19 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
 
           {editMode === 'form' ? (
             <>
-              {/* Event Type Input */}
-              <div>
-                <label className="block text-sm font-medium text-foreground/90 mb-2">
-                  Event Type <span className="text-destructive">*</span>
-                </label>
-                <Input
+              <FormField
+                label="Event Type"
+                required
+                hint="Alphanumeric characters and underscores only (will be lowercase)"
+              >
+                <FormInput
                   type="text"
                   value={eventType}
                   onChange={(e) => setEventType(e.target.value)}
                   placeholder="e.g., user_created, order_placed, payment_received"
                   disabled={loading}
-                  helperText="Alphanumeric characters and underscores only (will be lowercase)"
                 />
-              </div>
+              </FormField>
 
               {/* Fields Summary */}
               <div>
@@ -487,66 +481,44 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
             </>
           ) : (
             <>
-              {/* JSON Editor */}
-              <div>
-                <label className="block text-sm font-medium text-foreground/90 mb-2">
-                  Event Type <span className="text-destructive">*</span>
-                </label>
-                <Input
+              <FormField
+                label="Event Type"
+                required
+                hint="Alphanumeric characters and underscores only (will be lowercase)"
+              >
+                <FormInput
                   type="text"
                   value={eventType}
                   onChange={(e) => setEventType(e.target.value)}
                   placeholder="e.g., user_created, order_placed, payment_received"
                   disabled={loading}
-                  helperText="Alphanumeric characters and underscores only (will be lowercase)"
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground/90 mb-2">
-                  JSON Schema <span className="text-destructive">*</span>
-                </label>
-                <textarea
+              <FormField
+                label="JSON Schema"
+                required
+                hint="Edit the JSON schema directly. Changes will be reflected when you switch back to form mode."
+              >
+                <FormTextarea
                   value={jsonEdit}
                   onChange={(e) => setJsonEdit(e.target.value)}
                   placeholder='{\n  "type": "object",\n  "properties": {\n    "email": {\n      "type": "string",\n      "format": "email"\n    }\n  },\n  "required": ["email"]\n}'
-                  className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground font-mono text-xs placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 resize-none"
+                  className="font-mono text-xs"
                   rows={12}
                   disabled={loading}
                 />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Edit the JSON schema directly. Changes will be reflected when you switch back to form mode.
-                </p>
-              </div>
+              </FormField>
             </>
           )}
 
-          {/* Actions */}
-          <div className="flex items-center gap-3 pt-4 border-t border-border flex-col sm:flex-row">
-            <Button
-              type="submit"
-              disabled={loading || (editMode === 'form' ? fields.length === 0 : !jsonEdit.trim())}
-              className="flex-1 w-full sm:w-auto"
-            >
-              {loading ? (
-                <>
-                  <LoadingIcon />
-                  Creating...
-                </>
-              ) : (
-                'Create Schema'
-              )}
-            </Button>
-            <Button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              variant="outline"
-              className="flex-1 w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-          </div>
+          <FormModalActions
+            submitLabel="Create Schema"
+            loadingLabel="Creating..."
+            onCancel={onClose}
+            loading={loading}
+            submitDisabled={editMode === 'form' ? fields.length === 0 : !jsonEdit.trim()}
+          />
         </form>
       </Modal>
 
@@ -562,22 +534,16 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
       >
         {editingField && (
           <div className="space-y-4">
-            {/* Field Name */}
-            <div>
-              <label className="block text-sm font-medium text-foreground/90 mb-2">
-                Field Name <span className="text-destructive">*</span>
-              </label>
-              <Input
+            <FormField label="Field Name" required>
+              <FormInput
                 type="text"
                 value={editingField.name}
                 onChange={(e) => setEditingField({ ...editingField, name: e.target.value })}
                 placeholder="e.g., user_email"
               />
-            </div>
+            </FormField>
 
-          {/* Type */}
-          <div>
-            <label className="block text-sm font-medium text-foreground/90 mb-2">Type</label>
+          <FormField label="Type">
             <Select
               value={editingField.type}
               onChange={(e) => setEditingField({ ...editingField, type: e.target.value })}
@@ -588,20 +554,16 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
                 </option>
               ))}
             </Select>
-          </div>
+          </FormField>
 
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-foreground/90 mb-2">
-              Description (optional)
-            </label>
-            <Input
+            <FormField label="Description (optional)">
+            <FormInput
               type="text"
               value={editingField.description}
               onChange={(e) => setEditingField({ ...editingField, description: e.target.value })}
               placeholder="What does this field represent?"
             />
-          </div>
+          </FormField>
 
           {/* Required */}
           <label className="flex items-center gap-2 cursor-pointer">

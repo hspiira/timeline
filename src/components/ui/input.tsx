@@ -8,6 +8,8 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
   size?: InputSize
   error?: string
   helperText?: string
+  /** When true, only apply error styling; do not render error message (e.g. when FormField shows it) */
+  hideErrorMessage?: boolean
 }
 
 const variantStyles: Record<InputVariant, string> = {
@@ -32,6 +34,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       size = 'md',
       error,
       helperText,
+      hideErrorMessage = false,
       className = '',
       disabled = false,
       ...props
@@ -52,7 +55,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           className={`${baseStyles} ${variantStyles[activeVariant]} ${sizeStyles[size]} ${focusStyles} ${className}`}
           {...props}
         />
-        {error && (
+        {error && !hideErrorMessage && (
           <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>
         )}
         {helperText && !error && (

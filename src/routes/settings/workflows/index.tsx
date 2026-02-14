@@ -3,12 +3,12 @@ import { useState, useEffect } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
+import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { timelineApi } from '@/lib/api-client'
-import { getApiErrorDisplay, isAuthOrPermissionError } from '@/lib/api-utils'
 import { Plus, Play, Pause, Trash2, CheckCircle, SquarePen } from 'lucide-react'
 import { WorkflowFormModal } from '@/components/workflows/WorkflowFormModal'
 import { WorkflowEditModal } from '@/components/workflows/WorkflowEditModal'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { DataTable } from '@/components/ui/DataTable'
 import type { components } from '@/lib/timeline-api'
 import { Button } from '@/components/ui/button'
@@ -19,59 +19,54 @@ export const Route = createFileRoute('/settings/workflows/')({
 
 type Workflow = components['schemas']['WorkflowResponse']
 type WorkflowCreate = components['schemas']['WorkflowCreateRequest']
+type WorkflowUpdate = components['schemas']['WorkflowUpdate']
 
 function WorkflowsPage() {
   const authState = useRequireAuth()
   const toast = useToast()
   const [workflows, setWorkflows] = useState<Workflow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [eventTypes, setEventTypes] = useState<string[]>([])
+  const {
+    data: fetchedData,
+    error,
+    loading,
+    hasNoAccess,
+    refetch,
+    setError,
+  } = useFetchWithError<{ workflows: Workflow[]; eventTypes: string[] }>(
+    async () => {
+      const result = await timelineApi.workflows.list()
+      if (result.error != null) {
+        return { error: result.error, response: result.response }
+      }
+      if (result.data) {
+        const schemaRes = await timelineApi.eventSchemas.list({ limit: 500 })
+        const schemaList = Array.isArray(schemaRes.data) ? schemaRes.data : []
+        const types: string[] = [...new Set(schemaList.map((s) => s.event_type).filter((x): x is string => Boolean(x)))]
+        return { data: { workflows: result.data, eventTypes: types } }
+      }
+      return {}
+    },
+    { defaultErrorMessage: 'Failed to load workflows', enabled: !!authState.user }
+  )
+
+  useEffect(() => {
+    if (authState.user) refetch()
+  }, [authState.user, refetch])
+
+  useEffect(() => {
+    if (fetchedData) {
+      setWorkflows(fetchedData.workflows)
+      setEventTypes(fetchedData.eventTypes)
+    }
+  }, [fetchedData])
+
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState<{ id: string; name: string } | null>(null)
   const [editingWorkflow, setEditingWorkflow] = useState<Workflow | null>(null)
-  const [eventTypes, setEventTypes] = useState<string[]>([])
   const [filterEventType, setFilterEventType] = useState<string>('')
-  const [hasNoAccess, setHasNoAccess] = useState(false)
-
-  useEffect(() => {
-    if (authState.user) {
-      fetchWorkflows()
-    }
-  }, [authState.user])
-
-  const fetchWorkflows = async () => {
-    setLoading(true)
-    setError(null)
-    setHasNoAccess(false)
-    try {
-      const { data, error: apiError, response } = await timelineApi.workflows.list()
-
-      if (apiError) {
-        const display = getApiErrorDisplay(
-          { error: apiError, status: response?.status },
-          'Failed to load workflows'
-        )
-        const isNoAccess = isAuthOrPermissionError(display, response?.status)
-        setHasNoAccess(isNoAccess)
-        setError(isNoAccess ? null : display.message)
-      } else if (data) {
-        setWorkflows(data)
-        // Load all registered event types from schemas so filter shows every type
-        const { data: schemaList } = await timelineApi.eventSchemas.list({ limit: 500 })
-        const types = schemaList
-          ? [...new Set(schemaList.map((s: { event_type: string }) => s.event_type).filter(Boolean))]
-          : []
-        setEventTypes(types)
-      }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Unexpected error loading workflows'
-      setError(errorMsg)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleCreateWorkflow = async (workflowData: WorkflowCreate) => {
     if (hasNoAccess) {
@@ -104,7 +99,7 @@ function WorkflowsPage() {
     }
   }
 
-  const handleUpdateWorkflow = async (workflowId: string, data: { name?: string; description?: string; execution_order?: number; is_active?: boolean }) => {
+  const handleUpdateWorkflow = async (workflowId: string, data: WorkflowUpdate): Promise<boolean> => {
     if (hasNoAccess) return false
     try {
       const { error: apiError } = await timelineApi.workflows.update(workflowId, data)
@@ -187,15 +182,16 @@ function WorkflowsPage() {
             : 'Failed to delete workflow'
         setError(errorMsg)
         toast.error('Failed to delete', errorMsg)
-      } else {
-        setWorkflows((prev) => prev.filter((w) => w.id !== workflowId))
-        toast.success('Workflow deleted', `"${workflowName}" has been deleted`)
-        setConfirmingDelete(null)
+        throw new Error(errorMsg)
       }
+
+      setWorkflows((prev) => prev.filter((w) => w.id !== workflowId))
+      toast.success('Workflow deleted', `"${workflowName}" has been deleted`)
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to delete workflow'
       setError(errorMsg)
       toast.error('Error deleting', errorMsg)
+      throw err
     } finally {
       setDeleting(null)
     }
@@ -431,16 +427,15 @@ function WorkflowsPage() {
       />
 
       {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
+      <ConfirmModal
         isOpen={!!confirmingDelete}
+        onClose={() => setConfirmingDelete(null)}
         title="Delete Workflow?"
         message={`Are you sure you want to delete "${confirmingDelete?.name}"? This action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
         isDestructive={true}
-        isLoading={deleting === confirmingDelete?.id}
         onConfirm={handleConfirmDelete}
-        onCancel={() => setConfirmingDelete(null)}
       />
     </>
   )

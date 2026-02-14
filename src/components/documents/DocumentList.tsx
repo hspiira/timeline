@@ -5,7 +5,7 @@ import { timelineApi } from '@/lib/api-client'
 import { getApiErrorMessage } from '@/lib/api-utils'
 import { DocumentViewer } from './DocumentViewer'
 import { useToast } from '@/hooks/useToast'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { SkeletonDocumentList } from '@/components/ui/Skeleton'
 import { ErrorIcon } from '@/components/ui/icons'
 import { Button } from '@/components/ui/button'
@@ -207,17 +207,18 @@ export function DocumentList({ subjectId, eventId, readOnly, onDelete, onError, 
         setError(errorMsg)
         onError?.(errorMsg)
         toast.error('Failed to delete', errorMsg)
-      } else {
-        setDocuments((prev) => prev.filter((doc) => doc.id !== documentId))
-        onDelete?.(documentId)
-        toast.success('Document deleted', `"${filename}" has been removed`)
-        setConfirmingDelete(null)
+        throw new Error(errorMsg)
       }
+
+      setDocuments((prev) => prev.filter((doc) => doc.id !== documentId))
+      onDelete?.(documentId)
+      toast.success('Document deleted', `"${filename}" has been removed`)
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unexpected error deleting document'
       setError(errorMsg)
       onError?.(errorMsg)
       toast.error('Failed to delete', errorMsg)
+      throw err
     } finally {
       setDeleting(null)
     }
@@ -305,16 +306,15 @@ export function DocumentList({ subjectId, eventId, readOnly, onDelete, onError, 
       )}
 
       {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
+      <ConfirmModal
         isOpen={!!confirmingDelete}
+        onClose={() => setConfirmingDelete(null)}
         title="Delete Document?"
         message={`Are you sure you want to delete "${confirmingDelete?.filename}"? This action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
         isDestructive={true}
-        isLoading={deleting === confirmingDelete?.id}
         onConfirm={handleConfirmDelete}
-        onCancel={() => setConfirmingDelete(null)}
       />
     </>
   )

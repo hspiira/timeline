@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { FileText } from 'lucide-react'
 import { timelineApi } from '@/lib/api-client'
+import { formatEventTime } from '@/lib/format-date'
 import type { EventResponse } from '@/lib/types'
 import { LoadingIcon } from '@/components/ui/icons'
 import { Button } from '@/components/ui/button'
@@ -68,10 +69,7 @@ export function TimelineEvent({
         >
           <div className="flex gap-2 items-center">
             <span className="text-xs text-muted-foreground font-mono">
-              {new Date(event.event_time).toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
+              {formatEventTime(event.event_time)}
             </span>
             <span className="font-mono text-xs bg-linear-to-r from-slate-600 to-slate-700 dark:from-slate-700 dark:to-slate-800 text-slate-100 px-2 py-0.5 rounded-none">
               {event.subject_id.slice(0, 8)}

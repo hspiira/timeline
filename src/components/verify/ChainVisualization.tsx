@@ -1,5 +1,6 @@
 import { CheckCircle, AlertTriangle, Link2, Copy, ChevronDown, ChevronUp } from 'lucide-react'
 import { useState } from 'react'
+import { formatFullDateTime } from '@/lib/format-date'
 import type { components } from '@/lib/timeline-api'
 
 type EventResponse = components['schemas']['EventResponse']
@@ -179,7 +180,7 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
                 {/* Time Row */}
                 <div className="flex items-center gap-2 text-xs">
                   <span className="font-medium text-muted-foreground shrink-0">Time:</span>
-                  <span className="text-muted-foreground">{new Date(event.event_time).toLocaleString()}</span>
+                  <span className="text-muted-foreground">{formatFullDateTime(event.event_time)}</span>
                 </div>
 
                 {/* Event ID Row */}

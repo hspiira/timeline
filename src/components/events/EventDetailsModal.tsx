@@ -2,6 +2,7 @@ import { Clock, Code, Eye, FileText, User, X } from 'lucide-react'
 import { useState } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { DocumentList } from '@/components/documents/DocumentList'
+import { formatFullDateTime } from '@/lib/format-date'
 import type { EventResponse } from '@/lib/types'
 
 export interface EventDetailsModalProps {
@@ -51,7 +52,7 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
                 <span className="text-xs font-medium text-muted-foreground">Event Time</span>
               </div>
               <p className="text-sm text-foreground">
-                {new Date(event.event_time).toLocaleString()}
+                {formatFullDateTime(event.event_time)}
               </p>
             </div>
           </div>

@@ -10,6 +10,7 @@ import { ActivityAnalytics } from './ActivityAnalytics'
 import { ActivityProvider, useActivityContext } from '@/context/ActivityContext'
 import { Button } from '@/components/ui/button'
 import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
+import { formatEventDate } from '@/lib/format-date'
 import type { ActivityFilter, Activity } from '@/lib/types/activity'
 
 interface ActivityFeedProps {
@@ -342,11 +343,7 @@ function ActivityFeedByDateContent({
     const groups: Record<string, typeof feed.items> = {}
 
     feed.items.forEach(activity => {
-      const date = activity.timestamp.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
+      const date = formatEventDate(activity.timestamp)
       if (!groups[date]) {
         groups[date] = []
       }

@@ -19,7 +19,8 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { formatEventDateTime } from '@/lib/format-date'
 import type { EmailAccountResponse } from '@/lib/types'
 
 export const Route = createFileRoute('/email-accounts/$accountId')({
@@ -158,16 +159,17 @@ function EmailAccountDetailPage() {
             ? (apiError as any).message
             : 'Failed to disconnect email account'
         toast.error('Failed to disconnect', errorMsg)
-      } else {
-        toast.success('Account disconnected', `${account.email_address} has been disconnected`)
-        navigate({ to: '/email-accounts' })
+        throw new Error(errorMsg)
       }
+
+      toast.success('Account disconnected', `${account.email_address} has been disconnected`)
+      navigate({ to: '/email-accounts' })
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to disconnect email account'
       toast.error('Error disconnecting', errorMsg)
+      throw err
     } finally {
       setDeleting(false)
-      setConfirmingDelete(false)
     }
   }
 
@@ -268,12 +270,7 @@ function EmailAccountDetailPage() {
           </div>
           <p className="text-lg font-bold text-foreground">
             {account.last_sync_at ? (
-              new Date(account.last_sync_at).toLocaleString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit',
-              })
+              formatEventDateTime(account.last_sync_at)
             ) : (
               <span className="text-muted-foreground">Never</span>
             )}
@@ -412,16 +409,15 @@ function EmailAccountDetailPage() {
       </div>
 
       {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
+      <ConfirmModal
         isOpen={confirmingDelete}
+        onClose={() => setConfirmingDelete(false)}
         title="Disconnect Email Account?"
         message={`Are you sure you want to disconnect "${account.email_address}"? This will stop syncing emails. Existing email events will remain in your timeline.`}
         confirmText="Disconnect"
         cancelText="Cancel"
         isDestructive={true}
-        isLoading={deleting}
         onConfirm={handleDelete}
-        onCancel={() => setConfirmingDelete(false)}
       />
     </>
   )

@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import type { components } from '@/lib/timeline-api'
+import { useFormSubmit } from '@/hooks/useFormSubmit'
 import { Modal } from '../ui/Modal'
+import { FormField, FormInput, FormTextarea } from '../ui/FormField'
 import { Input } from '../ui/input'
 import { Select } from '../ui/select'
 import { Button } from '../ui/button'
-import { LoadingIcon } from '../ui/icons'
+import { FormModalActions } from '../ui/FormModalActions'
 import { ErrorAlert } from '../ui/ErrorAlert'
 import { useEventTypes } from '@/hooks/useEventTypes'
 
@@ -39,8 +41,7 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
     isActive: true,
     fieldErrors: {},
   })
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const { execute, loading, error, setError } = useFormSubmit()
   const { types: eventTypes, loading: loadingEventTypes } = useEventTypes()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,25 +68,20 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
       return
     }
 
-    setLoading(true)
-    try {
-      const workflowData: WorkflowCreate = {
-        name: state.name,
-        description: state.description || undefined,
-        trigger_event_type: state.triggerEventType,
-        actions: state.actions as any,
-        execution_order: 0,
-        is_active: state.isActive,
-      }
+    const workflowData: WorkflowCreate = {
+      name: state.name,
+      description: state.description || undefined,
+      trigger_event_type: state.triggerEventType,
+      actions: state.actions as any,
+      execution_order: 0,
+      is_active: state.isActive,
+    }
 
-      const success = await onSubmit(workflowData)
-      if (!success) {
-        setError('Failed to create workflow. Please try again.')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred')
-    } finally {
-      setLoading(false)
+    const success = await execute(() => onSubmit(workflowData))
+    if (success) {
+      onClose()
+    } else {
+      setError('Failed to create workflow. Please try again.')
     }
   }
 
@@ -121,11 +117,12 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
           {error && <ErrorAlert message={error} />}
 
           {/* Workflow Name */}
-          <div>
-            <label className="block text-sm font-medium text-foreground/90 mb-2">
-              Workflow Name <span className="text-destructive">*</span>
-            </label>
-            <Input
+          <FormField
+            label="Workflow Name"
+            required
+            error={state.fieldErrors.name}
+          >
+            <FormInput
               type="text"
               value={state.name}
               onChange={(e) =>
@@ -139,12 +136,10 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
               disabled={loading}
               error={state.fieldErrors.name}
             />
-          </div>
+          </FormField>
 
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-foreground/90 mb-2">Description</label>
-            <textarea
+          <FormField label="Description">
+            <FormTextarea
               value={state.description}
               onChange={(e) =>
                 setState((prev) => ({
@@ -153,19 +148,20 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
                 }))
               }
               placeholder="Optional description of what this workflow does"
-              className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 resize-none"
               rows={3}
               disabled={loading}
             />
-          </div>
+          </FormField>
 
           {/* Trigger Configuration */}
           <div className="border-t border-border pt-4">
             <h3 className="text-sm font-semibold text-foreground/90 mb-3">Trigger</h3>
-            <div>
-              <label className="block text-sm font-medium text-foreground/90 mb-2">
-                Event Type <span className="text-destructive">*</span>
-              </label>
+            <FormField
+              label="Event Type"
+              required
+              error={state.fieldErrors.triggerEventType}
+              hint="This workflow will be triggered when an event of this type is created"
+            >
               <Select
                 value={state.triggerEventType}
                 onChange={(e) =>
@@ -177,7 +173,7 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
                 }
                 disabled={loading || loadingEventTypes}
                 error={state.fieldErrors.triggerEventType}
-                helperText="This workflow will be triggered when an event of this type is created"
+                className="w-full"
               >
                 <option value="">Select event type...</option>
                 {eventTypes.map((type) => (
@@ -186,7 +182,7 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
                   </option>
                 ))}
               </Select>
-            </div>
+            </FormField>
           </div>
 
           {/* Actions Configuration */}
@@ -277,31 +273,12 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
             </label>
           </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-3 pt-4 border-t border-border">
-          <Button
-            type="submit"
-            disabled={loading}
-            className="flex-1"
-          >
-            {loading ? (
-              <>
-                <LoadingIcon />
-                Creating...
-              </>
-            ) : (
-              'Create Workflow'
-            )}
-          </Button>
-          <Button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            variant="outline"
-          >
-            Cancel
-          </Button>
-        </div>
+        <FormModalActions
+          submitLabel="Create Workflow"
+          loadingLabel="Creating..."
+          onCancel={onClose}
+          loading={loading}
+        />
       </form>
     </Modal>
   )

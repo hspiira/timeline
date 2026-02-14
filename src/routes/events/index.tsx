@@ -47,10 +47,9 @@ function EventsPage() {
     setError(null)
     try {
       // Load all registered event types from schemas (so filter shows every type, not only those with events)
-      const { data: schemaList } = await timelineApi.eventSchemas.list({ limit: 500 })
-      const types = schemaList
-        ? [...new Set(schemaList.map((s: { event_type: string }) => s.event_type).filter(Boolean))]
-        : []
+      const schemaRes = await timelineApi.eventSchemas.list({ limit: 500 })
+      const schemaList = Array.isArray(schemaRes.data) ? schemaRes.data : []
+      const types: string[] = [...new Set(schemaList.map((s) => s.event_type).filter((x): x is string => Boolean(x)))]
       setEventTypes(types)
 
       const params = filterEventType ? { event_type: filterEventType } : undefined

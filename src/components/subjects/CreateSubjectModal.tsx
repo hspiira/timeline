@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useToast } from '@/hooks/useToast'
+import { useFormSubmit } from '@/hooks/useFormSubmit'
 import { FormField, FormInput, FormError } from '@/components/ui/FormField'
-import { Button } from '@/components/ui/button'
-import { LoadingIcon } from '@/components/ui/icons'
+import { FormModalActions } from '@/components/ui/FormModalActions'
 import { Modal } from '@/components/ui/Modal'
 import { validateAlphanumericUnderscore } from '@/lib/validation'
 
@@ -19,8 +19,7 @@ export function CreateSubjectModal({
 }: CreateSubjectModalProps) {
   const [subjectType, setSubjectType] = useState('')
   const [externalRef, setExternalRef] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const { execute, loading, error, setError } = useFormSubmit()
   const toast = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,9 +33,9 @@ export function CreateSubjectModal({
       return
     }
 
-    setLoading(true)
-    const success = await onCreate(subjectType.toLowerCase(), externalRef || undefined)
-    setLoading(false)
+    const success = await execute(() =>
+      onCreate(subjectType.toLowerCase(), externalRef || undefined)
+    )
 
     if (success) {
       setSubjectType('')
@@ -92,31 +91,12 @@ export function CreateSubjectModal({
           </FormField>
         </div>
 
-        <div className="flex items-center gap-3 mt-6">
-          <Button
-            type="submit"
-            disabled={loading}
-            className="flex-1"
-          >
-            {loading ? (
-              <>
-                <LoadingIcon />
-                Creating...
-              </>
-            ) : (
-              'Create Subject'
-            )}
-          </Button>
-          <Button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            variant="outline"
-            className="flex-1"
-          >
-            Cancel
-          </Button>
-        </div>
+        <FormModalActions
+          submitLabel="Create Subject"
+          loadingLabel="Creating..."
+          onCancel={onClose}
+          loading={loading}
+        />
       </form>
     </Modal>
   )

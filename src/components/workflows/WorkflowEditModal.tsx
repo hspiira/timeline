@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Modal } from '../ui/Modal'
 import { Input } from '../ui/input'
-import { Button } from '../ui/button'
-import { LoadingIcon } from '../ui/icons'
+import { useFormSubmit } from '@/hooks/useFormSubmit'
+import { FormModalActions } from '../ui/FormModalActions'
 import { ErrorAlert } from '../ui/ErrorAlert'
 import { FormField, FormTextarea } from '../ui/FormField'
 import type { components } from '@/lib/timeline-api'
@@ -21,26 +21,25 @@ export function WorkflowEditModal({ workflow, onClose, onSave }: WorkflowEditMod
   const [description, setDescription] = useState(workflow.description ?? '')
   const [executionOrder, setExecutionOrder] = useState(workflow.execution_order ?? 0)
   const [isActive, setIsActive] = useState(workflow.is_active)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { execute, loading, error, setError } = useFormSubmit()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    setLoading(true)
-    try {
-      const success = await onSave(workflow.id, {
+
+    const success = await execute(() =>
+      onSave(workflow.id, {
         name: name.trim() || undefined,
         description: description.trim() || undefined,
         execution_order: executionOrder,
         is_active: isActive,
       })
-      if (success) onClose()
-      else setError('Failed to update workflow')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update workflow')
-    } finally {
-      setLoading(false)
+    )
+
+    if (success) {
+      onClose()
+    } else {
+      setError('Failed to update workflow')
     }
   }
 
@@ -88,14 +87,12 @@ export function WorkflowEditModal({ workflow, onClose, onSave }: WorkflowEditMod
             Active
           </label>
         </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
-            Cancel
-          </Button>
-          <Button type="submit" variant="primary" disabled={loading}>
-            {loading ? <LoadingIcon /> : 'Save'}
-          </Button>
-        </div>
+        <FormModalActions
+          submitLabel="Save"
+          loadingLabel="Saving..."
+          onCancel={onClose}
+          loading={loading}
+        />
       </form>
     </Modal>
   )

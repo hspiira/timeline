@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useToast } from '@/hooks/useToast'
+import { useFormSubmit } from '@/hooks/useFormSubmit'
 import { FormField, FormInput, FormError } from '@/components/ui/FormField'
-import { Button } from '@/components/ui/button'
-import { LoadingIcon } from '@/components/ui/icons'
+import { FormModalActions } from '@/components/ui/FormModalActions'
 import { Modal } from '@/components/ui/Modal'
 
 interface EditSubjectModalProps {
@@ -23,17 +23,14 @@ export function EditSubjectModal({
   onUpdate,
 }: EditSubjectModalProps) {
   const [externalRef, setExternalRef] = useState(subject.external_ref || '')
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const { execute, loading, error, setError } = useFormSubmit()
   const toast = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
-    setLoading(true)
-    const success = await onUpdate(subject.id, externalRef || undefined)
-    setLoading(false)
+    const success = await execute(() => onUpdate(subject.id, externalRef || undefined))
 
     if (success) {
       setExternalRef('')
@@ -79,31 +76,12 @@ export function EditSubjectModal({
           </FormField>
         </div>
 
-        <div className="flex items-center gap-3 mt-6">
-          <Button
-            type="submit"
-            disabled={loading}
-            className="flex-1"
-          >
-            {loading ? (
-              <>
-                <LoadingIcon />
-                Updating...
-              </>
-            ) : (
-              'Update Subject'
-            )}
-          </Button>
-          <Button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            variant="outline"
-            className="flex-1"
-          >
-            Cancel
-          </Button>
-        </div>
+        <FormModalActions
+          submitLabel="Update Subject"
+          loadingLabel="Updating..."
+          onCancel={onClose}
+          loading={loading}
+        />
       </form>
     </Modal>
   )

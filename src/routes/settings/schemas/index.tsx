@@ -7,7 +7,7 @@ import { Plus, Eye, Trash2, CheckCircle } from 'lucide-react'
 import { ErrorIcon } from '@/components/ui/icons'
 import { SchemaFormModal } from '@/components/schemas/SchemaFormModal'
 import { SchemaViewModal } from '@/components/schemas/SchemaViewModal'
-import { DeleteSchemaModal } from '@/components/schemas/DeleteSchemaModal'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { DataTable } from '@/components/ui/DataTable'
 import type { components } from '@/lib/timeline-api'
 import { Button } from '@/components/ui/button'
@@ -47,7 +47,7 @@ function SchemasPage() {
         setError('Failed to load schemas')
         return
       }
-      setSchemas(data ?? [])
+      setSchemas(Array.isArray(data) ? data : [])
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unexpected error loading schemas'
       setError(errorMsg)
@@ -211,11 +211,14 @@ function SchemasPage() {
 
       {/* Delete Schema Modal */}
       {deletingSchema && (
-        <DeleteSchemaModal
+        <ConfirmModal
           isOpen={true}
+          onClose={() => setDeletingSchema(null)}
           title="Delete Event Schema?"
           message="This action cannot be undone."
-          itemLabel="deletion"
+          confirmText="Confirm deletion"
+          cancelText="Cancel"
+          isDestructive={true}
           details={{
             'event type': deletingSchema.event_type,
             'version': `v${deletingSchema.version}`,
@@ -223,7 +226,6 @@ function SchemasPage() {
           }}
           warning="Deletion is only possible if no events reference this schema version. If you see an error, keep this version as an inactive schema for historical verification."
           onConfirm={handleConfirmDelete}
-          onClose={() => setDeletingSchema(null)}
         />
       )}
 

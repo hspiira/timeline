@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
+import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { timelineApi } from '@/lib/api-client'
-import { getApiErrorDisplay, isAuthOrPermissionError } from '@/lib/api-utils'
 import {
   Loader2,
   Shield,
@@ -35,57 +35,45 @@ function UsersPage() {
   const toast = useToast()
   const [users, setUsers] = useState<UserResponse[]>([])
   const [roles, setRoles] = useState<RoleResponse[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [hasNoAccess, setHasNoAccess] = useState(false)
+
+  const {
+    data: fetchedData,
+    error,
+    loading,
+    hasNoAccess,
+    refetch,
+    setError,
+  } = useFetchWithError<{ users: UserResponse[]; roles: RoleResponse[] }>(
+    async () => {
+      const usersRes = await timelineApi.users.list({ skip: 0, limit: 100 })
+      if (usersRes.error != null) {
+        return { error: usersRes.error, response: usersRes.response }
+      }
+      const rolesRes = await timelineApi.roles.list({ skip: 0, limit: 100 })
+      const rolesList = rolesRes.data || []
+      return {
+        data: {
+          users: usersRes.data || [],
+          roles: rolesList,
+        },
+      }
+    },
+    { defaultErrorMessage: 'Unable to load users', enabled: !!authState.user }
+  )
+
+  useEffect(() => {
+    if (authState.user) refetch()
+  }, [authState.user, refetch])
+
+  useEffect(() => {
+    if (fetchedData) {
+      setUsers(fetchedData.users)
+      setRoles(fetchedData.roles)
+    }
+  }, [fetchedData])
 
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [managingRolesUser, setManagingRolesUser] = useState<UserResponse | null>(null)
-
-  useEffect(() => {
-    if (authState.user) {
-      fetchData()
-    }
-  }, [authState.user])
-
-  const fetchData = async () => {
-    setLoading(true)
-    setError(null)
-    setHasNoAccess(false)
-
-    try {
-      // Fetch users
-      const { data: usersData, error: usersError, response: usersResponse } = await timelineApi.users.list({
-        skip: 0,
-        limit: 100,
-      })
-
-      if (usersError) {
-        const display = getApiErrorDisplay(
-          { error: usersError, status: usersResponse?.status },
-          'Unable to load users'
-        )
-        setHasNoAccess(isAuthOrPermissionError(display, usersResponse?.status))
-        setError(display.message)
-      } else {
-        setUsers(usersData || [])
-      }
-
-      // Fetch roles for role assignment
-      const { data: rolesData } = await timelineApi.roles.list({
-        skip: 0,
-        limit: 100,
-      })
-      if (rolesData) {
-        setRoles(rolesData)
-      }
-    } catch (err) {
-      setError('An unexpected error occurred')
-      console.error('Error:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   if (!authState.user) {
     return null

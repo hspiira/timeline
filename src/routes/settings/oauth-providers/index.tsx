@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
+import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { timelineApi } from '@/lib/api-client'
-import { getApiErrorDisplay, isAuthOrPermissionError } from '@/lib/api-utils'
 import {
   Plus,
   Trash2,
@@ -21,7 +21,7 @@ import {
   EyeOff,
   Copy,
 } from 'lucide-react'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { Modal } from '@/components/ui/Modal'
 import { FormError } from '@/components/ui/FormField'
 import { Button } from '@/components/ui/button'
@@ -55,50 +55,36 @@ function OAuthProvidersPage() {
   const authState = useRequireAuth()
   const toast = useToast()
   const [providers, setProviders] = useState<OAuthProviderConfig[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [hasNoAccess, setHasNoAccess] = useState(false)
+  const [includeInactive, setIncludeInactive] = useState(false)
+
+  const {
+    data: fetchedProviders,
+    error,
+    loading,
+    hasNoAccess,
+    refetch,
+    setError,
+  } = useFetchWithError<OAuthProviderConfig[]>(
+    () =>
+      timelineApi.oauthProviders.list({ include_inactive: includeInactive }).then((r) =>
+        r.error != null ? { error: r.error, response: r.response } : { data: r.data || [] }
+      ),
+    { defaultErrorMessage: 'Unable to load OAuth providers', enabled: !!authState.user }
+  )
+
+  useEffect(() => {
+    if (authState.user) refetch()
+  }, [authState.user, includeInactive, refetch])
+
+  useEffect(() => {
+    if (fetchedProviders) setProviders(fetchedProviders)
+  }, [fetchedProviders])
 
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProvider, setEditingProvider] = useState<OAuthProviderConfig | null>(null)
   const [deletingProviderId, setDeletingProviderId] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState<{ id: string; name: string } | null>(null)
-  const [includeInactive, setIncludeInactive] = useState(false)
   const [checkingHealth, setCheckingHealth] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (authState.user) {
-      fetchProviders()
-    }
-  }, [authState.user, includeInactive])
-
-  const fetchProviders = async () => {
-    setLoading(true)
-    setError(null)
-    setHasNoAccess(false)
-
-    try {
-      const { data, error: apiError, response } = await timelineApi.oauthProviders.list({
-        include_inactive: includeInactive,
-      })
-
-      if (apiError) {
-        const display = getApiErrorDisplay(
-          { error: apiError, status: response?.status },
-          'Unable to load OAuth providers'
-        )
-        setHasNoAccess(isAuthOrPermissionError(display, response?.status))
-        setError(display.message)
-      } else {
-        setProviders(data || [])
-      }
-    } catch (err) {
-      setError('An unexpected error occurred')
-      console.error('Error:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleDeleteClick = (provider: OAuthProviderConfig) => {
     if (hasNoAccess) {
@@ -120,11 +106,13 @@ function OAuthProvidersPage() {
         const errorMsg = (apiError as any)?.message || 'Failed to delete OAuth provider'
         setError(errorMsg)
         toast.error('Failed to delete', errorMsg)
-      } else {
-        setProviders((prev) => prev.filter((p) => p.id !== confirmingDelete.id))
-        toast.success('Provider deleted', `"${confirmingDelete.name}" has been deleted`)
-        setConfirmingDelete(null)
+        throw new Error(errorMsg)
       }
+
+      setProviders((prev) => prev.filter((p) => p.id !== confirmingDelete.id))
+      toast.success('Provider deleted', `"${confirmingDelete.name}" has been deleted`)
+    } catch (err) {
+      throw err
     } finally {
       setDeletingProviderId(null)
     }
@@ -402,16 +390,15 @@ function OAuthProvidersPage() {
       />
 
       {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
+      <ConfirmModal
         isOpen={!!confirmingDelete}
+        onClose={() => setConfirmingDelete(null)}
         title="Delete OAuth Provider?"
         message={`Are you sure you want to delete "${confirmingDelete?.name}"? Existing email accounts using this provider will continue to work, but new connections won't be possible.`}
         confirmText="Delete"
         cancelText="Cancel"
         isDestructive={true}
-        isLoading={deletingProviderId === confirmingDelete?.id}
         onConfirm={handleConfirmDelete}
-        onCancel={() => setConfirmingDelete(null)}
       />
     </>
   )
