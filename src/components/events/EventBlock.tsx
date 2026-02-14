@@ -43,7 +43,7 @@ function HashCell({ hash, isLink, copiedHash, onCopy }: {
       <code className="text-xs font-mono text-muted-foreground">{hash.slice(0, 16)}...</code>
       <button
         onClick={(e) => onCopy(hash, e)}
-        className="opacity-0 group-hover/hash:opacity-100 transition-opacity p-0.5 hover:bg-muted rounded"
+        className="opacity-0 group-hover/hash:opacity-100 transition-opacity p-0.5 hover:bg-muted rounded-none"
         title="Copy full hash"
       >
         {copiedHash === hash ? (
@@ -88,7 +88,7 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
         <Link to="/subjects/$subjectId/events/$eventId" params={{ subjectId: event.subject_id, eventId: event.id }} className="flex items-center gap-2">
           <span className="font-medium text-sm text-foreground">{event.event_type}</span>
           {isGenesis && (
-            <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary rounded shrink-0">
+            <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary rounded-none shrink-0">
               Genesis
             </span>
           )}
@@ -130,7 +130,7 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
       <td className={`${cell} ${colStyles.docs}`}>
         <Link to="/subjects/$subjectId/events/$eventId" params={{ subjectId: event.subject_id, eventId: event.id }} className="flex items-center justify-center">
           {documentCount > 0 ? (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded">
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded-none">
               <FileText className="w-2.5 h-2.5" />
               {documentCount}
             </span>
@@ -201,7 +201,7 @@ export function EventBlockChain({
   return (
     <div className="space-y-1">
       {/* Header */}
-      <div className="bg-muted/50 rounded-xs border border-border">
+      <div className="bg-muted/50 rounded-none border border-border">
         <table className="w-full table-fixed">
           <thead>
             <tr className="text-xs font-medium text-muted-foreground">

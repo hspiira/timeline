@@ -83,7 +83,7 @@ export function EventsTable({
                     <button
                       type="button"
                       onClick={() => onViewDocuments?.(event)}
-                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground text-xs"
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-none bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground text-xs"
                       title={`${docCount} document${docCount !== 1 ? 's' : ''}`}
                     >
                       <FileText className="w-3 h-3" />
@@ -99,7 +99,7 @@ export function EventsTable({
                       <button
                         type="button"
                         onClick={() => onViewDetails(event)}
-                        className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        className="p-1.5 rounded-none text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                         title="View details"
                       >
                         <Eye className="w-4 h-4" />
@@ -108,7 +108,7 @@ export function EventsTable({
                     <Link
                       to="/subjects/$subjectId/events/$eventId"
                       params={{ subjectId: event.subject_id, eventId: event.id }}
-                      className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      className="p-1.5 rounded-none text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                       title="Open event"
                     >
                       View

@@ -97,6 +97,15 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     authActions.initAuth()
   }, [])
 
+  // Recover from failed dynamic route chunk (e.g. after deploy or stale cache)
+  useEffect(() => {
+    const onPreloadError = () => {
+      window.location.reload()
+    }
+    window.addEventListener('vite:preloadError', onPreloadError)
+    return () => window.removeEventListener('vite:preloadError', onPreloadError)
+  }, [])
+
   const handleLogout = () => {
     authActions.logout()
     navigate({ to: '/login', search: { tenant: '' } })

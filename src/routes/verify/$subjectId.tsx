@@ -126,18 +126,18 @@ function VerifyPage() {
         </div>
 
         {/* Skeleton Event Chain Timeline */}
-        <div className="bg-card/80 rounded-xs border border-border/50 p-3 mb-3">
+        <div className="bg-card/80 rounded-none border border-border/50 p-3 mb-3">
           <Skeleton className="h-5 w-40 mb-2" />
           <div className="space-y-2">
-            <div className="p-3 rounded-xs border border-border/50 bg-muted/30">
+            <div className="p-3 rounded-none border border-border/50 bg-muted/30">
               <Skeleton className="h-5 w-1/2 mb-2" />
               <Skeleton className="h-4 w-1/3" />
             </div>
-            <div className="p-3 rounded-xs border border-border/50 bg-muted/30">
+            <div className="p-3 rounded-none border border-border/50 bg-muted/30">
               <Skeleton className="h-5 w-1/2 mb-2" />
               <Skeleton className="h-4 w-1/3" />
             </div>
-            <div className="p-3 rounded-xs border border-border/50 bg-muted/30">
+            <div className="p-3 rounded-none border border-border/50 bg-muted/30">
               <Skeleton className="h-5 w-1/2 mb-2" />
               <Skeleton className="h-4 w-1/3" />
             </div>
@@ -165,7 +165,7 @@ function VerifyPage() {
 
       {/* Error Alert */}
       {error && (
-        <div className="mb-3 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs flex gap-2">
+        <div className="mb-3 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none flex gap-2">
           <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
           <div className="flex-1">
             <h3 className="font-semibold text-red-900 dark:text-red-200 text-xs">Verification Failed</h3>
@@ -173,7 +173,7 @@ function VerifyPage() {
           </div>
           <button
             onClick={verifyChain}
-            className="px-2.5 py-0.5 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors shrink-0"
+            className="px-2.5 py-0.5 text-xs bg-red-600 text-white rounded-none hover:bg-red-700 transition-colors shrink-0"
           >
             Retry
           </button>
@@ -187,12 +187,12 @@ function VerifyPage() {
             <div className="flex items-center gap-2 mb-2">
               <h1 className="text-lg font-bold text-foreground">Chain Verification</h1>
               {verification.is_chain_valid ? (
-                <div className="flex items-center gap-1 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xs">
+                <div className="flex items-center gap-1 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-none">
                   <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
                   <span className="font-semibold text-green-900 dark:text-green-200 text-xs">Valid Chain</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-1 px-2.5 py-1 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs">
+                <div className="flex items-center gap-1 px-2.5 py-1 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none">
                   <AlertTriangle className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
                   <span className="font-semibold text-red-900 dark:text-red-200 text-xs">Tampered Chain</span>
                 </div>
@@ -215,7 +215,7 @@ function VerifyPage() {
 
           {/* Chain Visualization */}
           {verification.event_results && verification.event_results.length > 0 && (
-            <div className="bg-card/80 rounded-xs border border-border/50 p-3 mb-3">
+            <div className="bg-card/80 rounded-none border border-border/50 p-3 mb-3">
               <h2 className="text-sm font-semibold text-foreground mb-2">Visual Chain Overview</h2>
               <ChainVisualization
                 events={verification.event_results?.map((event) => ({
@@ -240,7 +240,7 @@ function VerifyPage() {
 
           {/* Invalid Events Summary */}
           {verification.invalid_events > 0 && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs p-3 mb-3">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none p-3 mb-3">
               <h2 className="text-sm font-semibold text-red-900 dark:text-red-200 mb-2">
                 Chain Integrity Issues ({verification.invalid_events} {verification.invalid_events === 1 ? 'issue' : 'issues'})
               </h2>

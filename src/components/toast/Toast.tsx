@@ -63,7 +63,7 @@ export function Toast({ id, type, title, message, duration = 4000, onClose }: To
 
   return (
     <div
-      className={`${styles.bg} border ${styles.border} rounded-xs p-4 flex gap-3 items-start shadow-lg animate-in fade-in slide-in-from-top-2 duration-200`}
+      className={`${styles.bg} border ${styles.border} rounded-none p-4 flex gap-3 items-start shadow-lg animate-in fade-in slide-in-from-top-2 duration-200`}
       role="alert"
     >
       <Icon className={`w-5 h-5 ${styles.icon} flex-shrink-0 mt-0.5`} />

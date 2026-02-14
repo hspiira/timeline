@@ -170,19 +170,19 @@ export interface FileRoutesByFullPath {
   '/subjects/$subjectId': typeof SubjectsSubjectIdRoute
   '/verify/$subjectId': typeof VerifySubjectIdRoute
   '/verify/tenant': typeof VerifyTenantRoute
-  '/email-accounts': typeof EmailAccountsIndexRoute
-  '/events': typeof EventsIndexRoute
-  '/subjects': typeof SubjectsIndexRoute
+  '/email-accounts/': typeof EmailAccountsIndexRoute
+  '/events/': typeof EventsIndexRoute
+  '/subjects/': typeof SubjectsIndexRoute
   '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
-  '/admin/permissions': typeof AdminPermissionsIndexRoute
-  '/admin/roles': typeof AdminRolesIndexRoute
-  '/settings/oauth-providers': typeof SettingsOauthProvidersIndexRoute
-  '/settings/permissions': typeof SettingsPermissionsIndexRoute
-  '/settings/roles': typeof SettingsRolesIndexRoute
-  '/settings/schemas': typeof SettingsSchemasIndexRoute
-  '/settings/users': typeof SettingsUsersIndexRoute
-  '/settings/workflows': typeof SettingsWorkflowsIndexRoute
+  '/admin/permissions/': typeof AdminPermissionsIndexRoute
+  '/admin/roles/': typeof AdminRolesIndexRoute
+  '/settings/oauth-providers/': typeof SettingsOauthProvidersIndexRoute
+  '/settings/permissions/': typeof SettingsPermissionsIndexRoute
+  '/settings/roles/': typeof SettingsRolesIndexRoute
+  '/settings/schemas/': typeof SettingsSchemasIndexRoute
+  '/settings/users/': typeof SettingsUsersIndexRoute
+  '/settings/workflows/': typeof SettingsWorkflowsIndexRoute
   '/subjects/$subjectId/events/$eventId': typeof SubjectsSubjectIdEventsEventIdRoute
 }
 export interface FileRoutesByTo {
@@ -251,19 +251,19 @@ export interface FileRouteTypes {
     | '/subjects/$subjectId'
     | '/verify/$subjectId'
     | '/verify/tenant'
-    | '/email-accounts'
-    | '/events'
-    | '/subjects'
+    | '/email-accounts/'
+    | '/events/'
+    | '/subjects/'
     | '/email-accounts/oauth/callback'
     | '/events/subject/$subjectId'
-    | '/admin/permissions'
-    | '/admin/roles'
-    | '/settings/oauth-providers'
-    | '/settings/permissions'
-    | '/settings/roles'
-    | '/settings/schemas'
-    | '/settings/users'
-    | '/settings/workflows'
+    | '/admin/permissions/'
+    | '/admin/roles/'
+    | '/settings/oauth-providers/'
+    | '/settings/permissions/'
+    | '/settings/roles/'
+    | '/settings/schemas/'
+    | '/settings/users/'
+    | '/settings/workflows/'
     | '/subjects/$subjectId/events/$eventId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -373,21 +373,21 @@ declare module '@tanstack/react-router' {
     '/subjects/': {
       id: '/subjects/'
       path: '/subjects'
-      fullPath: '/subjects'
+      fullPath: '/subjects/'
       preLoaderRoute: typeof SubjectsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/events/': {
       id: '/events/'
       path: '/events'
-      fullPath: '/events'
+      fullPath: '/events/'
       preLoaderRoute: typeof EventsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/email-accounts/': {
       id: '/email-accounts/'
       path: '/email-accounts'
-      fullPath: '/email-accounts'
+      fullPath: '/email-accounts/'
       preLoaderRoute: typeof EmailAccountsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -436,56 +436,56 @@ declare module '@tanstack/react-router' {
     '/settings/workflows/': {
       id: '/settings/workflows/'
       path: '/workflows'
-      fullPath: '/settings/workflows'
+      fullPath: '/settings/workflows/'
       preLoaderRoute: typeof SettingsWorkflowsIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/settings/users/': {
       id: '/settings/users/'
       path: '/users'
-      fullPath: '/settings/users'
+      fullPath: '/settings/users/'
       preLoaderRoute: typeof SettingsUsersIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/settings/schemas/': {
       id: '/settings/schemas/'
       path: '/schemas'
-      fullPath: '/settings/schemas'
+      fullPath: '/settings/schemas/'
       preLoaderRoute: typeof SettingsSchemasIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/settings/roles/': {
       id: '/settings/roles/'
       path: '/roles'
-      fullPath: '/settings/roles'
+      fullPath: '/settings/roles/'
       preLoaderRoute: typeof SettingsRolesIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/settings/permissions/': {
       id: '/settings/permissions/'
       path: '/permissions'
-      fullPath: '/settings/permissions'
+      fullPath: '/settings/permissions/'
       preLoaderRoute: typeof SettingsPermissionsIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/settings/oauth-providers/': {
       id: '/settings/oauth-providers/'
       path: '/oauth-providers'
-      fullPath: '/settings/oauth-providers'
+      fullPath: '/settings/oauth-providers/'
       preLoaderRoute: typeof SettingsOauthProvidersIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/admin/roles/': {
       id: '/admin/roles/'
       path: '/admin/roles'
-      fullPath: '/admin/roles'
+      fullPath: '/admin/roles/'
       preLoaderRoute: typeof AdminRolesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/permissions/': {
       id: '/admin/permissions/'
       path: '/admin/permissions'
-      fullPath: '/admin/permissions'
+      fullPath: '/admin/permissions/'
       preLoaderRoute: typeof AdminPermissionsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }

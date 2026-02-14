@@ -223,7 +223,7 @@ export function DocumentUpload({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative border-2 border-dashed rounded-xs p-8 text-center transition-colors ${
+        className={`relative border-2 border-dashed rounded-none p-8 text-center transition-colors ${
           isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
         }`}
       >
@@ -260,7 +260,7 @@ export function DocumentUpload({
       {files.length > 0 && (
         <div className="space-y-2">
           {files.map((uploadingFile) => (
-            <div key={uploadingFile.id} className="flex items-center gap-3 p-3 bg-card rounded-xs border border-border/50">
+            <div key={uploadingFile.id} className="flex items-center gap-3 p-3 bg-card rounded-none border border-border/50">
               {/* Status Icon */}
               <div className="shrink-0">
                 {uploadingFile.status === 'uploading' && <LoadingIcon size="lg" className="text-primary" />}
@@ -275,7 +275,7 @@ export function DocumentUpload({
 
                 {/* Progress Bar */}
                 {uploadingFile.status === 'uploading' && (
-                  <div className="mt-2 w-full bg-background rounded-full h-1 overflow-hidden">
+                  <div className="mt-2 w-full bg-background rounded-none h-1 overflow-hidden">
                     <div
                       className="h-full bg-primary transition-all duration-300"
                       style={{ width: `${uploadingFile.progress}%` }}

@@ -162,7 +162,7 @@ function SubjectsPage() {
           </div>
           <div className="flex items-center gap-2">
             {/* View Mode Toggle */}
-            <div className="flex items-center gap-1 bg-muted/50 rounded-xs p-1 border border-border/30">
+            <div className="flex items-center gap-1 bg-muted/50 rounded-none p-1 border border-border/30">
               <Button
                 onClick={() => setViewMode('grid')}
                 variant={viewMode === 'grid' ? 'primary' : 'ghost'}
@@ -259,7 +259,7 @@ function SubjectsPage() {
         )}
 
         {!isLoading && !isError && subjects.length === 0 && (
-          <div className="bg-card/80 backdrop-blur-sm rounded-xs border border-border/50">
+          <div className="bg-card/80 backdrop-blur-sm rounded-none border border-border/50">
             <EmptyState
               icon={Users}
               title={search || filterType ? 'No subjects match' : 'No subjects yet'}

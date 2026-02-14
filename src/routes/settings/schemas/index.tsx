@@ -229,7 +229,7 @@ function SchemasPage() {
 
       {/* Error Alert */}
       {error && (
-        <div className="mb-3 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs flex gap-2">
+        <div className="mb-3 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none flex gap-2">
           <ErrorIcon className="text-red-600 dark:text-red-400 mt-0.5" />
           <div className="flex-1">
             <h3 className="font-semibold text-red-900 dark:text-red-200 text-sm">Error</h3>

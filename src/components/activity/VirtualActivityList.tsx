@@ -52,7 +52,7 @@ export function VirtualActivityList({
   return (
     <div
       ref={parentRef}
-      className="overflow-y-auto rounded-xs border border-border/50 bg-card/50"
+      className="overflow-y-auto rounded-none border border-border/50 bg-card/50"
       style={{
         height,
       }}

@@ -97,13 +97,13 @@ function UsersPage() {
       header: 'Username',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-none bg-primary/10 flex items-center justify-center">
             <User className="w-4 h-4 text-primary" />
           </div>
           <div>
             <span className="font-semibold text-foreground">{row.original.username}</span>
             {row.original.id === authState.user?.id && (
-              <span className="ml-2 text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">
+              <span className="ml-2 text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-none">
                 You
               </span>
             )}
@@ -193,7 +193,7 @@ function UsersPage() {
 
       {/* Limited Access Warning */}
       {hasNoAccess && (
-        <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-700 rounded-xs flex gap-2">
+        <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-700 rounded-none flex gap-2">
           <div className="flex-1">
             <h3 className="font-semibold text-amber-900 dark:text-amber-100 text-sm">
               Limited Access
@@ -351,7 +351,7 @@ function CreateUserModal({
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="johndoe"
-              className="w-full pl-10 pr-3 py-2 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              className="w-full pl-10 pr-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={loading}
             />
           </div>
@@ -369,7 +369,7 @@ function CreateUserModal({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="john@example.com"
-              className="w-full pl-10 pr-3 py-2 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              className="w-full pl-10 pr-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={loading}
             />
           </div>
@@ -386,7 +386,7 @@ function CreateUserModal({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Minimum 8 characters"
-              className="w-full px-3 py-2 pr-10 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              className="w-full px-3 py-2 pr-10 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={loading}
             />
             <button
@@ -516,8 +516,8 @@ function ManageUserRolesModal({
       maxWidth="max-w-lg"
       closeButton={!saving}
     >
-      <div className="flex items-center gap-2 mb-4 p-3 bg-muted rounded-xs">
-        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+      <div className="flex items-center gap-2 mb-4 p-3 bg-muted rounded-none">
+        <div className="w-8 h-8 rounded-none bg-primary/10 flex items-center justify-center">
           <User className="w-4 h-4 text-primary" />
         </div>
         <div>
@@ -543,7 +543,7 @@ function ManageUserRolesModal({
               allRoles.map((role) => (
                 <label
                   key={role.id}
-                  className="flex items-center gap-2 p-2 hover:bg-muted rounded-xs cursor-pointer transition-colors"
+                  className="flex items-center gap-2 p-2 hover:bg-muted rounded-none cursor-pointer transition-colors"
                 >
                   <input
                     type="checkbox"
@@ -558,13 +558,13 @@ function ManageUserRolesModal({
                       setSelectedRoles(newSelected)
                     }}
                     disabled={saving}
-                    className="w-4 h-4 rounded border-input"
+                    className="w-4 h-4 rounded-none border-input"
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-foreground">{role.name}</span>
                       {role.is_system && (
-                        <span className="text-xs px-1.5 py-0.5 bg-primary/20 text-primary rounded-xs font-medium">
+                        <span className="text-xs px-1.5 py-0.5 bg-primary/20 text-primary rounded-none font-medium">
                           SYSTEM
                         </span>
                       )}

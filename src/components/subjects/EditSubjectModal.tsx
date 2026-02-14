@@ -59,7 +59,7 @@ export function EditSubjectModal({
 
           {/* Subject Type (Read-only) */}
           <FormField label="Subject Type">
-            <div className="px-3 py-2 bg-muted rounded-xs text-foreground text-sm">
+            <div className="px-3 py-2 bg-muted rounded-none text-foreground text-sm">
               {subject.subject_type}
             </div>
           </FormField>

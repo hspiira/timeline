@@ -45,7 +45,7 @@ function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-md">
-        <div className="bg-card shadow-xl rounded-xs p-8 border">
+        <div className="bg-card shadow-xl rounded-none p-8 border">
           {/* Logo */}
           <div className="flex justify-center mb-6">
             <img src="/logo.svg" alt="Timeline" className="w-16 h-16" />
@@ -58,7 +58,7 @@ function LoginPage() {
 
           {/* Error Message */}
           {authState.error && (
-            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-xs">
+            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-none">
               <p className="text-sm text-destructive">
                 {authState.error}
               </p>

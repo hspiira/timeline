@@ -187,7 +187,7 @@ function SubjectDetailPage() {
         <SkeletonBreadcrumbs />
 
         {/* Skeleton Header */}
-        <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50 mb-4">
+        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50 mb-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
               <Skeleton className="h-8 w-1/2 mb-2" />
@@ -208,7 +208,7 @@ function SubjectDetailPage() {
         </div>
 
         {/* Skeleton Timeline */}
-        <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50">
+        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50">
           <Skeleton className="h-5 w-32 mb-4" />
           <SkeletonEventTimeline />
         </div>
@@ -220,7 +220,7 @@ function SubjectDetailPage() {
     return (
       <div className="min-h-[calc(100vh-4rem)] bg-background flex items-center justify-center">
         <div className="text-center max-w-md px-4">
-          <div className="w-16 h-16 rounded-xs bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 rounded-none bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
           </div>
           <h3 className="text-lg font-semibold text-foreground mb-2">
@@ -272,7 +272,7 @@ function SubjectDetailPage() {
       />
 
       {/* Subject Header */}
-      <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50 mb-4">
+      <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50 mb-4">
         <div className="flex items-start justify-between mb-3">
           <div>
             <h1 className="text-2xl font-bold text-foreground mb-1">
@@ -320,7 +320,7 @@ function SubjectDetailPage() {
       <div className="flex gap-1 mb-3 border-b border-border">
         <button
           onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'events' } })}
-          className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-t-xs flex items-center gap-2 ${
+          className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-none flex items-center gap-2 ${
             activeTab === 'events'
               ? 'bg-muted/40 border-primary text-foreground'
               : 'bg-transparent border-transparent text-foreground/60 hover:bg-muted/20'
@@ -331,7 +331,7 @@ function SubjectDetailPage() {
         </button>
         <button
           onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'documents' } })}
-          className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-t-xs flex items-center gap-2 ${
+          className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-none flex items-center gap-2 ${
             activeTab === 'documents'
               ? 'bg-muted/40 border-primary text-foreground'
               : 'bg-transparent border-transparent text-foreground/60 hover:bg-muted/20'
@@ -346,7 +346,7 @@ function SubjectDetailPage() {
       {activeTab === 'events' && (
         <div>
           {events.length === 0 ? (
-            <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50">
+            <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50">
               <EmptyState
                 icon={Boxes}
                 title="No events recorded"
@@ -368,7 +368,7 @@ function SubjectDetailPage() {
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4 px-4 py-3 bg-card/80 backdrop-blur-sm rounded-xs border border-border/50">
+                <div className="flex items-center justify-between mt-4 px-4 py-3 bg-card/80 backdrop-blur-sm rounded-none border border-border/50">
                   <div className="text-xs text-muted-foreground">
                     Showing {currentPage * PAGE_SIZE + 1} - {Math.min((currentPage + 1) * PAGE_SIZE, totalEvents)} of {totalEvents} events
                   </div>
@@ -404,7 +404,7 @@ function SubjectDetailPage() {
 
       {/* Documents Tab — only upload when no docs (no library section); library + Upload button when has docs */}
       {activeTab === 'documents' && (
-        <div className="relative overflow-hidden rounded-lg animate-in fade-in duration-300">
+        <div className="relative overflow-hidden rounded-none animate-in fade-in duration-300">
           <div
             className="absolute inset-0 -z-[1] opacity-[0.4] dark:opacity-[0.08]"
             style={{
@@ -415,7 +415,7 @@ function SubjectDetailPage() {
           <div className="relative space-y-6 p-1">
             {(subjectDocumentCount === null || subjectDocumentCount === 0) && (
               <section
-                className="rounded-lg border border-border/60 bg-card/90 backdrop-blur-sm shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-1 duration-250"
+                className="rounded-none border border-border/60 bg-card/90 backdrop-blur-sm shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-1 duration-250"
                 style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}
               >
                 <div className="border-l-[3px] border-primary bg-muted/20 dark:bg-muted/10 px-4 py-3 flex items-center gap-2">
@@ -441,7 +441,7 @@ function SubjectDetailPage() {
 
             {(subjectDocumentCount ?? 0) > 0 && (
               <section
-                className="rounded-lg border border-border/60 bg-card/90 backdrop-blur-sm shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-1 duration-250"
+                className="rounded-none border border-border/60 bg-card/90 backdrop-blur-sm shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-1 duration-250"
                 style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}
               >
                 <div className="border-l-[3px] border-border bg-muted/15 dark:bg-muted/10 px-4 py-3 flex items-center justify-between gap-2">

@@ -23,7 +23,7 @@ export function StatCard({
     if (variant === 'compact') {
       const displaySubtext = subtext || subtitle
       return (
-        <div className="bg-card/50 rounded-xs border border-border/50 p-3">
+        <div className="bg-card/50 rounded-none border border-border/50 p-3">
           <div className="flex items-center gap-2 mb-2">
             <Icon className={`w-4 h-4 ${color || 'text-muted-foreground'}`} />
             <span className="text-xs font-medium text-muted-foreground">{label}</span>
@@ -62,7 +62,7 @@ export function StatCard({
     const colors = getColorScheme(label)
 
     return (
-        <div className={`${colors.bg} rounded-xs p-6 border ${colors.border} transition-all hover:shadow-md hover:border-opacity-100`}>
+        <div className={`${colors.bg} rounded-none p-6 border ${colors.border} transition-all hover:shadow-md hover:border-opacity-100`}>
           <div className="flex justify-between">
             <div>
               <p className="text-sm text-muted-foreground">{label}</p>

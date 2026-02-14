@@ -29,7 +29,7 @@ export function NotFound({
     <div className={fullPage ? 'flex flex-col gap-3' : 'flex flex-wrap gap-4 justify-center'}>
       <Link
         to={backUrl}
-        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground hover:opacity-90 font-semibold rounded-[var(--radius)] transition-opacity"
+        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground hover:opacity-90 font-semibold rounded-none transition-opacity"
       >
         <Home size={18} aria-hidden />
         <span>{backLabel}</span>
@@ -37,7 +37,7 @@ export function NotFound({
       <button
         type="button"
         onClick={() => window.history.back()}
-        className={`inline-flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-[var(--radius)] transition-colors ${
+        className={`inline-flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-none transition-colors ${
           fullPage
             ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
             : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -52,7 +52,7 @@ export function NotFound({
   if (fullPage) {
     return (
       <div className={`min-h-screen bg-background flex items-center justify-center px-4 ${className}`}>
-        <div className="max-w-md w-full bg-card text-card-foreground p-8 rounded-[var(--radius)] border border-border shadow-sm">
+        <div className="max-w-md w-full bg-card text-card-foreground p-8 rounded-none border border-border shadow-sm">
           <div className="text-center">
             <FileQuestion
               size={48}

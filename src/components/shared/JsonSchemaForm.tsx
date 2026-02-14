@@ -71,14 +71,14 @@ export function JsonSchemaForm({
                   type="checkbox"
                   checked={Boolean(fieldValue)}
                   onChange={(e) => handleChange(fieldName, e.target.checked)}
-                  className="w-4 h-4 rounded border-input"
+                  className="w-4 h-4 rounded-none border-input"
                 />
               </div>
             ) : fieldSchema.enum ? (
               <select
                 value={fieldValue}
                 onChange={(e) => handleChange(fieldName, e.target.value)}
-                className={`w-full px-3 py-2 bg-background border rounded-xs text-sm ${
+                className={`w-full px-3 py-2 bg-background border rounded-none text-sm ${
                   fieldError ? 'border-red-500' : 'border-input'
                 }`}
                 required={isReq}
@@ -96,7 +96,7 @@ export function JsonSchemaForm({
                 value={fieldValue}
                 onChange={(e) => handleChange(fieldName, parseFloat(e.target.value) || '')}
                 placeholder={fieldSchema.default ? `(default: ${fieldSchema.default})` : ''}
-                className={`w-full px-3 py-2 bg-background border rounded-xs text-sm ${
+                className={`w-full px-3 py-2 bg-background border rounded-none text-sm ${
                   fieldError ? 'border-red-500' : 'border-input'
                 }`}
                 required={isReq}
@@ -108,7 +108,7 @@ export function JsonSchemaForm({
                 value={fieldValue}
                 onChange={(e) => handleChange(fieldName, e.target.value)}
                 placeholder={fieldSchema.default ? `(default: ${fieldSchema.default})` : ''}
-                className={`w-full px-3 py-2 bg-background border rounded-xs text-sm ${
+                className={`w-full px-3 py-2 bg-background border rounded-none text-sm ${
                   fieldError ? 'border-red-500' : 'border-input'
                 }`}
                 required={isReq}

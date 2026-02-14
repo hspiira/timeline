@@ -172,7 +172,7 @@ function SubjectEventsPage() {
         <SkeletonBreadcrumbs />
 
         {/* Skeleton Header */}
-        <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50 mb-4">
+        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50 mb-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
               <Skeleton className="h-8 w-1/2 mb-2" />
@@ -193,7 +193,7 @@ function SubjectEventsPage() {
         </div>
 
         {/* Skeleton Timeline */}
-        <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50">
+        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50">
           <Skeleton className="h-5 w-32 mb-4" />
           <SkeletonEventTimeline />
         </div>
@@ -205,7 +205,7 @@ function SubjectEventsPage() {
     return (
       <div className="min-h-[calc(100vh-4rem)] bg-background flex items-center justify-center">
         <div className="text-center max-w-md px-4">
-          <div className="w-16 h-16 rounded-xs bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 rounded-none bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
           </div>
           <h3 className="text-lg font-semibold text-foreground mb-2">
@@ -256,7 +256,7 @@ function SubjectEventsPage() {
         />
 
         {/* Subject Header */}
-        <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50 mb-4">
+        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50 mb-4">
           <div className="flex items-start justify-between mb-3">
             <div>
               <h1 className="text-2xl font-bold text-foreground mb-1">
@@ -332,7 +332,7 @@ function SubjectEventsPage() {
 
         {/* Content */}
         {activeTab === 'events' && (
-        <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50">
+        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50">
           <h2 className="text-sm font-semibold text-foreground mb-4">
             Event Timeline
           </h2>
@@ -413,7 +413,7 @@ function SubjectEventsPage() {
         {activeTab === 'documents' && (
         <div className="space-y-4">
           {/* Documents List */}
-          <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50">
+          <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50">
             <h2 className="text-sm font-semibold text-foreground mb-4">Documents</h2>
             <DocumentList
               subjectId={subjectId}
@@ -422,7 +422,7 @@ function SubjectEventsPage() {
           </div>
 
           {/* Upload Section */}
-          <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50">
+          <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50">
             <h2 className="text-sm font-semibold text-foreground mb-4">Upload New Document</h2>
             <DocumentUpload
               subjectId={subjectId}

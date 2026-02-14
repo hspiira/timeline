@@ -226,7 +226,7 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
                         type="button"
                         onClick={() => removeAction(action.id)}
                         disabled={loading}
-                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-50"
+                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-none transition-colors disabled:opacity-50"
                       >
                         <Trash2 className="w-3 h-3 text-red-500" />
                       </button>
@@ -270,7 +270,7 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
                 }))
               }
               disabled={loading}
-              className="rounded"
+              className="rounded-none"
             />
             <label htmlFor="isActive" className="text-sm font-medium text-foreground/90">
               Activate workflow immediately after creation

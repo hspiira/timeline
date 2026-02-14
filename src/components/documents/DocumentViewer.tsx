@@ -137,7 +137,7 @@ export function DocumentViewer({ documentId, filename, fileType, onClose }: Docu
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose} role="presentation">
       <div
-        className="bg-background border border-border rounded-xs shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
+        className="bg-background border border-border rounded-none shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

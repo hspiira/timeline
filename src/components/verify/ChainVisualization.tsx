@@ -57,7 +57,7 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
       return (
         <div className="flex items-center gap-2">
           <span className="font-medium text-xs shrink-0 text-red-700 dark:text-red-300">{label}:</span>
-          <div className="text-xs px-2 py-1 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 italic">
+          <div className="text-xs px-2 py-1 rounded-none bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 italic">
             [Missing - Event Tampered]
           </div>
         </div>
@@ -74,7 +74,7 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
           {label}:
         </span>
         <code
-          className={`text-xs font-mono break-all flex-1 px-2 py-1 rounded cursor-pointer transition-colors ${
+          className={`text-xs font-mono break-all flex-1 px-2 py-1 rounded-none cursor-pointer transition-colors ${
             isError
               ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30'
               : 'bg-muted/50 text-muted-foreground hover:bg-muted'
@@ -88,7 +88,7 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
         <div className="flex items-center gap-0.5 opacity-0 group-hover/hash:opacity-100 transition-opacity shrink-0">
           <button
             onClick={() => copyToClipboard(hash!)}
-            className="p-1 hover:bg-muted rounded transition-colors"
+            className="p-1 hover:bg-muted rounded-none transition-colors"
             title="Copy"
             aria-label="Copy hash"
           >
@@ -101,7 +101,7 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
           {hash!.length > 32 && (
             <button
               onClick={() => toggleHashExpanded(hashKey)}
-              className="p-1 hover:bg-muted rounded transition-colors"
+              className="p-1 hover:bg-muted rounded-none transition-colors"
               title={isExpanded ? 'Collapse' : 'Expand'}
               aria-label={isExpanded ? 'Collapse' : 'Expand'}
             >
@@ -127,7 +127,7 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
           <div key={event.id}>
             {/* Event Node */}
             <div
-              className={`relative border rounded-xs transition-colors ${
+              className={`relative border rounded-none transition-colors ${
                 tampered
                   ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800 ring-1 ring-red-200/50'
                   : 'bg-background border-border hover:bg-muted/30'
@@ -138,12 +138,12 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
                 {/* Status Icon */}
                 <div className="shrink-0">
                   {genesis ? (
-                    <div className="w-8 h-8 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-none bg-primary/20 border-2 border-primary flex items-center justify-center">
                       <span className="text-xs font-bold text-primary">G</span>
                     </div>
                   ) : tampered ? (
                     <div className="relative">
-                      <div className="absolute inset-0 bg-red-600 rounded-full blur opacity-25 animate-pulse" />
+                      <div className="absolute inset-0 bg-red-600 rounded-none blur opacity-25 animate-pulse" />
                       <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400 relative" />
                     </div>
                   ) : (
@@ -162,12 +162,12 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
                 {/* Status Badges */}
                 <div className="flex items-center gap-1 shrink-0">
                   {genesis && (
-                    <span className="px-2 py-1 text-xs font-medium bg-primary/20 text-primary rounded-xs">
+                    <span className="px-2 py-1 text-xs font-medium bg-primary/20 text-primary rounded-none">
                       Genesis
                     </span>
                   )}
                   {tampered && (
-                    <span className="px-2 py-1 text-xs font-semibold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-xs">
+                    <span className="px-2 py-1 text-xs font-semibold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-none">
                       Failed
                     </span>
                   )}

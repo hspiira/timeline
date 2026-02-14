@@ -185,7 +185,7 @@ function EmailAccountDetailPage() {
 
   if (error || !account) {
     return (
-      <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs">
+      <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none">
         <ErrorIcon className="w-6 h-6 text-red-600 dark:text-red-400 mb-2" />
         <h3 className="font-semibold text-red-900 dark:text-red-200">Error Loading Account</h3>
         <p className="text-sm text-red-800 dark:text-red-300 mt-1">{error || 'Account not found'}</p>
@@ -203,7 +203,7 @@ function EmailAccountDetailPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate({ to: '/email-accounts' })}
-            className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
+            className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -237,7 +237,7 @@ function EmailAccountDetailPage() {
       {/* Account Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
         {/* Status Card */}
-        <div className="p-4 bg-card/80 backdrop-blur-sm border border-border/50 rounded-xs">
+        <div className="p-4 bg-card/80 backdrop-blur-sm border border-border/50 rounded-none">
           <div className="flex items-center gap-2 text-muted-foreground mb-2">
             {account.is_active ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
             <span className="text-sm font-medium">Status</span>
@@ -252,7 +252,7 @@ function EmailAccountDetailPage() {
         </div>
 
         {/* Provider Card */}
-        <div className="p-4 bg-card/80 backdrop-blur-sm border border-border/50 rounded-xs">
+        <div className="p-4 bg-card/80 backdrop-blur-sm border border-border/50 rounded-none">
           <div className="flex items-center gap-2 text-muted-foreground mb-2">
             <Server className="w-4 h-4" />
             <span className="text-sm font-medium">Provider</span>
@@ -261,7 +261,7 @@ function EmailAccountDetailPage() {
         </div>
 
         {/* Last Sync Card */}
-        <div className="p-4 bg-card/80 backdrop-blur-sm border border-border/50 rounded-xs">
+        <div className="p-4 bg-card/80 backdrop-blur-sm border border-border/50 rounded-none">
           <div className="flex items-center gap-2 text-muted-foreground mb-2">
             <Clock className="w-4 h-4" />
             <span className="text-sm font-medium">Last Sync</span>
@@ -282,7 +282,7 @@ function EmailAccountDetailPage() {
       </div>
 
       {/* Account Details */}
-      <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-xs p-4 mb-6">
+      <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-none p-4 mb-6">
         <h2 className="text-base font-semibold text-foreground mb-3">Account Information</h2>
         <div className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -313,7 +313,7 @@ function EmailAccountDetailPage() {
 
       {/* OAuth Status - Only show for OAuth providers */}
       {(account.provider_type === 'gmail' || account.provider_type === 'outlook') && (
-        <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-xs p-4 mb-6">
+        <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-none p-4 mb-6">
           <h2 className="text-base font-semibold text-foreground mb-3">OAuth Status</h2>
           <div className="space-y-4">
             {/* OAuth Status Badge */}
@@ -323,7 +323,7 @@ function EmailAccountDetailPage() {
               return (
                 <div className="flex items-start gap-3">
                   <div
-                    className={`p-2 rounded-xs ${
+                    className={`p-2 rounded-none ${
                       account.oauth_status === 'active'
                         ? 'bg-green-100 dark:bg-green-900/30'
                         : account.oauth_status === 'refresh_failed' || account.oauth_status === 'expired'
@@ -359,7 +359,7 @@ function EmailAccountDetailPage() {
       )}
 
       {/* Sync Options */}
-      <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-xs p-4 mb-6">
+      <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-none p-4 mb-6">
         <h2 className="text-base font-semibold text-foreground mb-3">Sync Options</h2>
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
@@ -389,7 +389,7 @@ function EmailAccountDetailPage() {
       </div>
 
       {/* Danger Zone */}
-      <div className="bg-card/80 backdrop-blur-sm border border-red-200 dark:border-red-800 rounded-xs p-4">
+      <div className="bg-card/80 backdrop-blur-sm border border-red-200 dark:border-red-800 rounded-none p-4">
         <h2 className="text-base font-semibold text-red-600 dark:text-red-400 mb-3">Danger Zone</h2>
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">

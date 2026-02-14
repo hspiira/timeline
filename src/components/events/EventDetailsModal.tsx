@@ -25,7 +25,7 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 hover:bg-muted rounded-xs transition-colors font-medium"
+          className="px-4 py-2 hover:bg-muted rounded-none transition-colors font-medium"
           title="Close"
           aria-label="Close modal"
         >
@@ -37,7 +37,7 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
       <div className="space-y-4">
           {/* Event Metadata */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-3 bg-muted/50 rounded-xs border border-border/50">
+            <div className="p-3 bg-muted/50 rounded-none border border-border/50">
               <div className="flex items-center gap-2 mb-1">
                 <User className="w-4 h-4 text-muted-foreground" />
                 <span className="text-xs font-medium text-muted-foreground">Subject ID</span>
@@ -45,7 +45,7 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
               <p className="text-sm font-mono text-foreground">{event.subject_id}</p>
             </div>
 
-            <div className="p-3 bg-muted/50 rounded-xs border border-border/50">
+            <div className="p-3 bg-muted/50 rounded-none border border-border/50">
               <div className="flex items-center gap-2 mb-1">
                 <Clock className="w-4 h-4 text-muted-foreground" />
                 <span className="text-xs font-medium text-muted-foreground">Event Time</span>
@@ -64,7 +64,7 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
                 <button
                   type="button"
                   onClick={() => setViewMode('modern')}
-                  className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-xs transition-colors ${
+                  className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-none transition-colors ${
                     viewMode === 'modern'
                       ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
                       : 'text-muted-foreground hover:bg-muted border border-transparent hover:border-border/50'
@@ -77,7 +77,7 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
                 <button
                   type="button"
                   onClick={() => setViewMode('json')}
-                  className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-xs transition-colors ${
+                  className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-none transition-colors ${
                     viewMode === 'json'
                       ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
                       : 'text-muted-foreground hover:bg-muted border border-transparent hover:border-border/50'
@@ -91,7 +91,7 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
             </div>
 
             {viewMode === 'modern' && event.payload && (
-              <div className="bg-slate-50 dark:bg-slate-900/30 rounded-xs border border-slate-200 dark:border-slate-700 p-3">
+              <div className="bg-slate-50 dark:bg-slate-900/30 rounded-none border border-slate-200 dark:border-slate-700 p-3">
                 <div className="space-y-2">
                   {Object.entries(event.payload).map(([key, value]) => {
                     const displayValue = (() => {
@@ -128,7 +128,7 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
             )}
 
             {viewMode === 'json' && event.payload && (
-              <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xs border border-slate-200 dark:border-slate-700 p-3">
+              <div className="bg-slate-50 dark:bg-slate-900/50 rounded-none border border-slate-200 dark:border-slate-700 p-3">
                 <pre className="text-xs text-foreground/90 overflow-x-auto">
                   {JSON.stringify(event.payload, null, 2)}
                 </pre>
@@ -136,7 +136,7 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
             )}
 
             {!event.payload && (
-              <div className="bg-slate-50 dark:bg-slate-900/30 rounded-xs border border-slate-200 dark:border-slate-700 p-3">
+              <div className="bg-slate-50 dark:bg-slate-900/30 rounded-none border border-slate-200 dark:border-slate-700 p-3">
                 <p className="text-xs text-muted-foreground italic">No payload data</p>
               </div>
             )}

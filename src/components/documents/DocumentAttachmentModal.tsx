@@ -61,7 +61,7 @@ export function DocumentAttachmentModal({
       onClick={onClose}  
     >  
       <div 
-        className="bg-background border border-border rounded-xs max-w-2xl w-full max-h-[90vh] overflow-auto p-6 shadow-xl"  
+        className="bg-background border border-border rounded-none max-w-2xl w-full max-h-[90vh] overflow-auto p-6 shadow-xl"  
         role="dialog"  
         aria-modal="true"  
         aria-labelledby="modal-title"  
@@ -116,7 +116,7 @@ export function DocumentAttachmentModal({
 
         {/* Error Alert */}
         {uploadError && (
-          <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-xs flex items-center gap-2">
+          <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-none flex items-center gap-2">
             <ErrorIcon size="md" className="text-destructive" />
             <p className="text-sm text-destructive">
               {typeof uploadError === 'string' ? uploadError : JSON.stringify(uploadError)}
@@ -128,7 +128,7 @@ export function DocumentAttachmentModal({
         {activeTab === 'upload' && (
           <div className="space-y-4">
             {!subjectId && (  
-              <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-sm text-sm text-amber-800 dark:text-amber-300">  
+              <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-none text-sm text-amber-800 dark:text-amber-300">  
                 Document upload requires a subject. This event may not have an associated subject.  
               </div>  
             )}

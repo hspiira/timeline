@@ -33,7 +33,7 @@ export function SubjectsGrid({ data, onEdit }: SubjectsGridProps) {
                 <div className={`w-10 h-10 rounded-none ${bgColor} flex items-center justify-center flex-shrink-0`}>
                   <Icon className={`w-5 h-5 ${textColor}`} />
                 </div>
-                <div className="px-2 py-1 bg-muted rounded text-xs font-medium text-muted-foreground">
+                <div className="px-2 py-1 bg-muted rounded-none text-xs font-medium text-muted-foreground">
                   {subject.subject_type}
                 </div>
               </div>

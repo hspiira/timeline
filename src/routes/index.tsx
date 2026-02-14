@@ -195,7 +195,7 @@ function HomePage() {
 
         {/* Error messages */}
         {hasErrors && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs">
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none">
             <div className="flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
               <div className="flex-1">
@@ -234,7 +234,7 @@ function HomePage() {
           <h2 className="text-sm font-semibold text-foreground mb-3">
             Recent Activity
           </h2>
-          <div className="bg-card/80 backdrop-blur-sm rounded-xs border border-border/50">
+          <div className="bg-card/80 backdrop-blur-sm rounded-none border border-border/50">
             <MinimalActivityFeed limit={8} />
           </div>
         </div>

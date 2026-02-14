@@ -53,7 +53,7 @@ export function TimelineEvent({
   return (
     <div className="flex gap-4">
       <div className="flex flex-col items-center pt-1">
-        <div className="w-2 h-2 rounded-full bg-foreground/60" />
+        <div className="w-2 h-2 rounded-none bg-foreground/60" />
       </div>
 
       <div className="flex-1">
@@ -64,7 +64,7 @@ export function TimelineEvent({
             checkDocuments()
           }}
           onMouseLeave={() => onHover(null)}
-          className="flex justify-between hover:bg-blue-50/50 dark:hover:bg-blue-950/20 px-2 py-1.5 rounded-xs cursor-pointer transition-colors"
+          className="flex justify-between hover:bg-blue-50/50 dark:hover:bg-blue-950/20 px-2 py-1.5 rounded-none cursor-pointer transition-colors"
         >
           <div className="flex gap-2 items-center">
             <span className="text-xs text-muted-foreground font-mono">
@@ -73,7 +73,7 @@ export function TimelineEvent({
                 minute: '2-digit'
               })}
             </span>
-            <span className="font-mono text-xs bg-linear-to-r from-slate-600 to-slate-700 dark:from-slate-700 dark:to-slate-800 text-slate-100 px-2 py-0.5 rounded-xs">
+            <span className="font-mono text-xs bg-linear-to-r from-slate-600 to-slate-700 dark:from-slate-700 dark:to-slate-800 text-slate-100 px-2 py-0.5 rounded-none">
               {event.subject_id.slice(0, 8)}
             </span>
             <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">{event.event_type}</span>

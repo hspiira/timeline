@@ -29,7 +29,7 @@ export function RecentActivity({
 
   if (!hasEvents) {
     return (
-      <div className="bg-card/80 backdrop-blur-sm rounded-xs p-12 border border-border/50 text-center">
+      <div className="bg-card/80 backdrop-blur-sm rounded-none p-12 border border-border/50 text-center">
         <Calendar className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
         <h3 className="text-lg font-semibold text-foreground mb-2">
           No recent activity

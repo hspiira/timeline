@@ -154,7 +154,7 @@ function ActivityFeedContent({
     <div className="space-y-3">
       {/* Connection status indicator */}
       {enableRealTime && !useSimulation && (
-        <div className="flex items-center justify-between px-3 py-2 text-xs rounded-xs bg-muted/30 border border-border/50">
+        <div className="flex items-center justify-between px-3 py-2 text-xs rounded-none bg-muted/30 border border-border/50">
           <div className="flex items-center gap-2">
             {wsStatus === 'connected' && (
               <>
@@ -185,7 +185,7 @@ function ActivityFeedContent({
 
       {/* Simulation badge */}
       {useSimulation && (
-        <div className="flex items-center gap-2 px-3 py-2 text-xs rounded-xs bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+        <div className="flex items-center gap-2 px-3 py-2 text-xs rounded-none bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
           <span className="text-blue-700 dark:text-blue-300">
             🧪 Using simulated activities for demo
           </span>
@@ -217,7 +217,7 @@ function ActivityFeedContent({
 
       {/* Empty state - shown when no activities to display */}
       {!hasActivities && (
-        <div className="bg-card/80 backdrop-blur-sm rounded-xs p-12 border border-border/50 text-center">
+        <div className="bg-card/80 backdrop-blur-sm rounded-none p-12 border border-border/50 text-center">
           <Calendar className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
           <h3 className="text-lg font-semibold text-foreground mb-2">
             {searchQuery ? 'No activities found' : 'No activities yet'}
@@ -419,7 +419,7 @@ function ActivityFeedByDateContent({
 
       {/* Empty state messages */}
       {!hasActivities && (
-        <div className="bg-card/80 backdrop-blur-sm rounded-xs p-12 border border-border/50 text-center">
+        <div className="bg-card/80 backdrop-blur-sm rounded-none p-12 border border-border/50 text-center">
           <Calendar className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
           <h3 className="text-lg font-semibold text-foreground mb-2">
             {searchQuery ? 'No activities found' : 'No activities yet'}

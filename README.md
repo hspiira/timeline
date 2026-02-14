@@ -55,6 +55,20 @@ API_URL=http://localhost:9000 pnpm run generate:api
 
 Default when not set: `http://localhost:8000`.
 
+## Troubleshooting
+
+### "Failed to fetch dynamically imported module" (e.g. `src/routes/index.tsx?tsr-split=component`)
+
+This usually happens when the dev server or browser is using a stale route chunk (e.g. after a restart or a change that invalidated the module graph). Try:
+
+1. **Hard refresh** the page (e.g. Cmd+Shift+R / Ctrl+Shift+R). The app listens for `vite:preloadError` and will reload automatically in some cases.
+2. **Clear Vite cache and restart**:
+   ```bash
+   rm -rf node_modules/.vite
+   pnpm run dev
+   ```
+3. If it persists, stop the dev server, run `pnpm install`, then start again.
+
 ## Linting & Formatting
 
 This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:

@@ -90,7 +90,7 @@ export function ActivityAnalytics({ activities, compact = false }: ActivityAnaly
 
       {/* Action breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-card/50 rounded-xs border border-border/50 p-4">
+        <div className="bg-card/50 rounded-none border border-border/50 p-4">
           <h4 className="text-sm font-semibold text-foreground mb-3">Activities by Action</h4>
           <div className="space-y-2">
             {(() => {
@@ -103,7 +103,7 @@ export function ActivityAnalytics({ activities, compact = false }: ActivityAnaly
                   <div key={action} className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground capitalize">{action}</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="w-24 h-2 bg-muted rounded-none overflow-hidden">
                         <div
                           className="h-full bg-blue-500"
                           style={{
@@ -120,7 +120,7 @@ export function ActivityAnalytics({ activities, compact = false }: ActivityAnaly
         </div>
 
         {/* Resource type breakdown */}
-        <div className="bg-card/50 rounded-xs border border-border/50 p-4">
+        <div className="bg-card/50 rounded-none border border-border/50 p-4">
           <h4 className="text-sm font-semibold text-foreground mb-3">Activities by Resource</h4>
           <div className="space-y-2">
             {(() => {
@@ -133,7 +133,7 @@ export function ActivityAnalytics({ activities, compact = false }: ActivityAnaly
                   <div key={resourceType} className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground capitalize">{resourceType}</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="w-24 h-2 bg-muted rounded-none overflow-hidden">
                         <div
                           className="h-full bg-purple-500"
                           style={{

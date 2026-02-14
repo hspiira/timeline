@@ -220,7 +220,7 @@ function WorkflowsPage() {
       cell: ({ row }) => {
         const triggerEventType = (row.original as any).trigger?.event_type || 'N/A'
         return (
-          <span className="text-xs px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-xs font-mono">
+          <span className="text-xs px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-none font-mono">
             {triggerEventType}
           </span>
         )
@@ -270,7 +270,7 @@ function WorkflowsPage() {
             <button
               onClick={() => setEditingWorkflow(workflow)}
               disabled={hasNoAccess}
-              className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title={hasNoAccess ? 'No permission to update' : 'Edit name, description, order'}
             >
               <SquarePen className="w-4 h-4" />
@@ -278,7 +278,7 @@ function WorkflowsPage() {
             <button
               onClick={() => handleToggleWorkflow(workflow.id, workflow.is_active)}
               disabled={toggling === workflow.id || hasNoAccess}
-              className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title={hasNoAccess ? 'No permission to update' : (workflow.is_active ? 'Deactivate' : 'Activate')}
             >
               {toggling === workflow.id ? (
@@ -292,7 +292,7 @@ function WorkflowsPage() {
             <button
               onClick={() => handleDeleteClick(workflow.id, workflow.name)}
               disabled={deleting === workflow.id || hasNoAccess}
-              className="p-1 text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-muted rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-1 text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-muted rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title={hasNoAccess ? 'No permission to delete' : 'Delete'}
             >
               {deleting === workflow.id ? (
@@ -336,7 +336,7 @@ function WorkflowsPage() {
 
       {/* Error Alert */}
       {error && (
-        <div className="mb-3 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs flex gap-2">
+        <div className="mb-3 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none flex gap-2">
           <ErrorIcon className="text-red-600 dark:text-red-400 mt-0.5" />
           <div className="flex-1">
             <h3 className="font-semibold text-red-900 dark:text-red-200 text-sm">Error</h3>
@@ -347,7 +347,7 @@ function WorkflowsPage() {
 
       {/* No Access Notice */}
       {hasNoAccess && (
-        <div className="mb-3 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xs flex gap-2">
+        <div className="mb-3 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-none flex gap-2">
           <ErrorIcon className="text-amber-600 dark:text-amber-400 mt-0.5" />
           <div className="flex-1">
             <h3 className="font-semibold text-amber-900 dark:text-amber-200 text-sm">Limited Access</h3>
@@ -379,13 +379,13 @@ function WorkflowsPage() {
 
       {/* Filters */}
       {eventTypes.length > 0 && (
-        <div className="bg-card/80 backdrop-blur-sm rounded-xs p-2.5 border border-border/50 mb-3">
+        <div className="bg-card/80 backdrop-blur-sm rounded-none p-2.5 border border-border/50 mb-3">
           <div className="flex flex-wrap items-center gap-2">
             <label className="text-sm font-medium text-foreground/90">Filter by trigger event type:</label>
             <select
               value={filterEventType}
               onChange={(e) => setFilterEventType(e.target.value)}
-              className="px-3 py-1.5 bg-background border border-input rounded-xs text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="px-3 py-1.5 bg-background border border-input rounded-none text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="">All Workflows</option>
               {eventTypes.map((type) => (

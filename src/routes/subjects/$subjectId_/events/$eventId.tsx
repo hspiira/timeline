@@ -108,7 +108,7 @@ function EventDetailPage() {
         <SkeletonBreadcrumbs />
         <div className="space-y-4">
           <Skeleton className="h-8 w-1/3" />
-          <div className="bg-card rounded-xs border p-4 space-y-3">
+          <div className="bg-card rounded-none border p-4 space-y-3">
             <Skeleton className="h-6 w-1/2" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-3/4" />
@@ -123,7 +123,7 @@ function EventDetailPage() {
     return (
       <div className="min-h-[calc(100vh-4rem)] bg-background flex items-center justify-center">
         <div className="text-center max-w-md px-4">
-          <div className="w-16 h-16 rounded-xs bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 rounded-none bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
           </div>
           <h3 className="text-lg font-semibold text-foreground mb-2">Unable to Load Event</h3>
@@ -162,12 +162,12 @@ function EventDetailPage() {
       <div className="space-y-1">
         <label className="text-xs font-medium text-muted-foreground">{label}</label>
         <div className="flex items-center gap-2 group">
-          <code className="flex-1 font-mono text-xs bg-muted/50 px-3 py-2 rounded-xs break-all">
+          <code className="flex-1 font-mono text-xs bg-muted/50 px-3 py-2 rounded-none break-all">
             {value}
           </code>
           <button
             onClick={() => copyToClipboard(value, fieldKey)}
-            className="p-2 hover:bg-muted rounded-xs transition-colors opacity-0 group-hover:opacity-100"
+            className="p-2 hover:bg-muted rounded-none transition-colors opacity-0 group-hover:opacity-100"
             title="Copy"
           >
             {isCopied ? (
@@ -208,7 +208,7 @@ function EventDetailPage() {
             <Link
               to="/subjects/$subjectId/events/$eventId"
               params={{ subjectId, eventId: prevEvent.id }}
-              className="p-2 hover:bg-muted rounded-xs transition-colors"
+              className="p-2 hover:bg-muted rounded-none transition-colors"
               title="Previous event"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -227,7 +227,7 @@ function EventDetailPage() {
             <Link
               to="/subjects/$subjectId/events/$eventId"
               params={{ subjectId, eventId: nextEvent.id }}
-              className="p-2 hover:bg-muted rounded-xs transition-colors"
+              className="p-2 hover:bg-muted rounded-none transition-colors"
               title="Next event"
             >
               <ChevronRight className="w-4 h-4" />
@@ -241,15 +241,15 @@ function EventDetailPage() {
       </div>
 
       {/* Event Block Header */}
-      <div className="bg-card rounded-xs border border-border overflow-hidden mb-4">
+      <div className="bg-card rounded-none border border-border overflow-hidden mb-4">
         <div className="px-4 py-3 border-b border-border bg-muted/30">
           <div className="flex items-center gap-3">
             {isGenesis ? (
-              <div className="w-10 h-10 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
+              <div className="w-10 h-10 rounded-none bg-primary/20 border-2 border-primary flex items-center justify-center">
                 <span className="text-sm font-bold text-primary">G</span>
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-full bg-muted border-2 border-border flex items-center justify-center">
+              <div className="w-10 h-10 rounded-none bg-muted border-2 border-border flex items-center justify-center">
                 <span className="text-sm font-semibold text-muted-foreground">
                   {currentIndex.toString().padStart(2, '0')}
                 </span>
@@ -260,7 +260,7 @@ function EventDetailPage() {
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-bold text-foreground">{event.event_type}</h1>
                 {isGenesis && (
-                  <span className="px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary rounded">
+                  <span className="px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary rounded-none">
                     Genesis Block
                   </span>
                 )}
@@ -279,7 +279,7 @@ function EventDetailPage() {
         <div className="p-4 space-y-4">
           {/* Time & Subject */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xs">
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-none">
               <Clock className="w-5 h-5 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">Event Time</p>
@@ -297,7 +297,7 @@ function EventDetailPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xs">
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-none">
               <Calendar className="w-5 h-5 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">Schema Version</p>
@@ -318,7 +318,7 @@ function EventDetailPage() {
             {isGenesis ? (
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">Previous Hash</label>
-                <div className="px-3 py-2 bg-primary/5 border border-primary/20 rounded-xs text-xs text-primary">
+                <div className="px-3 py-2 bg-primary/5 border border-primary/20 rounded-none text-xs text-primary">
                   Genesis block - no previous hash
                 </div>
               </div>
@@ -328,7 +328,7 @@ function EventDetailPage() {
 
             {/* Chain Link Visualization */}
             {prevEvent && (
-              <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-xs">
+              <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-none">
                 <Link2 className="w-4 h-4 text-green-600" />
                 <span className="text-xs text-green-700 dark:text-green-300">
                   Chain link verified: This event's previous_hash matches block #{currentIndex - 1}'s
@@ -341,7 +341,7 @@ function EventDetailPage() {
           {/* Payload */}
           <div className="space-y-2">
             <h3 className="text-sm font-semibold">Event Payload</h3>
-            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xs border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-none border border-slate-200 dark:border-slate-700 overflow-hidden">
               <pre className="p-4 text-xs font-mono text-foreground overflow-x-auto max-h-96">
                 {JSON.stringify(event.payload, null, 2)}
               </pre>
@@ -351,7 +351,7 @@ function EventDetailPage() {
       </div>
 
       {/* Documents Section */}
-      <div className="bg-card rounded-xs border border-border overflow-hidden">
+      <div className="bg-card rounded-none border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-muted/30">
           <h2 className="text-sm font-semibold flex items-center gap-2">
             <FileText className="w-4 h-4" />

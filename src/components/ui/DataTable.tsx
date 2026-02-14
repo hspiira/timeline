@@ -189,7 +189,7 @@ export function DataTable<TData>({
   if (!hasData) {
     return (
       emptyState ? (
-        <div className={`rounded-xs border ${scheme.border} p-6 text-center`}>
+        <div className={`rounded-none border ${scheme.border} p-6 text-center`}>
           {emptyState.icon && <emptyState.icon className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />}
           {emptyState.title && (
             <h3 className="text-sm font-semibold text-foreground mb-2">
@@ -204,7 +204,7 @@ export function DataTable<TData>({
           {emptyState.action && <div>{emptyState.action}</div>}
         </div>
       ) : (
-        <div className={`rounded-xs border ${scheme.border} p-8 text-center`}>
+        <div className={`rounded-none border ${scheme.border} p-8 text-center`}>
           <p className="text-sm text-muted-foreground">No data to display</p>
         </div>
       )
@@ -212,7 +212,7 @@ export function DataTable<TData>({
   }
 
   return (
-    <div className={`rounded-xs border ${scheme.border} overflow-hidden`}>
+    <div className={`rounded-none border ${scheme.border} overflow-hidden`}>
       <div className="overflow-x-auto">
         <table className={`w-full text-xs sm:text-sm min-w-max`}>
           <thead className={`${scheme.header} border-b ${scheme.border} ${sticky ? 'sticky top-0' : ''}`}>
@@ -268,7 +268,7 @@ export function DataTable<TData>({
                 setPageSize(Number(e.target.value))
                 setPageIndex(0)
               }}
-              className={`bg-background border border-input rounded-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring ${compact ? 'px-1.5 py-0.5 text-xs' : 'px-2.5 py-1 text-sm'}`}
+              className={`bg-background border border-input rounded-none text-foreground focus:outline-none focus:ring-2 focus:ring-ring ${compact ? 'px-1.5 py-0.5 text-xs' : 'px-2.5 py-1 text-sm'}`}
             >
               {pageSizeOptions.map((size) => (
                 <option key={size} value={size}>

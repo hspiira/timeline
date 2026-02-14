@@ -150,7 +150,7 @@ function RolesPage() {
         return (
           <div className="flex items-center gap-2">
             {role.is_system && (
-              <span className="text-xs px-1.5 py-0.5 bg-primary/20 text-primary rounded-xs font-medium">
+              <span className="text-xs px-1.5 py-0.5 bg-primary/20 text-primary rounded-none font-medium">
                 SYSTEM
               </span>
             )}
@@ -172,7 +172,7 @@ function RolesPage() {
       id: 'permissions',
       header: 'Permissions',
       cell: () => (
-        <span className="text-xs px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-xs font-mono">
+        <span className="text-xs px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-none font-mono">
           0
         </span>
       ),
@@ -309,7 +309,7 @@ function RolesPage() {
 
       {/* Limited Access Warning */}
       {hasNoAccess && (
-        <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-700 rounded-xs flex gap-2">
+        <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-700 rounded-none flex gap-2">
           <div className="flex-1">
             <h3 className="font-semibold text-amber-900 dark:text-amber-100 text-sm">
               Limited Access
@@ -339,13 +339,13 @@ function RolesPage() {
       </div>
 
       {/* Filter */}
-      <div className="mb-3 p-2.5 bg-card/80 backdrop-blur-sm rounded-xs border border-border/50 flex items-center gap-2">
+      <div className="mb-3 p-2.5 bg-card/80 backdrop-blur-sm rounded-none border border-border/50 flex items-center gap-2">
         <input
           type="checkbox"
           id="includeInactive"
           checked={includeInactive}
           onChange={(e) => setIncludeInactive(e.target.checked)}
-          className="w-4 h-4 rounded border-input"
+          className="w-4 h-4 rounded-none border-input"
         />
         <label htmlFor="includeInactive" className="text-sm text-foreground cursor-pointer">
           Show inactive roles
@@ -485,7 +485,7 @@ function RoleFormModal({
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="e.g., editor, viewer"
-                className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
                 disabled={loading}
               />
               <p className="text-xs text-muted-foreground mt-1">
@@ -503,7 +503,7 @@ function RoleFormModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Content Editor"
-              className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={loading}
             />
           </div>
@@ -517,7 +517,7 @@ function RoleFormModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what this role can do..."
               rows={3}
-              className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={loading}
             />
           </div>
@@ -657,7 +657,7 @@ function ManageRolePermissionsModal({
                 {perms.map((perm) => (
                   <label
                     key={perm.id}
-                    className="flex items-center gap-2 p-2 hover:bg-muted rounded cursor-pointer transition-colors"
+                    className="flex items-center gap-2 p-2 hover:bg-muted rounded-none cursor-pointer transition-colors"
                   >
                     <input
                       type="checkbox"
@@ -672,7 +672,7 @@ function ManageRolePermissionsModal({
                         setSelectedPermissions(newSelected)
                       }}
                       disabled={loading}
-                      className="w-4 h-4 rounded border-input"
+                      className="w-4 h-4 rounded-none border-input"
                     />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-foreground">{perm.code}</p>

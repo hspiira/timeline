@@ -103,7 +103,7 @@ export function Modal({
       role="presentation"
     >
       <div
-        className={`modal-content-animate bg-background border border-border rounded-xs ${maxWidth} w-full max-h-[90vh] overflow-auto p-4 sm:p-6 shadow-2xl`}
+        className={`modal-content-animate bg-background border border-border rounded-none ${maxWidth} w-full max-h-[90vh] overflow-auto p-4 sm:p-6 shadow-2xl`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}

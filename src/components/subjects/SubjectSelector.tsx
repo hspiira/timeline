@@ -42,7 +42,7 @@ export default function SubjectSelector({ value, onChange }: Props) {
 				value={value} 
 				onChange={(e) => onChange(e.target.value)} 
 				disabled={loading}  
-				className="w-full px-3 py-2 bg-background border border-input rounded-xs disabled:opacity-50"  
+				className="w-full px-3 py-2 bg-background border border-input rounded-none disabled:opacity-50"  
 			>  
 				<option value="">Select subject</option>  
 				{!loading && (  

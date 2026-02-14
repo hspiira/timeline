@@ -85,8 +85,8 @@ function OAuthCallbackPage() {
   if (status === 'info') {
     return (
       <div className="max-w-md mx-auto">
-        <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-xs p-6 text-center">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+        <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-none p-6 text-center">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-none bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
             <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
           </div>
           <h1 className="text-lg font-bold text-foreground mb-2">OAuth Callback</h1>
@@ -105,8 +105,8 @@ function OAuthCallbackPage() {
 
     return (
       <div className="max-w-md mx-auto">
-        <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-xs p-6 text-center">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+        <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-none p-6 text-center">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-none bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
             <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
           </div>
           <h1 className="text-lg font-bold text-foreground mb-2">Connection Failed</h1>
@@ -127,8 +127,8 @@ function OAuthCallbackPage() {
   // Success state
   return (
     <div className="max-w-md mx-auto">
-      <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-xs p-6 text-center">
-        <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+      <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-none p-6 text-center">
+        <div className="w-12 h-12 mx-auto mb-4 rounded-none bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
           <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
         </div>
         <h1 className="text-lg font-bold text-foreground mb-2">Email Account Connected!</h1>

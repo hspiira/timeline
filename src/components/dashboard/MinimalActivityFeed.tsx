@@ -71,9 +71,9 @@ function ActivityRow({ activity }: { activity: ActivityType }) {
 
   const link = getLink()
   const content = (
-    <div className="flex items-center gap-3 py-2.5 px-3 rounded-xs hover:bg-muted/40 transition-colors group cursor-pointer">
+    <div className="flex items-center gap-3 py-2.5 px-3 rounded-none hover:bg-muted/40 transition-colors group cursor-pointer">
       {/* Icon */}
-      <div className={`w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center shrink-0 ${iconColor}`}>
+      <div className={`w-8 h-8 rounded-none bg-muted/50 flex items-center justify-center shrink-0 ${iconColor}`}>
         <Icon className="w-4 h-4" />
       </div>
 
@@ -83,7 +83,7 @@ function ActivityRow({ activity }: { activity: ActivityType }) {
           <span className="text-sm font-medium text-foreground truncate">
             {activity.resourceName}
           </span>
-          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${config.color}`}>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-none font-medium ${config.color}`}>
             {config.label}
           </span>
         </div>

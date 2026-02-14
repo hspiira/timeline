@@ -37,7 +37,7 @@ function SyncProgressBar({ progress }: { progress: SyncProgressEvent }) {
           <span className="text-muted-foreground">{percentage}%</span>
         )}
       </div>
-      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+      <div className="h-1.5 bg-muted rounded-none overflow-hidden">
         <div
           className={`h-full transition-all duration-300 ${
             isFailed
@@ -158,7 +158,7 @@ function EmailAccountsPage() {
       accessorKey: 'provider_type',
       header: 'Provider',
       cell: ({ row }) => (
-        <span className="text-xs px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-xs font-mono capitalize">
+        <span className="text-xs px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-none font-mono capitalize">
           {row.original.provider_type}
         </span>
       ),
@@ -253,7 +253,7 @@ function EmailAccountsPage() {
             <button
               onClick={() => handleSync(account.id, account.email_address)}
               disabled={isSyncing || !account.is_active}
-              className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title={!account.is_active ? 'Account inactive' : isSyncing ? 'Sync in progress' : 'Sync now'}
             >
               {isSyncing ? (
@@ -265,7 +265,7 @@ function EmailAccountsPage() {
             <Link
               to="/email-accounts/$accountId"
               params={{ accountId: account.id }}
-              className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
+              className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors"
               title="View details"
             >
               <Mail className="w-4 h-4" />
@@ -280,7 +280,7 @@ function EmailAccountsPage() {
     <>
       {/* Error Alert */}
       {error && (
-        <div className="mb-3 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs flex gap-2">
+        <div className="mb-3 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none flex gap-2">
           <ErrorIcon className="text-red-600 dark:text-red-400 mt-0.5" />
           <div className="flex-1">
             <h3 className="font-semibold text-red-900 dark:text-red-200 text-sm">Error</h3>

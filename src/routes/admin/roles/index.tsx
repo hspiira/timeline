@@ -200,7 +200,7 @@ function RolesPage() {
 
       {/* Error Alert */}
       {error && (
-        <div className="mb-3 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs flex gap-2">
+        <div className="mb-3 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none flex gap-2">
           <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <h3 className="font-semibold text-red-900 dark:text-red-200 text-sm">Error</h3>
@@ -211,7 +211,7 @@ function RolesPage() {
 
       {/* Limited Access Warning */}
       {hasNoAccess && (
-        <div className="mb-3 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xs flex gap-2">
+        <div className="mb-3 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-none flex gap-2">
           <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <h3 className="font-semibold text-amber-900 dark:text-amber-200 text-sm">
@@ -233,7 +233,7 @@ function RolesPage() {
         {!hasNoAccess && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-xs font-medium hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-none font-medium hover:bg-primary/90 transition-colors"
           >
             <Plus className="w-3 h-3" />
             Create Role
@@ -242,13 +242,13 @@ function RolesPage() {
       </div>
 
       {/* Filter */}
-      <div className="mb-3 p-2.5 bg-card/80 backdrop-blur-sm rounded-xs border border-border/50 flex items-center gap-2">
+      <div className="mb-3 p-2.5 bg-card/80 backdrop-blur-sm rounded-none border border-border/50 flex items-center gap-2">
         <input
           type="checkbox"
           id="includeInactive"
           checked={includeInactive}
           onChange={(e) => setIncludeInactive(e.target.checked)}
-          className="w-4 h-4 rounded border-input"
+          className="w-4 h-4 rounded-none border-input"
         />
         <label htmlFor="includeInactive" className="text-sm text-foreground cursor-pointer">
           Show inactive roles
@@ -257,7 +257,7 @@ function RolesPage() {
 
       {/* Roles Table */}
       {roles.length === 0 ? (
-        <div className="text-center py-8 bg-card/80 rounded-xs border border-border/50 p-4">
+        <div className="text-center py-8 bg-card/80 rounded-none border border-border/50 p-4">
           <h3 className="text-sm font-semibold text-foreground mb-1">No roles yet</h3>
           <p className="text-sm text-muted-foreground mb-3">
             {hasNoAccess ? 'You do not have permission to view roles.' : 'Create your first role'}
@@ -265,7 +265,7 @@ function RolesPage() {
           {!hasNoAccess && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-xs font-medium hover:bg-primary/90 transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-none font-medium hover:bg-primary/90 transition-colors"
             >
               <Plus className="w-3 h-3" />
               Create Role
@@ -273,7 +273,7 @@ function RolesPage() {
           )}
         </div>
       ) : (
-        <div className="overflow-x-auto bg-card/80 rounded-xs border border-border/50">
+        <div className="overflow-x-auto bg-card/80 rounded-none border border-border/50">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
@@ -304,7 +304,7 @@ function RolesPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         {role.is_system && (
-                          <span className="text-xs px-1.5 py-0.5 bg-primary/20 text-primary rounded-xs font-medium">
+                          <span className="text-xs px-1.5 py-0.5 bg-primary/20 text-primary rounded-none font-medium">
                             SYSTEM
                           </span>
                         )}
@@ -316,7 +316,7 @@ function RolesPage() {
                     {role.description || '-'}
                   </td>
                   <td className="py-2 px-2.5 text-center">
-                    <span className="text-xs px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-xs font-mono">
+                    <span className="text-xs px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-none font-mono">
                       0
                     </span>
                   </td>
@@ -344,7 +344,7 @@ function RolesPage() {
                               ? 'No permission'
                               : 'Manage permissions'
                         }
-                        className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Shield className="w-4 h-4" />
                       </button>
@@ -358,7 +358,7 @@ function RolesPage() {
                               ? 'No permission'
                               : 'Edit'
                         }
-                        className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -372,7 +372,7 @@ function RolesPage() {
                               ? 'No permission'
                               : 'Delete'
                         }
-                        className="p-1 text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-muted rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-1 text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-muted rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {deletingRoleId === role.id ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -478,7 +478,7 @@ function RoleFormModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-background border border-border rounded-xs max-w-2xl w-full max-h-[90vh] overflow-auto p-6 shadow-xl">
+      <div className="bg-background border border-border rounded-none max-w-2xl w-full max-h-[90vh] overflow-auto p-6 shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-foreground">
@@ -495,7 +495,7 @@ function RoleFormModal({
 
         {/* Error Alert */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs flex gap-2">
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none flex gap-2">
             <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
@@ -515,7 +515,7 @@ function RoleFormModal({
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="e.g., editor, viewer"
-                className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
                 disabled={loading}
               />
               <p className="text-xs text-muted-foreground mt-1">
@@ -533,7 +533,7 @@ function RoleFormModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Content Editor"
-              className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={loading}
             />
           </div>
@@ -547,7 +547,7 @@ function RoleFormModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what this role can do..."
               rows={3}
-              className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={loading}
             />
           </div>
@@ -558,14 +558,14 @@ function RoleFormModal({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-xs transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-xs hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-none hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {role ? 'Update Role' : 'Create Role'}
@@ -667,7 +667,7 @@ function ManageRolePermissionsModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-background border border-border rounded-xs max-w-3xl w-full max-h-[90vh] overflow-auto p-6 shadow-xl">
+      <div className="bg-background border border-border rounded-none max-w-3xl w-full max-h-[90vh] overflow-auto p-6 shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -685,7 +685,7 @@ function ManageRolePermissionsModal({
 
         {/* Error Alert */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs flex gap-2">
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none flex gap-2">
             <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
@@ -702,7 +702,7 @@ function ManageRolePermissionsModal({
                 {perms.map((perm) => (
                   <label
                     key={perm.id}
-                    className="flex items-center gap-2 p-2 hover:bg-muted rounded cursor-pointer transition-colors"
+                    className="flex items-center gap-2 p-2 hover:bg-muted rounded-none cursor-pointer transition-colors"
                   >
                     <input
                       type="checkbox"
@@ -717,7 +717,7 @@ function ManageRolePermissionsModal({
                         setSelectedPermissions(newSelected)
                       }}
                       disabled={loading}
-                      className="w-4 h-4 rounded border-input"
+                      className="w-4 h-4 rounded-none border-input"
                     />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-foreground">{perm.code}</p>
@@ -738,7 +738,7 @@ function ManageRolePermissionsModal({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-xs transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
@@ -746,7 +746,7 @@ function ManageRolePermissionsModal({
             type="button"
             onClick={handleSave}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-xs hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-none hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             Save Permissions

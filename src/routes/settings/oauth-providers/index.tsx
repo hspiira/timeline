@@ -163,7 +163,7 @@ function OAuthProvidersPage() {
         const Icon = info.icon
         return (
           <div className="flex items-center gap-2">
-            <div className={`p-1.5 rounded-xs bg-accent ${info.color}`}>
+            <div className={`p-1.5 rounded-none bg-accent ${info.color}`}>
               <Icon className="w-4 h-4" />
             </div>
             <div>
@@ -304,7 +304,7 @@ function OAuthProvidersPage() {
 
       {/* Limited Access Warning */}
       {hasNoAccess && (
-        <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-700 rounded-xs flex gap-2">
+        <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-700 rounded-none flex gap-2">
           <div className="flex-1">
             <h3 className="font-semibold text-amber-900 dark:text-amber-100 text-sm">
               Limited Access
@@ -333,7 +333,7 @@ function OAuthProvidersPage() {
       </div>
 
       {/* Info Box */}
-      <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xs">
+      <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-none">
         <h3 className="font-semibold text-blue-900 dark:text-blue-100 text-sm mb-1">Setup Instructions</h3>
         <p className="text-sm text-blue-800 dark:text-blue-200">
           To enable OAuth for email providers, you need to create OAuth credentials in the provider's developer console:
@@ -365,13 +365,13 @@ function OAuthProvidersPage() {
       </div>
 
       {/* Filter */}
-      <div className="mb-3 p-2.5 bg-card/80 backdrop-blur-sm rounded-xs border border-border/50 flex items-center gap-2">
+      <div className="mb-3 p-2.5 bg-card/80 backdrop-blur-sm rounded-none border border-border/50 flex items-center gap-2">
         <input
           type="checkbox"
           id="includeInactive"
           checked={includeInactive}
           onChange={(e) => setIncludeInactive(e.target.checked)}
-          className="w-4 h-4 rounded border-input"
+          className="w-4 h-4 rounded-none border-input"
         />
         <label htmlFor="includeInactive" className="text-sm text-foreground cursor-pointer">
           Show inactive providers
@@ -554,14 +554,14 @@ function OAuthProviderFormModal({
                     key={type}
                     type="button"
                     onClick={() => setProviderType(type)}
-                    className={`p-3 border rounded-xs text-left transition-colors ${
+                    className={`p-3 border rounded-none text-left transition-colors ${
                       providerType === type
                         ? 'border-primary bg-primary/10'
                         : 'border-border hover:border-primary/50'
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <div className={`p-1.5 rounded-xs bg-accent ${typeInfo.color}`}>
+                      <div className={`p-1.5 rounded-none bg-accent ${typeInfo.color}`}>
                         <TypeIcon className="w-4 h-4" />
                       </div>
                       <span className="font-medium text-foreground">{typeInfo.name}</span>
@@ -575,8 +575,8 @@ function OAuthProviderFormModal({
 
         {/* Display current provider for editing */}
         {provider && (
-          <div className="flex items-center gap-2 p-3 bg-muted rounded-xs">
-            <div className={`p-1.5 rounded-xs bg-accent ${info.color}`}>
+          <div className="flex items-center gap-2 p-3 bg-muted rounded-none">
+            <div className={`p-1.5 rounded-none bg-accent ${info.color}`}>
               <Icon className="w-4 h-4" />
             </div>
             <div>
@@ -596,7 +596,7 @@ function OAuthProviderFormModal({
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
             placeholder={provider ? '(unchanged)' : 'e.g., 123456789.apps.googleusercontent.com'}
-            className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 font-mono text-sm"
+            className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 font-mono text-sm"
             disabled={loading}
           />
         </div>
@@ -612,7 +612,7 @@ function OAuthProviderFormModal({
               value={clientSecret}
               onChange={(e) => setClientSecret(e.target.value)}
               placeholder={provider ? '(unchanged)' : 'Your client secret'}
-              className="w-full px-3 py-2 pr-10 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 font-mono text-sm"
+              className="w-full px-3 py-2 pr-10 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 font-mono text-sm"
               disabled={loading}
             />
             <button
@@ -636,7 +636,7 @@ function OAuthProviderFormModal({
               value={redirectUri}
               onChange={(e) => setRedirectUri(e.target.value)}
               placeholder="https://your-api.com/api/oauth-providers/gmail/callback"
-              className="w-full px-3 py-2 pr-10 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 font-mono text-sm"
+              className="w-full px-3 py-2 pr-10 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 font-mono text-sm"
               disabled={loading}
             />
             <button
@@ -663,7 +663,7 @@ function OAuthProviderFormModal({
             onChange={(e) => setScopes(e.target.value)}
             placeholder="Leave empty for default scopes"
             rows={3}
-            className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 font-mono text-sm"
+            className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 font-mono text-sm"
             disabled={loading}
           />
         </div>
@@ -679,7 +679,7 @@ function OAuthProviderFormModal({
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder={provider.display_name}
-              className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={loading}
             />
           </div>

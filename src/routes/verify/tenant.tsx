@@ -107,7 +107,7 @@ function VerifyTenantPage() {
       )}
 
       {result && (
-        <div className="rounded-xs border bg-card p-4 space-y-2">
+        <div className="rounded-none border bg-card p-4 space-y-2">
           <div className="flex items-center gap-2 text-foreground font-medium">
             <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
             Verification complete

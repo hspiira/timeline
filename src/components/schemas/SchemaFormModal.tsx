@@ -396,21 +396,21 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-semibold text-muted-foreground">#{index + 1}</span>
                           <span className="font-medium text-foreground">{field.name}</span>
-                          <span className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded">
+                          <span className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-none">
                             {typeLabel}
                           </span>
                           {field.required && (
-                            <span className="px-1.5 py-0.5 text-xs font-medium bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded">
+                            <span className="px-1.5 py-0.5 text-xs font-medium bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-none">
                               Required
                             </span>
                           )}
                           {field.enum && field.enum.length > 0 && (
-                            <span className="px-1.5 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded">
+                            <span className="px-1.5 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-none">
                               {field.enum.length} options
                             </span>
                           )}
                           {(field.minimum !== undefined || field.maximum !== undefined) && (
-                            <span className="px-1.5 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded">
+                            <span className="px-1.5 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-none">
                               {field.minimum !== undefined && field.maximum !== undefined
                                 ? `${field.minimum}-${field.maximum}`
                                 : field.minimum !== undefined
@@ -419,12 +419,12 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
                             </span>
                           )}
                           {field.format && (
-                            <span className="px-1.5 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded">
+                            <span className="px-1.5 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-none">
                               {field.format}
                             </span>
                           )}
                           {field.pattern && (
-                            <span className="px-1.5 py-0.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 rounded">
+                            <span className="px-1.5 py-0.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 rounded-none">
                               Regex pattern
                             </span>
                           )}
@@ -609,7 +609,7 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
               type="checkbox"
               checked={editingField.required}
               onChange={(e) => setEditingField({ ...editingField, required: e.target.checked })}
-              className="rounded"
+              className="rounded-none"
             />
             <span className="text-sm font-medium text-foreground/90">Required field</span>
           </label>
@@ -639,7 +639,7 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
                         const newEnum = (editingField.enum || []).filter((_, i) => i !== idx)
                         setEditingField({ ...editingField, enum: newEnum })
                       }}
-                      className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
+                      className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-none transition-colors"
                     >
                       <Trash2 className="w-4 h-4 text-red-500" />
                     </button>

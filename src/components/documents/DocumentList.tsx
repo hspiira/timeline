@@ -267,7 +267,7 @@ export function DocumentList({ subjectId, eventId, readOnly, onDelete, onError, 
 
   if (error && documents.length === 0) {
     return (
-      <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xs flex gap-3">
+      <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-none flex gap-3">
         <ErrorIcon className="text-destructive mt-0.5" />
         <div>
           <h3 className="font-semibold text-foreground text-sm">Error loading documents</h3>

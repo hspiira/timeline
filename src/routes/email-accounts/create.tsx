@@ -274,7 +274,7 @@ function CreateEmailAccountPage() {
               navigate({ to: '/email-accounts' })
             }
           }}
-          className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
+          className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
@@ -290,7 +290,7 @@ function CreateEmailAccountPage() {
 
       {/* Error Alert */}
       {error && (
-        <div className="mb-3 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs flex gap-2">
+        <div className="mb-3 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none flex gap-2">
           <ErrorIcon className="text-red-600 dark:text-red-400 mt-0.5" />
           <div className="flex-1">
             <h3 className="font-semibold text-red-900 dark:text-red-200 text-sm">Error</h3>
@@ -319,10 +319,10 @@ function CreateEmailAccountPage() {
                 <button
                   key={provider}
                   onClick={() => handleProviderSelect(provider)}
-                  className="p-4 bg-card/80 backdrop-blur-sm border border-border/50 rounded-xs hover:border-primary/50 hover:bg-card transition-all text-left group"
+                  className="p-4 bg-card/80 backdrop-blur-sm border border-border/50 rounded-none hover:border-primary/50 hover:bg-card transition-all text-left group"
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-xs bg-accent ${config.iconColor}`}>
+                    <div className={`p-2 rounded-none bg-accent ${config.iconColor}`}>
                       <IconComponent className="w-6 h-6" />
                     </div>
                     <div className="flex-1">
@@ -331,12 +331,12 @@ function CreateEmailAccountPage() {
                           {config.name}
                         </h3>
                         {oauthAvailable && (
-                          <span className="text-[10px] px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
+                          <span className="text-[10px] px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-none">
                             OAuth Ready
                           </span>
                         )}
                         {oauthNotConfigured && (
-                          <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded">
+                          <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-none">
                             Not Configured
                           </span>
                         )}
@@ -391,7 +391,7 @@ function CreateEmailAccountPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 bg-background border border-input rounded-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full pl-10 pr-3 py-2 bg-background border border-input rounded-none text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="you@example.com"
                   required
                 />
@@ -412,7 +412,7 @@ function CreateEmailAccountPage() {
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-3 py-2 bg-background border border-input rounded-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="w-full pl-10 pr-3 py-2 bg-background border border-input rounded-none text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                       placeholder="••••••••"
                       required
                     />
@@ -434,7 +434,7 @@ function CreateEmailAccountPage() {
                         type="text"
                         value={imapServer}
                         onChange={(e) => setImapServer(e.target.value)}
-                        className="w-full pl-10 pr-3 py-2 bg-background border border-input rounded-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="w-full pl-10 pr-3 py-2 bg-background border border-input rounded-none text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                         placeholder="imap.example.com"
                         required
                       />
@@ -448,7 +448,7 @@ function CreateEmailAccountPage() {
                       type="number"
                       value={imapPort}
                       onChange={(e) => setImapPort(e.target.value)}
-                      className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                       placeholder="993"
                       min="1"
                       max="65535"
@@ -464,7 +464,7 @@ function CreateEmailAccountPage() {
                     id="use_ssl"
                     checked={useSsl}
                     onChange={(e) => setUseSsl(e.target.checked)}
-                    className="w-4 h-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
+                    className="w-4 h-4 rounded-none border-input text-primary focus:ring-2 focus:ring-ring"
                   />
                   <label htmlFor="use_ssl" className="text-sm font-medium text-foreground">
                     Use SSL/TLS (recommended)
@@ -501,7 +501,7 @@ function CreateEmailAccountPage() {
             {/* OAuth Notice */}
             {PROVIDERS[selectedProvider].authType === 'oauth' && (
               <div
-                className={`p-3 rounded-xs border ${
+                className={`p-3 rounded-none border ${
                   isOAuthConfigured(selectedProvider as 'gmail' | 'outlook')
                     ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
                     : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'

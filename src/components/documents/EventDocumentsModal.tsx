@@ -130,7 +130,7 @@ export function EventDocumentsModal({
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose} onKeyDown={(e) => e.key === 'Escape' && !uploading && onClose()} role="presentation">
       <div
-        className="bg-background border border-amber-200 dark:border-amber-900 rounded-xs shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col"
+        className="bg-background border border-amber-200 dark:border-amber-900 rounded-none shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
         role="dialog"
@@ -159,7 +159,7 @@ export function EventDocumentsModal({
         <div className="flex-1 overflow-auto p-4 space-y-4">
           {/* Error Alert */}
           {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xs">
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none">
               <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
             </div>
           )}
@@ -172,7 +172,7 @@ export function EventDocumentsModal({
 
           {/* Upload Section */}
           {showUpload && (
-            <div className="p-3 bg-linear-to-r from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xs space-y-3">
+            <div className="p-3 bg-linear-to-r from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-none space-y-3">
               <div>
                 <h4 className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">Add Additional Documents</h4>
                 <p className="text-xs text-blue-800 dark:text-blue-300 mb-3">

@@ -75,7 +75,7 @@ export function DeleteConfirmModal({
       role="presentation"
     >
       <div
-        className="bg-background border border-border rounded-xs max-w-md w-full shadow-xl p-6"
+        className="bg-background border border-border rounded-none max-w-md w-full shadow-xl p-6"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -85,7 +85,7 @@ export function DeleteConfirmModal({
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-start gap-3">
-            <div className={`w-10 h-10 rounded-xs flex items-center justify-center shrink-0 ${
+            <div className={`w-10 h-10 rounded-none flex items-center justify-center shrink-0 ${
               isDestructive
                 ? 'bg-red-100 dark:bg-red-950/30'
                 : 'bg-yellow-100 dark:bg-yellow-950/30'
@@ -114,7 +114,7 @@ export function DeleteConfirmModal({
 
         {/* Details */}
         {details && Object.keys(details).length > 0 && (
-          <div className="mb-4 p-3 bg-muted/50 rounded-xs border border-border/50">
+          <div className="mb-4 p-3 bg-muted/50 rounded-none border border-border/50">
             <div className="space-y-2">
               {Object.entries(details).map(([key, value]) => (
                 <div key={key}>
@@ -128,7 +128,7 @@ export function DeleteConfirmModal({
 
         {/* Warning Message */}
         {warning && (
-          <div className={`mb-4 p-3 rounded-xs border ${
+          <div className={`mb-4 p-3 rounded-none border ${
             isDestructive
               ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
               : 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800'
@@ -145,7 +145,7 @@ export function DeleteConfirmModal({
 
         {/* Error Alert */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xs">
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-none">
             <p className="text-xs text-red-900 dark:text-red-200 font-medium">Error</p>
             <p className="text-xs text-red-800 dark:text-red-300 mt-1">{error}</p>
           </div>

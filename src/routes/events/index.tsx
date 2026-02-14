@@ -132,7 +132,7 @@ function EventsPage() {
     return (
       <div className="min-h-[calc(100vh-4rem)] bg-background flex items-center justify-center">
         <div className="text-center max-w-md px-4">
-          <div className="w-12 h-12 rounded-xs bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-2">
+          <div className="w-12 h-12 rounded-none bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-2">
             <ErrorIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
           </div>
           <h3 className="text-sm font-semibold text-foreground mb-1">
@@ -174,7 +174,7 @@ function EventsPage() {
 
         {/* Filters */}
         {eventTypes.length > 0 && (
-          <div className="bg-card/80 backdrop-blur-sm rounded-xs p-2.5 border border-border/50 mb-3">
+          <div className="bg-card/80 backdrop-blur-sm rounded-none p-2.5 border border-border/50 mb-3">
             <div className="flex flex-wrap items-center gap-2">
               <label className="text-sm font-medium text-foreground/90">
                 Filter by type:
@@ -182,7 +182,7 @@ function EventsPage() {
               <Select
                 value={filterEventType}
                 onChange={(e) => setFilterEventType(e.target.value)}
-                className="px-2.5 py-1 bg-background border border-input rounded-xs text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="px-2.5 py-1 bg-background border border-input rounded-none text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">All Event Types</option>
                 {eventTypes.map((type) => (
@@ -206,7 +206,7 @@ function EventsPage() {
 
         {/* Empty State or Events Timeline */}
         {events.length === 0 ? (
-          <div className="bg-card/80 backdrop-blur-sm rounded-xs border border-border/50">
+          <div className="bg-card/80 backdrop-blur-sm rounded-none border border-border/50">
             <EmptyState
               icon={Calendar}
               title="No events yet"
@@ -218,7 +218,7 @@ function EventsPage() {
             />
           </div>
         ) : (
-          <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50">
+          <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50">
             <h2 className="text-sm font-semibold text-foreground mb-4">
               Events
             </h2>

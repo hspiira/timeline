@@ -110,7 +110,7 @@ export function EventDocumentUpload({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative border-2 border-dashed rounded-xs p-5 text-center transition-colors ${
+        className={`relative border-2 border-dashed rounded-none p-5 text-center transition-colors ${
           isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
         }`}
       >
@@ -145,7 +145,7 @@ export function EventDocumentUpload({
       {stagedFiles.length > 0 && (
         <div className="space-y-1.5">
           {stagedFiles.map((stagedFile) => (
-            <div key={stagedFile.id} className="flex items-center gap-2.5 p-2.5 bg-card rounded-xs border border-border/50">
+            <div key={stagedFile.id} className="flex items-center gap-2.5 p-2.5 bg-card rounded-none border border-border/50">
               {/* Status Icon */}
               <div className="shrink-0">
                 <LoadingIcon size="sm" className="text-primary" />

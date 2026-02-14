@@ -5,7 +5,7 @@ interface SkeletonProps {
 export function Skeleton({ className = '' }: SkeletonProps) {
   return (
     <div
-      className={`bg-muted animate-pulse rounded-xs ${className}`}
+      className={`bg-muted animate-pulse rounded-none ${className}`}
     />
   )
 }
@@ -20,7 +20,7 @@ export function SkeletonHeading() {
 
 export function SkeletonCard() {
   return (
-    <div className="bg-card/80 backdrop-blur-sm rounded-xs p-4 border border-border/50">
+    <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50">
       <Skeleton className="h-6 w-1/3 mb-4" />
       <div className="space-y-3">
         <Skeleton className="h-4 w-full" />
@@ -33,7 +33,7 @@ export function SkeletonCard() {
 
 export function SkeletonEventCard() {
   return (
-    <div className="bg-card/80 backdrop-blur-sm rounded-xs p-3 border border-border/50">
+    <div className="bg-card/80 backdrop-blur-sm rounded-none p-3 border border-border/50">
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
           <Skeleton className="h-5 w-1/2 mb-2" />
@@ -75,7 +75,7 @@ export function SkeletonBreadcrumbs() {
 
 export function SkeletonDocumentItem() {
   return (
-    <div className="flex items-center justify-between p-3 border border-border/50 rounded-xs bg-card/40">
+    <div className="flex items-center justify-between p-3 border border-border/50 rounded-none bg-card/40">
       <div className="flex items-center gap-3 flex-1">
         <Skeleton className="h-5 w-5" />
         <div className="flex-1">

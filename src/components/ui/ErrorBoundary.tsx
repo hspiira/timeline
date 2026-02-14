@@ -45,7 +45,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       return (
         <div className="min-h-screen bg-background flex items-center justify-center px-4">
-          <div className="max-w-md w-full bg-card text-card-foreground p-8 rounded-[var(--radius)] border border-border shadow-sm">
+          <div className="max-w-md w-full bg-card text-card-foreground p-8 rounded-none border border-border shadow-sm">
             <div className="text-center">
               <AlertCircle
                 size={48}
@@ -60,7 +60,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               </p>
 
               {this.state.error && import.meta.env.DEV && (
-                <div className="mb-6 p-3 bg-muted/50 border border-border rounded-[var(--radius-xs)] text-left">
+                <div className="mb-6 p-3 bg-muted/50 border border-border rounded-none text-left">
                   <p className="text-foreground text-xs font-mono break-all">
                     {this.state.error.message}
                   </p>
@@ -71,13 +71,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 <button
                   type="button"
                   onClick={this.handleReset}
-                  className="px-6 py-3 bg-primary text-primary-foreground hover:opacity-90 font-semibold rounded-[var(--radius)] transition-opacity"
+                  className="px-6 py-3 bg-primary text-primary-foreground hover:opacity-90 font-semibold rounded-none transition-opacity"
                 >
                   Try again
                 </button>
                 <Link
                   to="/"
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-secondary text-secondary-foreground hover:bg-secondary/80 font-semibold rounded-[var(--radius)] transition-colors"
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-secondary text-secondary-foreground hover:bg-secondary/80 font-semibold rounded-none transition-colors"
                 >
                   <Home size={18} aria-hidden />
                   Go to dashboard

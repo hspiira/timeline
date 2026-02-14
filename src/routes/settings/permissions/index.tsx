@@ -131,7 +131,7 @@ function PermissionsPage() {
       accessorKey: 'resource',
       header: 'Resource',
       cell: ({ row }) => (
-        <span className="text-xs px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-xs font-medium capitalize">
+        <span className="text-xs px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-none font-medium capitalize">
           {row.original.resource}
         </span>
       ),
@@ -140,7 +140,7 @@ function PermissionsPage() {
       accessorKey: 'action',
       header: 'Action',
       cell: ({ row }) => (
-        <span className="text-xs px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-xs font-medium capitalize">
+        <span className="text-xs px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-none font-medium capitalize">
           {row.original.action}
         </span>
       ),
@@ -228,7 +228,7 @@ function PermissionsPage() {
 
       {/* Limited Access Warning */}
       {hasNoAccess && (
-        <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-700 rounded-xs flex gap-2">
+        <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-700 rounded-none flex gap-2">
           <div className="flex-1">
             <h3 className="font-semibold text-amber-900 dark:text-amber-100 text-sm">
               Limited Access
@@ -261,13 +261,13 @@ function PermissionsPage() {
       </div>
 
       {/* Filter */}
-      <div className="mb-3 p-2.5 bg-card/80 backdrop-blur-sm rounded-xs border border-border/50">
+      <div className="mb-3 p-2.5 bg-card/80 backdrop-blur-sm rounded-none border border-border/50">
         <div className="flex flex-wrap items-center gap-2">
           <label className="text-sm font-medium text-foreground/90">Filter by resource:</label>
           <select
             value={filterResource}
             onChange={(e) => setFilterResource(e.target.value)}
-            className="px-3 py-1.5 bg-background border border-input rounded-xs text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="px-3 py-1.5 bg-background border border-input rounded-none text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="">All Resources</option>
             {RESOURCE_TYPES.map((resource) => (
@@ -404,7 +404,7 @@ function PermissionFormModal({
             <select
               value={resource}
               onChange={(e) => setResource(e.target.value)}
-              className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={loading}
             >
               <option value="">Select resource...</option>
@@ -423,7 +423,7 @@ function PermissionFormModal({
             <select
               value={action}
               onChange={(e) => setAction(e.target.value)}
-              className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={loading}
             >
               <option value="">Select action...</option>
@@ -443,7 +443,7 @@ function PermissionFormModal({
               type="text"
               value={resource && action ? `${resource}:${action}` : ''}
               readOnly
-              className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground/70 disabled:opacity-50"
+              className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground/70 disabled:opacity-50"
               placeholder="Format: resource:action"
             />
           </div>
@@ -457,7 +457,7 @@ function PermissionFormModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what this permission grants..."
               rows={3}
-              className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={loading}
             />
           </div>
@@ -529,7 +529,7 @@ function ViewRolesModal({
           {roles.map((role) => (
             <div
               key={role.id}
-              className="p-3 bg-muted rounded-xs border border-border flex items-center justify-between"
+              className="p-3 bg-muted rounded-none border border-border flex items-center justify-between"
             >
               <div>
                 <p className="font-semibold text-foreground">{role.name}</p>
@@ -538,7 +538,7 @@ function ViewRolesModal({
                 )}
               </div>
               {role.is_system && (
-                <span className="text-xs px-1.5 py-0.5 bg-primary/20 text-primary rounded-xs font-medium">
+                <span className="text-xs px-1.5 py-0.5 bg-primary/20 text-primary rounded-none font-medium">
                   SYSTEM
                 </span>
               )}

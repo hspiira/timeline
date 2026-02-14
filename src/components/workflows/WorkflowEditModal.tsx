@@ -82,7 +82,7 @@ export function WorkflowEditModal({ workflow, onClose, onSave }: WorkflowEditMod
             checked={isActive}
             onChange={(e) => setIsActive(e.target.checked)}
             disabled={loading}
-            className="rounded border-input"
+            className="rounded-none border-input"
           />
           <label htmlFor="edit-active" className="text-sm font-medium text-foreground/90">
             Active

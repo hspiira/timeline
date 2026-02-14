@@ -147,7 +147,7 @@ function ActivityCardContainer({
   return (
     <div
       onClick={() => onSelect?.(activity.id)}
-      className={`p-3 rounded-xs border transition-colors cursor-pointer ${
+      className={`p-3 rounded-none border transition-colors cursor-pointer ${
         isSelected
           ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
           : 'border-border hover:border-blue-300 dark:hover:border-blue-700 hover:bg-muted/30'
@@ -156,7 +156,7 @@ function ActivityCardContainer({
       <div className="flex items-start gap-3">
         {/* Priority indicator */}
         <div
-          className={`w-1 h-1 rounded-full mt-2 shrink-0 ${
+          className={`w-1 h-1 rounded-none mt-2 shrink-0 ${
             activity.priority === 'high'
               ? 'bg-red-500'
               : activity.priority === 'medium'
@@ -170,7 +170,7 @@ function ActivityCardContainer({
 
         {/* Action badge and time */}
         <div className="flex items-center gap-2 shrink-0">
-          <span className={`text-xs px-2 py-1 rounded-xs font-medium ${config.color}`}>
+          <span className={`text-xs px-2 py-1 rounded-none font-medium ${config.color}`}>
             {config.label}
           </span>
           <span className="text-xs text-muted-foreground whitespace-nowrap">

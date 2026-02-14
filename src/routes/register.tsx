@@ -75,7 +75,7 @@ function RegisterTenantPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background py-12">
         <div className="w-full max-w-md">
-          <div className="bg-card shadow-xl rounded-xs p-8 border">
+          <div className="bg-card shadow-xl rounded-none p-8 border">
             {/* Logo */}
             <div className="flex justify-center mb-6">
               <img src="/logo.svg" alt="Timeline" className="w-16 h-16" />
@@ -83,7 +83,7 @@ function RegisterTenantPage() {
 
             {/* Success Header */}
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-none bg-primary/10 flex items-center justify-center shrink-0">
                 <CheckCircle className="w-5 h-5 text-primary" />
               </div>
               <div>
@@ -105,7 +105,7 @@ function RegisterTenantPage() {
             </div>
 
             {/* Password with Warning */}
-            <div className="bg-muted/50 border border-border rounded-xs p-4 mb-6">
+            <div className="bg-muted/50 border border-border rounded-none p-4 mb-6">
               <div className="flex items-start gap-2 mb-3">
                 <AlertTriangle className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                 <p className="text-xs text-muted-foreground">
@@ -113,12 +113,12 @@ function RegisterTenantPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <code className="flex-1 text-sm font-mono text-foreground bg-card px-3 py-2 rounded-xs border border-border break-all">
+                <code className="flex-1 text-sm font-mono text-foreground bg-card px-3 py-2 rounded-none border border-border break-all">
                   {createdTenant.admin_password}
                 </code>
                 <button
                   onClick={copyPassword}
-                  className="p-2 hover:bg-muted rounded-xs transition-colors shrink-0"
+                  className="p-2 hover:bg-muted rounded-none transition-colors shrink-0"
                   title="Copy password"
                 >
                   {copiedPassword ? (
@@ -143,7 +143,7 @@ function RegisterTenantPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background py-12">
       <div className="w-full max-w-md">
-        <div className="bg-card shadow-xl rounded-xs p-8 border">
+        <div className="bg-card shadow-xl rounded-none p-8 border">
           {/* Logo */}
           <div className="flex justify-center mb-6">
             <img src="/logo.svg" alt="Timeline" className="w-16 h-16" />
@@ -159,7 +159,7 @@ function RegisterTenantPage() {
 
           {/* Error Message */}
           {authState.error && (
-            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-xs">
+            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-none">
               <p className="text-sm text-destructive">{authState.error}</p>
             </div>
           )}

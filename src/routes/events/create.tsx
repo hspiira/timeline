@@ -296,9 +296,9 @@ function CreateEventPage() {
     <>
         <h1 className="text-lg font-bold mb-3">Create Event</h1>
 
-        <form onSubmit={handleSubmit} className="space-y-5 bg-card/80 p-5 rounded-[var(--radius)] border border-border/50">
+        <form onSubmit={handleSubmit} className="space-y-5 bg-card/80 p-5 rounded-none border border-border/50">
           {apiError && (
-            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-[var(--radius)] flex gap-2" role="alert">
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-none flex gap-2" role="alert">
               <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
               <div>
                 <h3 className="font-semibold text-foreground text-sm">Error</h3>
@@ -325,7 +325,7 @@ function CreateEventPage() {
                   <EventTypeSelector value={state.eventType} onChange={(value) => setState((prev) => ({ ...prev, eventType: value }))} />
                 </div>
                 {schemaVersion != null && (
-                  <div className="px-2.5 py-1.5 bg-muted rounded-[var(--radius)] text-xs flex items-center">
+                  <div className="px-2.5 py-1.5 bg-muted rounded-none text-xs flex items-center">
                     <span className="text-muted-foreground font-medium">v{schemaVersion}</span>
                   </div>
                 )}
@@ -339,7 +339,7 @@ function CreateEventPage() {
                 type="datetime-local"
                 value={state.eventTime}
                 onChange={(e) => setState((prev) => ({ ...prev, eventTime: e.target.value }))}
-                className="w-full max-w-sm px-2.5 py-1.5 bg-background border border-input rounded-[var(--radius)] text-sm"
+                className="w-full max-w-sm px-2.5 py-1.5 bg-background border border-input rounded-none text-sm"
               />
               <p className="text-xs text-muted-foreground mt-1">Defaults to current time</p>
             </div>
@@ -351,20 +351,20 @@ function CreateEventPage() {
               {schema?.required?.length ? <span className="text-destructive ml-0.5">*</span> : ''}
             </label>
             {schemaLoading ? (
-              <div className="flex items-center justify-center py-8 rounded-[var(--radius)] border border-border/50 bg-muted/30">
+              <div className="flex items-center justify-center py-8 rounded-none border border-border/50 bg-muted/30">
                 <LoadingIcon />
                 <span className="ml-2 text-sm text-muted-foreground">Loading schema...</span>
               </div>
             ) : schemaError ? (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-[var(--radius)] text-sm text-destructive">
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-none text-sm text-destructive">
                 Could not load schema for &quot;{state.eventType}&quot;. {schemaError}
               </div>
             ) : schema?.properties ? (
-              <div className="space-y-3 p-4 rounded-[var(--radius)] border border-border/50 bg-muted/20">
+              <div className="space-y-3 p-4 rounded-none border border-border/50 bg-muted/20">
                 <JsonSchemaForm schema={schema} value={state.payload} onChange={handlePayloadChange} errors={state.fieldErrors} />
               </div>
             ) : (
-              <div className="text-sm text-muted-foreground italic p-4 rounded-[var(--radius)] border border-border/50 bg-muted/20">
+              <div className="text-sm text-muted-foreground italic p-4 rounded-none border border-border/50 bg-muted/20">
                 {state.eventType ? 'No fields defined for this event type.' : 'Select an event type to see available fields'}
               </div>
             )}
@@ -375,7 +375,7 @@ function CreateEventPage() {
               <label className="block text-sm font-medium text-foreground mb-1.5">
                 Supporting Documents <span className="text-muted-foreground font-normal">(optional)</span>
               </label>
-              <div className="p-4 rounded-[var(--radius)] border border-dashed border-border bg-muted/10">
+              <div className="p-4 rounded-none border border-dashed border-border bg-muted/10">
                 <EventDocumentUpload
                   subjectId={state.subjectId}
                   onFilesChanged={(files) => setState((prev) => ({ ...prev, stagedDocuments: files }))}
