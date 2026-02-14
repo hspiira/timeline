@@ -61,6 +61,8 @@ class Settings(BaseSettings):
     s3_secret_key: SecretStr | None = None
     max_upload_size: int = 100 * 1024 * 1024  # 100MB
     allowed_mime_types: str = "*/*"
+    # Document retention: soft-delete documents older than this (days). None = disabled.
+    default_document_retention_days: int | None = None
 
     # Tenant
     tenant_header_name: str = "X-Tenant-ID"

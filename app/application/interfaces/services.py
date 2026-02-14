@@ -114,6 +114,28 @@ class IAuditService(Protocol):
         """Emit one audit event."""
 
 
+# API audit log service interface (general audit log table, not event store)
+class IApiAuditLogService(Protocol):
+    """Protocol for logging API actions to audit_log table (SOC 2)."""
+
+    async def log_action(
+        self,
+        tenant_id: str,
+        user_id: str | None,
+        action: str,
+        resource_type: str,
+        resource_id: str | None,
+        old_values: dict[str, Any] | None = None,
+        new_values: dict[str, Any] | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+        request_id: str | None = None,
+        success: bool = True,
+        error_message: str | None = None,
+    ) -> None:
+        """Append one audit log entry (who did what, when, to which resource)."""
+
+
 # Cache service interface
 class ICacheService(Protocol):
     """Minimal cache protocol for permission caching (DIP)."""

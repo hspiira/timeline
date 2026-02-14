@@ -5,13 +5,16 @@ No runtime imports from app.infrastructure or app.presentation.
 """
 
 from app.application.interfaces.repositories import (
+    IDocumentCategoryRepository,
     IDocumentRepository,
     IEventRepository,
     IEventSchemaRepository,
     IPermissionRepository,
     IRolePermissionRepository,
     IRoleRepository,
+    ISearchRepository,
     ISubjectRepository,
+    ISubjectTypeRepository,
     ITenantRepository,
     IUserRepository,
 )
@@ -29,6 +32,7 @@ from app.application.interfaces.storage import IStorageService
 __all__ = [
     "IAuditService",
     "ICacheService",
+    "IDocumentCategoryRepository",
     "IDocumentRepository",
     "IEventRepository",
     "IEventSchemaRepository",
@@ -38,8 +42,10 @@ __all__ = [
     "IPermissionResolver",
     "IRolePermissionRepository",
     "IRoleRepository",
+    "ISearchRepository",
     "IStorageService",
     "ISubjectRepository",
+    "ISubjectTypeRepository",
     "ITenantInitializationService",
     "ITenantRepository",
     "IUserRepository",

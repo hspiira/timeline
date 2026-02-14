@@ -1,10 +1,16 @@
 """Persistence repositories. Re-exports for dependency injection."""
 
+from app.infrastructure.persistence.repositories.audit_log_repo import (
+    AuditLogRepository,
+)
 from app.infrastructure.persistence.repositories.auditable_repo import (
     AuditableRepository,
 )
 from app.infrastructure.persistence.repositories.base import BaseRepository
 from app.infrastructure.persistence.repositories.document_repo import DocumentRepository
+from app.infrastructure.persistence.repositories.document_category_repo import (
+    DocumentCategoryRepository,
+)
 from app.infrastructure.persistence.repositories.email_account_repo import (
     EmailAccountRepository,
 )
@@ -25,10 +31,17 @@ from app.infrastructure.persistence.repositories.role_permission_repo import (
     RolePermissionRepository,
 )
 from app.infrastructure.persistence.repositories.role_repo import RoleRepository
+from app.infrastructure.persistence.repositories.search_repo import SearchRepository
 from app.infrastructure.persistence.repositories.user_role_repo import (
     UserRoleRepository,
 )
 from app.infrastructure.persistence.repositories.subject_repo import SubjectRepository
+from app.infrastructure.persistence.repositories.subject_snapshot_repo import (
+    SubjectSnapshotRepository,
+)
+from app.infrastructure.persistence.repositories.subject_type_repo import (
+    SubjectTypeRepository,
+)
 from app.infrastructure.persistence.repositories.tenant_repo import TenantRepository
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
 from app.infrastructure.persistence.repositories.workflow_repo import (
@@ -37,8 +50,10 @@ from app.infrastructure.persistence.repositories.workflow_repo import (
 )
 
 __all__ = [
+    "AuditLogRepository",
     "AuditableRepository",
     "BaseRepository",
+    "DocumentCategoryRepository",
     "DocumentRepository",
     "EmailAccountRepository",
     "EventRepository",
@@ -48,8 +63,11 @@ __all__ = [
     "PermissionRepository",
     "RolePermissionRepository",
     "RoleRepository",
+    "SearchRepository",
     "UserRoleRepository",
     "SubjectRepository",
+    "SubjectSnapshotRepository",
+    "SubjectTypeRepository",
     "TenantRepository",
     "UserRepository",
     "WorkflowExecutionRepository",

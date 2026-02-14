@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.subject import SubjectResult
@@ -26,6 +26,8 @@ def _subject_to_result(s: Subject) -> SubjectResult:
         tenant_id=s.tenant_id,
         subject_type=SubjectType(s.subject_type),
         external_ref=s.external_ref,
+        display_name=s.display_name or s.external_ref or "",
+        attributes=s.attributes if s.attributes is not None else {},
     )
 
 
@@ -50,6 +52,8 @@ class SubjectRepository(TenantScopedRepository[Subject]):
             "id": obj.id,
             "subject_type": obj.subject_type,
             "external_ref": obj.external_ref,
+            "display_name": obj.display_name,
+            "attributes": obj.attributes,
         }
 
     async def get_entity_by_id_and_tenant(
@@ -64,6 +68,15 @@ class SubjectRepository(TenantScopedRepository[Subject]):
         orm = await super().get_by_id(subject_id)
         return _subject_to_result(orm) if orm else None
 
+    async def count_by_tenant(self, tenant_id: str) -> int:
+        """Return total subject count for tenant."""
+        if tenant_id != self._tenant_id:
+            return 0
+        result = await self.db.execute(
+            select(func.count(Subject.id)).where(Subject.tenant_id == self._tenant_id)
+        )
+        return result.scalar() or 0
+
     async def get_by_tenant(
         self, tenant_id: str, skip: int = 0, limit: int = 100
     ) -> list[SubjectResult]:
@@ -77,6 +90,17 @@ class SubjectRepository(TenantScopedRepository[Subject]):
             .limit(limit)
         )
         return [_subject_to_result(s) for s in result.scalars().all()]
+
+    async def get_counts_by_type(self, tenant_id: str) -> dict[str, int]:
+        """Return subject counts per subject_type for tenant."""
+        if tenant_id != self._tenant_id:
+            return {}
+        result = await self.db.execute(
+            select(Subject.subject_type, func.count(Subject.id))
+            .where(Subject.tenant_id == self._tenant_id)
+            .group_by(Subject.subject_type)
+        )
+        return dict(result.all())
 
     async def get_by_type(
         self,
@@ -139,6 +163,8 @@ class SubjectRepository(TenantScopedRepository[Subject]):
         tenant_id: str,
         subject_type: str,
         external_ref: str | None = None,
+        display_name: str | None = None,
+        attributes: dict[str, Any] | None = None,
     ) -> SubjectResult:
         """Create subject; return created entity. Asserts tenant_id matches scope."""
         if tenant_id != self._tenant_id:
@@ -146,10 +172,13 @@ class SubjectRepository(TenantScopedRepository[Subject]):
                 "Cannot create subject for another tenant",
                 field="tenant_id",
             )
+        resolved_display_name = display_name if display_name is not None else (external_ref or "")
         subject = Subject(
             tenant_id=self._tenant_id,
             subject_type=subject_type,
             external_ref=external_ref,
+            display_name=resolved_display_name or None,
+            attributes=attributes if attributes is not None else {},
         )
         created = await self.create(subject)
         return _subject_to_result(created)
@@ -159,6 +188,8 @@ class SubjectRepository(TenantScopedRepository[Subject]):
         tenant_id: str,
         subject_id: str,
         external_ref: str | None = None,
+        display_name: str | None = None,
+        attributes: dict[str, Any] | None = None,
     ) -> SubjectResult | None:
         """Update subject; return updated result or None if not found in tenant."""
         entity = await self.get_entity_by_id_and_tenant(subject_id, tenant_id)
@@ -166,6 +197,10 @@ class SubjectRepository(TenantScopedRepository[Subject]):
             return None
         if external_ref is not None:
             entity.external_ref = external_ref
+        if display_name is not None:
+            entity.display_name = display_name
+        if attributes is not None:
+            entity.attributes = attributes
         updated = await self.update(entity, skip_existence_check=True)
         return _subject_to_result(updated)
 

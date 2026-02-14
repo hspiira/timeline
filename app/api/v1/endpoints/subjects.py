@@ -5,14 +5,29 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
+    get_get_subject_state_use_case,
+    get_subject_erasure_service,
+    get_subject_export_service,
     get_subject_service,
     get_tenant_id,
     require_permission,
 )
-from app.application.use_cases.subjects import SubjectService
+from app.application.use_cases.state import GetSubjectStateUseCase
+from app.application.use_cases.subjects import (
+    ErasureStrategy,
+    SubjectErasureService,
+    SubjectExportService,
+    SubjectService,
+)
 from app.core.limiter import limit_writes
 from app.domain.exceptions import ResourceNotFoundException
-from app.schemas.subject import SubjectCreateRequest, SubjectResponse, SubjectUpdate
+from app.schemas.subject import (
+    SubjectCreateRequest,
+    SubjectErasureRequest,
+    SubjectResponse,
+    SubjectStateResponse,
+    SubjectUpdate,
+)
 
 router = APIRouter()
 
@@ -31,8 +46,96 @@ async def create_subject(
         tenant_id=tenant_id,
         subject_type=body.subject_type,
         external_ref=body.external_ref,
+        display_name=body.display_name,
+        attributes=body.attributes,
     )
     return SubjectResponse.model_validate(created)
+
+
+@router.post("/{subject_id}/export")
+@limit_writes
+async def export_subject_data(
+    request: Request,
+    subject_id: str,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    export_svc: Annotated[
+        SubjectExportService, Depends(get_subject_export_service)
+    ],
+    _: Annotated[object, Depends(require_permission("subject", "export"))] = None,
+):
+    """Export all data for the subject (GDPR): subject, events, document refs (no binary)."""
+    try:
+        result = await export_svc.export_subject_data(
+            tenant_id=tenant_id,
+            subject_id=subject_id,
+        )
+        return {
+            "subject": result.subject,
+            "events": result.events,
+            "documents": result.documents,
+            "exported_at": result.exported_at.isoformat(),
+        }
+    except ResourceNotFoundException:
+        raise HTTPException(status_code=404, detail="Subject not found") from None
+
+
+@router.post("/{subject_id}/erasure", status_code=204)
+@limit_writes
+async def erase_subject_data(
+    request: Request,
+    subject_id: str,
+    body: SubjectErasureRequest,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    erasure_svc: Annotated[
+        SubjectErasureService, Depends(get_subject_erasure_service)
+    ],
+    _: Annotated[object, Depends(require_permission("subject", "erasure"))] = None,
+):
+    """Erase or anonymize subject data (GDPR). Body: {"strategy": "anonymize"|"delete"}."""
+    try:
+        strategy = ErasureStrategy(body.strategy)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="strategy must be 'anonymize' or 'delete'",
+        ) from None
+    try:
+        await erasure_svc.erase_subject_data(
+            tenant_id=tenant_id,
+            subject_id=subject_id,
+            strategy=strategy,
+        )
+    except ResourceNotFoundException:
+        raise HTTPException(status_code=404, detail="Subject not found") from None
+
+
+@router.get("/{subject_id}/state", response_model=SubjectStateResponse)
+async def get_subject_state(
+    subject_id: str,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    state_use_case: Annotated[
+        GetSubjectStateUseCase, Depends(get_get_subject_state_use_case)
+    ],
+    _: Annotated[object, Depends(require_permission("subject", "read"))] = None,
+    as_of: str | None = Query(
+        default=None,
+        description="ISO8601 datetime for time-travel (state as of this time)",
+    ),
+):
+    """Get derived state for subject (event replay). Optional as_of for time-travel."""
+    try:
+        result = await state_use_case.get_current_state(
+            tenant_id=tenant_id,
+            subject_id=subject_id,
+            as_of=as_of,
+        )
+        return SubjectStateResponse(
+            state=result.state,
+            last_event_id=result.last_event_id,
+            event_count=result.event_count,
+        )
+    except ResourceNotFoundException:
+        raise HTTPException(status_code=404, detail="Subject not found") from None
 
 
 @router.get("/{subject_id}", response_model=SubjectResponse)
@@ -82,12 +185,14 @@ async def update_subject(
     subject_svc: Annotated[SubjectService, Depends(get_subject_service)],
     _: Annotated[object, Depends(require_permission("subject", "update"))] = None,
 ):
-    """Update subject (e.g. external_ref). Tenant-scoped."""
+    """Update subject (e.g. external_ref, display_name, attributes). Tenant-scoped."""
     try:
         updated = await subject_svc.update_subject(
             tenant_id=tenant_id,
             subject_id=subject_id,
             external_ref=body.external_ref,
+            display_name=body.display_name,
+            attributes=body.attributes,
         )
         return SubjectResponse.model_validate(updated)
     except ResourceNotFoundException:

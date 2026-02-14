@@ -1,6 +1,7 @@
 """DTOs for subject use cases (no dependency on ORM)."""
 
 from dataclasses import dataclass
+from typing import Any
 
 from app.domain.value_objects.core import SubjectType
 
@@ -13,3 +14,5 @@ class SubjectResult:
     tenant_id: str
     subject_type: SubjectType
     external_ref: str | None
+    display_name: str
+    attributes: dict[str, Any]

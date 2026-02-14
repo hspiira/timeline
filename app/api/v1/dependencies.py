@@ -23,6 +23,9 @@ from app.application.dtos.user import UserResult
 from app.application.services.authorization_service import AuthorizationService
 from app.application.services.event_schema_validator import EventSchemaValidator
 from app.application.services.hash_service import HashService
+from app.application.services.subject_type_schema_validator import (
+    SubjectTypeSchemaValidator,
+)
 from app.application.services.permission_service import PermissionService
 from app.application.services.role_service import RoleService
 from app.application.services.tenant_creation_service import TenantCreationService
@@ -32,8 +35,15 @@ from app.application.use_cases.documents import (
     DocumentQueryService,
     DocumentUploadService,
 )
+from app.application.use_cases.analytics import GetDashboardStatsUseCase
 from app.application.use_cases.events import EventService
-from app.application.use_cases.subjects import SubjectService
+from app.application.use_cases.search import SearchService
+from app.application.use_cases.state import GetSubjectStateUseCase
+from app.application.use_cases.subjects import (
+    SubjectErasureService,
+    SubjectExportService,
+    SubjectService,
+)
 from app.core.config import get_settings
 from app.infrastructure.external.storage.factory import StorageFactory
 from app.infrastructure.external.email.encryption import CredentialEncryptor
@@ -50,6 +60,8 @@ from app.infrastructure.persistence.database import (
 )
 from app.infrastructure.persistence.models.user import User
 from app.infrastructure.persistence.repositories import (
+    AuditLogRepository,
+    DocumentCategoryRepository,
     DocumentRepository,
     EmailAccountRepository,
     EventRepository,
@@ -59,7 +71,10 @@ from app.infrastructure.persistence.repositories import (
     PermissionRepository,
     RolePermissionRepository,
     RoleRepository,
+    SearchRepository,
     SubjectRepository,
+    SubjectSnapshotRepository,
+    SubjectTypeRepository,
     TenantRepository,
     UserRepository,
     UserRoleRepository,
@@ -372,6 +387,20 @@ async def get_event_repo(
     return EventRepository(db)
 
 
+async def get_search_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> SearchRepository:
+    """Search repository for full-text search (read-only)."""
+    return SearchRepository(db)
+
+
+async def get_search_service(
+    search_repo: Annotated[SearchRepository, Depends(get_search_repo)],
+) -> SearchService:
+    """Search use case (full-text across subjects, events, documents)."""
+    return SearchService(search_repo)
+
+
 async def get_verification_service(
     event_repo: Annotated[EventRepository, Depends(get_event_repo)],
 ) -> VerificationService:
@@ -394,7 +423,13 @@ async def get_subject_service(
     subject_repo = SubjectRepository(
         db, tenant_id=tenant_id, audit_service=audit_svc
     )
-    return SubjectService(subject_repo)
+    subject_type_repo = SubjectTypeRepository(db, audit_service=audit_svc)
+    schema_validator = SubjectTypeSchemaValidator(subject_type_repo)
+    return SubjectService(
+        subject_repo,
+        subject_type_repo=subject_type_repo,
+        schema_validator=schema_validator,
+    )
 
 
 async def get_subject_repo_for_write(
@@ -405,6 +440,68 @@ async def get_subject_repo_for_write(
     """Subject repository for update/delete (transactional, tenant-scoped)."""
     return SubjectRepository(
         db, tenant_id=tenant_id, audit_service=audit_svc
+    )
+
+
+async def get_subject_export_service(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+) -> SubjectExportService:
+    """Subject export use case (read-only: subject + events + document refs)."""
+    subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=None)
+    return SubjectExportService(
+        subject_repo=subject_repo,
+        event_repo=EventRepository(db),
+        document_repo=DocumentRepository(db),
+    )
+
+
+async def get_subject_erasure_service(
+    subject_repo: Annotated[SubjectRepository, Depends(get_subject_repo_for_write)],
+    document_repo: Annotated[DocumentRepository, Depends(get_document_repo_for_write)],
+) -> SubjectErasureService:
+    """Subject erasure use case (anonymize or delete)."""
+    return SubjectErasureService(
+        subject_repo=subject_repo,
+        document_repo=document_repo,
+    )
+
+
+async def get_subject_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+) -> SubjectRepository:
+    """Subject repository for read operations (tenant-scoped, no audit)."""
+    return SubjectRepository(db, tenant_id=tenant_id, audit_service=None)
+
+
+async def get_get_subject_state_use_case(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+) -> GetSubjectStateUseCase:
+    """State derivation use case (read-only: event replay; uses snapshot when available)."""
+    event_repo = EventRepository(db)
+    subject_repo = SubjectRepository(
+        db, tenant_id=tenant_id, audit_service=None
+    )
+    snapshot_repo = SubjectSnapshotRepository(db)
+    return GetSubjectStateUseCase(
+        event_repo=event_repo,
+        subject_repo=subject_repo,
+        snapshot_repo=snapshot_repo,
+    )
+
+
+async def get_dashboard_stats_use_case(
+    subject_repo: Annotated[SubjectRepository, Depends(get_subject_repo)],
+    event_repo: Annotated[EventRepository, Depends(get_event_repo)],
+    document_repo: Annotated[DocumentRepository, Depends(get_document_repo)],
+) -> GetDashboardStatsUseCase:
+    """Dashboard stats use case (counts and recent activity)."""
+    return GetDashboardStatsUseCase(
+        subject_repo=subject_repo,
+        event_repo=event_repo,
+        document_repo=document_repo,
     )
 
 
@@ -423,6 +520,36 @@ async def get_event_schema_repo_for_write(
     return EventSchemaRepository(
         db, cache_service=None, audit_service=audit_svc
     )
+
+
+async def get_subject_type_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> SubjectTypeRepository:
+    """Subject type repository for read operations."""
+    return SubjectTypeRepository(db, audit_service=None)
+
+
+async def get_subject_type_repo_for_write(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
+) -> SubjectTypeRepository:
+    """Subject type repository for create/update/delete (transactional)."""
+    return SubjectTypeRepository(db, audit_service=audit_svc)
+
+
+async def get_document_category_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> DocumentCategoryRepository:
+    """Document category repository for read operations."""
+    return DocumentCategoryRepository(db, audit_service=None)
+
+
+async def get_document_category_repo_for_write(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
+) -> DocumentCategoryRepository:
+    """Document category repository for create/update/delete (transactional)."""
+    return DocumentCategoryRepository(db, audit_service=audit_svc)
 
 
 async def get_user_repo(
@@ -526,6 +653,13 @@ async def get_user_role_repo_for_write(
 ) -> UserRoleRepository:
     """User–role repository for assign/remove (transactional)."""
     return UserRoleRepository(db, audit_service=audit_svc)
+
+
+async def get_audit_log_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AuditLogRepository:
+    """Audit log repository for read (list). Writes are via ApiAuditLogService in middleware."""
+    return AuditLogRepository(db)
 
 
 async def get_oauth_provider_config_repo(

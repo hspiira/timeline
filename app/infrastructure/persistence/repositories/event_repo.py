@@ -1,6 +1,8 @@
 """Event repository. Append-only; no update. Returns application DTOs."""
 
-from sqlalchemy import desc, func, select
+from datetime import datetime
+
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.event import EventCreate, EventResult, EventToPersist
@@ -112,6 +114,37 @@ class EventRepository(BaseRepository[Event]):
         )
         return [_event_to_result(e) for e in result.scalars().all()]
 
+    async def get_events_chronological(
+        self,
+        subject_id: str,
+        tenant_id: str,
+        as_of: datetime | None = None,
+        after_event_id: str | None = None,
+        limit: int = 10000,
+    ) -> list[EventResult]:
+        """Return events for subject in chronological order (oldest first). If as_of is set, only events with event_time <= as_of. If after_event_id is set, only events after that event (for snapshot replay)."""
+        q = (
+            select(Event)
+            .where(Event.subject_id == subject_id, Event.tenant_id == tenant_id)
+        )
+        if as_of is not None:
+            q = q.where(Event.event_time <= as_of)
+        if after_event_id is not None:
+            # Subquery: event_time and id of the after_event_id (must be same subject/tenant)
+            after_event = await self.get_by_id(after_event_id)
+            if after_event and after_event.subject_id == subject_id and after_event.tenant_id == tenant_id:
+                from sqlalchemy import or_
+                q = q.where(
+                    (Event.event_time > after_event.event_time)
+                    | (
+                        (Event.event_time == after_event.event_time)
+                        & (Event.id > after_event_id)
+                    )
+                )
+        q = q.order_by(asc(Event.event_time), asc(Event.id)).limit(limit)
+        result = await self.db.execute(q)
+        return [_event_to_result(e) for e in result.scalars().all()]
+
     async def count_by_subject(self, subject_id: str, tenant_id: str) -> int:
         result = await self.db.execute(
             select(func.count(Event.id)).where(
@@ -126,6 +159,15 @@ class EventRepository(BaseRepository[Event]):
             select(func.count(Event.id)).where(Event.tenant_id == tenant_id)
         )
         return result.scalar() or 0
+
+    async def get_counts_by_type(self, tenant_id: str) -> dict[str, int]:
+        """Return event counts per event_type for tenant."""
+        result = await self.db.execute(
+            select(Event.event_type, func.count(Event.id))
+            .where(Event.tenant_id == tenant_id)
+            .group_by(Event.event_type)
+        )
+        return dict(result.all())
 
     async def get_by_id(self, event_id: str) -> EventResult | None:
         result = await self.db.execute(select(Event).where(Event.id == event_id))

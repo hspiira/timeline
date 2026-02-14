@@ -19,6 +19,7 @@ from app.core.limiter import limiter
 from app.core.exception_handlers import register_exception_handlers
 from app.core.lifespan import create_lifespan
 from app.middleware import (
+    AuditLogMiddleware,
     CorrelationIDMiddleware,
     RequestIDMiddleware,
     RequestSizeLimitMiddleware,
@@ -51,6 +52,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(AuditLogMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(
         CorrelationIDMiddleware,

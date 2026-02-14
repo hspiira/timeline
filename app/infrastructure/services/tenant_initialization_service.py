@@ -43,6 +43,8 @@ SYSTEM_PERMISSIONS: list[tuple[str, str, str, str]] = [
     ("subject:update", "subject", "update", "Update subjects"),
     ("subject:delete", "subject", "delete", "Delete subjects"),
     ("subject:list", "subject", "list", "List subjects"),
+    ("subject:export", "subject", "export", "Export subject data (GDPR)"),
+    ("subject:erasure", "subject", "erasure", "Erase/anonymize subject data (GDPR)"),
     ("user:create", "user", "create", "Create users"),
     ("user:read", "user", "read", "View users"),
     ("user:update", "user", "update", "Update users"),
@@ -66,6 +68,7 @@ SYSTEM_PERMISSIONS: list[tuple[str, str, str, str]] = [
     ("workflow:read", "workflow", "read", "View workflows"),
     ("workflow:update", "workflow", "update", "Update workflows"),
     ("workflow:delete", "workflow", "delete", "Delete workflows"),
+    ("audit:read", "audit", "read", "View audit log"),
     ("*:*", "*", "*", "Super admin - all permissions"),
 ]
 
@@ -110,7 +113,7 @@ DEFAULT_ROLES: dict[str, RoleData] = {
     },
     "auditor": {
         "name": "Auditor (Read-Only)",
-        "description": "Read-only access to events and subjects",
+        "description": "Read-only access to events, subjects, and audit log",
         "permissions": [
             "event:read",
             "event:list",
@@ -118,6 +121,7 @@ DEFAULT_ROLES: dict[str, RoleData] = {
             "subject:list",
             "document:read",
             "event_schema:read",
+            "audit:read",
         ],
         "is_system": True,
     },

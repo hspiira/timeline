@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import and_, or_, select, update
+from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.document import DocumentCreate, DocumentResult
@@ -96,6 +97,16 @@ class DocumentRepository(AuditableRepository[Document]):
         if action == AuditAction.UPDATED and obj.deleted_at is not None:
             return False
         return super()._should_audit(action, obj)
+
+    async def count_by_tenant(self, tenant_id: str) -> int:
+        """Return count of non-deleted documents for tenant."""
+        result = await self.db.execute(
+            select(func.count(Document.id)).where(
+                Document.tenant_id == tenant_id,
+                Document.deleted_at.is_(None),
+            )
+        )
+        return result.scalar() or 0
 
     async def get_by_id(self, document_id: str) -> DocumentResult | None:
         result = await self.db.execute(
@@ -228,6 +239,28 @@ class DocumentRepository(AuditableRepository[Document]):
         if not any(d.id == document_id for d in rows):
             return []
         return [_document_to_result(d) for d in rows]
+
+    async def list_by_tenant(
+        self,
+        tenant_id: str,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        document_type: str | None = None,
+        include_deleted: bool = False,
+        created_before: datetime | None = None,
+    ) -> list[DocumentResult]:
+        """List documents for tenant (for retention job and admin)."""
+        q = select(Document).where(Document.tenant_id == tenant_id)
+        if not include_deleted:
+            q = q.where(Document.deleted_at.is_(None))
+        if document_type is not None:
+            q = q.where(Document.document_type == document_type)
+        if created_before is not None:
+            q = q.where(Document.created_at < created_before)
+        q = q.order_by(Document.created_at.desc()).offset(skip).limit(limit)
+        result = await self.db.execute(q)
+        return [_document_to_result(d) for d in result.scalars().all()]
 
     async def get_by_checksum(
         self, tenant_id: str, checksum: str
