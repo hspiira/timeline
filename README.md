@@ -30,6 +30,31 @@ npm run test
 This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
 
 
+## API types (generate:api)
+
+The `generate:api` script generates TypeScript types from the backend OpenAPI spec into `src/lib/timeline-api.ts`.
+
+**Prerequisite:** A server that serves the OpenAPI spec must be running. The script fetches `/openapi.json` from that server. By default it uses `http://localhost:8000` (e.g. your local Timeline API).
+
+Example (if your backend runs on port 8000):
+
+```bash
+# Start the backend API first, then:
+pnpm run generate:api
+```
+
+**Custom URL:** You can override the base URL with `OPENAPI_URL` or `API_URL`. The script appends `/openapi.json` to the base URL.
+
+```bash
+# Custom server
+OPENAPI_URL=https://api.example.com pnpm run generate:api
+
+# Or using API_URL
+API_URL=http://localhost:9000 pnpm run generate:api
+```
+
+Default when not set: `http://localhost:8000`.
+
 ## Linting & Formatting
 
 This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:

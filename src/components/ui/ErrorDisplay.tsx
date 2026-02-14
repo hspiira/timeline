@@ -1,10 +1,13 @@
 /**
  * Inline error display with optional retry. Use for API/form errors.
+ * Composes Alert (shadcn-style) + getApiErrorDisplay + optional retry action.
  */
 
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { getApiErrorDisplay } from '@/lib/api-utils'
 import type { ApiErrorDisplay } from '@/lib/api-utils'
+import { Alert, AlertDescription } from './alert'
+import { Button } from './button'
 
 export interface ErrorDisplayProps {
   error: unknown
@@ -30,33 +33,34 @@ export function ErrorDisplay({
   const retryable = isRetryable(status) && !!onRetry
 
   return (
-    <div
-      className={`flex items-start gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-[var(--radius)] text-destructive ${className}`}
-      role="alert"
-    >
-      <AlertCircle size={20} className="shrink-0 mt-0.5" aria-hidden />
+    <Alert variant="destructive" className={className}>
+      <AlertCircle size={20} className="shrink-0" aria-hidden />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground">{display.message}</p>
-        {display.fieldErrors && display.fieldErrors.length > 0 && (
-          <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-            {display.fieldErrors.map((fe) => (
-              <li key={fe.field}>
-                <span className="font-medium">{fe.field}:</span> {fe.message}
-              </li>
-            ))}
-          </ul>
-        )}
-        {retryable && (
-          <button
-            type="button"
-            onClick={onRetry}
-            className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:opacity-90 text-sm font-medium rounded-[var(--radius)] transition-opacity"
-          >
-            <RefreshCw size={16} aria-hidden />
-            Retry
-          </button>
-        )}
+        <AlertDescription>
+          <p className="font-medium text-foreground">{display.message}</p>
+          {display.fieldErrors && display.fieldErrors.length > 0 && (
+            <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+              {display.fieldErrors.map((fe) => (
+                <li key={fe.field}>
+                  <span className="font-medium">{fe.field}:</span> {fe.message}
+                </li>
+              ))}
+            </ul>
+          )}
+          {retryable && (
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              onClick={onRetry}
+              className="mt-3"
+            >
+              <RefreshCw size={16} className="mr-2" aria-hidden />
+              Retry
+            </Button>
+          )}
+        </AlertDescription>
       </div>
-    </div>
+    </Alert>
   )
 }

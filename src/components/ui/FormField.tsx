@@ -1,5 +1,6 @@
 import { ReactNode } from 'react'
 import { AlertCircle } from 'lucide-react'
+import { Alert, AlertDescription } from './alert'
 
 export interface FormFieldProps {
   label: string
@@ -44,7 +45,7 @@ export interface FormInputProps
 export function FormInput({ error, className = '', ...props }: FormInputProps) {
   return (
     <input
-      className={`w-full px-3 py-2 bg-background border rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 transition-colors ${
+      className={`w-full px-3 py-2 bg-background border rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 transition-colors ${
         error
           ? 'border-red-500 dark:border-red-600 focus:ring-red-500/20 dark:focus:ring-red-600/20'
           : 'border-input focus:ring-ring/20'
@@ -66,7 +67,7 @@ export function FormTextarea({
 }: FormTextareaProps) {
   return (
     <textarea
-      className={`w-full px-3 py-2 bg-background border rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 transition-colors resize-none ${
+      className={`w-full px-3 py-2 bg-background border rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 transition-colors resize-none ${
         error
           ? 'border-red-500 dark:border-red-600 focus:ring-red-500/20 dark:focus:ring-red-600/20'
           : 'border-input focus:ring-ring/20'
@@ -84,10 +85,12 @@ export function FormError({ message }: FormErrorProps) {
   if (!message) return null
 
   return (
-    <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-700 rounded-xs flex items-center gap-2">
-      <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-300 flex-shrink-0" />
-      <p className="text-sm text-red-700 dark:text-red-200">{message}</p>
-    </div>
+    <Alert variant="destructive" className="p-3">
+      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+      <AlertDescription>
+        <p className="text-sm">{message}</p>
+      </AlertDescription>
+    </Alert>
   )
 }
 
@@ -99,8 +102,8 @@ export function FormSuccess({ message }: FormSuccessProps) {
   if (!message) return null
 
   return (
-    <div className="p-3 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-700 rounded-xs flex items-center gap-2">
-      <div className="w-4 h-4 rounded-full bg-green-600 dark:bg-green-300 flex-shrink-0" />
+    <div className="p-3 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-700 rounded-none flex items-center gap-2">
+      <div className="w-4 h-4 rounded-none bg-green-600 dark:bg-green-300 flex-shrink-0" />
       <p className="text-sm text-green-700 dark:text-green-200">{message}</p>
     </div>
   )

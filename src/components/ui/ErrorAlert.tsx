@@ -1,3 +1,4 @@
+import { Alert, AlertDescription } from './alert'
 import { ErrorIcon } from './icons'
 
 export interface ErrorAlertProps {
@@ -5,14 +6,14 @@ export interface ErrorAlertProps {
   className?: string
 }
 
+/** Inline error message. Prefer Alert variant="destructive" for new code; this is the unified form/alert error. */
 export function ErrorAlert({ message, className = '' }: ErrorAlertProps) {
   return (
-    <div
-      className={`flex items-start gap-2 p-3 rounded-xs bg-destructive/10 border border-destructive/20 text-destructive ${className}`}
-      role="alert"
-    >
-      <ErrorIcon size="md" className="shrink-0 mt-0.5" />
-      <p className="text-sm">{message}</p>
-    </div>
+    <Alert variant="destructive" className={className}>
+      <ErrorIcon size="md" className="shrink-0" />
+      <AlertDescription>
+        <p className="text-sm">{message}</p>
+      </AlertDescription>
+    </Alert>
   )
 }

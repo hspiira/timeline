@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { FileText, Eye } from 'lucide-react'
 import type { EventResponse } from '@/lib/types'
+import { formatEventDate, formatEventTime } from '@/lib/format-date'
 
 export interface EventsTableProps {
   events: EventResponse[]
@@ -52,15 +53,7 @@ export function EventsTable({
                 className="group text-sm border-0 border-none hover:bg-muted/40 transition-colors"
               >
                 <td className="py-2.5 pr-4 text-muted-foreground whitespace-nowrap">
-                  {eventDate.toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}{' '}
-                  {eventDate.toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {formatEventDate(eventDate)} {formatEventTime(eventDate)}
                 </td>
                 <td className="py-2.5 pr-4">
                   <span className="font-medium text-foreground">{event.event_type}</span>

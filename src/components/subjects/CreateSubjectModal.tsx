@@ -4,6 +4,7 @@ import { FormField, FormInput, FormError } from '@/components/ui/FormField'
 import { Button } from '@/components/ui/button'
 import { LoadingIcon } from '@/components/ui/icons'
 import { Modal } from '@/components/ui/Modal'
+import { validateAlphanumericUnderscore } from '@/lib/validation'
 
 interface CreateSubjectModalProps {
   isOpen: boolean
@@ -26,16 +27,8 @@ export function CreateSubjectModal({
     e.preventDefault()
     setError(null)
 
-    // Validate subject type
-    if (!subjectType.trim()) {
-      const validationError = 'Subject type is required'
-      setError(validationError)
-      toast.error('Validation error', validationError)
-      return
-    }
-
-    if (!/^[a-zA-Z0-9_]+$/.test(subjectType)) {
-      const validationError = 'Subject type must contain only alphanumeric characters and underscores'
+    const validationError = validateAlphanumericUnderscore(subjectType, 'Subject type')
+    if (validationError) {
       setError(validationError)
       toast.error('Validation error', validationError)
       return

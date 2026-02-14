@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { timelineApi } from '@/lib/api-client'
 import type { components } from '@/lib/timeline-api'
 import { Modal } from '../ui/Modal'
 import { Input } from '../ui/input'
@@ -8,6 +7,7 @@ import { Select } from '../ui/select'
 import { Button } from '../ui/button'
 import { LoadingIcon } from '../ui/icons'
 import { ErrorAlert } from '../ui/ErrorAlert'
+import { useEventTypes } from '@/hooks/useEventTypes'
 
 type WorkflowCreate = components['schemas']['WorkflowCreateRequest']
 
@@ -41,27 +41,7 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
   })
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [eventTypes, setEventTypes] = useState<string[]>([])
-  const [loadingEventTypes, setLoadingEventTypes] = useState(false)
-
-  useEffect(() => {
-    fetchEventTypes()
-  }, [])
-
-  const fetchEventTypes = async () => {
-    setLoadingEventTypes(true)
-    try {
-      const { data } = await timelineApi.eventSchemas.list({ limit: 500 })
-      if (data) {
-        const types = [...new Set(data.map((s: { event_type: string }) => s.event_type).filter(Boolean))]
-        setEventTypes(types)
-      }
-    } catch (err) {
-      console.error('Failed to fetch event types:', err)
-    } finally {
-      setLoadingEventTypes(false)
-    }
-  }
+  const { types: eventTypes, loading: loadingEventTypes } = useEventTypes()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -173,7 +153,7 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
                 }))
               }
               placeholder="Optional description of what this workflow does"
-              className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 resize-none"
+              className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 resize-none"
               rows={3}
               disabled={loading}
             />
@@ -230,7 +210,7 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
             )}
 
             {state.actions.length === 0 ? (
-              <div className="p-3 bg-background/50 border border-dashed border-border rounded-xs text-center text-sm text-muted-foreground">
+              <div className="p-3 bg-background/50 border border-dashed border-border rounded-none text-center text-sm text-muted-foreground">
                 No actions yet. Click "Add Action" to create one.
               </div>
             ) : (
@@ -238,7 +218,7 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
                 {state.actions.map((action, index) => (
                   <div
                     key={action.id}
-                    className="p-3 bg-background/50 border border-border rounded-xs space-y-2"
+                    className="p-3 bg-background/50 border border-border rounded-none space-y-2"
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium text-muted-foreground">Action {index + 1}</span>

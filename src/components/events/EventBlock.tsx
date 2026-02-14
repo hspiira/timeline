@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { CheckCircle, FileText, ChevronRight, Link2, Copy, Check } from 'lucide-react'
 import { useState } from 'react'
 import type { EventResponse } from '@/lib/types'
+import { formatEventDate, formatEventTime } from '@/lib/format-date'
 
 // Column definitions - single source of truth
 const columns = [
@@ -71,9 +72,9 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
 
   return (
     <tr className="group cursor-pointer">
-      <td className={`${cell} ${colStyles.block} border-l rounded-l-xs`}>
+      <td className={`${cell} ${colStyles.block} border-l rounded-none`}>
         <Link to="/subjects/$subjectId/events/$eventId" params={{ subjectId: event.subject_id, eventId: event.id }} className="flex items-center justify-center">
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center ${
+          <div className={`w-7 h-7 rounded-none flex items-center justify-center ${
             isGenesis ? 'bg-primary/20 border-2 border-primary' : 'bg-muted border border-border'
           }`}>
             <span className={`font-semibold ${isGenesis ? 'text-[10px] text-primary' : 'text-xs text-muted-foreground'}`}>
@@ -102,13 +103,13 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
 
       <td className={`${cell} ${colStyles.date} text-xs text-muted-foreground whitespace-nowrap`}>
         <Link to="/subjects/$subjectId/events/$eventId" params={{ subjectId: event.subject_id, eventId: event.id }} className="block">
-          {eventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          {formatEventDate(eventDate)}
         </Link>
       </td>
 
       <td className={`${cell} ${colStyles.time} text-xs font-mono text-muted-foreground whitespace-nowrap`}>
         <Link to="/subjects/$subjectId/events/$eventId" params={{ subjectId: event.subject_id, eventId: event.id }} className="block">
-          {eventDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          {formatEventTime(eventDate)}
         </Link>
       </td>
 
@@ -139,7 +140,7 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
         </Link>
       </td>
 
-      <td className={`${cell} ${colStyles.action} border-r rounded-r-xs`}>
+      <td className={`${cell} ${colStyles.action} border-r rounded-none`}>
         <Link to="/subjects/$subjectId/events/$eventId" params={{ subjectId: event.subject_id, eventId: event.id }} className="flex items-center justify-center gap-1">
           <CheckCircle className="w-4 h-4 text-green-500" />
           <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />

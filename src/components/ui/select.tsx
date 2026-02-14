@@ -41,7 +41,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     ref
   ) => {
     const baseStyles =
-      'w-full rounded-xs bg-background border transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+      'w-full rounded-none bg-background border transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
     const focusStyles = 'focus:outline-none focus:ring-1'
 
     const activeVariant = error ? 'error' : variant

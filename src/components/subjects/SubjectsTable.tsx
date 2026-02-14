@@ -1,48 +1,16 @@
 import {
-    flexRender,
-    getCoreRowModel,
-    useReactTable,
-  } from '@tanstack/react-table'
-  import type { ColumnDef } from '@tanstack/react-table'
-  import type { SubjectWithMetadata } from '@/hooks/useSubjects'
-  import {
-      Users,
-      Tag,
-      ShoppingCart,
-      FolderKanban,
-      FileText,
-      Package,
-      Building2,
-      User,
-      type LucideIcon,
-      SquarePen,
-    } from 'lucide-react'
-  import { useNavigate } from '@tanstack/react-router'
-  
-  
-  // Helper to get icon and color for subject type
-  function getSubjectIcon(
-      subjectType: string
-    ): { icon: LucideIcon; bgColor: string; textColor: string; borderColor: string; accent: string } {
-      const type = subjectType.toLowerCase()
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
+import type { SubjectWithMetadata } from '@/hooks/useSubjects'
+import { SquarePen } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
+import { getSubjectTypeTheme } from '@/lib/subject-type-theme'
+import { formatShortDate } from '@/lib/format-date'
 
-      // Map subject types to icons and colors
-      const iconMap: Record<string, { icon: LucideIcon; bgColor: string; textColor: string; borderColor: string; accent: string }> = {
-        user: { icon: User, bgColor: 'bg-blue-100 dark:bg-blue-900/20', textColor: 'text-blue-600 dark:text-blue-400', borderColor: 'border-blue-200 dark:border-blue-800', accent: 'text-blue-700 dark:text-blue-300' },
-        users: { icon: Users, bgColor: 'bg-blue-100 dark:bg-blue-900/20', textColor: 'text-blue-600 dark:text-blue-400', borderColor: 'border-blue-200 dark:border-blue-800', accent: 'text-blue-700 dark:text-blue-300' },
-        customer: { icon: Building2, bgColor: 'bg-purple-100 dark:bg-purple-900/20', textColor: 'text-purple-600 dark:text-purple-400', borderColor: 'border-purple-200 dark:border-purple-800', accent: 'text-purple-700 dark:text-purple-300' },
-        order: { icon: ShoppingCart, bgColor: 'bg-green-100 dark:bg-green-900/20', textColor: 'text-green-600 dark:text-green-400', borderColor: 'border-green-200 dark:border-green-800', accent: 'text-green-700 dark:text-green-300' },
-        project: { icon: FolderKanban, bgColor: 'bg-orange-100 dark:bg-orange-900/20', textColor: 'text-orange-600 dark:text-orange-400', borderColor: 'border-orange-200 dark:border-orange-800', accent: 'text-orange-700 dark:text-orange-300' },
-        invoice: { icon: FileText, bgColor: 'bg-amber-100 dark:bg-amber-900/20', textColor: 'text-amber-600 dark:text-amber-400', borderColor: 'border-amber-200 dark:border-amber-800', accent: 'text-amber-700 dark:text-amber-300' },
-        shipment: { icon: Package, bgColor: 'bg-cyan-100 dark:bg-cyan-900/20', textColor: 'text-cyan-600 dark:text-cyan-400', borderColor: 'border-cyan-200 dark:border-cyan-800', accent: 'text-cyan-700 dark:text-cyan-300' },
-        package: { icon: Package, bgColor: 'bg-cyan-100 dark:bg-cyan-900/20', textColor: 'text-cyan-600 dark:text-cyan-400', borderColor: 'border-cyan-200 dark:border-cyan-800', accent: 'text-cyan-700 dark:text-cyan-300' },
-      }
-
-      // Return specific icon or default
-      return iconMap[type] || { icon: Tag, bgColor: 'bg-gray-100 dark:bg-gray-900/20', textColor: 'text-gray-600 dark:text-gray-400', borderColor: 'border-gray-200 dark:border-gray-800', accent: 'text-gray-700 dark:text-gray-300' }
-    }
-  
-  interface SubjectsTableProps {
+interface SubjectsTableProps {
     data: SubjectWithMetadata[]
     onEdit?: (subject: SubjectWithMetadata) => void
   }
@@ -56,11 +24,11 @@ import {
         header: 'Subject',
         cell: ({ row }) => {
           const subject = row.original
-          const { icon: Icon, bgColor, textColor } = getSubjectIcon(subject.subject_type)
+          const { icon: Icon, bgColor, textColor } = getSubjectTypeTheme(subject.subject_type)
           return (
             <div className="flex items-center gap-2">
               <div
-                className={`w-8 h-8 rounded-xs ${bgColor} flex items-center justify-center shrink-0`}
+                className={`w-8 h-8 rounded-none ${bgColor} flex items-center justify-center shrink-0`}
               >
                 <Icon className={`w-4 h-4 ${textColor}`} />
               </div>
@@ -81,9 +49,9 @@ import {
         header: 'Type',
         cell: ({ row }) => {
             const subject = row.original
-            const { borderColor, accent, bgColor } = getSubjectIcon(subject.subject_type)
+            const { borderColor, accent, bgColor } = getSubjectTypeTheme(subject.subject_type)
             return (
-                <span className={`text-sm font-medium ${accent} px-2.5 py-1.5 rounded-xs border ${borderColor} ${bgColor} inline-block`}>
+                <span className={`text-sm font-medium ${accent} px-2.5 py-1.5 rounded-none border ${borderColor} ${bgColor} inline-block`}>
                     {subject.subject_type}
                 </span>
             )
@@ -107,10 +75,7 @@ import {
             return (
                 <span className="text-sm text-muted-foreground">
                     {subject.lastEventDate
-                      ? new Date(subject.lastEventDate).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                        })
+                      ? formatShortDate(subject.lastEventDate)
                       : '—'}
                 </span>
             )
@@ -140,7 +105,7 @@ import {
                 e.stopPropagation()
                 onEdit?.(subject)
               }}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xs transition-colors focus:outline-none focus:ring-2 focus:ring-ring/20"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors focus:outline-none focus:ring-2 focus:ring-ring/20"
               title="Edit subject"
               aria-label="Edit subject"
             >
@@ -162,7 +127,7 @@ import {
     }
   
     return (
-      <div className="bg-card/80 backdrop-blur-sm rounded-xs border border-border overflow-hidden">
+      <div className="bg-card/80 backdrop-blur-sm rounded-none border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-max">
             <thead className="bg-muted/50 border-b border-border sticky top-0">

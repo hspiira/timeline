@@ -45,8 +45,8 @@ code {
   --chart-3: oklch(0.40 0 0);
   --chart-4: oklch(0.70 0 0);
   --chart-5: oklch(0.55 0 0);
-  --radius: 0.625rem;
-  --radius-xs: 1px;
+  --radius: 0;
+  --radius-xs: 0;
   --sidebar: oklch(0.99 0 0);
   --sidebar-foreground: oklch(0.15 0 0);
   --sidebar-primary: oklch(0.20 0 0);

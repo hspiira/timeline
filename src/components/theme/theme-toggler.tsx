@@ -21,7 +21,7 @@ export function ThemeToggle({ showLabel = false }: ThemeToggleProps) {
     <button
       type="button"
       onClick={handleClick}
-      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-accent rounded-xs transition-all"
+      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-accent rounded-none transition-all"
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
     >
       {isDark ? (

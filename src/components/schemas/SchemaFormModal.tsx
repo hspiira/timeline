@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { LoadingIcon } from '@/components/ui/icons'
+import { validateAlphanumericUnderscore } from '@/lib/validation'
 
 interface SchemaField {
   id: string
@@ -59,15 +60,8 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
   const [editMode, setEditMode] = useState<'form' | 'json'>('form')
   const [jsonEdit, setJsonEdit] = useState('')
 
-  const validateEventType = (value: string): string | null => {
-    if (!value.trim()) {
-      return 'Event type is required'
-    }
-    if (!/^[a-zA-Z0-9_]+$/.test(value)) {
-      return 'Event type must contain only alphanumeric characters and underscores'
-    }
-    return null
-  }
+  const validateEventType = (value: string): string | null =>
+    validateAlphanumericUnderscore(value, 'Event type')
 
   const generateJsonSchema = (): Record<string, any> => {
     const properties: Record<string, any> = {}
@@ -291,12 +285,9 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
 
       // Validate field names
       for (const field of fields) {
-        if (!field.name.trim()) {
-          setError('All field names are required')
-          return
-        }
-        if (!/^[a-zA-Z0-9_]+$/.test(field.name)) {
-          setError(`Field name "${field.name}" must contain only alphanumeric characters and underscores`)
+        const err = validateAlphanumericUnderscore(field.name, 'Field name')
+        if (err) {
+          setError(field.name.trim() ? err.replace('Field name', `Field name "${field.name}"`) : 'All field names are required')
           return
         }
       }
@@ -389,7 +380,7 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
             </div>
 
             {fields.length === 0 ? (
-              <div className="p-4 bg-background/50 border border-dashed border-border rounded-xs text-center text-sm text-muted-foreground">
+              <div className="p-4 bg-background/50 border border-dashed border-border rounded-none text-center text-sm text-muted-foreground">
                 No fields yet. Click "Add Field" to create one.
               </div>
             ) : (
@@ -399,7 +390,7 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
                   return (
                     <div
                       key={field.id}
-                      className="flex items-center justify-between p-3 bg-background/50 border border-border rounded-xs hover:border-primary/50 transition-colors group"
+                      className="flex items-center justify-between p-3 bg-background/50 border border-border rounded-none hover:border-primary/50 transition-colors group"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -485,7 +476,7 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
                   </button>
 
                   {showJsonPreview && (
-                    <div className="p-3 bg-background/50 border border-border rounded-xs overflow-auto max-h-40">
+                    <div className="p-3 bg-background/50 border border-border rounded-none overflow-auto max-h-40">
                       <pre className="text-xs font-mono text-muted-foreground whitespace-pre-wrap wrap-break-word">
                         {JSON.stringify(jsonSchema, null, 2)}
                       </pre>
@@ -519,7 +510,7 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
                   value={jsonEdit}
                   onChange={(e) => setJsonEdit(e.target.value)}
                   placeholder='{\n  "type": "object",\n  "properties": {\n    "email": {\n      "type": "string",\n      "format": "email"\n    }\n  },\n  "required": ["email"]\n}'
-                  className="w-full px-3 py-2 bg-background border border-input rounded-xs text-foreground font-mono text-xs placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 resize-none"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground font-mono text-xs placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 resize-none"
                   rows={12}
                   disabled={loading}
                 />
