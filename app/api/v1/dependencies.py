@@ -23,6 +23,9 @@ from app.application.dtos.user import UserResult
 from app.application.services.authorization_service import AuthorizationService
 from app.application.services.event_schema_validator import EventSchemaValidator
 from app.application.services.hash_service import HashService
+from app.application.services.document_category_metadata_validator import (
+    DocumentCategoryMetadataValidator,
+)
 from app.application.services.subject_type_schema_validator import (
     SubjectTypeSchemaValidator,
 )
@@ -300,14 +303,18 @@ async def get_document_upload_service(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
     audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> DocumentUploadService:
-    """Build DocumentUploadService for upload (storage + document/tenant repos)."""
+    """Build DocumentUploadService for upload (storage + document/tenant repos + optional category metadata validation)."""
     storage = StorageFactory.create_storage_service()
     document_repo = DocumentRepository(db, audit_service=audit_svc)
     tenant_repo = TenantRepository(db)
+    category_repo = DocumentCategoryRepository(db, audit_service=audit_svc)
+    metadata_validator = DocumentCategoryMetadataValidator(category_repo)
     return DocumentUploadService(
         storage_service=storage,
         document_repo=document_repo,
         tenant_repo=tenant_repo,
+        category_repo=category_repo,
+        metadata_validator=metadata_validator,
     )
 
 

@@ -6,7 +6,7 @@ import asyncio
 import hashlib
 import os
 from datetime import timedelta
-from typing import BinaryIO
+from typing import TYPE_CHECKING, BinaryIO
 
 from app.application.dtos.document import (
     DocumentCreate,
@@ -25,6 +25,12 @@ from app.domain.exceptions import (
     ValidationException,
 )
 from app.shared.utils.generators import generate_cuid
+
+if TYPE_CHECKING:
+    from app.application.interfaces.repositories import IDocumentCategoryRepository
+    from app.application.services.document_category_metadata_validator import (
+        DocumentCategoryMetadataValidator,
+    )
 
 
 def _rewind_if_seekable(file_data: BinaryIO) -> None:
@@ -61,10 +67,14 @@ class DocumentUploadService:
         storage_service: IStorageService,
         document_repo: IDocumentRepository,
         tenant_repo: ITenantRepository,
+        category_repo: "IDocumentCategoryRepository | None" = None,
+        metadata_validator: "DocumentCategoryMetadataValidator | None" = None,
     ) -> None:
         self.storage = storage_service
         self.document_repo = document_repo
         self.tenant_repo = tenant_repo
+        self.category_repo = category_repo
+        self.metadata_validator = metadata_validator
 
     def _generate_storage_ref(
         self,
@@ -95,8 +105,15 @@ class DocumentUploadService:
         event_id: str | None = None,
         created_by: str | None = None,
         parent_document_id: str | None = None,
+        metadata: dict | None = None,
     ) -> DocumentResult:
         """Upload file to storage and create document record. Returns created document."""
+        if metadata is not None and self.metadata_validator:
+            await self.metadata_validator.validate_metadata(
+                tenant_id=tenant_id,
+                document_type=document_type,
+                metadata=metadata,
+            )
         tenant = await self.tenant_repo.get_by_id(tenant_id)
         if not tenant:
             raise ResourceNotFoundException("tenant", tenant_id)

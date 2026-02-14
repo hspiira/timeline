@@ -1,6 +1,6 @@
 """Document API: thin routes delegating to DocumentUploadService, DocumentQueryService, and DocumentRepository."""
 
-import dataclasses
+import json
 from datetime import timedelta
 from typing import Annotated
 
@@ -19,7 +19,10 @@ from app.application.use_cases.documents import (
     DocumentUploadService,
 )
 from app.core.limiter import limit_writes
-from app.domain.exceptions import ResourceNotFoundException
+from app.domain.exceptions import (
+    ResourceNotFoundException,
+    SchemaValidationException,
+)
 from app.infrastructure.persistence.repositories.document_repo import (
     DocumentRepository,
 )
@@ -32,6 +35,17 @@ from app.schemas.document import (
 )
 
 router = APIRouter()
+
+
+def _parse_metadata_form(value: str | None) -> dict | None:
+    """Parse optional metadata form field (JSON string). Returns None if empty/invalid."""
+    if not value or not value.strip():
+        return None
+    try:
+        parsed = json.loads(value)
+        return parsed if isinstance(parsed, dict) else None
+    except json.JSONDecodeError:
+        return None
 
 
 @router.post(
@@ -53,11 +67,17 @@ async def upload_document(
     event_id: str | None = Form(None),
     created_by: str | None = Form(None),
     parent_document_id: str | None = Form(None),
+    metadata: str | None = Form(None),
 ):
-    """Upload a document for a subject (storage + document record)."""
+    """Upload a document for a subject (storage + document record).
+
+    Optional metadata (JSON string) is validated against the document category's
+    metadata_schema when document_type matches a configured category with a schema.
+    """
     if not file.filename:
         raise HTTPException(status_code=400, detail="Filename required")
     content_type = file.content_type or "application/octet-stream"
+    metadata_dict = _parse_metadata_form(metadata)
     try:
         created = await upload_svc.upload_document(
             tenant_id=tenant_id,
@@ -70,10 +90,16 @@ async def upload_document(
             event_id=event_id,
             created_by=created_by,
             parent_document_id=parent_document_id,
+            metadata=metadata_dict,
         )
         return DocumentUploadResponse(id=created.id, filename=file.filename)
     except ResourceNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
+    except SchemaValidationException as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"message": e.message, "schema_type": e.details.get("schema_type"), "errors": e.details.get("errors", [])},
+        ) from e
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
