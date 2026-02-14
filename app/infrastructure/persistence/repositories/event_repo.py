@@ -3,7 +3,7 @@
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.application.dtos.event import CreateEventCommand, EventResult, EventToPersist
+from app.application.dtos.event import EventCreate, EventResult, EventToPersist
 from app.infrastructure.persistence.models.event import Event
 from app.infrastructure.persistence.repositories.base import BaseRepository
 
@@ -79,7 +79,7 @@ class EventRepository(BaseRepository[Event]):
     async def create_event(
         self,
         tenant_id: str,
-        data: CreateEventCommand,
+        data: EventCreate,
         event_hash: str,
         previous_hash: str | None,
     ) -> EventResult:

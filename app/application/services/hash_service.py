@@ -17,7 +17,6 @@ class HashAlgorithm(ABC):
     @abstractmethod
     def hash(self, data: str) -> str:
         """Compute hash of input string."""
-        ...
 
 
 class SHA256Algorithm(HashAlgorithm):

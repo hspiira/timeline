@@ -6,8 +6,8 @@ from typing import Any
 
 
 @dataclass(frozen=True)
-class CreateEventCommand:
-    """Application-layer input for creating one event. Presentation layer maps to this."""
+class EventCreate:
+    """Input for creating an event record (write-model). Use case builds this; repo persists and returns EventResult."""
 
     subject_id: str
     event_type: str

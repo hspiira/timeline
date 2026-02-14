@@ -5,12 +5,12 @@ Events are immutable (append-only); use a frozen entity.
 """
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from app.domain.exceptions import ValidationException
 from app.domain.value_objects.core import EventChain, EventType
-from app.shared.utils.datetime import ensure_utc
+from app.shared.utils.datetime import ensure_utc, utc_now
 
 
 @dataclass(frozen=True)
@@ -68,8 +68,9 @@ class EventEntity:
             raise ValidationException("Event must belong to a tenant", field="tenant_id")
         if not self.subject_id:
             raise ValidationException("Event must belong to a subject", field="subject_id")
-        now = datetime.now(UTC)
+        now = utc_now()
         event_time_utc = ensure_utc(self.event_time)
+        assert event_time_utc is not None  # event_time is always set
         if event_time_utc > now:
             raise ValidationException("Event time cannot be in the future", field="event_time")
         if not self.payload:

@@ -9,7 +9,7 @@ from typing import Any, Protocol
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.application.dtos.event import CreateEventCommand
+from app.application.dtos.event import EventCreate
 from app.application.interfaces.services import IEventService
 from app.infrastructure.persistence.models.workflow import Workflow, WorkflowExecution
 from app.infrastructure.persistence.repositories.workflow_repo import WorkflowRepository
@@ -163,7 +163,7 @@ class WorkflowEngine:
                 if action_type == "create_event":
                     params = action.get("params", {})
                     try:
-                        cmd = CreateEventCommand(
+                        cmd = EventCreate(
                             subject_id=triggered_by.subject_id,
                             event_type=params.get("event_type", ""),
                             schema_version=params.get("schema_version", 1),

@@ -126,7 +126,10 @@ class Settings(BaseSettings):
                     "Set in environment or .env file."
                 )
         elif self.database_backend == "firestore":
-            has_key = self.firebase_service_account_key and self.firebase_service_account_key.get_secret_value()
+            has_key = (
+                self.firebase_service_account_key
+                and self.firebase_service_account_key.get_secret_value()
+            )
             if not has_key and not self.firebase_service_account_path:
                 raise ValueError(
                     "When database_backend is 'firestore', set FIREBASE_SERVICE_ACCOUNT_KEY (full JSON string) "

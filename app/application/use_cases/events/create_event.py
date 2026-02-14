@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable
 
-from app.application.dtos.event import CreateEventCommand, EventResult, EventToPersist
+from app.application.dtos.event import EventCreate, EventResult, EventToPersist
 from app.application.interfaces.repositories import (
     IEventRepository,
     ISubjectRepository,
@@ -65,7 +65,7 @@ class EventService:
     async def create_event(
         self,
         tenant_id: str,
-        data: CreateEventCommand,
+        data: EventCreate,
         *,
         trigger_workflows: bool = True,
     ) -> EventEntity:
@@ -114,7 +114,7 @@ class EventService:
     async def create_events_bulk(
         self,
         tenant_id: str,
-        events: list[CreateEventCommand],
+        events: list[EventCreate],
         *,
         skip_schema_validation: bool = False,
         trigger_workflows: bool = False,

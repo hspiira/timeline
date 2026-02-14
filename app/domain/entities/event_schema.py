@@ -33,6 +33,12 @@ class EventSchemaEntity:
 
     def validate(self) -> None:
         """Validate schema business rules. Raises ValidationException if invalid."""
+        if not self.id:
+            raise ValidationException("Schema ID is required", field="id")
+        if not self.tenant_id:
+            raise ValidationException("Schema must belong to a tenant", field="tenant_id")
+        if not self.event_type:
+            raise ValidationException("Schema must have an event type", field="event_type")
         if self.version < 1:
             raise ValidationException("Schema version must be positive", field="version")
         if not self.schema_definition:

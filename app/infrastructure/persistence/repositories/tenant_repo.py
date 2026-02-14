@@ -137,7 +137,7 @@ class TenantRepository(AuditableRepository[Tenant]):
             tenant.status = status.value
         updated = await self.update_without_audit(tenant)
         await _invalidate_tenant_cache(self.cache, updated.id, updated.code)
-        if status is not None:
+        if status is not None and status != old_status:
             await self.emit_custom_audit(
                 updated,
                 AuditAction.STATUS_CHANGED,

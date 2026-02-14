@@ -59,7 +59,7 @@ class TenantCreationService:
 
         password = self._generate_secure_password()
         admin_username = "admin"
-        admin_email = f"admin@{code}.tl"
+        admin_email = f"admin@{code}.timeline"
         admin_user = await self.user_repo.create_user(
             tenant_id=tenant_id,
             username=admin_username,

@@ -8,8 +8,8 @@ import re
 from dataclasses import dataclass
 from typing import ClassVar
 
-# Shared slug pattern: lowercase alphanumeric with optional hyphens (e.g. acme-corp).
 _SLUG_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+_UNDERSCORE_RE = re.compile(r"^[a-z0-9]+(_[a-z0-9]+)*$")
 
 
 def _validate_slug(
@@ -55,20 +55,22 @@ class TenantCode:
 class SubjectType:
     """Value object for subject type (SRP).
 
-    Subject types are lowercase alphanumeric with optional hyphens,
-    max 150 characters (e.g. 'client', 'policy').
+    Subject types are lowercase alphanumeric with optional underscores,
+    max 150 characters (e.g. 'client', 'system_audit').
     """
 
     value: str
 
     def __post_init__(self) -> None:
-        _validate_slug(
-            self.value,
-            min_len=1,
-            max_len=150,
-            field_name="Subject type",
-            length_msg="Subject type must not exceed 150 characters",
-        )
+        if not self.value:
+            raise ValueError("Subject type must be a non-empty string")
+        if len(self.value) > 150:
+            raise ValueError("Subject type must not exceed 150 characters")
+        if not _UNDERSCORE_RE.match(self.value):
+            raise ValueError(
+                "Subject type must be lowercase alphanumeric with optional "
+                "underscores (e.g., 'client', 'system_audit')"
+            )
 
 
 @dataclass(frozen=True)
@@ -81,7 +83,6 @@ class EventType:
 
     value: str
 
-    # Standard event types (reference only - custom types are allowed)
     VALID_TYPES: ClassVar[frozenset[str]] = frozenset(
         {
             "created",

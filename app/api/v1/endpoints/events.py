@@ -14,7 +14,7 @@ from app.api.v1.dependencies import (
     get_verification_service,
     require_permission,
 )
-from app.application.dtos.event import CreateEventCommand
+from app.application.dtos.event import EventCreate
 from app.application.services.verification_service import (
     ChainVerificationResult,
     VerificationService,
@@ -120,7 +120,7 @@ async def create_event(
     _: Annotated[object, Depends(require_permission("event", "create"))] = None,
 ):
     """Create a single event (hash chaining, optional schema validation, workflows)."""
-    cmd = CreateEventCommand(
+    cmd = EventCreate(
         subject_id=body.subject_id,
         event_type=body.event_type,
         schema_version=body.schema_version,
