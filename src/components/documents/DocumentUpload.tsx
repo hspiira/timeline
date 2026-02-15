@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Upload, X, CheckCircle } from 'lucide-react'
 import { timelineApi } from '@/lib/api-client'
 import { getApiErrorMessage } from '@/lib/api-utils'
@@ -6,6 +6,9 @@ import { useToast } from '@/hooks/useToast'
 import { Select } from '@/components/ui/select'
 import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
 import { Button } from '@/components/ui/button'
+import { JsonSchemaForm } from '@/components/shared/JsonSchemaForm'
+import type { JsonSchema } from '@/components/shared/JsonSchemaForm'
+import type { components } from '@/lib/timeline-api'
 
 export interface DocumentUploadProps {
   subjectId?: string
@@ -37,6 +40,20 @@ const ALLOWED_TYPES = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ]
 
+/** Fallback when no document categories are configured */
+const FALLBACK_DOCUMENT_TYPES = [
+  'evidence',
+  'invoice',
+  'contract',
+  'receipt',
+  'certificate',
+  'report',
+  'other',
+]
+
+type DocumentCategoryListItem = components['schemas']['DocumentCategoryListItem']
+type DocumentCategoryResponse = components['schemas']['DocumentCategoryResponse']
+
 export function DocumentUpload({
   subjectId,
   eventId,
@@ -46,8 +63,61 @@ export function DocumentUpload({
   const [files, setFiles] = useState<UploadingFile[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [documentType, setDocumentType] = useState('evidence')
+  const [categories, setCategories] = useState<DocumentCategoryListItem[]>([])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('')
+  const [categoryFull, setCategoryFull] = useState<DocumentCategoryResponse | null>(null)
+  const [metadata, setMetadata] = useState<Record<string, unknown>>({})
   const inputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
+
+  // Load document categories for type dropdown
+  useEffect(() => {
+    let cancelled = false
+    setCategoriesLoading(true)
+    timelineApi.documentCategories
+      .list({ skip: 0, limit: 500 })
+      .then(({ data, error }) => {
+        if (cancelled) return
+        setCategoriesLoading(false)
+        if (!error && Array.isArray(data) && data.length > 0) {
+          setCategories(data.filter((c) => c.is_active))
+          if (!selectedCategoryId && data.length > 0) {
+            const first = data.find((c) => c.is_active) ?? data[0]
+            setSelectedCategoryId(first.id)
+          }
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCategoriesLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // When category selection changes, fetch full category for metadata_schema
+  useEffect(() => {
+    if (!selectedCategoryId) {
+      setCategoryFull(null)
+      setMetadata({})
+      return
+    }
+    let cancelled = false
+    timelineApi.documentCategories
+      .get(selectedCategoryId)
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        setCategoryFull(data)
+        setMetadata({})
+      })
+      .catch(() => {
+        if (!cancelled) setCategoryFull(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedCategoryId])
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -59,9 +129,15 @@ export function DocumentUpload({
     return null
   }
 
+  const effectiveDocumentType = (): string => {
+    if (categories.length > 0 && selectedCategoryId) {
+      return categoryFull?.category_name ?? categories.find((c) => c.id === selectedCategoryId)?.category_name ?? 'other'
+    }
+    return documentType
+  }
+
   const uploadFile = async (file: File, uploadingFile: UploadingFile) => {
     try {
-      // Validate required fields
       if (!subjectId) {
         const error = 'Subject ID is required to upload documents'
         onError?.(error)
@@ -70,7 +146,8 @@ export function DocumentUpload({
         return
       }
 
-      if (!uploadingFile.documentType) {
+      const docType = effectiveDocumentType()
+      if (!docType) {
         const error = 'Document type is required'
         onError?.(error)
         toast.error('Upload failed', error)
@@ -80,20 +157,21 @@ export function DocumentUpload({
 
       setFiles((prev) => prev.map((f) => (f.id === uploadingFile.id ? { ...f, status: 'uploading' } : f)))
 
-      // Create FormData for multipart upload
       const formData = new FormData()
       formData.append('file', file)
       formData.append('subject_id', subjectId)
-      formData.append('document_type', uploadingFile.documentType)
+      formData.append('document_type', docType)
       if (eventId) formData.append('event_id', eventId)
+      if (Object.keys(metadata).length > 0) {
+        formData.append('metadata', JSON.stringify(metadata))
+      }
 
-      // Log form data being sent for debugging
       console.log('Uploading document with:', {
         fileName: file.name,
         fileSize: file.size,
         filetype: file.type,
         subjectId,
-        documentType: uploadingFile.documentType,
+        documentType: docType,
         eventId: eventId || 'none',
       })
 
@@ -117,7 +195,7 @@ export function DocumentUpload({
           formDataEntries: Array.from((formData as any).entries?.() || []),
           file: { name: file.name, size: file.size, type: file.type },
           subjectId,
-          documentType: uploadingFile.documentType,
+          documentType: docType,
         })
 
         const errorMessage = getApiErrorMessage(error, 'Upload failed')
@@ -153,7 +231,7 @@ export function DocumentUpload({
       const uploadingFile: UploadingFile = {
         id: `${Date.now()}-${Math.random()}`,
         file,
-        documentType,
+        documentType: effectiveDocumentType(),
         progress: 0,
         status: 'uploading',
       }
@@ -197,26 +275,64 @@ export function DocumentUpload({
     setFiles((prev) => prev.filter((f) => f.status !== 'success'))
   }
 
+  const useCategories = categories.length > 0 && !categoriesLoading
+  const metadataSchema = categoryFull?.metadata_schema as JsonSchema | undefined
+
   return (
     <div className="space-y-4">
-      {/* Document Type Selector */}
+      {/* Document type / category selector */}
       <div>
         <label className="block text-sm font-medium text-foreground/90 mb-2">
-          Document Type
+          Document type
         </label>
-        <Select
-          value={documentType}
-          onChange={(e) => setDocumentType(e.target.value)}
-        >
-          <option value="evidence">Evidence</option>
-          <option value="invoice">Invoice</option>
-          <option value="contract">Contract</option>
-          <option value="receipt">Receipt</option>
-          <option value="certificate">Certificate</option>
-          <option value="report">Report</option>
-          <option value="other">Other</option>
-        </Select>
+        {categoriesLoading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+            <LoadingIcon size="sm" />
+            Loading categories…
+          </div>
+        ) : useCategories ? (
+          <Select
+            value={selectedCategoryId}
+            onChange={(e) => setSelectedCategoryId(e.target.value)}
+          >
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.display_name || c.category_name}
+              </option>
+            ))}
+          </Select>
+        ) : (
+          <Select
+            value={documentType}
+            onChange={(e) => setDocumentType(e.target.value)}
+          >
+            {FALLBACK_DOCUMENT_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </option>
+            ))}
+          </Select>
+        )}
+        {useCategories && categoryFull?.default_retention_days != null && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Retention: {categoryFull.default_retention_days} days
+          </p>
+        )}
       </div>
+
+      {/* Optional metadata when category has schema */}
+      {useCategories && metadataSchema && Object.keys(metadataSchema.properties ?? {}).length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-foreground/90 mb-2">
+            Metadata (optional)
+          </label>
+          <JsonSchemaForm
+            schema={metadataSchema}
+            value={metadata}
+            onChange={setMetadata}
+          />
+        </div>
+      )}
 
       {/* Upload Area */}
       <div

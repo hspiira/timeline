@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Calendar, Tag, AlertCircle, Boxes, FileText, Shield, ChevronLeft, ChevronRight, Upload } from 'lucide-react'
+import { Calendar, Tag, AlertCircle, Boxes, FileText, Shield, ChevronLeft, ChevronRight, Upload, Download, Trash2, Database } from 'lucide-react'
 import { useEffect, useState, useCallback } from 'react'
 import { useStore } from '@tanstack/react-store'
 import { timelineApi } from '@/lib/api-client'
@@ -14,15 +14,16 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import type { SubjectResponse, EventResponse, EventListResponse } from '@/lib/types'
 import { LoadingIcon } from '@/components/ui/icons'
 import { Button } from '@/components/ui/button'
+import { Modal, ModalActions } from '@/components/ui/Modal'
 
 const PAGE_SIZE = 10
 
-type Tab = 'events' | 'documents'
+type Tab = 'events' | 'documents' | 'state'
 
 export const Route = createFileRoute('/subjects/$subjectId')({
   component: SubjectDetailPage,
   validateSearch: (search: Record<string, unknown>) => ({
-    tab: (search.tab === 'documents' ? 'documents' : 'events') as Tab,
+    tab: (search.tab === 'documents' ? 'documents' : search.tab === 'state' ? 'state' : 'events') as Tab,
   }),
 })
 
@@ -42,6 +43,12 @@ function SubjectDetailPage() {
   const [subjectDocumentCount, setSubjectDocumentCount] = useState<number | null>(null)
   const [documentsRefreshKey, setDocumentsRefreshKey] = useState(0)
   const [showUploadPanel, setShowUploadPanel] = useState(false)
+  const [derivedState, setDerivedState] = useState<{ state: Record<string, unknown>; last_event_id: string | null; event_count: number } | null>(null)
+  const [derivedStateLoading, setDerivedStateLoading] = useState(false)
+  const [showErasureModal, setShowErasureModal] = useState(false)
+  const [erasureStrategy, setErasureStrategy] = useState<'anonymize' | 'delete'>('anonymize')
+  const [erasureLoading, setErasureLoading] = useState(false)
+  const [exportLoading, setExportLoading] = useState(false)
 
   const totalPages = Math.ceil(totalEvents / PAGE_SIZE)
 
@@ -68,6 +75,32 @@ function SubjectDetailPage() {
       fetchEvents()
     }
   }, [currentPage, subject])
+
+  // Fetch derived state when State tab is active
+  useEffect(() => {
+    if (activeTab !== 'state' || !authState.user) return
+    let cancelled = false
+    setDerivedStateLoading(true)
+    setDerivedState(null)
+    timelineApi.subjects.getState(subjectId)
+      .then(({ data, error }) => {
+        if (cancelled) return
+        setDerivedStateLoading(false)
+        if (error || !data) {
+          setDerivedState(null)
+          return
+        }
+        setDerivedState({
+          state: data.state ?? {},
+          last_event_id: data.last_event_id ?? null,
+          event_count: data.event_count ?? 0,
+        })
+      })
+      .catch(() => {
+        if (!cancelled) setDerivedStateLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [subjectId, activeTab, authState.user])
 
   const fetchSubjectDocumentCount = useCallback(async () => {
     const { data, error } = await timelineApi.documents.listBySubject(subjectId)
@@ -163,6 +196,50 @@ function SubjectDetailPage() {
   const goToPage = (page: number) => {
     if (page >= 0 && page < totalPages) {
       setCurrentPage(page)
+    }
+  }
+
+  const handleExport = async () => {
+    setExportLoading(true)
+    try {
+      const { data, error } = await timelineApi.subjects.export(subjectId)
+      if (error) {
+        setError(error instanceof Error ? error.message : 'Export failed')
+        return
+      }
+      const blob = new Blob([JSON.stringify(data ?? {}, null, 2)], {
+        type: 'application/json',
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `subject-${subjectId}-export.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Export failed')
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
+  const handleErasureConfirm = async () => {
+    setErasureLoading(true)
+    try {
+      const { error } = await timelineApi.subjects.erasure(subjectId, {
+        strategy: erasureStrategy,
+      })
+      if (error) {
+        setError(error instanceof Error ? error.message : 'Erasure failed')
+        setErasureLoading(false)
+        return
+      }
+      setShowErasureModal(false)
+      navigate({ to: '/subjects' })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erasure failed')
+    } finally {
+      setErasureLoading(false)
     }
   }
 
@@ -313,6 +390,19 @@ function SubjectDetailPage() {
             <Shield className="w-4 h-4" />
             Verify Chain
           </Button>
+          <Button
+            onClick={handleExport}
+            disabled={exportLoading}
+            variant="outline"
+            size="sm"
+          >
+            {exportLoading ? (
+              <LoadingIcon size="sm" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            Export
+          </Button>
         </div>
       </div>
 
@@ -339,6 +429,17 @@ function SubjectDetailPage() {
         >
           <FileText className="w-4 h-4" />
           Documents
+        </button>
+        <button
+          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'state' } })}
+          className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-none flex items-center gap-2 ${
+            activeTab === 'state'
+              ? 'bg-muted/40 border-primary text-foreground'
+              : 'bg-transparent border-transparent text-foreground/60 hover:bg-muted/20'
+          }`}
+        >
+          <Database className="w-4 h-4" />
+          State
         </button>
       </div>
 
@@ -486,6 +587,123 @@ function SubjectDetailPage() {
           </div>
         </div>
       )}
+
+      {/* State tab — derived state from event replay */}
+      {activeTab === 'state' && (
+        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50">
+          {derivedStateLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <LoadingIcon size="sm" />
+              <span className="text-sm">Loading state…</span>
+            </div>
+          ) : derivedState ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span>Events applied: {derivedState.event_count}</span>
+                {derivedState.last_event_id && (
+                  <span className="font-mono truncate" title={derivedState.last_event_id}>
+                    Last: {derivedState.last_event_id}
+                  </span>
+                )}
+              </div>
+              {Object.keys(derivedState.state).length === 0 ? (
+                <p className="text-sm text-muted-foreground">No derived state (empty object).</p>
+              ) : (
+                <pre className="text-xs bg-muted/50 border border-border/50 rounded-none p-4 overflow-auto max-h-[60vh]">
+                  {JSON.stringify(derivedState.state, null, 2)}
+                </pre>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Could not load derived state.</p>
+          )}
+        </div>
+      )}
+
+      {/* Danger zone — erasure */}
+      <div className="mt-8 border border-destructive/30 rounded-none p-4 bg-destructive/5">
+        <h3 className="text-sm font-semibold text-destructive mb-2">Danger zone</h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          Erase or anonymize this subject’s data. This cannot be undone.
+        </p>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => setShowErasureModal(true)}
+          disabled={erasureLoading}
+        >
+          {erasureLoading ? <LoadingIcon size="sm" /> : <Trash2 className="w-4 h-4" />}
+          Erase / Anonymize
+        </Button>
+      </div>
+
+      {/* Erasure confirmation modal */}
+      <Modal
+        isOpen={showErasureModal}
+        onClose={() => !erasureLoading && setShowErasureModal(false)}
+        title="Erase subject data"
+        maxWidth="max-w-md"
+        closeButton
+        footer={
+          <ModalActions>
+            <Button
+              variant="outline"
+              onClick={() => setShowErasureModal(false)}
+              disabled={erasureLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleErasureConfirm}
+              disabled={erasureLoading}
+            >
+              {erasureLoading ? (
+                <>
+                  <LoadingIcon size="sm" />
+                  Erasing…
+                </>
+              ) : (
+                'Confirm erasure'
+              )}
+            </Button>
+          </ModalActions>
+        }
+      >
+        <p className="text-sm text-muted-foreground mb-4">
+          Choose how to erase this subject’s data. This action cannot be undone.
+        </p>
+        <div className="space-y-3 mb-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name="erasureStrategy"
+              value="anonymize"
+              checked={erasureStrategy === 'anonymize'}
+              onChange={() => setErasureStrategy('anonymize')}
+              className="mt-1"
+            />
+            <div>
+              <span className="text-sm font-medium">Anonymize</span>
+              <p className="text-xs text-muted-foreground">Redact PII; keep subject and event structure.</p>
+            </div>
+          </label>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name="erasureStrategy"
+              value="delete"
+              checked={erasureStrategy === 'delete'}
+              onChange={() => setErasureStrategy('delete')}
+              className="mt-1"
+            />
+            <div>
+              <span className="text-sm font-medium">Delete</span>
+              <p className="text-xs text-muted-foreground">Remove subject and associated documents.</p>
+            </div>
+          </label>
+        </div>
+      </Modal>
     </>
   )
 }

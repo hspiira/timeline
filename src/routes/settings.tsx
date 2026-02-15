@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, useLocation, useNavigate } from '@tanstack/react-router'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { Shield, Database, Zap, Users, KeyRound, Layers, FolderOpen } from 'lucide-react'
+import { useHasAuditAccess } from '@/hooks/useHasAuditAccess'
+import { Shield, Database, Zap, Users, KeyRound, Layers, FolderOpen, ClipboardList } from 'lucide-react'
 
 export const Route = createFileRoute('/settings')({
   component: SettingsLayout,
@@ -10,6 +11,7 @@ function SettingsLayout() {
   const authState = useRequireAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const hasAuditAccess = useHasAuditAccess(!!authState.user)
 
   if (!authState.user) {
     return null
@@ -62,6 +64,12 @@ function SettingsLayout() {
       description: 'Automation & triggers',
     },
     {
+      path: '/settings/audit-log',
+      label: 'Audit log',
+      icon: ClipboardList,
+      description: 'View tenant audit log',
+    },
+    {
       path: '/settings/oauth-providers',
       label: 'OAuth Providers',
       icon: KeyRound,
@@ -76,7 +84,12 @@ function SettingsLayout() {
         <div className="p-3 lg:p-4 lg:sticky lg:top-16 lg:h-fit rounded-none border border-border">
           <h2 className="text-md font-semibold text-foreground mb-4">Settings</h2>
           <nav className="space-y-1">
-            {menuItems.map((item) => {
+            {menuItems
+            .filter((item) => {
+              if (item.path === '/settings/audit-log') return hasAuditAccess === true
+              return true
+            })
+            .map((item) => {
               const Icon = item.icon
               const active = isActive(item.path)
               return (

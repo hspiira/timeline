@@ -9,6 +9,8 @@ interface StatsGridProps {
   activeWorkflows: number
   subjectsByType?: Record<string, number>
   eventsByType?: Record<string, number>
+  /** When true, only render the three supporting stats in a vertical column (hero is shown elsewhere) */
+  sidebar?: boolean
 }
 
 export function StatsGrid({
@@ -17,10 +19,38 @@ export function StatsGrid({
   totalDocuments,
   eventsToday,
   activeWorkflows,
+  sidebar = false,
 }: StatsGridProps) {
+  if (sidebar) {
+    return (
+      <div className="space-y-3">
+        <StatCard
+          label="Subjects"
+          value={totalSubjects}
+          subtitle="In tenant"
+          icon={Users}
+          variant="compact"
+        />
+        <StatCard
+          label="Documents"
+          value={totalDocuments}
+          subtitle="Total"
+          icon={FileText}
+          variant="compact"
+        />
+        <StatCard
+          label="Active workflows"
+          value={activeWorkflows}
+          subtitle={activeWorkflows > 0 ? 'Running' : 'None active'}
+          icon={Workflow}
+          variant="compact"
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-      {/* Hero stat: Total Events */}
       <div className="lg:col-span-2">
         <StatCard
           label="Total events"
@@ -30,7 +60,6 @@ export function StatsGrid({
           variant="hero"
         />
       </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 md:gap-6">
         <StatCard
           label="Subjects"

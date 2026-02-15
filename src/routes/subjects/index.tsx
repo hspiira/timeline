@@ -57,11 +57,47 @@ function SubjectsPage() {
     },
   })
 
-  // Get filtered subjects
-  const { subjects, isLoading, isError, error } = useSubjects({
-    filterType,
-    search,
+  // Get filtered subjects (list; no search param sent to list API)
+  const { subjects, isLoading, isError, error } = useSubjects({ filterType })
+
+  // Search API: when user has typed a query, search subjects
+  const searchQuery = useQuery({
+    queryKey: ['search', 'subjects', search.trim()],
+    queryFn: async () => {
+      const { data, error: searchError } = await timelineApi.search.query({
+        q: search.trim(),
+        scope: 'subjects',
+        limit: 100,
+      })
+      if (searchError) throw new Error('Search failed')
+      return data?.results ?? []
+    },
+    enabled: search.trim().length > 0,
   })
+
+  // Display: when search is active use search results (mapped to SubjectWithMetadata-like); otherwise use list
+  const displaySubjects = useMemo(() => {
+    if (search.trim().length > 0) {
+      if (!searchQuery.data) return []
+      return (searchQuery.data as Array<{ resource_type?: string; id: string; display_title?: string; snippet?: string | null }>)
+        .filter((r) => r.resource_type === 'subject')
+        .map((r) => ({
+          id: r.id,
+          tenant_id: '',
+          subject_type: '—',
+          external_ref: null,
+          display_name: r.display_title ?? r.id,
+          attributes: {},
+          eventCount: 0,
+          lastEventDate: undefined,
+        })) as SubjectWithMetadata[]
+    }
+    return subjects
+  }, [search, searchQuery.data, subjects])
+
+  const displayLoading = search.trim().length > 0 ? searchQuery.isLoading : isLoading
+  const displayError = search.trim().length > 0 ? searchQuery.error : error
+  const displayIsError = search.trim().length > 0 ? searchQuery.isError : isError
 
   // Subject type options: from Subject types API only (Settings → Subject types). Used for filter and create modal.
   const subjectTypeOptions = useMemo(
@@ -73,7 +109,7 @@ function SubjectsPage() {
     [subjectTypesFromApi]
   )
 
-  // Filter dropdown also includes any type that appears in subject data but has no config (so legacy types are filterable)
+  // Filter dropdown: configured types + any type that appears in list data (legacy)
   const filterTypeOptions = useMemo(() => {
     const fromConfig = subjectTypeOptions
     const fromData = [...new Set(subjects.map((s) => s.subject_type))]
@@ -120,8 +156,8 @@ function SubjectsPage() {
         return false
       }
 
-      // Invalidate the subjects query to automatically refetch the latest data
       queryClient.invalidateQueries({ queryKey: ['subjects'] })
+      queryClient.invalidateQueries({ queryKey: ['search'] })
       setShowCreateModal(false)
       toast.success('Subject created', `New subject "${subjectType}" created`)
       return true
@@ -150,8 +186,8 @@ function SubjectsPage() {
         return false
       }
 
-      // Invalidate the subjects query to automatically refetch the latest data
       queryClient.invalidateQueries({ queryKey: ['subjects'] })
+      queryClient.invalidateQueries({ queryKey: ['search'] })
       setShowEditModal(false)
       setEditingSubject(null)
       return true
@@ -161,8 +197,21 @@ function SubjectsPage() {
     }
   }
 
-  const handleOpenEditModal = (subject: SubjectWithMetadata) => {
-    setEditingSubject(subject)
+  const handleOpenEditModal = async (subject: SubjectWithMetadata) => {
+    // If subject came from search results (minimal data), fetch full subject first
+    if (!subject.tenant_id && subject.id) {
+      const { data } = await timelineApi.subjects.get(subject.id)
+      if (data)
+        setEditingSubject({
+          ...data,
+          eventCount: subject.eventCount ?? 0,
+          lastEventDate: subject.lastEventDate,
+        })
+      else
+        setEditingSubject(subject)
+    } else {
+      setEditingSubject(subject)
+    }
     setShowEditModal(true)
   }
 
@@ -281,24 +330,24 @@ function SubjectsPage() {
         </div>
 
         {/* Content */}
-        {isLoading && (
+        {displayLoading && (
           <div className="min-h-[300px] flex items-center justify-center">
             <div className="flex items-center gap-3 text-muted-foreground">
               <LoadingIcon />
-              <span>Loading subjects...</span>
+              <span>{search.trim() ? 'Searching...' : 'Loading subjects...'}</span>
             </div>
           </div>
         )}
 
-        {isError && (
+        {displayIsError && (
           <EmptyState
             icon={AlertCircle}
             title="Unable to Load Subjects"
-            description={error?.message || 'An unexpected error occurred. Please check your connection and try again.'}
+            description={displayError?.message || 'An unexpected error occurred. Please check your connection and try again.'}
           />
         )}
 
-        {!isLoading && !isError && subjects.length === 0 && (
+        {!displayLoading && !displayIsError && displaySubjects.length === 0 && (
           <div className="bg-card/80 backdrop-blur-sm rounded-none border border-border/50">
             <EmptyState
               icon={Users}
@@ -327,16 +376,16 @@ function SubjectsPage() {
           </div>
         )}
 
-        {!isLoading && !isError && subjects.length > 0 && (
+        {!displayLoading && !displayIsError && displaySubjects.length > 0 && (
           viewMode === 'grid' ? (
             <SubjectsGrid
-              data={subjects}
+              data={displaySubjects}
               onEdit={handleOpenEditModal}
               subjectTypeConfig={subjectTypesFromApi}
             />
           ) : (
             <SubjectsTable
-              data={subjects}
+              data={displaySubjects}
               onEdit={handleOpenEditModal}
               subjectTypeConfig={subjectTypesFromApi}
             />

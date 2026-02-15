@@ -2,7 +2,7 @@
 
 Frontend for the **Timeline** API: multi-tenant event-sourced timeline (subjects, events, documents, workflows). Built with Vite, React 19, TypeScript, TanStack Router, React Query, and openapi-fetch.
 
-The app talks to the Timeline backend API. The API base URL is set via **`VITE_API_URL`** (default `http://localhost:8000`). All requests send `Authorization: Bearer <token>` and `X-Tenant-ID` when the user is logged in.
+The app talks to the Timeline backend API. The API base URL is set via **`VITE_API_URL`** (default `http://localhost:8000`). All requests send `Authorization: Bearer <token>` and `X-Tenant-ID` when the user is logged in. See **`docs/BACKEND_API.md`** for endpoint behavior, document categories, subject state/export/erasure, and permission gating.
 
 ---
 

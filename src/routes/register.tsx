@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useStore } from '@tanstack/react-store'
-import { CheckCircle, AlertTriangle, Copy, Check } from 'lucide-react'
+import { ArrowLeft, CheckCircle, AlertTriangle, Copy, Check } from 'lucide-react'
 import { authStore, authActions } from '@/lib/auth-store'
 import { useRedirectIfAuthenticated } from '@/lib/hooks'
+import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -73,9 +74,9 @@ function RegisterTenantPage() {
   // Show success screen with admin credentials
   if (createdTenant) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background py-12">
-        <div className="w-full max-w-md">
-          <div className="bg-card shadow-xl rounded-none p-8 border">
+      <AuthPageLayout>
+        <div className="w-full max-w-md py-12">
+          <div className="bg-card/80 backdrop-blur-md border border-white/10 shadow-xl rounded-lg p-8">
             {/* Logo */}
             <div className="flex justify-center mb-6">
               <img src="/logo.svg" alt="Timeline" className="w-16 h-16" />
@@ -134,16 +135,27 @@ function RegisterTenantPage() {
             <Button onClick={handleContinueToLogin} className="w-full">
               Continue to Login
             </Button>
+
+            {/* Bottom links */}
+            <div className="mt-6 flex flex-col items-center gap-3 text-center">
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to home
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      </AuthPageLayout>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background py-12">
-      <div className="w-full max-w-md">
-        <div className="bg-card shadow-xl rounded-none p-8 border">
+    <AuthPageLayout>
+      <div className="w-full max-w-md py-12">
+        <div className="bg-card/80 backdrop-blur-md border border-white/10 shadow-xl rounded-lg p-8">
           {/* Logo */}
           <div className="flex justify-center mb-6">
             <img src="/logo.svg" alt="Timeline" className="w-16 h-16" />
@@ -220,21 +232,28 @@ function RegisterTenantPage() {
             </Button>
           </form>
 
-          {/* Login Link */}
-          <div className="mt-6 text-center">
+          {/* Bottom links */}
+          <div className="mt-6 flex flex-col items-center gap-3 text-center">
             <p className="text-sm text-muted-foreground">
               Already have an account?{' '}
               <Link
                 to="/login"
                 search={{ tenant: '' }}
-                className="text-foreground font-semibold hover:underline"
+                className="text-foreground font-medium hover:underline"
               >
                 Sign in
               </Link>
             </p>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to home
+            </Link>
           </div>
         </div>
       </div>
-    </div>
+    </AuthPageLayout>
   )
 }

@@ -17,6 +17,7 @@ import { authStore, authActions } from '@/lib/auth-store'
 import { ThemeToggle } from '@/components/theme/theme-toggler'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import { SettingsButton } from '@/components/header/SettingsButton'
+import { GlobalSearch } from '@/components/header/GlobalSearch'
 import { ToastContainer } from '@/components/toast/ToastContainer'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { NotFound } from '@/components/ui/NotFound'
@@ -108,7 +109,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     authActions.logout()
-    navigate({ to: '/login', search: { tenant: '' } })
+    navigate({ to: '/' })
   }
 
   return (
@@ -146,6 +147,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                         Email
                       </NavLink>
                     </nav>
+                    <GlobalSearch />
                   </div>
 
                   <div className="flex items-center gap-2">

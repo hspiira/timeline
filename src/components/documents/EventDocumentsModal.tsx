@@ -6,6 +6,10 @@ import type { components } from '@/lib/timeline-api'
 import { DocumentList } from './DocumentList'
 import { EventDocumentUpload } from './EventDocumentUpload'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
+import { JsonSchemaForm } from '@/components/shared/JsonSchemaForm'
+import type { JsonSchema } from '@/components/shared/JsonSchemaForm'
+import { LoadingIcon } from '@/components/ui/icons'
 
 export interface EventDocumentsModalProps {
   eventId: string
@@ -14,6 +18,9 @@ export interface EventDocumentsModalProps {
   onClose: () => void
   onDocumentsUpdated?: () => void
 }
+
+type DocumentCategoryListItem = components['schemas']['DocumentCategoryListItem']
+type DocumentCategoryResponse = components['schemas']['DocumentCategoryResponse']
 
 export function EventDocumentsModal({
   eventId,
@@ -27,6 +34,55 @@ export function EventDocumentsModal({
   const [stagedFiles, setStagedFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [categories, setCategories] = useState<DocumentCategoryListItem[]>([])
+  const [categoriesLoading, setCategoriesLoading] = useState(false)
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('')
+  const [categoryFull, setCategoryFull] = useState<DocumentCategoryResponse | null>(null)
+  const [metadata, setMetadata] = useState<Record<string, unknown>>({})
+
+  // Load document categories when upload section is shown
+  useEffect(() => {
+    if (!showUpload) return
+    let cancelled = false
+    setCategoriesLoading(true)
+    timelineApi.documentCategories
+      .list({ skip: 0, limit: 500 })
+      .then(({ data, error: apiError }) => {
+        if (cancelled) return
+        setCategoriesLoading(false)
+        if (!apiError && Array.isArray(data) && data.length > 0) {
+          const active = data.filter((c) => c.is_active)
+          setCategories(active)
+          const first = active[0]
+          if (first) setSelectedCategoryId(first.id)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCategoriesLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [showUpload])
+
+  // Fetch full category when selection changes (for metadata_schema)
+  useEffect(() => {
+    if (!selectedCategoryId) {
+      setCategoryFull(null)
+      setMetadata({})
+      return
+    }
+    let cancelled = false
+    timelineApi.documentCategories
+      .get(selectedCategoryId)
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        setCategoryFull(data)
+        setMetadata({})
+      })
+      .catch(() => {
+        if (!cancelled) setCategoryFull(null)
+      })
+    return () => { cancelled = true }
+  }, [selectedCategoryId])
 
   // Handle Escape key to close modal
   useEffect(() => {
@@ -45,20 +101,30 @@ export function EventDocumentsModal({
     setError(null)
   }
 
+  const effectiveDocumentType = (): string => {
+    if (categories.length > 0 && selectedCategoryId) {
+      return categoryFull?.category_name ?? categories.find((c) => c.id === selectedCategoryId)?.category_name ?? 'evidence'
+    }
+    return 'evidence'
+  }
+
   const handleUploadDocuments = async () => {
     if (stagedFiles.length === 0) return
 
     setUploading(true)
     setError(null)
+    const docType = effectiveDocumentType()
+    const metadataJson = Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null
 
     try {
-      // Upload all documents with allSettled to handle partial failures
       const results = await Promise.allSettled(
         stagedFiles.map(async (file) => {
           const formData = new FormData()
           formData.append('file', file)
           formData.append('subject_id', subjectId)
-          formData.append('document_type', 'evidence')
+          formData.append('document_type', docType)
+          formData.append('event_id', eventId)
+          if (metadataJson) formData.append('metadata', metadataJson)
 
           const { data, error } = await timelineApi.documents.upload(formData)
           if (error) {
@@ -179,6 +245,44 @@ export function EventDocumentsModal({
                   A new "document_update" event will be created to maintain the audit trail. The original event and its documents remain unchanged.
                 </p>
               </div>
+
+              {categoriesLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                  <LoadingIcon size="sm" />
+                  Loading document types…
+                </div>
+              ) : categories.length > 0 ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground/90 mb-1">Document type</label>
+                    <Select
+                      value={selectedCategoryId}
+                      onChange={(e) => setSelectedCategoryId(e.target.value)}
+                    >
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.display_name || c.category_name}
+                        </option>
+                      ))}
+                    </Select>
+                    {categoryFull?.default_retention_days != null && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Retention: {categoryFull.default_retention_days} days
+                      </p>
+                    )}
+                  </div>
+                  {categoryFull?.metadata_schema && (
+                    <div>
+                      <label className="block text-sm font-medium text-foreground/90 mb-1">Metadata (optional)</label>
+                      <JsonSchemaForm
+                        schema={categoryFull.metadata_schema as JsonSchema}
+                        value={metadata}
+                        onChange={setMetadata}
+                      />
+                    </div>
+                  )}
+                </>
+              ) : null}
 
               <EventDocumentUpload
                 subjectId={subjectId}

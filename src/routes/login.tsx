@@ -1,8 +1,10 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useStore } from '@tanstack/react-store'
+import { ArrowLeft } from 'lucide-react'
 import { authStore, authActions } from '@/lib/auth-store'
 import { useRedirectIfAuthenticated } from '@/lib/hooks'
+import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -43,9 +45,9 @@ function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <AuthPageLayout>
       <div className="w-full max-w-md">
-        <div className="bg-card shadow-xl rounded-none p-8 border">
+        <div className="bg-card/80 backdrop-blur-md border border-white/10 shadow-xl rounded-lg p-8">
           {/* Logo */}
           <div className="flex justify-center mb-6">
             <img src="/logo.svg" alt="Timeline" className="w-16 h-16" />
@@ -171,20 +173,27 @@ function LoginPage() {
             </Button>
           </form>
 
-          {/* Register Link */}
-          <div className="mt-6 text-center">
+          {/* Bottom links */}
+          <div className="mt-6 flex flex-col items-center gap-3 text-center">
             <p className="text-sm text-muted-foreground">
-              Need to create an organization?{' '}
+              Don't have an account?{' '}
               <Link
                 to="/register"
-                className="text-foreground font-semibold hover:underline"
+                className="text-foreground font-medium hover:underline"
               >
                 Register your tenant
               </Link>
             </p>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to home
+            </Link>
           </div>
         </div>
       </div>
-    </div>
+    </AuthPageLayout>
   )
 }

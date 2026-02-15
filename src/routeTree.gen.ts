@@ -14,6 +14,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SubjectsIndexRouteImport } from './routes/subjects/index'
+import { Route as SearchIndexRouteImport } from './routes/search/index'
 import { Route as EventsIndexRouteImport } from './routes/events/index'
 import { Route as EmailAccountsIndexRouteImport } from './routes/email-accounts/index'
 import { Route as VerifyTenantRouteImport } from './routes/verify/tenant'
@@ -30,6 +31,7 @@ import { Route as SettingsRolesIndexRouteImport } from './routes/settings/roles/
 import { Route as SettingsPermissionsIndexRouteImport } from './routes/settings/permissions/index'
 import { Route as SettingsOauthProvidersIndexRouteImport } from './routes/settings/oauth-providers/index'
 import { Route as SettingsDocumentCategoriesIndexRouteImport } from './routes/settings/document-categories/index'
+import { Route as SettingsAuditLogIndexRouteImport } from './routes/settings/audit-log/index'
 import { Route as AdminRolesIndexRouteImport } from './routes/admin/roles/index'
 import { Route as AdminPermissionsIndexRouteImport } from './routes/admin/permissions/index'
 import { Route as EventsSubjectSubjectIdRouteImport } from './routes/events/subject.$subjectId'
@@ -59,6 +61,11 @@ const IndexRoute = IndexRouteImport.update({
 const SubjectsIndexRoute = SubjectsIndexRouteImport.update({
   id: '/subjects/',
   path: '/subjects/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchIndexRoute = SearchIndexRouteImport.update({
+  id: '/search/',
+  path: '/search/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EventsIndexRoute = EventsIndexRouteImport.update({
@@ -145,6 +152,11 @@ const SettingsDocumentCategoriesIndexRoute =
     path: '/document-categories/',
     getParentRoute: () => SettingsRoute,
   } as any)
+const SettingsAuditLogIndexRoute = SettingsAuditLogIndexRouteImport.update({
+  id: '/audit-log/',
+  path: '/audit-log/',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const AdminRolesIndexRoute = AdminRolesIndexRouteImport.update({
   id: '/admin/roles/',
   path: '/admin/roles/',
@@ -186,11 +198,13 @@ export interface FileRoutesByFullPath {
   '/verify/tenant': typeof VerifyTenantRoute
   '/email-accounts/': typeof EmailAccountsIndexRoute
   '/events/': typeof EventsIndexRoute
+  '/search/': typeof SearchIndexRoute
   '/subjects/': typeof SubjectsIndexRoute
   '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
   '/admin/permissions/': typeof AdminPermissionsIndexRoute
   '/admin/roles/': typeof AdminRolesIndexRoute
+  '/settings/audit-log/': typeof SettingsAuditLogIndexRoute
   '/settings/document-categories/': typeof SettingsDocumentCategoriesIndexRoute
   '/settings/oauth-providers/': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions/': typeof SettingsPermissionsIndexRoute
@@ -214,11 +228,13 @@ export interface FileRoutesByTo {
   '/verify/tenant': typeof VerifyTenantRoute
   '/email-accounts': typeof EmailAccountsIndexRoute
   '/events': typeof EventsIndexRoute
+  '/search': typeof SearchIndexRoute
   '/subjects': typeof SubjectsIndexRoute
   '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
   '/admin/permissions': typeof AdminPermissionsIndexRoute
   '/admin/roles': typeof AdminRolesIndexRoute
+  '/settings/audit-log': typeof SettingsAuditLogIndexRoute
   '/settings/document-categories': typeof SettingsDocumentCategoriesIndexRoute
   '/settings/oauth-providers': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions': typeof SettingsPermissionsIndexRoute
@@ -243,11 +259,13 @@ export interface FileRoutesById {
   '/verify/tenant': typeof VerifyTenantRoute
   '/email-accounts/': typeof EmailAccountsIndexRoute
   '/events/': typeof EventsIndexRoute
+  '/search/': typeof SearchIndexRoute
   '/subjects/': typeof SubjectsIndexRoute
   '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
   '/admin/permissions/': typeof AdminPermissionsIndexRoute
   '/admin/roles/': typeof AdminRolesIndexRoute
+  '/settings/audit-log/': typeof SettingsAuditLogIndexRoute
   '/settings/document-categories/': typeof SettingsDocumentCategoriesIndexRoute
   '/settings/oauth-providers/': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions/': typeof SettingsPermissionsIndexRoute
@@ -273,11 +291,13 @@ export interface FileRouteTypes {
     | '/verify/tenant'
     | '/email-accounts/'
     | '/events/'
+    | '/search/'
     | '/subjects/'
     | '/email-accounts/oauth/callback'
     | '/events/subject/$subjectId'
     | '/admin/permissions/'
     | '/admin/roles/'
+    | '/settings/audit-log/'
     | '/settings/document-categories/'
     | '/settings/oauth-providers/'
     | '/settings/permissions/'
@@ -301,11 +321,13 @@ export interface FileRouteTypes {
     | '/verify/tenant'
     | '/email-accounts'
     | '/events'
+    | '/search'
     | '/subjects'
     | '/email-accounts/oauth/callback'
     | '/events/subject/$subjectId'
     | '/admin/permissions'
     | '/admin/roles'
+    | '/settings/audit-log'
     | '/settings/document-categories'
     | '/settings/oauth-providers'
     | '/settings/permissions'
@@ -329,11 +351,13 @@ export interface FileRouteTypes {
     | '/verify/tenant'
     | '/email-accounts/'
     | '/events/'
+    | '/search/'
     | '/subjects/'
     | '/email-accounts/oauth/callback'
     | '/events/subject/$subjectId'
     | '/admin/permissions/'
     | '/admin/roles/'
+    | '/settings/audit-log/'
     | '/settings/document-categories/'
     | '/settings/oauth-providers/'
     | '/settings/permissions/'
@@ -358,6 +382,7 @@ export interface RootRouteChildren {
   VerifyTenantRoute: typeof VerifyTenantRoute
   EmailAccountsIndexRoute: typeof EmailAccountsIndexRoute
   EventsIndexRoute: typeof EventsIndexRoute
+  SearchIndexRoute: typeof SearchIndexRoute
   SubjectsIndexRoute: typeof SubjectsIndexRoute
   EmailAccountsOauthCallbackRoute: typeof EmailAccountsOauthCallbackRoute
   EventsSubjectSubjectIdRoute: typeof EventsSubjectSubjectIdRoute
@@ -401,6 +426,13 @@ declare module '@tanstack/react-router' {
       path: '/subjects'
       fullPath: '/subjects/'
       preLoaderRoute: typeof SubjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search/': {
+      id: '/search/'
+      path: '/search'
+      fullPath: '/search/'
+      preLoaderRoute: typeof SearchIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/events/': {
@@ -515,6 +547,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsDocumentCategoriesIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/audit-log/': {
+      id: '/settings/audit-log/'
+      path: '/audit-log'
+      fullPath: '/settings/audit-log/'
+      preLoaderRoute: typeof SettingsAuditLogIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/admin/roles/': {
       id: '/admin/roles/'
       path: '/admin/roles'
@@ -554,6 +593,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface SettingsRouteChildren {
+  SettingsAuditLogIndexRoute: typeof SettingsAuditLogIndexRoute
   SettingsDocumentCategoriesIndexRoute: typeof SettingsDocumentCategoriesIndexRoute
   SettingsOauthProvidersIndexRoute: typeof SettingsOauthProvidersIndexRoute
   SettingsPermissionsIndexRoute: typeof SettingsPermissionsIndexRoute
@@ -565,6 +605,7 @@ interface SettingsRouteChildren {
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsAuditLogIndexRoute: SettingsAuditLogIndexRoute,
   SettingsDocumentCategoriesIndexRoute: SettingsDocumentCategoriesIndexRoute,
   SettingsOauthProvidersIndexRoute: SettingsOauthProvidersIndexRoute,
   SettingsPermissionsIndexRoute: SettingsPermissionsIndexRoute,
@@ -592,6 +633,7 @@ const rootRouteChildren: RootRouteChildren = {
   VerifyTenantRoute: VerifyTenantRoute,
   EmailAccountsIndexRoute: EmailAccountsIndexRoute,
   EventsIndexRoute: EventsIndexRoute,
+  SearchIndexRoute: SearchIndexRoute,
   SubjectsIndexRoute: SubjectsIndexRoute,
   EmailAccountsOauthCallbackRoute: EmailAccountsOauthCallbackRoute,
   EventsSubjectSubjectIdRoute: EventsSubjectSubjectIdRoute,

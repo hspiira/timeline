@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState, useMemo, useCallback } from 'react'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { useStore } from '@tanstack/react-store'
+import { authStore } from '@/lib/auth-store'
+import { LandingPage } from '@/components/landing/LandingPage'
 import { MinimalActivityFeed } from '@/components/dashboard/MinimalActivityFeed'
 import { StatsGrid } from '@/components/dashboard/StatsGrid'
 import { timelineApi } from '@/lib/api-client'
@@ -25,7 +27,7 @@ interface FetchError {
 }
 
 function HomePage() {
-  const authState = useRequireAuth()
+  const authState = useStore(authStore)
 
   const [data, setData] = useState<DashboardData>({
     stats: null,
@@ -61,6 +63,8 @@ function HomePage() {
 
       if (analyticsResult.status === 'fulfilled' && analyticsResult.value.data) {
         newData.stats = analyticsResult.value.data
+      } else if (analyticsResult.status === 'fulfilled' && analyticsResult.value.error) {
+        newErrors.push({ field: 'analytics', message: 'Failed to load dashboard stats' })
       } else if (analyticsResult.status === 'rejected') {
         newErrors.push({ field: 'analytics', message: 'Failed to load dashboard stats' })
       }
@@ -115,7 +119,7 @@ function HomePage() {
 
   if (authState.isLoading) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex items-center gap-3 text-muted-foreground">
           <Loader2 className="w-5 h-5 animate-spin" />
           <span>Loading...</span>
@@ -125,14 +129,16 @@ function HomePage() {
   }
 
   if (!authState.user) {
-    return null
+    return <LandingPage />
   }
 
   const hasErrors = errors.length > 0
   const username = authState.user.username ?? 'there'
 
+  const totalEvents = data.stats?.total_events ?? 0
+
   return (
-    <div className="dashboard-page">
+    <div className="dashboard-page min-h-[calc(100vh-4rem)]">
       {/* Subtle grid background */}
       <div
         className="pointer-events-none fixed inset-0 opacity-[0.02] dark:opacity-[0.04]"
@@ -141,26 +147,41 @@ function HomePage() {
             linear-gradient(to right, currentColor 1px, transparent 1px),
             linear-gradient(to bottom, currentColor 1px, transparent 1px)
           `,
-          backgroundSize: '64px 64px',
+          backgroundSize: '8px 8px',
         }}
         aria-hidden
       />
 
-      <div className="relative">
-        {/* Welcome strip */}
-        <header className="mb-8 md:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground tracking-tight">
-            Dashboard
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Welcome back, {username}. Here’s your timeline at a glance.
-          </p>
+      <div className="relative flex flex-col">
+        {/* Hero strip: welcome + primary metric */}
+        <header
+          className="border-b border-border/60 bg-muted/20 animate-in fade-in slide-in-from-bottom-2 duration-500"
+          style={{ borderLeftWidth: '4px', borderLeftColor: 'var(--dashboard-accent)' }}
+        >
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+            <div>
+              <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground tracking-tight">
+                Dashboard
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Welcome back, {username}. Here’s your timeline at a glance.
+              </p>
+            </div>
+            <div className="flex items-baseline gap-3 flex-shrink-0">
+              <span className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-foreground tabular-nums">
+                {totalEvents.toLocaleString()}
+              </span>
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                events · +{eventsToday} today
+              </span>
+            </div>
+          </div>
         </header>
 
         {/* Error messages */}
         {hasErrors && (
           <div
-            className="mb-6 p-4 border rounded-none border-destructive/30 bg-destructive/5 animate-in fade-in slide-in-from-bottom-2 duration-300"
+            className="mt-4 mx-4 md:mx-0 p-4 border rounded-none border-destructive/30 bg-destructive/5 animate-in fade-in slide-in-from-bottom-2 duration-300"
             role="alert"
           >
             <div className="flex items-start gap-3">
@@ -188,36 +209,39 @@ function HomePage() {
           </div>
         )}
 
-        {/* Stats — staggered */}
-        <section
-          className="mb-8 md:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500"
-          style={{ animationDelay: '80ms' }}
-        >
-          <StatsGrid
-            totalSubjects={data.stats?.total_subjects ?? 0}
-            totalEvents={data.stats?.total_events ?? 0}
-            totalDocuments={data.stats?.total_documents ?? 0}
-            eventsToday={eventsToday}
-            activeWorkflows={activeWorkflowsCount}
-            subjectsByType={data.stats?.subjects_by_type}
-            eventsByType={data.stats?.events_by_type}
-          />
-        </section>
+        {/* Main content: stats sidebar + activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 py-6 md:py-8">
+          <aside
+            className="lg:col-span-4 xl:col-span-3 animate-in fade-in slide-in-from-bottom-4 duration-500"
+            style={{ animationDelay: '60ms' }}
+          >
+            <h2 className="font-display text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              Overview
+            </h2>
+            <StatsGrid
+              totalSubjects={data.stats?.total_subjects ?? 0}
+              totalEvents={totalEvents}
+              totalDocuments={data.stats?.total_documents ?? 0}
+              eventsToday={eventsToday}
+              activeWorkflows={activeWorkflowsCount}
+              subjectsByType={data.stats?.subjects_by_type}
+              eventsByType={data.stats?.events_by_type}
+              sidebar
+            />
+          </aside>
 
-        {/* Recent Activity — from analytics dashboard */}
-        <section
-          className="animate-in fade-in slide-in-from-bottom-4 duration-500"
-          style={{ animationDelay: '160ms' }}
-        >
-          <div className="flex items-baseline justify-between gap-4 mb-3">
-            <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-foreground">
+          <section
+            className="lg:col-span-8 xl:col-span-9 animate-in fade-in slide-in-from-bottom-4 duration-500"
+            style={{ animationDelay: '120ms' }}
+          >
+            <h2 className="font-display text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
               Recent activity
             </h2>
-          </div>
-          <div className="rounded-none border border-border/60 bg-card/80 backdrop-blur-sm overflow-hidden">
-            <MinimalActivityFeed limit={8} recentEvents={data.stats?.recent_events} />
-          </div>
-        </section>
+            <div className="rounded-none border border-border/60 bg-card/80 backdrop-blur-sm overflow-hidden min-h-[280px]">
+              <MinimalActivityFeed limit={10} recentEvents={data.stats?.recent_events} />
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   )
