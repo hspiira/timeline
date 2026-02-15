@@ -96,6 +96,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/analytics/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Dashboard
+         * @description Return dashboard stats for the tenant: counts by type and last 10 events.
+         */
+        get: operations["get_dashboard_api_v1_analytics_dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Audit Log
+         * @description List audit log entries for the tenant (paginated, optional filters).
+         */
+        get: operations["list_audit_log_api_v1_audit_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events": {
         parameters: {
             query?: never;
@@ -328,6 +368,9 @@ export interface paths {
         /**
          * Upload Document
          * @description Upload a document for a subject (storage + document record).
+         *
+         *     Optional metadata (JSON string) is validated against the document category's
+         *     metadata_schema when document_type matches a configured category with a schema.
          */
         post: operations["upload_document_api_v1_documents_post"];
         delete?: never;
@@ -422,6 +465,58 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Document Categories
+         * @description List document categories for the tenant.
+         */
+        get: operations["list_document_categories_api_v1_document_categories_get"];
+        put?: never;
+        /**
+         * Create Document Category
+         * @description Create a document category (tenant-scoped).
+         */
+        post: operations["create_document_category_api_v1_document_categories_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-categories/{category_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Document Category
+         * @description Get document category by id (must belong to tenant).
+         */
+        get: operations["get_document_category_api_v1_document_categories__category_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Document Category
+         * @description Delete document category (tenant-scoped).
+         */
+        delete: operations["delete_document_category_api_v1_document_categories__category_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Document Category
+         * @description Update document category (partial).
+         */
+        patch: operations["update_document_category_api_v1_document_categories__category_id__patch"];
         trace?: never;
     };
     "/api/v1/email-accounts": {
@@ -556,6 +651,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search
+         * @description Full-text search within tenant (subjects, events, documents metadata).
+         */
+        get: operations["search_api_v1_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/subjects": {
         parameters: {
             query?: never;
@@ -580,6 +695,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/subjects/{subject_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export Subject Data
+         * @description Export all data for the subject (GDPR): subject, events, document refs (no binary).
+         */
+        post: operations["export_subject_data_api_v1_subjects__subject_id__export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subjects/{subject_id}/erasure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Erase Subject Data
+         * @description Erase or anonymize subject data (GDPR). Body: {"strategy": "anonymize"|"delete"}.
+         */
+        post: operations["erase_subject_data_api_v1_subjects__subject_id__erasure_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subjects/{subject_id}/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Subject State
+         * @description Get derived state for subject (event replay). Optional as_of for time-travel.
+         */
+        get: operations["get_subject_state_api_v1_subjects__subject_id__state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/subjects/{subject_id}": {
         parameters: {
             query?: never;
@@ -594,7 +769,7 @@ export interface paths {
         get: operations["get_subject_api_v1_subjects__subject_id__get"];
         /**
          * Update Subject
-         * @description Update subject (e.g. external_ref). Tenant-scoped.
+         * @description Update subject (e.g. external_ref, display_name, attributes). Tenant-scoped.
          */
         put: operations["update_subject_api_v1_subjects__subject_id__put"];
         post?: never;
@@ -606,6 +781,58 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subject-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Subject Types
+         * @description List subject types for the tenant.
+         */
+        get: operations["list_subject_types_api_v1_subject_types_get"];
+        put?: never;
+        /**
+         * Create Subject Type
+         * @description Create a subject type (tenant-scoped). created_by from authenticated user.
+         */
+        post: operations["create_subject_type_api_v1_subject_types_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subject-types/{subject_type_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Subject Type
+         * @description Get subject type by id (must belong to tenant).
+         */
+        get: operations["get_subject_type_api_v1_subject_types__subject_type_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Subject Type
+         * @description Delete subject type (tenant-scoped).
+         */
+        delete: operations["delete_subject_type_api_v1_subject_types__subject_type_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Subject Type
+         * @description Update subject type (partial).
+         */
+        patch: operations["update_subject_type_api_v1_subject_types__subject_type_id__patch"];
         trace?: never;
     };
     "/api/v1/users": {
@@ -863,7 +1090,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List All Schemas
+         * @description List all event schema versions for the tenant (any event type).
+         */
+        get: operations["list_all_schemas_api_v1_event_schemas_get"];
         put?: never;
         /**
          * Create Event Schema
@@ -1292,6 +1523,59 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AuditLogEntryResponse
+         * @description Single audit log entry (read).
+         */
+        AuditLogEntryResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** User Id */
+            user_id: string | null;
+            /** Action */
+            action: string;
+            /** Resource Type */
+            resource_type: string;
+            /** Resource Id */
+            resource_id: string | null;
+            /** Old Values */
+            old_values?: {
+                [key: string]: unknown;
+            } | null;
+            /** New Values */
+            new_values?: {
+                [key: string]: unknown;
+            } | null;
+            /** Ip Address */
+            ip_address?: string | null;
+            /** User Agent */
+            user_agent?: string | null;
+            /** Request Id */
+            request_id?: string | null;
+            /**
+             * Timestamp
+             * Format: date-time
+             */
+            timestamp: string;
+            /** Success */
+            success: boolean;
+            /** Error Message */
+            error_message?: string | null;
+        };
+        /**
+         * AuditLogListResponse
+         * @description Paginated list of audit log entries.
+         */
+        AuditLogListResponse: {
+            /** Items */
+            items: components["schemas"]["AuditLogEntryResponse"][];
+            /** Skip */
+            skip: number;
+            /** Limit */
+            limit: number;
+        };
         /** Body_upload_document_api_v1_documents_post */
         Body_upload_document_api_v1_documents_post: {
             /** Subject Id */
@@ -1309,6 +1593,8 @@ export interface components {
             created_by?: string | null;
             /** Parent Document Id */
             parent_document_id?: string | null;
+            /** Metadata */
+            metadata?: string | null;
         };
         /**
          * ChainVerificationResponse
@@ -1337,6 +1623,113 @@ export interface components {
              * @default []
              */
             event_results: components["schemas"]["EventVerificationResult"][];
+        };
+        /**
+         * DashboardStatsResponse
+         * @description Dashboard stats: counts by type and last N events.
+         */
+        DashboardStatsResponse: {
+            /** Total Subjects */
+            total_subjects: number;
+            /** Subjects By Type */
+            subjects_by_type?: {
+                [key: string]: number;
+            };
+            /** Total Events */
+            total_events: number;
+            /** Events By Type */
+            events_by_type?: {
+                [key: string]: number;
+            };
+            /** Total Documents */
+            total_documents: number;
+            /** Recent Events */
+            recent_events?: components["schemas"]["RecentEventItem"][];
+        };
+        /**
+         * DocumentCategoryCreateRequest
+         * @description Request body for creating a document category.
+         */
+        DocumentCategoryCreateRequest: {
+            /** Category Name */
+            category_name: string;
+            /** Display Name */
+            display_name: string;
+            /** Description */
+            description?: string | null;
+            /** Metadata Schema */
+            metadata_schema?: {
+                [key: string]: unknown;
+            } | null;
+            /** Default Retention Days */
+            default_retention_days?: number | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+        };
+        /**
+         * DocumentCategoryListItem
+         * @description Document category list item.
+         */
+        DocumentCategoryListItem: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Category Name */
+            category_name: string;
+            /** Display Name */
+            display_name: string;
+            /** Description */
+            description: string | null;
+            /** Default Retention Days */
+            default_retention_days: number | null;
+            /** Is Active */
+            is_active: boolean;
+        };
+        /**
+         * DocumentCategoryResponse
+         * @description Document category full response.
+         */
+        DocumentCategoryResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Category Name */
+            category_name: string;
+            /** Display Name */
+            display_name: string;
+            /** Description */
+            description: string | null;
+            /** Metadata Schema */
+            metadata_schema: {
+                [key: string]: unknown;
+            } | null;
+            /** Default Retention Days */
+            default_retention_days: number | null;
+            /** Is Active */
+            is_active: boolean;
+        };
+        /**
+         * DocumentCategoryUpdateRequest
+         * @description Request body for PATCH (partial update).
+         */
+        DocumentCategoryUpdateRequest: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Metadata Schema */
+            metadata_schema?: {
+                [key: string]: unknown;
+            } | null;
+            /** Default Retention Days */
+            default_retention_days?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
         };
         /**
          * DocumentDownloadUrlResponse
@@ -1597,7 +1990,7 @@ export interface components {
             };
             /**
              * Is Active
-             * @default false
+             * @default true
              */
             is_active: boolean;
         };
@@ -1903,6 +2296,27 @@ export interface components {
             description: string | null;
         };
         /**
+         * RecentEventItem
+         * @description Minimal event summary for dashboard recent activity.
+         */
+        RecentEventItem: {
+            /** Id */
+            id: string;
+            /** Subject Id */
+            subject_id: string;
+            /** Event Type */
+            event_type: string;
+            /**
+             * Event Time
+             * Format: date-time
+             */
+            event_time: string;
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            };
+        };
+        /**
          * RegisterRequest
          * @description Request body for public registration (tenant by code).
          */
@@ -1990,6 +2404,35 @@ export interface components {
             is_active?: boolean | null;
         };
         /**
+         * SearchResponse
+         * @description Full-text search response (list of hits).
+         */
+        SearchResponse: {
+            /** Results */
+            results: components["schemas"]["SearchResultItemResponse"][];
+        };
+        /**
+         * SearchResultItemResponse
+         * @description Single search hit (subject, event, or document).
+         */
+        SearchResultItemResponse: {
+            /**
+             * Resource Type
+             * @description subject | event | document
+             */
+            resource_type: string;
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Snippet */
+            snippet?: string | null;
+            /** Subject Id */
+            subject_id?: string | null;
+            /** Display Title */
+            display_title: string;
+        };
+        /**
          * SubjectCreateRequest
          * @description Request body for creating a subject.
          */
@@ -1998,6 +2441,24 @@ export interface components {
             subject_type: string;
             /** External Ref */
             external_ref?: string | null;
+            /** Display Name */
+            display_name?: string | null;
+            /** Attributes */
+            attributes?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * SubjectErasureRequest
+         * @description Request body for subject data erasure (GDPR).
+         */
+        SubjectErasureRequest: {
+            /**
+             * Strategy
+             * @description anonymize (redact PII) or delete (remove subject and documents)
+             * @default anonymize
+             */
+            strategy: string;
         };
         /**
          * SubjectResponse
@@ -2012,6 +2473,147 @@ export interface components {
             subject_type: string;
             /** External Ref */
             external_ref: string | null;
+            /** Display Name */
+            display_name: string;
+            /** Attributes */
+            attributes: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * SubjectStateResponse
+         * @description Derived state from event replay (get_current_state).
+         */
+        SubjectStateResponse: {
+            /** State */
+            state: {
+                [key: string]: unknown;
+            };
+            /** Last Event Id */
+            last_event_id: string | null;
+            /** Event Count */
+            event_count: number;
+        };
+        /**
+         * SubjectTypeCreateRequest
+         * @description Request body for creating a subject type. Accepts 'schema' in JSON.
+         */
+        SubjectTypeCreateRequest: {
+            /** Type Name */
+            type_name: string;
+            /** Display Name */
+            display_name: string;
+            /** Description */
+            description?: string | null;
+            /** Schema */
+            schema?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /** Icon */
+            icon?: string | null;
+            /** Color */
+            color?: string | null;
+            /**
+             * Has Timeline
+             * @default true
+             */
+            has_timeline: boolean;
+            /**
+             * Allow Documents
+             * @default true
+             */
+            allow_documents: boolean;
+        };
+        /**
+         * SubjectTypeListItem
+         * @description Subject type list item.
+         */
+        SubjectTypeListItem: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Type Name */
+            type_name: string;
+            /** Display Name */
+            display_name: string;
+            /** Description */
+            description: string | null;
+            /** Version */
+            version: number;
+            /** Is Active */
+            is_active: boolean;
+            /** Icon */
+            icon: string | null;
+            /** Color */
+            color: string | null;
+            /** Has Timeline */
+            has_timeline: boolean;
+            /** Allow Documents */
+            allow_documents: boolean;
+        };
+        /**
+         * SubjectTypeResponse
+         * @description Subject type full response. Serializes as 'schema' in JSON.
+         */
+        SubjectTypeResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Type Name */
+            type_name: string;
+            /** Display Name */
+            display_name: string;
+            /** Description */
+            description: string | null;
+            /** Schema */
+            schema?: {
+                [key: string]: unknown;
+            } | null;
+            /** Version */
+            version: number;
+            /** Is Active */
+            is_active: boolean;
+            /** Icon */
+            icon: string | null;
+            /** Color */
+            color: string | null;
+            /** Has Timeline */
+            has_timeline: boolean;
+            /** Allow Documents */
+            allow_documents: boolean;
+            /** Created By */
+            created_by: string | null;
+        };
+        /**
+         * SubjectTypeUpdateRequest
+         * @description Request body for PATCH (partial update). Accepts 'schema' in JSON.
+         */
+        SubjectTypeUpdateRequest: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Schema */
+            schema?: {
+                [key: string]: unknown;
+            } | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Icon */
+            icon?: string | null;
+            /** Color */
+            color?: string | null;
+            /** Has Timeline */
+            has_timeline?: boolean | null;
+            /** Allow Documents */
+            allow_documents?: boolean | null;
         };
         /**
          * SubjectUpdate
@@ -2020,6 +2622,12 @@ export interface components {
         SubjectUpdate: {
             /** External Ref */
             external_ref?: string | null;
+            /** Display Name */
+            display_name?: string | null;
+            /** Attributes */
+            attributes?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * TenantCreateRequest
@@ -2506,6 +3114,66 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    get_dashboard_api_v1_analytics_dashboard_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardStatsResponse"];
+                };
+            };
+        };
+    };
+    list_audit_log_api_v1_audit_log_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+                /** @description Filter by resource type */
+                resource_type?: string | null;
+                /** @description Filter by user id */
+                user_id?: string | null;
+                /** @description From (inclusive) ISO8601 */
+                from_timestamp?: string | null;
+                /** @description To (inclusive) ISO8601 */
+                to_timestamp?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
@@ -3177,6 +3845,166 @@ export interface operations {
             };
         };
     };
+    list_document_categories_api_v1_document_categories_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentCategoryListItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_document_category_api_v1_document_categories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentCategoryCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentCategoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_document_category_api_v1_document_categories__category_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentCategoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_document_category_api_v1_document_categories__category_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_document_category_api_v1_document_categories__category_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentCategoryUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentCategoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_email_accounts_api_v1_email_accounts_get: {
         parameters: {
             query?: {
@@ -3461,6 +4289,40 @@ export interface operations {
             };
         };
     };
+    search_api_v1_search_get: {
+        parameters: {
+            query: {
+                q: string;
+                /** @description Search scope */
+                scope?: "all" | "subjects" | "events" | "documents";
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_subjects_api_v1_subjects_get: {
         parameters: {
             query?: {
@@ -3514,6 +4376,104 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubjectResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_subject_data_api_v1_subjects__subject_id__export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    erase_subject_data_api_v1_subjects__subject_id__erasure_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubjectErasureRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_subject_state_api_v1_subjects__subject_id__state_get: {
+        parameters: {
+            query?: {
+                /** @description ISO8601 datetime for time-travel (state as of this time) */
+                as_of?: string | null;
+            };
+            header?: never;
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectStateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3610,6 +4570,166 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_subject_types_api_v1_subject_types_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectTypeListItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_subject_type_api_v1_subject_types_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubjectTypeCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectTypeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_subject_type_api_v1_subject_types__subject_type_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subject_type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectTypeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_subject_type_api_v1_subject_types__subject_type_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subject_type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_subject_type_api_v1_subject_types__subject_type_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subject_type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubjectTypeUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectTypeResponse"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -4168,6 +5288,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_all_schemas_api_v1_event_schemas_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventSchemaListItem"][];
+                };
             };
             /** @description Validation Error */
             422: {

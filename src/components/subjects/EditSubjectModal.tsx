@@ -1,39 +1,134 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/useToast'
 import { useFormSubmit } from '@/hooks/useFormSubmit'
 import { FormField, FormInput, FormError } from '@/components/ui/FormField'
 import { FormModalActions } from '@/components/ui/FormModalActions'
 import { Modal } from '@/components/ui/Modal'
+import { JsonSchemaForm } from '@/components/shared/JsonSchemaForm'
+import type { JsonSchema } from '@/components/shared/JsonSchemaForm'
+import { timelineApi } from '@/lib/api-client'
+import type { components } from '@/lib/timeline-api'
+
+type SubjectTypeListItem = components['schemas']['SubjectTypeListItem']
+type SubjectTypeResponse = components['schemas']['SubjectTypeResponse']
+
+export interface EditSubjectSubject {
+  id: string
+  subject_type: string
+  external_ref?: string | null
+  display_name?: string | null
+  attributes?: Record<string, unknown> | null
+}
 
 interface EditSubjectModalProps {
   isOpen: boolean
   onClose: () => void
-  subject: {
-    id: string
-    subject_type: string
-    external_ref?: string | null
+  subject: EditSubjectSubject
+  subjectTypes?: SubjectTypeListItem[]
+  onUpdate: (
+    subjectId: string,
+    externalRef?: string,
+    displayName?: string,
+    attributes?: Record<string, unknown>
+  ) => Promise<boolean>
+}
+
+function normalizeSchema(schema: unknown): JsonSchema | null {
+  if (schema == null) return null
+  if (typeof schema === 'string') {
+    try {
+      const parsed = JSON.parse(schema) as Record<string, unknown>
+      return (parsed?.properties ? (parsed as JsonSchema) : null) ?? null
+    } catch {
+      return null
+    }
   }
-  onUpdate: (subjectId: string, externalRef?: string) => Promise<boolean>
+  if (typeof schema === 'object' && !Array.isArray(schema)) {
+    const o = schema as Record<string, unknown>
+    return o?.properties ? (schema as JsonSchema) : null
+  }
+  return null
 }
 
 export function EditSubjectModal({
   isOpen,
   onClose,
   subject,
+  subjectTypes = [],
   onUpdate,
 }: EditSubjectModalProps) {
-  const [externalRef, setExternalRef] = useState(subject.external_ref || '')
+  const [externalRef, setExternalRef] = useState(subject.external_ref ?? '')
+  const [displayName, setDisplayName] = useState(subject.display_name ?? '')
+  const [attributes, setAttributes] = useState<Record<string, unknown>>(
+    subject.attributes && typeof subject.attributes === 'object'
+      ? { ...subject.attributes }
+      : {}
+  )
+  const [attributeSchema, setAttributeSchema] = useState<JsonSchema | null>(null)
+  const [schemaLoading, setSchemaLoading] = useState(false)
   const { execute, loading, error, setError } = useFormSubmit()
   const toast = useToast()
+
+  // Sync form when subject changes (e.g. modal opened for another subject)
+  useEffect(() => {
+    setExternalRef(subject.external_ref ?? '')
+    setDisplayName(subject.display_name ?? '')
+    setAttributes(
+      subject.attributes && typeof subject.attributes === 'object'
+        ? { ...subject.attributes }
+        : {}
+    )
+  }, [subject.id, subject.external_ref, subject.display_name, subject.attributes])
+
+  // Fetch subject type schema when modal is open and we have subject type
+  useEffect(() => {
+    if (!isOpen || !subject.subject_type) {
+      setAttributeSchema(null)
+      return
+    }
+    const listItem = subjectTypes.find((t) => t.type_name === subject.subject_type)
+    if (!listItem?.id) {
+      setAttributeSchema(null)
+      return
+    }
+    let mounted = true
+    setSchemaLoading(true)
+    timelineApi.subjectTypes
+      .get(listItem.id)
+      .then((res) => {
+        if (!mounted) return
+        if (res.error || !res.data) {
+          setAttributeSchema(null)
+          return
+        }
+        const full = res.data as SubjectTypeResponse
+        setAttributeSchema(normalizeSchema(full.schema))
+      })
+      .catch(() => {
+        if (mounted) setAttributeSchema(null)
+      })
+      .finally(() => {
+        if (mounted) setSchemaLoading(false)
+      })
+    return () => {
+      mounted = false
+    }
+  }, [isOpen, subject.subject_type, subjectTypes])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
-    const success = await execute(() => onUpdate(subject.id, externalRef || undefined))
+    const success = await execute(() =>
+      onUpdate(
+        subject.id,
+        externalRef || undefined,
+        displayName || undefined,
+        Object.keys(attributes).length ? attributes : undefined
+      )
+    )
 
     if (success) {
-      setExternalRef('')
       onClose()
       toast.success('Subject updated', 'Your changes have been saved')
     } else {
@@ -61,6 +156,20 @@ export function EditSubjectModal({
             </div>
           </FormField>
 
+          {/* Display name */}
+          <FormField
+            label="Display name"
+            hint="Optional human-readable label for this subject"
+          >
+            <FormInput
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="e.g. John Doe, Order #1234"
+              disabled={loading}
+            />
+          </FormField>
+
           {/* External Reference */}
           <FormField
             label="External Reference"
@@ -74,6 +183,20 @@ export function EditSubjectModal({
               disabled={loading}
             />
           </FormField>
+
+          {/* Attributes (schema-driven when type has schema) */}
+          {schemaLoading && (
+            <p className="text-sm text-muted-foreground">Loading type schema...</p>
+          )}
+          {!schemaLoading && attributeSchema && (
+            <FormField label="Attributes" hint="Custom fields for this subject type">
+              <JsonSchemaForm
+                schema={attributeSchema}
+                value={attributes}
+                onChange={setAttributes}
+              />
+            </FormField>
+          )}
         </div>
 
         <FormModalActions

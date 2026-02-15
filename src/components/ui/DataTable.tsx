@@ -4,7 +4,7 @@ import {
   useReactTable,
   type ColumnDef,
 } from '@tanstack/react-table'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { Button } from './button'
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -73,6 +73,10 @@ export interface DataTableProps<TData> {
   variant?: 'default' | 'documents' | 'subjects'
   /** Callback when a row is clicked */
   onRowClick?: (row: TData) => void
+  /** Return a stable id for each row (used for selection and scroll-into-view) */
+  getRowId?: (row: TData) => string
+  /** When set, the row with this id is shown as selected (persistent highlight) */
+  selectedRowId?: string | null
   /** Make header sticky when scrolling */
   sticky?: boolean
   /** Apply responsive text sizing (text-xs sm:text-sm) */
@@ -119,11 +123,11 @@ const colorSchemes: Record<string, ColorScheme> = {
     bgCard: '',
   },
   subjects: {
-    header: 'bg-muted/50',
-    headerText: 'text-foreground',
-    border: 'border-border',
+    header: 'border-b border-border/60',
+    headerText: 'text-muted-foreground font-display font-semibold uppercase tracking-wider text-xs',
+    border: 'border-border/60',
     hoverBg: 'hover:bg-muted/50',
-    rowBorder: 'border-b border-border',
+    rowBorder: 'border-b border-border/40',
     bgCard: 'bg-card/80 backdrop-blur-sm',
   },
 }
@@ -136,6 +140,8 @@ export function DataTable<TData>({
   emptyState,
   variant = 'default',
   onRowClick,
+  getRowId,
+  selectedRowId = null,
   sticky = true,
   responsiveText = true,
   enablePagination = false,
@@ -145,12 +151,13 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
   const [pageIndex, setPageIndex] = useState(0)
   const [pageSize, setPageSize] = useState(initialPageSize)
+  const selectedRowRef = useRef<HTMLTableRowElement | null>(null)
 
   const pageSizeOptions = [5, 10, 20, 50]
 
   // Apply compact padding if not explicitly specified
-  const effectiveRowPadding = rowPadding ?? (compact ? 'py-1 sm:py-2 px-2 sm:px-3' : 'py-2 sm:py-3 px-2 sm:px-4')
-  const effectiveHeaderPadding = compact ? 'py-1.5 sm:py-2 px-2 sm:px-3' : 'py-2 sm:py-3 px-2 sm:px-4'
+  const effectiveRowPadding = rowPadding ?? (compact ? 'py-1 sm:py-2 px-2 sm:px-3' : variant === 'subjects' ? 'py-2 px-4' : 'py-2 sm:py-3 px-2 sm:px-4')
+  const effectiveHeaderPadding = variant === 'subjects' ? 'py-2 px-4' : (compact ? 'py-1.5 sm:py-2 px-2 sm:px-3' : 'py-2 sm:py-3 px-2 sm:px-4')
 
   // Apply pagination to data
   const paginatedData = useMemo(() => {
@@ -164,6 +171,13 @@ export function DataTable<TData>({
     columns,
     getCoreRowModel: getCoreRowModel(),
   })
+
+  // Scroll selected row into view when selection changes (must run unconditionally for hook order)
+  useEffect(() => {
+    if (selectedRowId && selectedRowRef.current) {
+      selectedRowRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  }, [selectedRowId])
 
   const scheme = colorSchemes[variant]
 
@@ -211,17 +225,20 @@ export function DataTable<TData>({
     )
   }
 
+  const isSubjectsVariant = variant === 'subjects'
+  const selectedRowBg = 'bg-muted/70'
+
   return (
-    <div className={`rounded-none border ${scheme.border} overflow-hidden`}>
+    <div className={`overflow-hidden ${isSubjectsVariant ? 'rounded-none bg-card/80 backdrop-blur-sm' : `rounded-none border ${scheme.border}`}`}>
       <div className="overflow-x-auto">
-        <table className={`w-full text-xs sm:text-sm min-w-max`}>
-          <thead className={`${scheme.header} border-b ${scheme.border} ${sticky ? 'sticky top-0' : ''}`}>
+        <table className={`w-full min-w-max ${isSubjectsVariant ? 'text-sm' : 'text-xs sm:text-sm'}`}>
+          <thead className={`${scheme.header} ${!isSubjectsVariant ? `border-b ${scheme.border}` : ''} ${sticky ? 'sticky top-0 z-10 bg-card/95 backdrop-blur-sm' : ''}`}>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className={`text-left ${effectiveHeaderPadding} font-semibold ${scheme.headerText} whitespace-nowrap`}
+                    className={`text-left ${effectiveHeaderPadding} ${scheme.headerText} whitespace-nowrap ${!isSubjectsVariant ? 'font-semibold' : ''}`}
                   >
                     {header.isPlaceholder
                       ? null
@@ -234,25 +251,30 @@ export function DataTable<TData>({
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-border">
-            {rows.map((row) => (
-              <tr
-                key={row.id}
-                onClick={() => onRowClick?.(row.original)}
-                className={`transition-colors ${scheme.rowBorder} ${
-                  onRowClick ? `cursor-pointer ${scheme.hoverBg}` : ''
-                } ${onRowClick && responsiveText ? 'focus-within:bg-muted/30' : ''}`}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className={`${effectiveRowPadding} ${responsiveText ? 'text-xs sm:text-sm' : ''}`}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
+          <tbody className={isSubjectsVariant ? '' : 'divide-y divide-border'}>
+            {rows.map((row) => {
+              const rowId = getRowId?.(row.original)
+              const isSelected = selectedRowId != null && rowId != null && selectedRowId === rowId
+              return (
+                <tr
+                  key={row.id}
+                  ref={isSelected ? selectedRowRef : undefined}
+                  onClick={() => onRowClick?.(row.original)}
+                  className={`transition-colors ${!isSubjectsVariant && scheme.rowBorder} ${
+                    onRowClick ? `cursor-pointer ${scheme.hoverBg}` : ''
+                  } ${isSubjectsVariant ? 'border-b border-border/40 last:border-b-0' : ''} ${onRowClick && responsiveText && !isSubjectsVariant ? 'focus-within:bg-muted/30' : ''} ${isSelected ? selectedRowBg : ''}`}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      className={`${effectiveRowPadding} ${responsiveText ? 'text-xs sm:text-sm' : ''}`}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

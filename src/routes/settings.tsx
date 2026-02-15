@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, useLocation, useNavigate } from '@tanstack/react-router'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { Shield, Database, Zap, Users, KeyRound } from 'lucide-react'
+import { Shield, Database, Zap, Users, KeyRound, Layers, FolderOpen } from 'lucide-react'
 
 export const Route = createFileRoute('/settings')({
   component: SettingsLayout,
@@ -42,6 +42,18 @@ function SettingsLayout() {
       label: 'Event Schemas',
       icon: Database,
       description: 'Manage JSON schemas',
+    },
+    {
+      path: '/settings/subject-types',
+      label: 'Subject Types',
+      icon: Layers,
+      description: 'Configure subject types and attributes',
+    },
+    {
+      path: '/settings/document-categories',
+      label: 'Document Categories',
+      icon: FolderOpen,
+      description: 'Configure document categories and retention',
     },
     {
       path: '/settings/workflows',

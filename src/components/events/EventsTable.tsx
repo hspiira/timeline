@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { FileText, Eye } from 'lucide-react'
+import { FileText, Eye, ArrowUpRight } from 'lucide-react'
 import type { EventResponse } from '@/lib/types'
 import { formatEventDate, formatEventTime } from '@/lib/format-date'
 
@@ -30,15 +30,25 @@ export function EventsTable({
     <div className="overflow-x-auto">
       <table className="w-full min-w-[640px] border-collapse">
         <thead>
-          <tr className="text-left text-xs font-medium text-muted-foreground">
-            <th className="py-2.5 pr-4">Date & time</th>
-            <th className="py-2.5 pr-4">Type</th>
+          <tr className="border-b border-border/60">
+            <th className="py-2 px-4 text-left font-display text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Date & time
+            </th>
+            <th className="py-2 px-4 text-left font-display text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Type
+            </th>
             {showSubjectColumn && (
-              <th className="py-2.5 pr-4">Subject</th>
+              <th className="py-2 px-4 text-left font-display text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Subject
+              </th>
             )}
-            <th className="py-2.5 pr-4">Payload</th>
-            <th className="py-2.5 pr-4 text-center w-14">Docs</th>
-            <th className="py-2.5 pl-4 text-right w-24"></th>
+            <th className="py-2 px-4 text-left font-display text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Payload
+            </th>
+            <th className="py-2 px-4 text-center w-14 font-display text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Docs
+            </th>
+            <th className="py-2 pl-4 pr-4 text-right w-28" aria-label="Actions" />
           </tr>
         </thead>
         <tbody>
@@ -50,68 +60,73 @@ export function EventsTable({
             return (
               <tr
                 key={event.id}
-                className="group text-sm border-0 border-none hover:bg-muted/40 transition-colors"
+                className="group text-sm border-b border-border/40 last:border-b-0 transition-colors hover:bg-[var(--dashboard-accent-muted)]/50"
               >
-                <td className="py-2.5 pr-4 text-muted-foreground whitespace-nowrap">
+                <td className="py-2 px-4 text-muted-foreground whitespace-nowrap tabular-nums">
                   {formatEventDate(eventDate)} {formatEventTime(eventDate)}
                 </td>
-                <td className="py-2.5 pr-4">
+                <td className="py-2 px-4">
                   <span className="font-medium text-foreground">{event.event_type}</span>
                   <span className="ml-1.5 text-xs text-muted-foreground font-mono">
                     v{event.schema_version}
                   </span>
                 </td>
                 {showSubjectColumn && (
-                  <td className="py-2.5 pr-4">
+                  <td className="py-2 px-4">
                     <Link
                       to="/subjects/$subjectId"
                       params={{ subjectId: event.subject_id }}
                       search={{ tab: 'events' }}
-                      className="text-muted-foreground hover:text-foreground font-mono text-xs truncate max-w-[120px] inline-block"
+                      className="font-mono text-xs truncate max-w-[140px] inline-block text-muted-foreground hover:text-[var(--dashboard-accent)] transition-colors"
                     >
                       {event.subject_id}
                     </Link>
                   </td>
                 )}
-                <td className="py-2.5 pr-4 max-w-[200px]">
-                  <span className="text-muted-foreground text-xs truncate block" title={JSON.stringify(event.payload)}>
+                <td className="py-2 px-4 max-w-[220px]">
+                  <span
+                    className="text-muted-foreground text-xs truncate block font-mono"
+                    title={JSON.stringify(event.payload)}
+                  >
                     {payloadSnippet(event.payload)}
                   </span>
                 </td>
-                <td className="py-2.5 pr-4 text-center">
+                <td className="py-2 px-4 text-center">
                   {hasDocuments ? (
                     <button
                       type="button"
                       onClick={() => onViewDocuments?.(event)}
-                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-none bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground text-xs"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-none bg-[var(--dashboard-accent-muted)] text-[var(--dashboard-accent)] hover:opacity-90 text-xs font-medium tabular-nums transition-opacity"
                       title={`${docCount} document${docCount !== 1 ? 's' : ''}`}
                     >
-                      <FileText className="w-3 h-3" />
+                      <FileText className="w-3 h-3" strokeWidth={1.75} />
                       {docCount}
                     </button>
                   ) : (
-                    <span className="text-muted-foreground/50 text-xs">—</span>
+                    <span className="text-muted-foreground/40 text-xs">—</span>
                   )}
                 </td>
-                <td className="py-2.5 pl-4 text-right">
-                  <div className="flex items-center justify-end gap-1">
+                <td className="py-2 pl-4 pr-4 text-right">
+                  <div className="flex items-center justify-end gap-0.5">
                     {onViewDetails && (
                       <button
                         type="button"
                         onClick={() => onViewDetails(event)}
-                        className="p-1.5 rounded-none text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        className="p-2 rounded-none text-muted-foreground hover:text-[var(--dashboard-accent)] hover:bg-[var(--dashboard-accent-muted)]/50 transition-colors"
                         title="View details"
+                        aria-label="View details"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-4 h-4" strokeWidth={1.75} />
                       </button>
                     )}
                     <Link
                       to="/subjects/$subjectId/events/$eventId"
                       params={{ subjectId: event.subject_id, eventId: event.id }}
-                      className="p-1.5 rounded-none text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      className="inline-flex items-center gap-1 px-2 py-1.5 rounded-none text-xs font-medium text-muted-foreground hover:text-[var(--dashboard-accent)] hover:bg-[var(--dashboard-accent-muted)]/50 transition-colors"
                       title="Open event"
                     >
                       View
+                      <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
                     </Link>
                   </div>
                 </td>

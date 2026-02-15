@@ -4,22 +4,23 @@ import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { MinimalActivityFeed } from '@/components/dashboard/MinimalActivityFeed'
 import { StatsGrid } from '@/components/dashboard/StatsGrid'
 import { timelineApi } from '@/lib/api-client'
-import { Loader2, AlertCircle } from 'lucide-react'
-import type { EventListResponse, SubjectResponse, WorkflowResponse } from '@/lib/types'
+import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
+import type { components } from '@/lib/timeline-api'
+import type { WorkflowResponse } from '@/lib/types'
+
+type DashboardStatsResponse = components['schemas']['DashboardStatsResponse']
 
 export const Route = createFileRoute('/')({
   component: HomePage,
 })
 
 interface DashboardData {
-  events: EventListResponse[]
-  totalEvents: number
-  subjects: SubjectResponse[]
+  stats: DashboardStatsResponse | null
   workflows: WorkflowResponse[]
 }
 
 interface FetchError {
-  field: 'events' | 'subjects' | 'workflows'
+  field: 'analytics' | 'workflows'
   message: string
 }
 
@@ -27,147 +28,86 @@ function HomePage() {
   const authState = useRequireAuth()
 
   const [data, setData] = useState<DashboardData>({
-    events: [],
-    totalEvents: 0,
-    subjects: [],
+    stats: null,
     workflows: [],
   })
   const [_loading, setLoading] = useState(true)
   const [errors, setErrors] = useState<FetchError[]>([])
 
-  // Calculate today's events
   const eventsToday = useMemo(() => {
+    const recent = data.stats?.recent_events ?? []
     const today = new Date().toDateString()
-    return data.events.filter((event) => new Date(event.event_time).toDateString() === today)
-  }, [data.events])
+    return recent.filter((e) => new Date(e.event_time).toDateString() === today).length
+  }, [data.stats?.recent_events])
 
-  // Calculate subjects created this week
-  const subjectsThisWeek = useMemo(() => {
-    const weekAgo = new Date()
-    weekAgo.setDate(weekAgo.getDate() - 7)
-    // SubjectResponse no longer has created_at, so we can't filter by creation date.
-    // Return all subjects as a fallback metric.
-    return data.subjects
-  }, [data.subjects])
-
-  // Count active workflows
   const activeWorkflowsCount = useMemo(() => {
-    return data.workflows.filter((workflow) => (workflow as any).is_active).length
+    return data.workflows.filter((w) => (w as { is_active?: boolean }).is_active).length
   }, [data.workflows])
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true)
     setErrors([])
     try {
-      const DASHBOARD_LIMIT = 100
-      const results = await Promise.allSettled([
-        timelineApi.events.listAll({ skip: 0, limit: DASHBOARD_LIMIT }),
-        timelineApi.events.count(),
-        timelineApi.subjects.list({ skip: 0, limit: DASHBOARD_LIMIT }),
-        timelineApi.workflows.list({ skip: 0, limit: DASHBOARD_LIMIT }),
+      const [analyticsResult, workflowsResult] = await Promise.allSettled([
+        timelineApi.analytics.dashboard(),
+        timelineApi.workflows.list({ skip: 0, limit: 100 }),
       ])
 
       const newErrors: FetchError[] = []
       const newData: DashboardData = {
-        events: [],
-        totalEvents: 0,
-        subjects: [],
+        stats: null,
         workflows: [],
       }
 
-      // Process events response
-      const eventsResult = results[0]
-      if (eventsResult.status === 'fulfilled' && eventsResult.value.data) {
-        newData.events = eventsResult.value.data
-      } else if (eventsResult.status === 'rejected') {
-        newErrors.push({
-          field: 'events',
-          message: 'Failed to load events',
-        })
+      if (analyticsResult.status === 'fulfilled' && analyticsResult.value.data) {
+        newData.stats = analyticsResult.value.data
+      } else if (analyticsResult.status === 'rejected') {
+        newErrors.push({ field: 'analytics', message: 'Failed to load dashboard stats' })
       }
 
-      // Process events count response
-      const eventsCountResult = results[1]
-      if (eventsCountResult.status === 'fulfilled' && eventsCountResult.value.data) {
-        newData.totalEvents = (eventsCountResult.value.data as { total: number }).total
-      }
-
-      // Process subjects response
-      const subjectsResult = results[2]
-      if (subjectsResult.status === 'fulfilled' && subjectsResult.value.data) {
-        newData.subjects = subjectsResult.value.data
-      } else if (subjectsResult.status === 'rejected') {
-        newErrors.push({
-          field: 'subjects',
-          message: 'Failed to load subjects',
-        })
-      }
-
-      // Process workflows response
-      const workflowsResult = results[3]
       if (workflowsResult.status === 'fulfilled' && workflowsResult.value.data) {
         newData.workflows = workflowsResult.value.data
       } else if (workflowsResult.status === 'rejected') {
-        newErrors.push({
-          field: 'workflows',
-          message: 'Failed to load workflows',
-        })
+        newErrors.push({ field: 'workflows', message: 'Failed to load workflows' })
       }
 
       setData(newData)
       setErrors(newErrors)
     } catch (err) {
       console.error('Unexpected error fetching dashboard:', err)
-      setErrors([
-        {
-          field: 'events',
-          message: 'An unexpected error occurred while loading dashboard',
-        },
-      ])
+      setErrors([{ field: 'analytics', message: 'An unexpected error occurred while loading dashboard' }])
     } finally {
       setLoading(false)
     }
   }, [])
 
-  // Fetch data on user login and set up smart auto-refresh
   useEffect(() => {
     if (authState.user) {
       fetchDashboard()
-
-      // Smart polling: pause when tab is hidden, resume when visible
       let interval: NodeJS.Timeout | null = null
-      const POLL_INTERVAL = 30000 // 30 seconds (not 5)
+      const POLL_INTERVAL = 30000
 
       const startPolling = () => {
         if (!document.hidden) {
           interval = setInterval(() => {
-            if (!document.hidden) {
-              fetchDashboard()
-            }
+            if (!document.hidden) fetchDashboard()
           }, POLL_INTERVAL)
         }
       }
 
       const handleVisibilityChange = () => {
-        if (document.hidden) {
-          // Tab is hidden - stop polling to save battery/bandwidth
-          if (interval) {
-            clearInterval(interval)
-            interval = null
-          }
+        if (document.hidden && interval) {
+          clearInterval(interval)
+          interval = null
         } else {
-          // Tab is visible - resume polling
           startPolling()
         }
       }
 
       startPolling()
       document.addEventListener('visibilitychange', handleVisibilityChange)
-
       return () => {
-        if (interval) {
-          clearInterval(interval)
-        }
+        if (interval) clearInterval(interval)
         document.removeEventListener('visibilitychange', handleVisibilityChange)
       }
     }
@@ -189,30 +129,58 @@ function HomePage() {
   }
 
   const hasErrors = errors.length > 0
+  const username = authState.user.username ?? 'there'
 
   return (
-    <>
+    <div className="dashboard-page">
+      {/* Subtle grid background */}
+      <div
+        className="pointer-events-none fixed inset-0 opacity-[0.02] dark:opacity-[0.04]"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, currentColor 1px, transparent 1px),
+            linear-gradient(to bottom, currentColor 1px, transparent 1px)
+          `,
+          backgroundSize: '64px 64px',
+        }}
+        aria-hidden
+      />
+
+      <div className="relative">
+        {/* Welcome strip */}
+        <header className="mb-8 md:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground tracking-tight">
+            Dashboard
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Welcome back, {username}. Here’s your timeline at a glance.
+          </p>
+        </header>
 
         {/* Error messages */}
         {hasErrors && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-red-900 dark:text-red-200 text-sm mb-1">
-                  Unable to load some data
+          <div
+            className="mb-6 p-4 border rounded-none border-destructive/30 bg-destructive/5 animate-in fade-in slide-in-from-bottom-2 duration-300"
+            role="alert"
+          >
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-foreground text-sm mb-1">
+                  Some data couldn’t be loaded
                 </h3>
-                <ul className="space-y-0.5 text-xs text-red-800 dark:text-red-300">
+                <ul className="space-y-0.5 text-xs text-muted-foreground mb-3">
                   {errors.map((error) => (
                     <li key={error.field}>
-                      • {error.field.charAt(0).toUpperCase() + error.field.slice(1)}: {error.message}
+                      {error.field.charAt(0).toUpperCase() + error.field.slice(1)}: {error.message}
                     </li>
                   ))}
                 </ul>
                 <button
                   onClick={fetchDashboard}
-                  className="mt-2 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 underline"
+                  className="inline-flex items-center gap-2 text-xs font-medium text-foreground hover:text-primary transition-colors"
                 >
+                  <RefreshCw className="w-3.5 h-3.5" />
                   Try again
                 </button>
               </div>
@@ -220,24 +188,37 @@ function HomePage() {
           </div>
         )}
 
-        {/* Stats Grid */}
-        <StatsGrid
-          totalSubjects={data.subjects.length}
-          subjectsThisWeek={subjectsThisWeek.length}
-          totalEvents={data.totalEvents}
-          eventsToday={eventsToday.length}
-          activeWorkflows={activeWorkflowsCount}
-        />
+        {/* Stats — staggered */}
+        <section
+          className="mb-8 md:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500"
+          style={{ animationDelay: '80ms' }}
+        >
+          <StatsGrid
+            totalSubjects={data.stats?.total_subjects ?? 0}
+            totalEvents={data.stats?.total_events ?? 0}
+            totalDocuments={data.stats?.total_documents ?? 0}
+            eventsToday={eventsToday}
+            activeWorkflows={activeWorkflowsCount}
+            subjectsByType={data.stats?.subjects_by_type}
+            eventsByType={data.stats?.events_by_type}
+          />
+        </section>
 
-        {/* Recent Activity */}
-        <div>
-          <h2 className="text-sm font-semibold text-foreground mb-3">
-            Recent Activity
-          </h2>
-          <div className="bg-card/80 backdrop-blur-sm rounded-none border border-border/50">
-            <MinimalActivityFeed limit={8} />
+        {/* Recent Activity — from analytics dashboard */}
+        <section
+          className="animate-in fade-in slide-in-from-bottom-4 duration-500"
+          style={{ animationDelay: '160ms' }}
+        >
+          <div className="flex items-baseline justify-between gap-4 mb-3">
+            <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-foreground">
+              Recent activity
+            </h2>
           </div>
-        </div>
-    </>
+          <div className="rounded-none border border-border/60 bg-card/80 backdrop-blur-sm overflow-hidden">
+            <MinimalActivityFeed limit={8} recentEvents={data.stats?.recent_events} />
+          </div>
+        </section>
+      </div>
+    </div>
   )
 }

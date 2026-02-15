@@ -1,127 +1,160 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import type { SubjectWithMetadata } from '@/hooks/useSubjects'
 import { SquarePen } from 'lucide-react'
-import { useNavigate } from '@tanstack/react-router'
-import { getSubjectTypeTheme } from '@/lib/subject-type-theme'
-import { formatShortDate } from '@/lib/format-date'
+import { Link } from '@tanstack/react-router'
+import { useState, useMemo } from 'react'
+import { formatEventDate } from '@/lib/format-date'
 import { DataTable } from '@/components/ui/DataTable'
+import { getSubjectTypeThemeFromConfig } from '@/lib/subject-type-theme'
+import type { components } from '@/lib/timeline-api'
+
+type SubjectTypeListItem = components['schemas']['SubjectTypeListItem']
 
 interface SubjectsTableProps {
   data: SubjectWithMetadata[]
   onEdit?: (subject: SubjectWithMetadata) => void
+  /** Subject types from API (Settings → Subject types); used for icon and Type column label */
+  subjectTypeConfig?: SubjectTypeListItem[]
 }
 
-export function SubjectsTable({ data, onEdit }: SubjectsTableProps) {
-  const navigate = useNavigate()
+function getTypeDisplayName(
+  subjectType: string,
+  config?: SubjectTypeListItem[]
+): string {
+  const found = config?.find(
+    (t) => t.type_name.toLowerCase() === subjectType.toLowerCase()
+  )
+  return found?.display_name ?? subjectType
+}
 
-  const columns: ColumnDef<SubjectWithMetadata>[] = [
-      {
-        accessorKey: 'id',
-        header: 'Subject',
-        cell: ({ row }) => {
-          const subject = row.original
-          const { icon: Icon, bgColor, textColor } = getSubjectTypeTheme(subject.subject_type)
-          return (
-            <div className="flex items-center gap-2">
-              <div
-                className={`w-8 h-8 rounded-none ${bgColor} flex items-center justify-center shrink-0`}
-              >
-                <Icon className={`w-4 h-4 ${textColor}`} />
-              </div>
-              <div className="min-w-0">
-                <p className="font-medium text-foreground truncate text-sm">{subject.id}</p>
-                {subject.external_ref && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    {subject.external_ref}
-                  </p>
-                )}
-              </div>
-            </div>
-          )
-        },
-      },
-      {
-        accessorKey: 'subject_type',
-        header: 'Type',
-        cell: ({ row }) => {
-            const subject = row.original
-            const { borderColor, accent, bgColor } = getSubjectTypeTheme(subject.subject_type)
-            return (
-                <span className={`text-sm font-medium ${accent} px-2.5 py-1.5 rounded-none border ${borderColor} ${bgColor} inline-block`}>
-                    {subject.subject_type}
-                </span>
-            )
-        }
-      },
-      {
-        accessorKey: 'eventCount',
-        header: 'Events',
-        cell: ({ row }) => {
-            const subject = row.original
-            return (
-                <span className="text-sm font-medium text-foreground">{subject.eventCount}</span>
-            )
-        }
-      },
-      {
-        accessorKey: 'lastEventDate',
-        header: 'Last Event',
-        cell: ({ row }) => {
-            const subject = row.original
-            return (
-                <span className="text-sm text-muted-foreground">
-                    {subject.lastEventDate
-                      ? formatShortDate(subject.lastEventDate)
-                      : '—'}
-                </span>
-            )
-        }
-      },
-      {
-        accessorKey: 'subject_type',
-        id: 'external_ref',
-        header: 'External Ref',
-        cell: ({ row }) => {
-            const subject = row.original
-            return (
-                <span className="text-sm text-muted-foreground">
-                    {subject.external_ref || '—'}
-                </span>
-            )
-        }
-      },
-      {
-        id: 'actions',
-        header: 'Actions',
-        cell: ({ row }) => {
-          const subject = row.original
-          return (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onEdit?.(subject)
-              }}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors focus:outline-none focus:ring-2 focus:ring-ring/20"
-              title="Edit subject"
-              aria-label="Edit subject"
+export function SubjectsTable({
+  data,
+  onEdit,
+  subjectTypeConfig,
+}: SubjectsTableProps) {
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null)
+
+  const columns: ColumnDef<SubjectWithMetadata>[] = useMemo(
+    () => [
+    {
+      accessorKey: 'id',
+      header: 'Subject',
+      cell: ({ row }) => {
+        const subject = row.original
+        const theme = getSubjectTypeThemeFromConfig(
+          subject.subject_type,
+          subjectTypeConfig
+        )
+        const Icon = theme.icon
+        const useConfigColor = theme.configColor != null && theme.configColor !== ''
+        return (
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-8 h-8 rounded-none flex items-center justify-center shrink-0 ${useConfigColor ? '' : theme.bgColor}`}
+              style={
+                useConfigColor && theme.configColor
+                  ? {
+                      backgroundColor: `${theme.configColor}20`,
+                      color: theme.configColor,
+                    }
+                  : undefined
+              }
             >
-              <SquarePen className="w-4 h-4" />
-            </button>
-          )
-        }
+              <Icon
+                className={`w-4 h-4 ${useConfigColor ? '' : theme.textColor}`}
+                strokeWidth={1.75}
+              />
+            </div>
+            <Link
+              to="/subjects/$subjectId"
+              params={{ subjectId: subject.id }}
+              search={{ tab: 'events' }}
+              onClick={(e) => e.stopPropagation()}
+              className="font-medium text-foreground truncate block hover:text-primary transition-colors min-w-0"
+            >
+              {subject.id}
+            </Link>
+          </div>
+        )
       },
-    ]
+    },
+    {
+      accessorKey: 'subject_type',
+      header: 'Type',
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {getTypeDisplayName(row.original.subject_type, subjectTypeConfig)}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'eventCount',
+      header: 'Events',
+      cell: ({ row }) => (
+        <span className="text-sm text-foreground tabular-nums">{row.original.eventCount}</span>
+      ),
+    },
+    {
+      accessorKey: 'lastEventDate',
+      header: 'Last Event',
+      cell: ({ row }) => {
+        const d = row.original.lastEventDate
+        return (
+          <span className="text-sm text-muted-foreground tabular-nums">
+            {d ? formatEventDate(d) : '—'}
+          </span>
+        )
+      },
+    },
+    {
+      accessorKey: 'external_ref',
+      id: 'external_ref',
+      header: 'External Ref',
+      cell: ({ row }) => {
+        const ref = row.original.external_ref
+        return (
+          <span className="text-sm text-muted-foreground truncate block max-w-[160px]">
+            {ref || '—'}
+          </span>
+        )
+      },
+    },
+    {
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => {
+        const subject = row.original
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit?.(subject)
+            }}
+            className="p-2 rounded-none text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring/20"
+            title="Edit subject"
+            aria-label="Edit subject"
+          >
+            <SquarePen className="w-4 h-4" strokeWidth={1.75} />
+          </button>
+        )
+      },
+    },
+  ],
+    [subjectTypeConfig, onEdit]
+  )
 
-  const handleSubjectClick = (subject: SubjectWithMetadata) => {
-    navigate({ to: `/subjects/${subject.id}` })
+  const handleRowClick = (subject: SubjectWithMetadata) => {
+    setSelectedSubjectId((prev) => (prev === subject.id ? null : subject.id))
   }
 
   return (
-    <div className="bg-card/80 backdrop-blur-sm rounded-none border border-border overflow-hidden">
+    <div className="overflow-hidden">
       <DataTable<SubjectWithMetadata>
         data={data}
         columns={columns}
-        onRowClick={handleSubjectClick}
+        onRowClick={handleRowClick}
+        getRowId={(row) => row.id}
+        selectedRowId={selectedSubjectId}
         variant="subjects"
         enablePagination
         pageSize={20}

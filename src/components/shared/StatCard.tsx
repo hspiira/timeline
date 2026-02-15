@@ -4,10 +4,10 @@ type StatCardProps = {
     label: string
     value: number | string
     subtitle?: string
-    subtext?: string  // Alias for subtitle (compact variant)
+    subtext?: string
     icon: LucideIcon
-    variant?: 'default' | 'compact'
-    color?: string  // Custom color for compact variant
+    variant?: 'default' | 'compact' | 'hero'
+    color?: string
 }
 
 export function StatCard({
@@ -19,7 +19,6 @@ export function StatCard({
     variant = 'default',
     color
 }: StatCardProps) {
-    // Compact variant - simple, small cards
     if (variant === 'compact') {
       const displaySubtext = subtext || subtitle
       return (
@@ -34,48 +33,52 @@ export function StatCard({
       )
     }
 
-    // Default variant - large dashboard cards with gradients
     const displaySubtitle = subtitle || subtext
-
-    // Determine color scheme based on label
-    const getColorScheme = (label: string) => {
-      if (label.includes('Subject')) return {
-        border: 'border-purple-200 dark:border-purple-900',
-        bg: 'bg-gradient-to-br from-purple-50/50 to-purple-100/30 dark:from-purple-950/20 dark:to-purple-900/10',
-        icon: 'text-purple-600 dark:text-purple-400',
-        accent: 'text-purple-700 dark:text-purple-300'
-      }
-      if (label.includes('Event')) return {
-        border: 'border-cyan-200 dark:border-cyan-900',
-        bg: 'bg-gradient-to-br from-cyan-50/50 to-cyan-100/30 dark:from-cyan-950/20 dark:to-cyan-900/10',
-        icon: 'text-cyan-600 dark:text-cyan-400',
-        accent: 'text-cyan-700 dark:text-cyan-300'
-      }
-      return {
-        border: 'border-emerald-200 dark:border-emerald-900',
-        bg: 'bg-gradient-to-br from-emerald-50/50 to-emerald-100/30 dark:from-emerald-950/20 dark:to-emerald-900/10',
-        icon: 'text-emerald-600 dark:text-emerald-400',
-        accent: 'text-emerald-700 dark:text-emerald-300'
-      }
-    }
-
-    const colors = getColorScheme(label)
+    const isHero = variant === 'hero'
 
     return (
-        <div className={`${colors.bg} rounded-none p-6 border ${colors.border} transition-all hover:shadow-md hover:border-opacity-100`}>
-          <div className="flex justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">{label}</p>
-              <p className={`text-3xl font-bold ${colors.accent}`}>{value}</p>
-              {displaySubtitle && (
-                <p className="text-xs text-muted-foreground flex gap-1 mt-2">
-                  <TrendingUp className="w-3 h-3" />
-                  {displaySubtitle}
-                </p>
-              )}
+        <div
+            className={`
+                group relative overflow-hidden
+                rounded-none border border-border/60
+                bg-card/80 backdrop-blur-sm
+                transition-all duration-300
+                hover:border-[var(--dashboard-accent)]/40 hover:bg-card
+                ${isHero ? 'p-6 md:p-8' : 'p-5'}
+            `}
+            style={{
+                borderLeftWidth: '3px',
+                borderLeftColor: 'var(--dashboard-accent)',
+            }}
+        >
+            <div className={`flex ${isHero ? 'flex-col md:flex-row md:items-end md:justify-between' : 'flex-col'} gap-4`}>
+                <div>
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">
+                        {label}
+                    </p>
+                    <p className={`font-display font-bold text-foreground tabular-nums ${isHero ? 'text-4xl md:text-5xl' : 'text-2xl'}`}>
+                        {value}
+                    </p>
+                    {displaySubtitle && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-2">
+                            <TrendingUp className="w-3 h-3 opacity-70" />
+                            {displaySubtitle}
+                        </p>
+                    )}
+                </div>
+                <div
+                    className={`
+                        flex items-center justify-center
+                        w-10 h-10 md:w-12 md:h-12
+                        rounded-none
+                        bg-[var(--dashboard-accent-muted)]
+                        text-[var(--dashboard-accent)]
+                        ${isHero ? 'self-start md:self-auto' : ''}
+                    `}
+                >
+                    <Icon className={isHero ? 'w-5 h-5 md:w-6 md:h-6' : 'w-5 h-5'} strokeWidth={1.75} />
+                </div>
             </div>
-            <Icon className={`w-10 h-10 ${colors.icon}`} />
-          </div>
         </div>
-      )
-    }
+    )
+}

@@ -238,10 +238,11 @@ function EventsPage() {
             />
           </div>
         ) : (
-          <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50">
-            <h2 className="text-sm font-semibold text-foreground mb-4">
+          <div className="bg-card/80 backdrop-blur-sm rounded-none border border-border/60 overflow-hidden">
+            <h2 className="font-display text-xs font-semibold uppercase tracking-wider text-muted-foreground px-4 pt-4 pb-2 border-b border-border/60">
               Events
             </h2>
+            <div className="p-4">
             <EventsTable
               events={events}
               documentCounts={documentCounts}
@@ -249,8 +250,9 @@ function EventsPage() {
               onViewDetails={(e) => setDetailsEventId(e.id)}
               onViewDocuments={(e) => setSelectedEventId(e.id)}
             />
+            </div>
             {/* Pagination */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-3 border-t border-border">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-border/60 bg-[var(--dashboard-accent-muted)]/20">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span>Show</span>
                 <select

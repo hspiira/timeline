@@ -24,10 +24,12 @@ import { Route as EmailAccountsCreateRouteImport } from './routes/email-accounts
 import { Route as EmailAccountsAccountIdRouteImport } from './routes/email-accounts/$accountId'
 import { Route as SettingsWorkflowsIndexRouteImport } from './routes/settings/workflows/index'
 import { Route as SettingsUsersIndexRouteImport } from './routes/settings/users/index'
+import { Route as SettingsSubjectTypesIndexRouteImport } from './routes/settings/subject-types/index'
 import { Route as SettingsSchemasIndexRouteImport } from './routes/settings/schemas/index'
 import { Route as SettingsRolesIndexRouteImport } from './routes/settings/roles/index'
 import { Route as SettingsPermissionsIndexRouteImport } from './routes/settings/permissions/index'
 import { Route as SettingsOauthProvidersIndexRouteImport } from './routes/settings/oauth-providers/index'
+import { Route as SettingsDocumentCategoriesIndexRouteImport } from './routes/settings/document-categories/index'
 import { Route as AdminRolesIndexRouteImport } from './routes/admin/roles/index'
 import { Route as AdminPermissionsIndexRouteImport } from './routes/admin/permissions/index'
 import { Route as EventsSubjectSubjectIdRouteImport } from './routes/events/subject.$subjectId'
@@ -109,6 +111,12 @@ const SettingsUsersIndexRoute = SettingsUsersIndexRouteImport.update({
   path: '/users/',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsSubjectTypesIndexRoute =
+  SettingsSubjectTypesIndexRouteImport.update({
+    id: '/subject-types/',
+    path: '/subject-types/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
 const SettingsSchemasIndexRoute = SettingsSchemasIndexRouteImport.update({
   id: '/schemas/',
   path: '/schemas/',
@@ -129,6 +137,12 @@ const SettingsOauthProvidersIndexRoute =
   SettingsOauthProvidersIndexRouteImport.update({
     id: '/oauth-providers/',
     path: '/oauth-providers/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsDocumentCategoriesIndexRoute =
+  SettingsDocumentCategoriesIndexRouteImport.update({
+    id: '/document-categories/',
+    path: '/document-categories/',
     getParentRoute: () => SettingsRoute,
   } as any)
 const AdminRolesIndexRoute = AdminRolesIndexRouteImport.update({
@@ -177,10 +191,12 @@ export interface FileRoutesByFullPath {
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
   '/admin/permissions/': typeof AdminPermissionsIndexRoute
   '/admin/roles/': typeof AdminRolesIndexRoute
+  '/settings/document-categories/': typeof SettingsDocumentCategoriesIndexRoute
   '/settings/oauth-providers/': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions/': typeof SettingsPermissionsIndexRoute
   '/settings/roles/': typeof SettingsRolesIndexRoute
   '/settings/schemas/': typeof SettingsSchemasIndexRoute
+  '/settings/subject-types/': typeof SettingsSubjectTypesIndexRoute
   '/settings/users/': typeof SettingsUsersIndexRoute
   '/settings/workflows/': typeof SettingsWorkflowsIndexRoute
   '/subjects/$subjectId/events/$eventId': typeof SubjectsSubjectIdEventsEventIdRoute
@@ -203,10 +219,12 @@ export interface FileRoutesByTo {
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
   '/admin/permissions': typeof AdminPermissionsIndexRoute
   '/admin/roles': typeof AdminRolesIndexRoute
+  '/settings/document-categories': typeof SettingsDocumentCategoriesIndexRoute
   '/settings/oauth-providers': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions': typeof SettingsPermissionsIndexRoute
   '/settings/roles': typeof SettingsRolesIndexRoute
   '/settings/schemas': typeof SettingsSchemasIndexRoute
+  '/settings/subject-types': typeof SettingsSubjectTypesIndexRoute
   '/settings/users': typeof SettingsUsersIndexRoute
   '/settings/workflows': typeof SettingsWorkflowsIndexRoute
   '/subjects/$subjectId/events/$eventId': typeof SubjectsSubjectIdEventsEventIdRoute
@@ -230,10 +248,12 @@ export interface FileRoutesById {
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
   '/admin/permissions/': typeof AdminPermissionsIndexRoute
   '/admin/roles/': typeof AdminRolesIndexRoute
+  '/settings/document-categories/': typeof SettingsDocumentCategoriesIndexRoute
   '/settings/oauth-providers/': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions/': typeof SettingsPermissionsIndexRoute
   '/settings/roles/': typeof SettingsRolesIndexRoute
   '/settings/schemas/': typeof SettingsSchemasIndexRoute
+  '/settings/subject-types/': typeof SettingsSubjectTypesIndexRoute
   '/settings/users/': typeof SettingsUsersIndexRoute
   '/settings/workflows/': typeof SettingsWorkflowsIndexRoute
   '/subjects/$subjectId_/events/$eventId': typeof SubjectsSubjectIdEventsEventIdRoute
@@ -258,10 +278,12 @@ export interface FileRouteTypes {
     | '/events/subject/$subjectId'
     | '/admin/permissions/'
     | '/admin/roles/'
+    | '/settings/document-categories/'
     | '/settings/oauth-providers/'
     | '/settings/permissions/'
     | '/settings/roles/'
     | '/settings/schemas/'
+    | '/settings/subject-types/'
     | '/settings/users/'
     | '/settings/workflows/'
     | '/subjects/$subjectId/events/$eventId'
@@ -284,10 +306,12 @@ export interface FileRouteTypes {
     | '/events/subject/$subjectId'
     | '/admin/permissions'
     | '/admin/roles'
+    | '/settings/document-categories'
     | '/settings/oauth-providers'
     | '/settings/permissions'
     | '/settings/roles'
     | '/settings/schemas'
+    | '/settings/subject-types'
     | '/settings/users'
     | '/settings/workflows'
     | '/subjects/$subjectId/events/$eventId'
@@ -310,10 +334,12 @@ export interface FileRouteTypes {
     | '/events/subject/$subjectId'
     | '/admin/permissions/'
     | '/admin/roles/'
+    | '/settings/document-categories/'
     | '/settings/oauth-providers/'
     | '/settings/permissions/'
     | '/settings/roles/'
     | '/settings/schemas/'
+    | '/settings/subject-types/'
     | '/settings/users/'
     | '/settings/workflows/'
     | '/subjects/$subjectId_/events/$eventId'
@@ -447,6 +473,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsUsersIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/subject-types/': {
+      id: '/settings/subject-types/'
+      path: '/subject-types'
+      fullPath: '/settings/subject-types/'
+      preLoaderRoute: typeof SettingsSubjectTypesIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/schemas/': {
       id: '/settings/schemas/'
       path: '/schemas'
@@ -473,6 +506,13 @@ declare module '@tanstack/react-router' {
       path: '/oauth-providers'
       fullPath: '/settings/oauth-providers/'
       preLoaderRoute: typeof SettingsOauthProvidersIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/document-categories/': {
+      id: '/settings/document-categories/'
+      path: '/document-categories'
+      fullPath: '/settings/document-categories/'
+      preLoaderRoute: typeof SettingsDocumentCategoriesIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/admin/roles/': {
@@ -514,19 +554,23 @@ declare module '@tanstack/react-router' {
 }
 
 interface SettingsRouteChildren {
+  SettingsDocumentCategoriesIndexRoute: typeof SettingsDocumentCategoriesIndexRoute
   SettingsOauthProvidersIndexRoute: typeof SettingsOauthProvidersIndexRoute
   SettingsPermissionsIndexRoute: typeof SettingsPermissionsIndexRoute
   SettingsRolesIndexRoute: typeof SettingsRolesIndexRoute
   SettingsSchemasIndexRoute: typeof SettingsSchemasIndexRoute
+  SettingsSubjectTypesIndexRoute: typeof SettingsSubjectTypesIndexRoute
   SettingsUsersIndexRoute: typeof SettingsUsersIndexRoute
   SettingsWorkflowsIndexRoute: typeof SettingsWorkflowsIndexRoute
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsDocumentCategoriesIndexRoute: SettingsDocumentCategoriesIndexRoute,
   SettingsOauthProvidersIndexRoute: SettingsOauthProvidersIndexRoute,
   SettingsPermissionsIndexRoute: SettingsPermissionsIndexRoute,
   SettingsRolesIndexRoute: SettingsRolesIndexRoute,
   SettingsSchemasIndexRoute: SettingsSchemasIndexRoute,
+  SettingsSubjectTypesIndexRoute: SettingsSubjectTypesIndexRoute,
   SettingsUsersIndexRoute: SettingsUsersIndexRoute,
   SettingsWorkflowsIndexRoute: SettingsWorkflowsIndexRoute,
 }

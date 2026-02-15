@@ -2,15 +2,34 @@ import { useNavigate } from '@tanstack/react-router'
 import { Calendar, ArrowRight, Activity, SquarePen } from 'lucide-react'
 import type { SubjectWithMetadata } from '@/hooks/useSubjects'
 import { Button } from '@/components/ui/button'
-import { getSubjectTypeTheme } from '@/lib/subject-type-theme'
+import { getSubjectTypeThemeFromConfig } from '@/lib/subject-type-theme'
 import { formatShortDate } from '@/lib/format-date'
+import type { components } from '@/lib/timeline-api'
+
+type SubjectTypeListItem = components['schemas']['SubjectTypeListItem']
 
 interface SubjectsGridProps {
   data: SubjectWithMetadata[]
   onEdit?: (subject: SubjectWithMetadata) => void
+  /** Subject types from API (Settings → Subject types); used for icon, color, and label */
+  subjectTypeConfig?: SubjectTypeListItem[]
 }
 
-export function SubjectsGrid({ data, onEdit }: SubjectsGridProps) {
+function getDisplayName(
+  subjectType: string,
+  config?: SubjectTypeListItem[]
+): string {
+  const found = config?.find(
+    (t) => t.type_name.toLowerCase() === subjectType.toLowerCase()
+  )
+  return found?.display_name ?? subjectType
+}
+
+export function SubjectsGrid({
+  data,
+  onEdit,
+  subjectTypeConfig,
+}: SubjectsGridProps) {
   const navigate = useNavigate()
 
   const handleSubjectClick = (subjectId: string) => {
@@ -20,21 +39,63 @@ export function SubjectsGrid({ data, onEdit }: SubjectsGridProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {data.map((subject) => {
-        const { icon: Icon, bgColor, textColor, borderColor, headerBg } = getSubjectTypeTheme(subject.subject_type)
+        const theme = getSubjectTypeThemeFromConfig(
+          subject.subject_type,
+          subjectTypeConfig
+        )
+        const {
+          icon: Icon,
+          bgColor,
+          textColor,
+          borderColor,
+          headerBg,
+          configColor,
+        } = theme
+        const typeLabel = getDisplayName(subject.subject_type, subjectTypeConfig)
+        const useConfigColor = configColor != null && configColor !== ''
         return (
           <div
             key={subject.id}
             onClick={() => handleSubjectClick(subject.id)}
-            className={`bg-card/80 backdrop-blur-sm rounded-none border ${borderColor} hover:border-opacity-100 transition-all hover:shadow-md cursor-pointer overflow-hidden group`}
+            className={`bg-card/80 backdrop-blur-sm rounded-none border ${useConfigColor ? '' : borderColor} hover:border-opacity-100 transition-all cursor-pointer overflow-hidden group`}
+            style={
+              useConfigColor
+                ? { borderColor: configColor ?? undefined }
+                : undefined
+            }
           >
             {/* Header with icon and type */}
-            <div className={`p-4 border-b ${borderColor} ${headerBg}`}>
+            <div
+              className={`p-4 border-b ${useConfigColor ? '' : `${borderColor} ${headerBg}`}`}
+              style={
+                useConfigColor
+                  ? {
+                      borderColor: configColor ?? undefined,
+                      backgroundColor: configColor
+                        ? `${configColor}20`
+                        : undefined,
+                    }
+                  : undefined
+              }
+            >
               <div className="flex items-start justify-between gap-3 mb-3">
-                <div className={`w-10 h-10 rounded-none ${bgColor} flex items-center justify-center flex-shrink-0`}>
-                  <Icon className={`w-5 h-5 ${textColor}`} />
+                <div
+                  className={`w-10 h-10 rounded-none flex items-center justify-center flex-shrink-0 ${useConfigColor ? '' : bgColor}`}
+                  style={
+                    useConfigColor && configColor
+                      ? {
+                          backgroundColor: `${configColor}20`,
+                          color: configColor,
+                        }
+                      : undefined
+                  }
+                >
+                  <Icon
+                    className={`w-5 h-5 ${useConfigColor ? '' : textColor}`}
+                  />
                 </div>
                 <div className="px-2 py-1 bg-muted rounded-none text-xs font-medium text-muted-foreground">
-                  {subject.subject_type}
+                  {typeLabel}
                 </div>
               </div>
 

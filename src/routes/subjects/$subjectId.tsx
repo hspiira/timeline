@@ -415,7 +415,7 @@ function SubjectDetailPage() {
           <div className="relative space-y-6 p-1">
             {(subjectDocumentCount === null || subjectDocumentCount === 0) && (
               <section
-                className="rounded-none border border-border/60 bg-card/90 backdrop-blur-sm shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-1 duration-250"
+                className="rounded-none border border-border/60 bg-card/90 backdrop-blur-sm overflow-hidden animate-in fade-in slide-in-from-top-1 duration-250"
                 style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}
               >
                 <div className="border-l-[3px] border-primary bg-muted/20 dark:bg-muted/10 px-4 py-3 flex items-center gap-2">
@@ -441,7 +441,7 @@ function SubjectDetailPage() {
 
             {(subjectDocumentCount ?? 0) > 0 && (
               <section
-                className="rounded-none border border-border/60 bg-card/90 backdrop-blur-sm shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-1 duration-250"
+                className="rounded-none border border-border/60 bg-card/90 backdrop-blur-sm overflow-hidden animate-in fade-in slide-in-from-bottom-1 duration-250"
                 style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}
               >
                 <div className="border-l-[3px] border-border bg-muted/15 dark:bg-muted/10 px-4 py-3 flex items-center justify-between gap-2">

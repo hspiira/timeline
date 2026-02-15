@@ -63,6 +63,24 @@ client.use({
 })
 
 export const timelineApi = {
+  analytics: {
+    dashboard: () => client.GET('/api/v1/analytics/dashboard'),
+  },
+
+  auditLog: {
+    list: (params?: {
+      skip?: number
+      limit?: number
+      resource_type?: string | null
+      user_id?: string | null
+      from_timestamp?: string | null
+      to_timestamp?: string | null
+    }) =>
+      client.GET('/api/v1/audit-log', {
+        params: { query: params },
+      }),
+  },
+
   auth: {
     login: async (username: string, password: string, tenant_code: string) => {
       return client.POST('/api/v1/auth/login', {
@@ -187,6 +205,22 @@ export const timelineApi = {
       client.GET('/api/v1/subjects/{subject_id}', {
         params: { path: { subject_id: id } },
       }),
+    getState: (subjectId: string, params?: { as_of?: string | null }) =>
+      client.GET('/api/v1/subjects/{subject_id}/state', {
+        params: { path: { subject_id: subjectId }, query: params },
+      }),
+    export: (subjectId: string) =>
+      client.POST('/api/v1/subjects/{subject_id}/export', {
+        params: { path: { subject_id: subjectId } },
+      }),
+    erasure: (
+      subjectId: string,
+      data: components['schemas']['SubjectErasureRequest']
+    ) =>
+      client.POST('/api/v1/subjects/{subject_id}/erasure', {
+        params: { path: { subject_id: subjectId } },
+        body: data,
+      }),
     create: (data: components['schemas']['SubjectCreateRequest']) =>
       client.POST('/api/v1/subjects', { body: data }),
     update: (id: string, data: components['schemas']['SubjectUpdate']) =>
@@ -197,6 +231,67 @@ export const timelineApi = {
     delete: (id: string) =>
       client.DELETE('/api/v1/subjects/{subject_id}', {
         params: { path: { subject_id: id } },
+      }),
+  },
+
+  documentCategories: {
+    list: (params?: { skip?: number; limit?: number }) =>
+      client.GET('/api/v1/document-categories', {
+        params: { query: params },
+      }),
+    get: (id: string) =>
+      client.GET('/api/v1/document-categories/{category_id}', {
+        params: { path: { category_id: id } },
+      }),
+    create: (data: components['schemas']['DocumentCategoryCreateRequest']) =>
+      client.POST('/api/v1/document-categories', { body: data }),
+    update: (
+      id: string,
+      data: components['schemas']['DocumentCategoryUpdateRequest']
+    ) =>
+      client.PATCH('/api/v1/document-categories/{category_id}', {
+        params: { path: { category_id: id } },
+        body: data,
+      }),
+    delete: (id: string) =>
+      client.DELETE('/api/v1/document-categories/{category_id}', {
+        params: { path: { category_id: id } },
+      }),
+  },
+
+  search: {
+    query: (params: {
+      q: string
+      scope?: 'all' | 'subjects' | 'events' | 'documents'
+      limit?: number
+    }) =>
+      client.GET('/api/v1/search', {
+        params: { query: params },
+      }),
+  },
+
+  subjectTypes: {
+    list: (params?: { skip?: number; limit?: number }) =>
+      client.GET('/api/v1/subject-types', {
+        params: { query: params },
+      }),
+    get: (id: string) =>
+      client.GET('/api/v1/subject-types/{subject_type_id}', {
+        params: { path: { subject_type_id: id } },
+      }),
+    create: (data: components['schemas']['SubjectTypeCreateRequest']) =>
+      client.POST('/api/v1/subject-types', { body: data }),
+    update: (
+      id: string,
+      data: components['schemas']['SubjectTypeUpdateRequest']
+    ) =>
+      client.PATCH('/api/v1/subject-types/{subject_type_id}', {
+        params: { path: { subject_type_id: id } },
+        body: data,
+      }),
+    delete: (id: string) =>
+      client.DELETE('/api/v1/subject-types/{subject_type_id}', {
+        params: { path: { subject_type_id: id } },
       }),
   },
 
@@ -237,7 +332,6 @@ export const timelineApi = {
 
   eventSchemas: {
     list: (params?: { skip?: number; limit?: number }) =>
-      // @ts-expect-error GET /event-schemas list not in generated OpenAPI
       client.GET('/api/v1/event-schemas', { params: { query: params } }),
     listByEventType: (eventType: string) =>
       client.GET('/api/v1/event-schemas/event-type/{event_type}', {

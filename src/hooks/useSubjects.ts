@@ -13,18 +13,19 @@ export interface SubjectWithMetadata extends SubjectResponse {
   lastEventDate?: string
 }
 
-export function useSubjects({ filterType, search }: UseSubjectsProps = {}) {
-  const queryKey = ['subjects', { filterType, search }]
+export function useSubjects({ filterType, search: _search }: UseSubjectsProps = {}) {
+  // search is accepted for API compatibility but not sent to GET /subjects (no q param).
+  // Use GET /search when implementing global/subject search in a later phase.
+  const queryKey = ['subjects', { filterType }]
 
   const { data, error, isLoading, isError } = useQuery({
     queryKey,
     queryFn: async () => {
-      const params: any = {}
+      // Backend GET /subjects does not support `q`; use subject_type filter only.
+      // Global search will use GET /search in a later phase.
+      const params: Parameters<typeof timelineApi.subjects.list>[0] = {}
       if (filterType) {
         params.subject_type = filterType
-      }
-      if (search) {
-        params.q = search
       }
 
       const { data, error: apiError } = await timelineApi.subjects.list(params)

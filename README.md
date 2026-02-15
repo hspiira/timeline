@@ -1,59 +1,58 @@
-Welcome to your new TanStack app! 
+# Timeline UI
+
+Frontend for the **Timeline** API: multi-tenant event-sourced timeline (subjects, events, documents, workflows). Built with Vite, React 19, TypeScript, TanStack Router, React Query, and openapi-fetch.
+
+The app talks to the Timeline backend API. The API base URL is set via **`VITE_API_URL`** (default `http://localhost:8000`). All requests send `Authorization: Bearer <token>` and `X-Tenant-ID` when the user is logged in.
+
+---
 
 # Getting Started
 
-To run this application:
-
 ```bash
-npm install
-npm run start
+pnpm install
+pnpm run dev
 ```
+
+Runs the app at `http://localhost:3000`. Log in with tenant code, username, and password (backend must be running and CORS allowed for the dev origin).
 
 # Building For Production
 
-To build this application for production:
-
 ```bash
-npm run build
+pnpm run build
+pnpm run preview
 ```
 
 ## Testing
 
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
+This project uses [Vitest](https://vitest.dev/) for testing:
 
 ```bash
-npm run test
+pnpm run test
 ```
 
 ## Styling
 
 This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
 
+---
 
 ## API types (generate:api)
 
-The `generate:api` script generates TypeScript types from the backend OpenAPI spec into `src/lib/timeline-api.ts`.
+TypeScript types and API paths are generated from the backend OpenAPI spec into **`src/lib/timeline-api.ts`**.
 
-**Prerequisite:** A server that serves the OpenAPI spec must be running. The script fetches `/openapi.json` from that server. By default it uses `http://localhost:8000` (e.g. your local Timeline API).
-
-Example (if your backend runs on port 8000):
+**Prerequisite:** The Timeline API server must be running. The script fetches **`/openapi.json`** from that server. Default base URL: **`http://localhost:8000`**.
 
 ```bash
-# Start the backend API first, then:
+# Start the backend first (e.g. in ~/dev/new_timeline), then:
 pnpm run generate:api
 ```
 
-**Custom URL:** You can override the base URL with `OPENAPI_URL` or `API_URL`. The script appends `/openapi.json` to the base URL.
+**Custom URL:** Override with `OPENAPI_URL` or `API_URL`; the script appends `/openapi.json`.
 
 ```bash
-# Custom server
 OPENAPI_URL=https://api.example.com pnpm run generate:api
-
-# Or using API_URL
 API_URL=http://localhost:9000 pnpm run generate:api
 ```
-
-Default when not set: `http://localhost:8000`.
 
 ## Troubleshooting
 

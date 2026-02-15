@@ -16,7 +16,16 @@ import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
 import { Button } from '@/components/ui/button'
 import { formatShortDate } from '@/lib/format-date'
 import type { Activity as ActivityType } from '@/lib/types/activity'
-import { ACTIVITY_CONFIG } from '@/lib/types/activity'
+import { ACTIVITY_CONFIG, eventToActivity } from '@/lib/types/activity'
+
+/** Minimal event shape from analytics dashboard recent_events */
+export type RecentEventItem = {
+  id: string
+  subject_id: string
+  event_type: string
+  event_time: string
+  payload?: Record<string, unknown>
+}
 
 const RESOURCE_ICONS: Record<ActivityType['resourceType'], LucideIcon> = {
   event: Calendar,
@@ -38,6 +47,8 @@ const RESOURCE_COLORS: Record<ActivityType['resourceType'], string> = {
 
 interface MinimalActivityFeedProps {
   limit?: number
+  /** When provided (e.g. from analytics dashboard), show these instead of fetching */
+  recentEvents?: RecentEventItem[] | null
 }
 
 function formatRelativeTime(date: Date): string {
@@ -72,15 +83,19 @@ function ActivityRow({ activity }: { activity: ActivityType }) {
 
   const link = getLink()
   const content = (
-    <div className="flex items-center gap-3 py-2.5 px-3 rounded-none hover:bg-muted/40 transition-colors group cursor-pointer">
-      {/* Icon */}
-      <div className={`w-8 h-8 rounded-none bg-muted/50 flex items-center justify-center shrink-0 ${iconColor}`}>
-        <Icon className="w-4 h-4" />
+    <div className="flex items-center gap-3 py-3 px-4 border-b border-border/40 last:border-b-0 hover:bg-[var(--dashboard-accent-muted)]/50 transition-colors group cursor-pointer">
+      {/* Accent bar + icon */}
+      <div
+        className="w-1 h-8 rounded-full shrink-0 bg-[var(--dashboard-accent)] opacity-60 group-hover:opacity-100 transition-opacity"
+        aria-hidden
+      />
+      <div className={`w-9 h-9 rounded-none bg-muted/60 flex items-center justify-center shrink-0 ${iconColor}`}>
+        <Icon className="w-4 h-4" strokeWidth={1.75} />
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-foreground truncate">
             {activity.resourceName}
           </span>
@@ -97,11 +112,11 @@ function ActivityRow({ activity }: { activity: ActivityType }) {
 
       {/* Time and arrow */}
       <div className="flex items-center gap-2 shrink-0">
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground tabular-nums">
           {formatRelativeTime(activity.timestamp)}
         </span>
         {link && (
-          <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+          <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-[var(--dashboard-accent)] transition-colors" />
         )}
       </div>
     </div>
@@ -114,20 +129,32 @@ function ActivityRow({ activity }: { activity: ActivityType }) {
   return content
 }
 
-function MinimalActivityFeedContent({ limit = 10 }: MinimalActivityFeedProps) {
+function MinimalActivityFeedContent({
+  limit = 10,
+  recentEvents: recentEventsProp,
+}: MinimalActivityFeedProps) {
   const [showAll, setShowAll] = useState(false)
   const { feed, loading, error, fetchMore } = useActivityFeed({
     limit: showAll ? 50 : limit,
-    autoFetch: true,
+    autoFetch: recentEventsProp == null || recentEventsProp.length === 0,
   })
 
+  const activitiesFromDashboard = useMemo(() => {
+    if (!recentEventsProp?.length) return []
+    return recentEventsProp.map((e) => eventToActivity(e))
+  }, [recentEventsProp])
+
+  const sourceItems = activitiesFromDashboard.length > 0 ? activitiesFromDashboard : feed.items
   const displayedActivities = useMemo(() => {
-    return showAll ? feed.items : feed.items.slice(0, limit)
-  }, [feed.items, showAll, limit])
+    return showAll ? sourceItems : sourceItems.slice(0, limit)
+  }, [sourceItems, showAll, limit])
 
-  const hasMore = feed.items.length > limit || feed.hasMore
+  const hasMore =
+    activitiesFromDashboard.length > 0
+      ? sourceItems.length > limit
+      : feed.items.length > limit || feed.hasMore
 
-  if (loading && feed.items.length === 0) {
+  if (loading && sourceItems.length === 0) {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -149,12 +176,14 @@ function MinimalActivityFeedContent({ limit = 10 }: MinimalActivityFeedProps) {
     )
   }
 
-  if (feed.items.length === 0) {
+  if (sourceItems.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
-        <Activity className="w-10 h-10 text-muted-foreground/30 mb-2" />
-        <p className="text-sm text-muted-foreground">No recent activity</p>
-        <p className="text-xs text-muted-foreground/70">Activities will appear here as they occur</p>
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="w-12 h-12 rounded-none bg-[var(--dashboard-accent-muted)] flex items-center justify-center mb-3">
+          <Activity className="w-6 h-6 text-[var(--dashboard-accent)]" strokeWidth={1.5} />
+        </div>
+        <p className="text-sm font-medium text-foreground">No recent activity</p>
+        <p className="text-xs text-muted-foreground mt-1">Activities will appear here as they occur</p>
       </div>
     )
   }
@@ -165,8 +194,8 @@ function MinimalActivityFeedContent({ limit = 10 }: MinimalActivityFeedProps) {
         <ActivityRow key={activity.id} activity={activity} />
       ))}
 
-      {/* Load more / Show less */}
-      {hasMore && (
+      {/* Load more / Show less — only when using fetched feed, not dashboard recent_events */}
+      {hasMore && activitiesFromDashboard.length === 0 && (
         <div className="pt-2 flex justify-center">
           {showAll ? (
             <div className="flex gap-2">
@@ -195,11 +224,23 @@ function MinimalActivityFeedContent({ limit = 10 }: MinimalActivityFeedProps) {
               variant="ghost"
               size="sm"
               onClick={() => setShowAll(true)}
-              className="text-xs text-muted-foreground hover:text-foreground"
+              className="text-xs text-muted-foreground hover:text-foreground hover:bg-[var(--dashboard-accent-muted)]"
             >
               View all activity
             </Button>
           )}
+        </div>
+      )}
+      {hasMore && activitiesFromDashboard.length > 0 && showAll && (
+        <div className="pt-2 flex justify-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowAll(false)}
+            className="text-xs"
+          >
+            Show Less
+          </Button>
         </div>
       )}
     </div>

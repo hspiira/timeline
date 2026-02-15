@@ -1,9 +1,11 @@
 /**
- * Single source of truth for subject type → icon and Tailwind theme.
- * Used by SubjectsTable, SubjectsGrid, and any future subject UIs.
+ * Subject type → icon and Tailwind theme.
+ * Prefer subject type config (Settings → Subject types) when available;
+ * fall back to this static map for legacy/unconfigured types.
  */
 
 import type { LucideIcon } from 'lucide-react'
+import { getCuratedIcon } from '@/lib/curated-lucide-icons'
 import {
   User,
   Users,
@@ -104,4 +106,42 @@ const defaultTheme: SubjectTypeTheme = {
 
 export function getSubjectTypeTheme(subjectType: string): SubjectTypeTheme {
   return iconMap[subjectType.toLowerCase()] ?? defaultTheme
+}
+
+/** Config item from API (Subject types list); has icon name and optional hex color. */
+export interface SubjectTypeConfigItem {
+  type_name: string
+  display_name?: string | null
+  icon?: string | null
+  color?: string | null
+}
+
+export interface SubjectTypeThemeFromConfig extends SubjectTypeTheme {
+  /** When set, use this hex for bg/border instead of theme Tailwind classes (from subject type config). */
+  configColor?: string | null
+}
+
+/**
+ * Resolve icon and theme for a subject type. Prefers subject type config (API) over the static theme map.
+ * Use this in subject list/grid/detail so configured types show their chosen icon and color.
+ */
+export function getSubjectTypeThemeFromConfig(
+  subjectType: string,
+  config?: SubjectTypeConfigItem[] | null
+): SubjectTypeThemeFromConfig {
+  const theme = getSubjectTypeTheme(subjectType)
+  if (!config?.length) return { ...theme, configColor: null }
+
+  const found = config.find(
+    (t) => t.type_name.toLowerCase() === subjectType.toLowerCase()
+  )
+  if (!found) return { ...theme, configColor: null }
+
+  const iconFromConfig = found.icon?.trim()
+  const configIcon = iconFromConfig ? getCuratedIcon(iconFromConfig) : null
+  return {
+    ...theme,
+    icon: configIcon ?? theme.icon,
+    configColor: found.color?.trim() || null,
+  }
 }

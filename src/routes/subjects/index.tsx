@@ -8,9 +8,9 @@ import {
   Grid3x3,
   Table2,
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useStore } from '@tanstack/react-store'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { timelineApi } from '@/lib/api-client'
 import { authStore } from '@/lib/auth-store'
 import { useSubjects } from '@/hooks/useSubjects'
@@ -40,16 +40,50 @@ function SubjectsPage() {
   const [editingSubject, setEditingSubject] = useState<SubjectWithMetadata | null>(null)
   const [filterType, setFilterType] = useState<string>('')
   const [search, setSearch] = useState('')
-  const [allSubjectTypes, setAllSubjectTypes] = useState<string[]>([])
   // Always start with 'grid' so SSR and first client render match; read localStorage after mount
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [hasMounted, setHasMounted] = useState(false)
+
+  // Subject types from Settings (config); used for filter dropdown and create modal
+  const { data: subjectTypesFromApi = [] } = useQuery({
+    queryKey: ['subject-types'],
+    queryFn: async () => {
+      const { data, error } = await timelineApi.subjectTypes.list({
+        skip: 0,
+        limit: 500,
+      })
+      if (error) return []
+      return Array.isArray(data) ? data : []
+    },
+  })
 
   // Get filtered subjects
   const { subjects, isLoading, isError, error } = useSubjects({
     filterType,
     search,
   })
+
+  // Subject type options: from Subject types API only (Settings → Subject types). Used for filter and create modal.
+  const subjectTypeOptions = useMemo(
+    () =>
+      subjectTypesFromApi.map((t) => ({
+        type_name: t.type_name,
+        display_name: t.display_name || t.type_name,
+      })),
+    [subjectTypesFromApi]
+  )
+
+  // Filter dropdown also includes any type that appears in subject data but has no config (so legacy types are filterable)
+  const filterTypeOptions = useMemo(() => {
+    const fromConfig = subjectTypeOptions
+    const fromData = [...new Set(subjects.map((s) => s.subject_type))]
+    const known = new Set(fromConfig.map((t) => t.type_name))
+    const extra = fromData.filter((t) => !known.has(t))
+    return [
+      ...fromConfig,
+      ...extra.map((type_name) => ({ type_name, display_name: type_name })),
+    ]
+  }, [subjectTypeOptions, subjects])
 
   useEffect(() => {
     setHasMounted(true)
@@ -66,26 +100,18 @@ function SubjectsPage() {
     if (hasMounted) localStorage.setItem('subjects-view-mode', viewMode)
   }, [hasMounted, viewMode])
 
-  // Track all available subject types (from initial load and subsequent data)
-  useEffect(() => {
-    const types = [...new Set(subjects.map((s) => s.subject_type))]
-    // Merge with existing types to preserve them when filtering
-    setAllSubjectTypes((prev) => {
-      const merged = new Set([...prev, ...types])
-      return Array.from(merged)
-    })
-  }, [subjects])
-
-  const subjectTypes = allSubjectTypes
-
   const handleCreateSubject = async (
     subjectType: string,
-    externalRef?: string
+    externalRef?: string,
+    displayName?: string,
+    attributes?: Record<string, unknown>
   ) => {
     try {
       const { error: apiError } = await timelineApi.subjects.create({
         subject_type: subjectType,
         external_ref: externalRef || undefined,
+        display_name: displayName || undefined,
+        attributes: attributes ?? undefined,
       })
 
       if (apiError) {
@@ -108,11 +134,15 @@ function SubjectsPage() {
 
   const handleUpdateSubject = async (
     subjectId: string,
-    externalRef?: string
+    externalRef?: string,
+    displayName?: string,
+    attributes?: Record<string, unknown>
   ) => {
     try {
       const { error: apiError } = await timelineApi.subjects.update(subjectId, {
-        external_ref: externalRef || null,
+        external_ref: externalRef ?? null,
+        display_name: displayName ?? null,
+        attributes: attributes ?? null,
       })
 
       if (apiError) {
@@ -217,7 +247,7 @@ function SubjectsPage() {
           </div>
 
           {/* Filter Controls */}
-          {subjectTypes.length > 0 && (
+          {filterTypeOptions.length > 0 && (
             <div className="w-full lg:w-auto flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
               <label className="text-sm font-medium text-foreground/90 whitespace-nowrap">
                 Filter by type:
@@ -229,9 +259,9 @@ function SubjectsPage() {
                   className="flex-1 sm:flex-none"
                 >
                   <option value="">All types</option>
-                  {subjectTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
+                  {filterTypeOptions.map(({ type_name, display_name }) => (
+                    <option key={type_name} value={type_name}>
+                      {display_name}
                     </option>
                   ))}
                 </Select>
@@ -298,7 +328,19 @@ function SubjectsPage() {
         )}
 
         {!isLoading && !isError && subjects.length > 0 && (
-          viewMode === 'grid' ? <SubjectsGrid data={subjects} onEdit={handleOpenEditModal} /> : <SubjectsTable data={subjects} onEdit={handleOpenEditModal} />
+          viewMode === 'grid' ? (
+            <SubjectsGrid
+              data={subjects}
+              onEdit={handleOpenEditModal}
+              subjectTypeConfig={subjectTypesFromApi}
+            />
+          ) : (
+            <SubjectsTable
+              data={subjects}
+              onEdit={handleOpenEditModal}
+              subjectTypeConfig={subjectTypesFromApi}
+            />
+          )
         )}
 
         {/* Create Subject Modal */}
@@ -306,10 +348,12 @@ function SubjectsPage() {
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
           onCreate={handleCreateSubject}
+          subjectTypes={subjectTypesFromApi}
+          subjectTypeOptions={subjectTypeOptions}
         />
 
         {/* Edit Subject Modal */}
-        {showEditModal && editingSubject && (
+        {editingSubject && (
           <EditSubjectModal
             isOpen={showEditModal}
             onClose={() => {
@@ -317,6 +361,7 @@ function SubjectsPage() {
               setEditingSubject(null)
             }}
             subject={editingSubject}
+            subjectTypes={subjectTypesFromApi}
             onUpdate={handleUpdateSubject}
           />
         )}

@@ -121,9 +121,15 @@ export const RESOURCE_ICONS: Record<ActivityResourceType, string> = {
 }
 
 /**
- * Convert Event to Activity
+ * Convert Event to Activity (works with EventListResponse or RecentEventItem)
  */
-export function eventToActivity(event: any): Activity {
+export function eventToActivity(event: {
+  id: string
+  subject_id: string
+  event_type: string
+  event_time: string
+  payload?: Record<string, unknown>
+}): Activity {
   return {
     id: event.id,
     userId: event.subject_id,
@@ -132,7 +138,7 @@ export function eventToActivity(event: any): Activity {
     resourceId: event.id,
     resourceName: event.event_type,
     timestamp: new Date(event.event_time),
-    metadata: event.payload,
+    metadata: { ...event.payload, subject_id: event.subject_id },
     priority: 'low',
     description: `${event.event_type} event created for ${event.subject_id.slice(0, 8)}`,
   }
