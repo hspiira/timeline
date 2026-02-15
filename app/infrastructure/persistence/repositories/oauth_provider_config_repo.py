@@ -218,7 +218,6 @@ class OAuthProviderConfigRepository(AuditableRepository[OAuthProviderConfig]):
         if not config:
             return None
         config.deleted_at = utc_now()
-        if deleted_by is not None and hasattr(config, "deleted_by"):
-            config.deleted_by = deleted_by
+        # OAuthProviderConfig has no deleted_by column; keep param for API compatibility
         await self.update(config)
         return config

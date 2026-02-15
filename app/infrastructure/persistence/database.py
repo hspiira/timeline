@@ -80,13 +80,21 @@ class Base(DeclarativeBase):
     """Base class for all SQLAlchemy declarative models."""
 
 
+def _quote_set_value(value: str) -> str:
+    """Escape a value for use in PostgreSQL SET (single-quoted literal)."""
+    return value.replace("'", "''")
+
+
 async def _set_tenant_context(session: AsyncSession) -> None:
-    """Set app.current_tenant_id on the session for RLS (when tenant context is set)."""
+    """Set app.current_tenant_id on the session for RLS (when tenant context is set).
+
+    SET LOCAL does not support bound parameters in PostgreSQL; the value must be
+    interpolated. We escape single quotes to prevent injection.
+    """
     tenant_id = get_current_tenant_id()
     if tenant_id:
-        await session.execute(
-            text("SET LOCAL app.current_tenant_id = :tid"), {"tid": tenant_id}
-        )
+        safe = _quote_set_value(tenant_id)
+        await session.execute(text(f"SET LOCAL app.current_tenant_id = '{safe}'"))
 
 
 async def get_db():

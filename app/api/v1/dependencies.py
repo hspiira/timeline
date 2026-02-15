@@ -37,11 +37,15 @@ from app.application.services.verification_service import VerificationService
 from app.application.use_cases.documents import (
     DocumentQueryService,
     DocumentUploadService,
+    RunDocumentRetentionUseCase,
 )
 from app.application.use_cases.analytics import GetDashboardStatsUseCase
 from app.application.use_cases.events import EventService
 from app.application.use_cases.search import SearchService
-from app.application.use_cases.state import GetSubjectStateUseCase
+from app.application.use_cases.state import (
+    CreateSubjectSnapshotUseCase,
+    GetSubjectStateUseCase,
+)
 from app.application.use_cases.subjects import (
     SubjectErasureService,
     SubjectExportService,
@@ -365,6 +369,19 @@ async def get_document_repo_for_write(
     return DocumentRepository(db, audit_service=audit_svc)
 
 
+async def get_run_document_retention_use_case(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
+) -> RunDocumentRetentionUseCase:
+    """Run document retention use case (transactional: category-based soft-delete)."""
+    document_repo = DocumentRepository(db, audit_service=audit_svc)
+    category_repo = DocumentCategoryRepository(db, audit_service=None)
+    return RunDocumentRetentionUseCase(
+        document_repo=document_repo,
+        document_category_repo=category_repo,
+    )
+
+
 async def get_tenant_creation_service(
     backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_write)],
 ) -> TenantCreationService:
@@ -515,6 +532,25 @@ async def get_get_subject_state_use_case(
     return GetSubjectStateUseCase(
         event_repo=event_repo,
         subject_repo=subject_repo,
+        snapshot_repo=snapshot_repo,
+    )
+
+
+async def get_create_subject_snapshot_use_case(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+) -> CreateSubjectSnapshotUseCase:
+    """Create subject snapshot use case (transactional: read state then write snapshot)."""
+    event_repo = EventRepository(db)
+    subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=None)
+    snapshot_repo = SubjectSnapshotRepository(db)
+    state_use_case = GetSubjectStateUseCase(
+        event_repo=event_repo,
+        subject_repo=subject_repo,
+        snapshot_repo=snapshot_repo,
+    )
+    return CreateSubjectSnapshotUseCase(
+        state_use_case=state_use_case,
         snapshot_repo=snapshot_repo,
     )
 

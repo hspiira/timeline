@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
+    get_create_subject_snapshot_use_case,
     get_get_subject_state_use_case,
     get_subject_erasure_service,
     get_subject_export_service,
@@ -12,7 +13,10 @@ from app.api.v1.dependencies import (
     get_tenant_id,
     require_permission,
 )
-from app.application.use_cases.state import GetSubjectStateUseCase
+from app.application.use_cases.state import (
+    CreateSubjectSnapshotUseCase,
+    GetSubjectStateUseCase,
+)
 from app.application.use_cases.subjects import (
     ErasureStrategy,
     SubjectErasureService,
@@ -20,11 +24,12 @@ from app.application.use_cases.subjects import (
     SubjectService,
 )
 from app.core.limiter import limit_writes
-from app.domain.exceptions import ResourceNotFoundException
+from app.domain.exceptions import ResourceNotFoundException, ValidationException
 from app.schemas.subject import (
     SubjectCreateRequest,
     SubjectErasureRequest,
     SubjectResponse,
+    SubjectSnapshotResponse,
     SubjectStateResponse,
     SubjectUpdate,
 )
@@ -107,6 +112,40 @@ async def erase_subject_data(
         )
     except ResourceNotFoundException:
         raise HTTPException(status_code=404, detail="Subject not found") from None
+
+
+@router.post(
+    "/{subject_id}/snapshot",
+    response_model=SubjectSnapshotResponse,
+    status_code=201,
+)
+@limit_writes
+async def create_subject_snapshot(
+    request: Request,
+    subject_id: str,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    snapshot_use_case: Annotated[
+        CreateSubjectSnapshotUseCase, Depends(get_create_subject_snapshot_use_case)
+    ],
+    _: Annotated[object, Depends(require_permission("subject", "update"))] = None,
+):
+    """Create or replace the subject snapshot (on-demand state checkpoint). Fails if subject has no events."""
+    try:
+        result = await snapshot_use_case.create_snapshot(
+            tenant_id=tenant_id,
+            subject_id=subject_id,
+        )
+        return SubjectSnapshotResponse(
+            id=result.id,
+            subject_id=result.subject_id,
+            snapshot_at_event_id=result.snapshot_at_event_id,
+            event_count_at_snapshot=result.event_count_at_snapshot,
+            created_at=result.created_at,
+        )
+    except ResourceNotFoundException:
+        raise HTTPException(status_code=404, detail="Subject not found") from None
+    except ValidationException as e:
+        raise HTTPException(status_code=400, detail=e.message) from None
 
 
 @router.get("/{subject_id}/state", response_model=SubjectStateResponse)

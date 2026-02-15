@@ -235,7 +235,6 @@ async def delete_oauth_config(
     deleted = await oauth_repo.soft_delete(
         config_id=config_id,
         tenant_id=tenant_id,
-        deleted_by=getattr(current_user, "id", None),
     )
     if not deleted:
         raise HTTPException(status_code=404, detail="OAuth config not found")

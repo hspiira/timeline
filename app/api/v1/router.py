@@ -18,6 +18,7 @@ from app.api.v1.endpoints import (
     health,
     oauth_providers,
     permissions,
+    retention,
     roles,
     search,
     subject_types,
@@ -58,6 +59,9 @@ api_router.include_router(
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(user_roles.router, prefix="/users", tags=["user-roles"])
 api_router.include_router(roles.router, prefix="/roles", tags=["roles"])
+api_router.include_router(
+    retention.router, prefix="/retention", tags=["retention"]
+)
 api_router.include_router(
     permissions.router, prefix="/permissions", tags=["permissions"]
 )

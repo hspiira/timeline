@@ -1,5 +1,6 @@
 """Subject API schemas."""
 
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -58,3 +59,13 @@ class SubjectStateResponse(BaseModel):
     state: dict[str, Any]
     last_event_id: str | None
     event_count: int
+
+
+class SubjectSnapshotResponse(BaseModel):
+    """Created or updated subject snapshot (on-demand checkpoint)."""
+
+    id: str
+    subject_id: str
+    snapshot_at_event_id: str
+    event_count_at_snapshot: int
+    created_at: datetime

@@ -363,6 +363,18 @@ class IDocumentRepository(Protocol):
     async def count_by_tenant(self, tenant_id: str) -> int:
         """Return count of non-deleted documents for tenant."""
 
+    async def list_by_tenant(
+        self,
+        tenant_id: str,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        document_type: str | None = None,
+        include_deleted: bool = False,
+        created_before: datetime | None = None,
+    ) -> list[DocumentResult]:
+        """List documents for tenant (for retention job and admin)."""
+
     async def get_by_id(self, document_id: str) -> DocumentResult | None:
         """Return document by ID."""
 
