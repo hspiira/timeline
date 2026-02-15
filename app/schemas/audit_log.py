@@ -33,3 +33,4 @@ class AuditLogListResponse(BaseModel):
     items: list[AuditLogEntryResponse]
     skip: int
     limit: int
+    total: int

@@ -14,7 +14,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from app.core.config import get_settings
-from app.infrastructure.persistence.database import AsyncSessionLocal, _ensure_engine
+import app.infrastructure.persistence.database as database
 from app.infrastructure.security.jwt import verify_token
 from app.infrastructure.services.api_audit_log_service import ApiAuditLogService
 
@@ -70,8 +70,8 @@ def AuditLogMiddleware(app: Callable) -> Callable:
     class _Middleware(BaseHTTPMiddleware):
         async def dispatch(self, request: Request, call_next: Callable) -> Response:
             response = await call_next(request)
-            _ensure_engine()
-            if AsyncSessionLocal is None:
+            database._ensure_engine()
+            if database.AsyncSessionLocal is None:
                 return response
             if get_settings().database_backend != "postgres":
                 return response
@@ -93,7 +93,7 @@ def AuditLogMiddleware(app: Callable) -> Callable:
             user_agent = request.headers.get("User-Agent")
             action = _action_from_method(method)
             try:
-                async with AsyncSessionLocal() as session:
+                async with database.AsyncSessionLocal() as session:
                     async with session.begin():
                         svc = ApiAuditLogService(session)
                         await svc.log_action(

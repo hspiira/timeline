@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import os
 from datetime import timedelta
 from typing import TYPE_CHECKING, BinaryIO

@@ -38,6 +38,9 @@ TENANT_SCOPED_TABLES = [
     "audit_log",
     "task",
     "email_account",
+    "oauth_provider_config",
+    "oauth_state",
+    "oauth_audit_log",
 ]
 
 

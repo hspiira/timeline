@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,7 @@ class DocumentCreate:
     version: int
     parent_document_id: str | None
     created_by: str | None
+    metadata: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -44,6 +46,7 @@ class DocumentResult:
     is_latest_version: bool
     created_by: str | None
     deleted_at: datetime | None
+    metadata: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)

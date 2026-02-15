@@ -1,5 +1,6 @@
 """Document API: thin routes delegating to DocumentUploadService, DocumentQueryService, and DocumentRepository."""
 
+import dataclasses
 import json
 from datetime import timedelta
 from typing import Annotated

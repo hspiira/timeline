@@ -530,3 +530,14 @@ class IAuditLogRepository(Protocol):
         to_timestamp: datetime | None = None,
     ) -> list["AuditLogResult"]:
         """List audit log entries for tenant with optional filters (paginated)."""
+
+    async def count(
+        self,
+        tenant_id: str,
+        *,
+        resource_type: str | None = None,
+        user_id: str | None = None,
+        from_timestamp: datetime | None = None,
+        to_timestamp: datetime | None = None,
+    ) -> int:
+        """Return total count of audit log entries for tenant with optional filters."""

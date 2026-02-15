@@ -1,4 +1,4 @@
-"""Subject type configuration API: thin routes delegating to SubjectTypeRepository."""
+"""Subject type configuration API: thin routes delegating to subject type repository."""
 
 from typing import Annotated
 
@@ -11,10 +11,8 @@ from app.api.v1.dependencies import (
     require_permission,
 )
 from app.application.dtos.user import UserResult
+from app.application.interfaces.repositories import ISubjectTypeRepository
 from app.core.limiter import limit_writes
-from app.infrastructure.persistence.repositories.subject_type_repo import (
-    SubjectTypeRepository,
-)
 from app.schemas.subject_type import (
     SubjectTypeCreateRequest,
     SubjectTypeListItem,
@@ -32,7 +30,7 @@ async def create_subject_type(
     body: SubjectTypeCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     current_user: Annotated[UserResult, Depends(require_permission("subject_type", "create"))],
-    repo: Annotated[SubjectTypeRepository, Depends(get_subject_type_repo_for_write)],
+    repo: Annotated[ISubjectTypeRepository, Depends(get_subject_type_repo_for_write)],
 ):
     """Create a subject type (tenant-scoped). created_by from authenticated user."""
     try:
@@ -76,7 +74,7 @@ async def create_subject_type(
 @router.get("", response_model=list[SubjectTypeListItem])
 async def list_subject_types(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    repo: Annotated[SubjectTypeRepository, Depends(get_subject_type_repo)],
+    repo: Annotated[ISubjectTypeRepository, Depends(get_subject_type_repo)],
     _: Annotated[object, Depends(require_permission("subject_type", "read"))] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -105,7 +103,7 @@ async def list_subject_types(
 async def get_subject_type(
     subject_type_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    repo: Annotated[SubjectTypeRepository, Depends(get_subject_type_repo)],
+    repo: Annotated[ISubjectTypeRepository, Depends(get_subject_type_repo)],
     _: Annotated[object, Depends(require_permission("subject_type", "read"))] = None,
 ):
     """Get subject type by id (must belong to tenant)."""
@@ -136,7 +134,7 @@ async def update_subject_type(
     subject_type_id: str,
     body: SubjectTypeUpdateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    repo: Annotated[SubjectTypeRepository, Depends(get_subject_type_repo_for_write)],
+    repo: Annotated[ISubjectTypeRepository, Depends(get_subject_type_repo_for_write)],
     _: Annotated[object, Depends(require_permission("subject_type", "update"))] = None,
 ):
     """Update subject type (partial)."""
@@ -179,7 +177,7 @@ async def delete_subject_type(
     request: Request,
     subject_type_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    repo: Annotated[SubjectTypeRepository, Depends(get_subject_type_repo_for_write)],
+    repo: Annotated[ISubjectTypeRepository, Depends(get_subject_type_repo_for_write)],
     _: Annotated[object, Depends(require_permission("subject_type", "delete"))] = None,
 ):
     """Delete subject type (tenant-scoped)."""

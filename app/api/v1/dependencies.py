@@ -325,13 +325,16 @@ async def get_event_service(
 
 async def get_document_upload_service(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> DocumentUploadService:
     """Build DocumentUploadService for upload (storage + document/tenant repos + optional category metadata validation)."""
     storage = StorageFactory.create_storage_service()
     document_repo = DocumentRepository(db, audit_service=audit_svc)
     tenant_repo = TenantRepository(db)
-    category_repo = DocumentCategoryRepository(db, audit_service=audit_svc)
+    category_repo = DocumentCategoryRepository(
+        db, tenant_id=tenant_id, audit_service=audit_svc
+    )
     metadata_validator = DocumentCategoryMetadataValidator(category_repo)
     return DocumentUploadService(
         storage_service=storage,
@@ -371,11 +374,14 @@ async def get_document_repo_for_write(
 
 async def get_run_document_retention_use_case(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> RunDocumentRetentionUseCase:
     """Run document retention use case (transactional: category-based soft-delete)."""
     document_repo = DocumentRepository(db, audit_service=audit_svc)
-    category_repo = DocumentCategoryRepository(db, audit_service=None)
+    category_repo = DocumentCategoryRepository(
+        db, tenant_id=tenant_id, audit_service=None
+    )
     return RunDocumentRetentionUseCase(
         document_repo=document_repo,
         document_category_repo=category_repo,
@@ -602,17 +608,23 @@ async def get_subject_type_repo_for_write(
 
 async def get_document_category_repo(
     db: Annotated[AsyncSession, Depends(get_db)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
 ) -> DocumentCategoryRepository:
-    """Document category repository for read operations."""
-    return DocumentCategoryRepository(db, audit_service=None)
+    """Document category repository for read operations (tenant-scoped)."""
+    return DocumentCategoryRepository(
+        db, tenant_id=tenant_id, audit_service=None
+    )
 
 
 async def get_document_category_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> DocumentCategoryRepository:
-    """Document category repository for create/update/delete (transactional)."""
-    return DocumentCategoryRepository(db, audit_service=audit_svc)
+    """Document category repository for create/update/delete (transactional, tenant-scoped)."""
+    return DocumentCategoryRepository(
+        db, tenant_id=tenant_id, audit_service=audit_svc
+    )
 
 
 async def get_user_repo(

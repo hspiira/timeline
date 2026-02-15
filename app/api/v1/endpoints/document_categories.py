@@ -1,4 +1,4 @@
-"""Document category configuration API: thin routes delegating to DocumentCategoryRepository."""
+"""Document category configuration API: thin routes delegating to document category repository."""
 
 from typing import Annotated
 
@@ -10,10 +10,8 @@ from app.api.v1.dependencies import (
     get_tenant_id,
     require_permission,
 )
+from app.application.interfaces.repositories import IDocumentCategoryRepository
 from app.core.limiter import limit_writes
-from app.infrastructure.persistence.repositories.document_category_repo import (
-    DocumentCategoryRepository,
-)
 from app.schemas.document_category import (
     DocumentCategoryCreateRequest,
     DocumentCategoryListItem,
@@ -31,7 +29,7 @@ async def create_document_category(
     body: DocumentCategoryCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     repo: Annotated[
-        DocumentCategoryRepository, Depends(get_document_category_repo_for_write)
+        IDocumentCategoryRepository, Depends(get_document_category_repo_for_write)
     ],
     _: Annotated[
         object, Depends(require_permission("document_category", "create"))
@@ -61,7 +59,7 @@ async def create_document_category(
 @router.get("", response_model=list[DocumentCategoryListItem])
 async def list_document_categories(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    repo: Annotated[DocumentCategoryRepository, Depends(get_document_category_repo)],
+    repo: Annotated[IDocumentCategoryRepository, Depends(get_document_category_repo)],
     _: Annotated[
         object, Depends(require_permission("document_category", "read"))
     ] = None,
@@ -88,14 +86,14 @@ async def list_document_categories(
 async def get_document_category(
     category_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    repo: Annotated[DocumentCategoryRepository, Depends(get_document_category_repo)],
+    repo: Annotated[IDocumentCategoryRepository, Depends(get_document_category_repo)],
     _: Annotated[
         object, Depends(require_permission("document_category", "read"))
     ] = None,
 ):
-    """Get document category by id (must belong to tenant)."""
+    """Get document category by id (tenant-scoped)."""
     item = await repo.get_by_id(category_id)
-    if not item or item.tenant_id != tenant_id:
+    if not item:
         raise HTTPException(status_code=404, detail="Document category not found")
     return DocumentCategoryResponse.model_validate(item)
 
@@ -108,15 +106,15 @@ async def update_document_category(
     body: DocumentCategoryUpdateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     repo: Annotated[
-        DocumentCategoryRepository, Depends(get_document_category_repo_for_write)
+        IDocumentCategoryRepository, Depends(get_document_category_repo_for_write)
     ],
     _: Annotated[
         object, Depends(require_permission("document_category", "update"))
     ] = None,
 ):
-    """Update document category (partial)."""
+    """Update document category (partial, tenant-scoped)."""
     item = await repo.get_by_id(category_id)
-    if not item or item.tenant_id != tenant_id:
+    if not item:
         raise HTTPException(status_code=404, detail="Document category not found")
     updated = await repo.update_document_category(
         category_id,
@@ -138,7 +136,7 @@ async def delete_document_category(
     category_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     repo: Annotated[
-        DocumentCategoryRepository, Depends(get_document_category_repo_for_write)
+        IDocumentCategoryRepository, Depends(get_document_category_repo_for_write)
     ],
     _: Annotated[
         object, Depends(require_permission("document_category", "delete"))

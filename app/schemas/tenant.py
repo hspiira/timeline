@@ -19,13 +19,18 @@ class TenantCreateRequest(BaseModel):
     """
 
     code: str = Field(
-        ..., min_length=1, max_length=64, description="Unique tenant code (normalized to lowercase, hyphen-separated)"
+        ...,
+        min_length=3,
+        max_length=15,
+        pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$",
+        description="Unique tenant code (normalized to lowercase, hyphen-separated slug)",
     )
     name: str = Field(..., min_length=1, max_length=255, description="Display name")
 
     @field_validator("code", mode="before")
     @classmethod
     def normalize_code(cls, v: str) -> str:
+        """Normalize before pattern/length checks so e.g. 'My Org' becomes 'my-org'."""
         return _normalize_tenant_code(v)
 
 

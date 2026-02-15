@@ -40,6 +40,7 @@ def _create_to_document(d: DocumentCreate) -> Document:
         is_latest_version=True,
         created_by=d.created_by,
         deleted_at=None,
+        metadata_=d.metadata if d.metadata is not None else {},
     )
 
 
@@ -62,6 +63,7 @@ def _document_to_result(d: Document) -> DocumentResult:
         is_latest_version=d.is_latest_version,
         created_by=d.created_by,
         deleted_at=d.deleted_at,
+        metadata=getattr(d, "metadata_", None),
     )
 
 

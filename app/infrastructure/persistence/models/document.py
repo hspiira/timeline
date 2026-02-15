@@ -1,5 +1,7 @@
 """Document ORM model. File storage metadata and versioning."""
 
+from typing import Any
+
 from sqlalchemy import (
     BigInteger,
     Boolean,
@@ -9,6 +11,7 @@ from sqlalchemy import (
     String,
     text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.persistence.database import Base
@@ -42,6 +45,9 @@ class Document(MultiTenantModel, SoftDeleteMixin, Base):
     )
     created_by: Mapped[str | None] = mapped_column(
         String, ForeignKey("app_user.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    metadata_: Mapped[dict[str, Any] | None] = mapped_column(
+        "metadata", JSONB, nullable=True, server_default="{}"
     )
 
     __table_args__ = (

@@ -160,6 +160,14 @@ class SubjectErasureService:
                 if doc.deleted_at is None:
                     await self._document_repo.soft_delete(doc.id, tenant_id)
         else:
+            docs = await self._document_repo.get_by_subject(
+                subject_id=subject_id,
+                tenant_id=tenant_id,
+                include_deleted=True,
+            )
+            for doc in docs:
+                if doc.deleted_at is None:
+                    await self._document_repo.soft_delete(doc.id, tenant_id)
             await self._subject_repo.delete_subject(
                 tenant_id=tenant_id,
                 subject_id=subject_id,

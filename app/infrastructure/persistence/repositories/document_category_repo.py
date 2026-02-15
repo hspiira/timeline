@@ -1,4 +1,4 @@
-"""DocumentCategory repository with audit. Returns application DTOs."""
+"""DocumentCategory repository with audit. Returns application DTOs. Tenant-scoped."""
 
 from __future__ import annotations
 
@@ -8,9 +8,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.document_category import DocumentCategoryResult
+from app.domain.exceptions import ValidationException
 from app.infrastructure.persistence.models.document_category import DocumentCategory
 from app.infrastructure.persistence.repositories.auditable_repo import (
-    AuditableRepository,
+    TenantScopedRepository,
 )
 
 if TYPE_CHECKING:
@@ -31,17 +32,20 @@ def _to_result(c: DocumentCategory) -> DocumentCategoryResult:
     )
 
 
-class DocumentCategoryRepository(AuditableRepository[DocumentCategory]):
-    """Document category configuration repository. Tenant-scoped via method args."""
+class DocumentCategoryRepository(TenantScopedRepository[DocumentCategory]):
+    """Document category configuration repository. All access scoped to a single tenant (tenant_id at construction)."""
 
     def __init__(
         self,
         db: AsyncSession,
+        tenant_id: str,
         audit_service: SystemAuditService | None = None,
         *,
         enable_audit: bool = True,
     ) -> None:
-        super().__init__(db, DocumentCategory, audit_service, enable_audit=enable_audit)
+        super().__init__(
+            db, DocumentCategory, tenant_id, audit_service, enable_audit=enable_audit
+        )
 
     def _get_entity_type(self) -> str:
         return "document_category"
@@ -61,9 +65,11 @@ class DocumentCategoryRepository(AuditableRepository[DocumentCategory]):
     async def get_by_tenant_and_name(
         self, tenant_id: str, category_name: str
     ) -> DocumentCategoryResult | None:
+        if tenant_id != self._tenant_id:
+            return None
         result = await self.db.execute(
             select(DocumentCategory).where(
-                DocumentCategory.tenant_id == tenant_id,
+                DocumentCategory.tenant_id == self._tenant_id,
                 DocumentCategory.category_name == category_name,
                 DocumentCategory.is_active.is_(True),
             )
@@ -74,9 +80,11 @@ class DocumentCategoryRepository(AuditableRepository[DocumentCategory]):
     async def get_by_tenant(
         self, tenant_id: str, skip: int = 0, limit: int = 100
     ) -> list[DocumentCategoryResult]:
+        if tenant_id != self._tenant_id:
+            return []
         result = await self.db.execute(
             select(DocumentCategory)
-            .where(DocumentCategory.tenant_id == tenant_id)
+            .where(DocumentCategory.tenant_id == self._tenant_id)
             .order_by(DocumentCategory.category_name.asc())
             .offset(skip)
             .limit(limit)
@@ -94,6 +102,11 @@ class DocumentCategoryRepository(AuditableRepository[DocumentCategory]):
         default_retention_days: int | None = None,
         is_active: bool = True,
     ) -> DocumentCategoryResult:
+        if tenant_id != self._tenant_id:
+            raise ValidationException(
+                "Cannot create document category for another tenant",
+                field="tenant_id",
+            )
         entity = DocumentCategory(
             tenant_id=tenant_id,
             category_name=category_name,
@@ -135,8 +148,11 @@ class DocumentCategoryRepository(AuditableRepository[DocumentCategory]):
     async def delete_document_category(
         self, category_id: str, tenant_id: str
     ) -> bool:
+        """Delete category by id. tenant_id must match repo scope (interface compatibility)."""
+        if tenant_id != self._tenant_id:
+            return False
         entity = await super().get_by_id(category_id)
-        if not entity or entity.tenant_id != tenant_id:
+        if not entity:
             return False
         await self.delete(entity)
         return True

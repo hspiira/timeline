@@ -1,12 +1,16 @@
 """Search API schemas."""
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
 class SearchResultItemResponse(BaseModel):
     """Single search hit (subject, event, or document)."""
 
-    resource_type: str = Field(..., description="subject | event | document")
+    resource_type: Literal["subject", "event", "document"] = Field(
+        ..., description="subject | event | document"
+    )
     id: str
     tenant_id: str
     snippet: str | None = None

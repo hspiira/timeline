@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.audit_log import AuditLogEntryCreate, AuditLogResult
@@ -91,3 +91,26 @@ class AuditLogRepository:
         )
         result = await self.db.execute(stmt)
         return [_orm_to_result(r) for r in result.scalars().all()]
+
+    async def count(
+        self,
+        tenant_id: str,
+        *,
+        resource_type: str | None = None,
+        user_id: str | None = None,
+        from_timestamp: datetime | None = None,
+        to_timestamp: datetime | None = None,
+    ) -> int:
+        """Return total count of audit log entries for tenant with same filters as list."""
+        conditions = [AuditLog.tenant_id == tenant_id]
+        if resource_type is not None:
+            conditions.append(AuditLog.resource_type == resource_type)
+        if user_id is not None:
+            conditions.append(AuditLog.user_id == user_id)
+        if from_timestamp is not None:
+            conditions.append(AuditLog.timestamp >= from_timestamp)
+        if to_timestamp is not None:
+            conditions.append(AuditLog.timestamp <= to_timestamp)
+        stmt = select(func.count(AuditLog.id)).where(and_(*conditions))
+        result = await self.db.execute(stmt)
+        return result.scalar() or 0

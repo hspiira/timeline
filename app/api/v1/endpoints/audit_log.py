@@ -34,8 +34,16 @@ async def list_audit_log(
         from_timestamp=from_timestamp,
         to_timestamp=to_timestamp,
     )
+    total = await audit_repo.count(
+        tenant_id=tenant_id,
+        resource_type=resource_type,
+        user_id=user_id,
+        from_timestamp=from_timestamp,
+        to_timestamp=to_timestamp,
+    )
     return AuditLogListResponse(
         items=[AuditLogEntryResponse.model_validate(e) for e in items],
         skip=skip,
         limit=limit,
+        total=total,
     )

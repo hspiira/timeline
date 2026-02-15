@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any
 
 
-@dataclass
+@dataclass(frozen=True)
 class SubjectExportResult:
     """Structured export of all data linked to a subject (no binary)."""
 

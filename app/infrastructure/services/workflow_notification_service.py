@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,18 +30,25 @@ class LogOnlyNotificationService:
         body: str,
     ) -> None:
         """Log the notification; no actual email sent."""
-        if not to_emails:
+        recipients = list(to_emails or [])
+        subject_preview = (subject or "")[:80]
+        if not recipients:
             logger.info(
                 "Workflow notify: no recipients, skipping send (subject=%r)",
-                subject[:80] if subject else "",
+                subject_preview,
             )
             return
         logger.info(
-            "Workflow notify: would send to %s (subject=%r) at %s",
-            to_emails,
-            subject[:80] if subject else "",
-            utc_now().isoformat(),
+            "Workflow notify: would send to %d recipients (subject=%r)",
+            len(recipients),
+            subject_preview,
         )
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                "Workflow notify recipients: %s (at %s)",
+                recipients,
+                utc_now().isoformat(),
+            )
         logger.debug("Workflow notify body (first 500 chars): %s", (body or "")[:500])
 
 

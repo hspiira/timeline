@@ -34,8 +34,8 @@ class SubjectResponse(BaseModel):
     tenant_id: str
     subject_type: str
     external_ref: str | None
-    display_name: str
-    attributes: dict[str, Any]
+    display_name: str | None = None
+    attributes: dict[str, Any] | None = None
 
     @field_validator("subject_type", mode="before")
     @classmethod
