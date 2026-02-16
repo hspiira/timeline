@@ -235,6 +235,9 @@ class IEventTransitionRuleRepository(Protocol):
         event_type: str,
         required_prior_event_types: list[str],
         description: str | None = None,
+        prior_event_payload_conditions: dict | None = None,
+        max_occurrences_per_stream: int | None = None,
+        fresh_prior_event_type: str | None = None,
     ) -> EventTransitionRuleResult:
         """Create a transition rule."""
 

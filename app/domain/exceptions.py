@@ -229,7 +229,7 @@ class SchemaValidationException(TimelineException):
         )
 
 
-class SqlNotConfiguredError(TimelineException):
+class SqlNotConfiguredException(TimelineException):
     """Raised when an operation requires Postgres but the backend is not configured."""
 
     def __init__(self) -> None:
@@ -254,6 +254,7 @@ class TransitionValidationException(TimelineException):
         message: str,
         event_type: str,
         required_prior_event_types: list[str],
+        **details_extra: Any,
     ) -> None:
         """Initialize with message and transition context.
 
@@ -261,15 +262,14 @@ class TransitionValidationException(TimelineException):
             message: Human-readable description.
             event_type: The event type that was rejected.
             required_prior_event_types: Event types that must have occurred first.
+            **details_extra: Optional keys merged into details (e.g. reason, max).
         """
-        super().__init__(
-            message,
-            "TRANSITION_VIOLATION",
-            {
-                "event_type": event_type,
-                "required_prior_event_types": required_prior_event_types,
-            },
-        )
+        details = {
+            "event_type": event_type,
+            "required_prior_event_types": required_prior_event_types,
+            **details_extra,
+        }
+        super().__init__(message, "TRANSITION_VIOLATION", details)
 
 
 class DuplicateAssignmentException(TimelineException):

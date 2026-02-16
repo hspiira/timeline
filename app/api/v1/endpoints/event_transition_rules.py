@@ -25,6 +25,21 @@ router = APIRouter()
 
 _MSG_RULE_NOT_FOUND = "Event transition rule not found"
 
+# Optional fields on create and PATCH (single source for mapping body to repo/entity)
+_CREATE_OPTIONAL_ATTRS = (
+    "description",
+    "prior_event_payload_conditions",
+    "max_occurrences_per_stream",
+    "fresh_prior_event_type",
+)
+_PATCH_OPTIONAL_ATTRS = (
+    "required_prior_event_types",
+    "description",
+    "prior_event_payload_conditions",
+    "max_occurrences_per_stream",
+    "fresh_prior_event_type",
+)
+
 
 @router.post("", response_model=EventTransitionRuleResponse, status_code=201)
 @limit_writes
@@ -39,11 +54,14 @@ async def create_event_transition_rule(
 ):
     """Create an event transition rule (tenant-scoped). One rule per event_type."""
     try:
+        optional_kwargs = {
+            k: getattr(body, k, None) for k in _CREATE_OPTIONAL_ATTRS
+        }
         rule = await rule_repo.create_rule(
             tenant_id=tenant_id,
             event_type=body.event_type,
             required_prior_event_types=body.required_prior_event_types,
-            description=body.description,
+            **optional_kwargs,
         )
         return EventTransitionRuleResponse.model_validate(rule)
     except ValidationException as e:
@@ -97,10 +115,10 @@ async def update_event_transition_rule(
     entity = await rule_repo.get_entity_by_id(rule_id)
     if not entity or entity.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail=_MSG_RULE_NOT_FOUND)
-    if body.required_prior_event_types is not None:
-        entity.required_prior_event_types = body.required_prior_event_types
-    if body.description is not None:
-        entity.description = body.description
+    for attr in _PATCH_OPTIONAL_ATTRS:
+        value = getattr(body, attr, None)
+        if value is not None:
+            setattr(entity, attr, value)
     updated = await rule_repo.update(entity, skip_existence_check=True)
     return EventTransitionRuleResponse.model_validate(updated)
 

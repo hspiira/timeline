@@ -11,14 +11,23 @@ from app.infrastructure.persistence.models.event_transition_rule import (
 from app.infrastructure.persistence.repositories.base import BaseRepository
 
 
+_OPTIONAL_RESULT_ATTRS = (
+    "prior_event_payload_conditions",
+    "max_occurrences_per_stream",
+    "fresh_prior_event_type",
+)
+
+
 def _to_result(r: EventTransitionRule) -> EventTransitionRuleResult:
     """Map ORM EventTransitionRule to EventTransitionRuleResult."""
+    optional = {a: getattr(r, a, None) for a in _OPTIONAL_RESULT_ATTRS}
     return EventTransitionRuleResult(
         id=r.id,
         tenant_id=r.tenant_id,
         event_type=r.event_type,
         required_prior_event_types=r.required_prior_event_types or [],
         description=r.description,
+        **optional,
     )
 
 
@@ -82,6 +91,9 @@ class EventTransitionRuleRepository(BaseRepository[EventTransitionRule]):
         event_type: str,
         required_prior_event_types: list[str],
         description: str | None = None,
+        prior_event_payload_conditions: dict | None = None,
+        max_occurrences_per_stream: int | None = None,
+        fresh_prior_event_type: str | None = None,
     ) -> EventTransitionRuleResult:
         """Create a transition rule. Raises ValidationException if (tenant_id, event_type) already exists."""
         existing = await self.get_rule_for_event_type(tenant_id, event_type)
@@ -95,6 +107,9 @@ class EventTransitionRuleRepository(BaseRepository[EventTransitionRule]):
             event_type=event_type,
             required_prior_event_types=required_prior_event_types,
             description=description,
+            prior_event_payload_conditions=prior_event_payload_conditions,
+            max_occurrences_per_stream=max_occurrences_per_stream,
+            fresh_prior_event_type=fresh_prior_event_type,
         )
         created = await self.create(rule)
         return _to_result(created)

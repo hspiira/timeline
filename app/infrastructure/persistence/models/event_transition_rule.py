@@ -1,6 +1,8 @@
 """EventTransitionRule ORM model. Transition validation: required prior event types per event_type."""
 
-from sqlalchemy import String, Text, UniqueConstraint
+from typing import Any
+
+from sqlalchemy import Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -18,6 +20,15 @@ class EventTransitionRule(MultiTenantModel, Base):
         JSONB, nullable=False
     )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    prior_event_payload_conditions: Mapped[dict[str, dict[str, Any]] | None] = (
+        mapped_column(JSONB, nullable=True)
+    )
+    max_occurrences_per_stream: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )
+    fresh_prior_event_type: Mapped[str | None] = mapped_column(
+        String, nullable=True
+    )
 
     __table_args__ = (
         UniqueConstraint(

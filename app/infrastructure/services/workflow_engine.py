@@ -10,6 +10,10 @@ from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.event import EventCreate
+from app.application.interfaces.repositories import (
+    IRoleRepository,
+    ITaskRepository,
+)
 from app.application.interfaces.services import (
     IEventService,
     INotificationService,
@@ -35,9 +39,11 @@ async def _count_executions_today(
     db: AsyncSession,
     workflow_id: str,
     tenant_id: str,
+    *,
+    reference: datetime | None = None,
 ) -> int:
-    """Count workflow executions started today (UTC)."""
-    now = utc_now()
+    """Count workflow executions started today (UTC). Uses reference timestamp when provided so lock key and query share the same day."""
+    now = reference or utc_now()
     day_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
     day_end = day_start + timedelta(days=1)
     result = await db.execute(
@@ -69,8 +75,8 @@ class WorkflowEngine:
         notification_service: INotificationService | None = None,
         recipient_resolver: IWorkflowRecipientResolver | None = None,
         template_renderer: WorkflowTemplateRenderer | None = None,
-        task_repo: Any = None,
-        role_repo: Any = None,
+        task_repo: ITaskRepository | None = None,
+        role_repo: IRoleRepository | None = None,
     ) -> None:
         self.db = db
         self.event_service = event_service
@@ -135,7 +141,7 @@ class WorkflowEngine:
                 text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key}
             )
             count = await _count_executions_today(
-                self.db, workflow.id, workflow.tenant_id
+                self.db, workflow.id, workflow.tenant_id, reference=now
             )
             if count >= workflow.max_executions_per_day:
                 execution = WorkflowExecution(
@@ -185,6 +191,12 @@ class WorkflowEngine:
                             schema_version=params.get("schema_version", 1),
                             event_time=utc_now(),
                             payload=params.get("payload", {}),
+                            workflow_instance_id=getattr(
+                                triggered_by, "workflow_instance_id", None
+                            ),
+                            correlation_id=getattr(
+                                triggered_by, "correlation_id", None
+                            ),
                         )
                         created = await self.event_service.create_event(
                             tenant_id=workflow.tenant_id,
@@ -231,6 +243,20 @@ class WorkflowEngine:
                             emails = await self._recipient_resolver.get_emails_for_role(
                                 workflow.tenant_id, role_code
                             )
+                            if not emails:
+                                logger.warning(
+                                    "notify action skipped: no recipients for role %r (tenant_id=%s)",
+                                    role_code,
+                                    workflow.tenant_id,
+                                )
+                                execution_log.append(
+                                    {
+                                        "action": action_type,
+                                        "status": "skipped",
+                                        "reason": f"no recipients found for role '{role_code}'",
+                                    }
+                                )
+                                continue
                             payload = getattr(triggered_by, "payload", None) or {}
                             subject, body = self._template_renderer.render(
                                 template_key, triggered_by, payload, data

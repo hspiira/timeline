@@ -26,7 +26,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.core.config import get_settings
 from app.core.tenant_context import get_tenant_id as get_current_tenant_id
-from app.domain.exceptions import SqlNotConfiguredError
+from app.domain.exceptions import SqlNotConfiguredException
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +124,7 @@ async def get_db():
     Does not commit; use get_db_transactional for writes.
     When tenant context is set (middleware), runs SET LOCAL app.current_tenant_id for RLS.
     Yields a session and closes it on exit.
-    Raises SqlNotConfiguredError when database_backend is not 'postgres'.
+    Raises SqlNotConfiguredException when database_backend is not 'postgres'.
     """
     _ensure_engine()
     if AsyncSessionLocal is None:
@@ -132,7 +132,7 @@ async def get_db():
             "SQL database not configured: set DATABASE_BACKEND=postgres and DATABASE_URL "
             "(e.g. postgresql+asyncpg://user:pass@localhost:5432/dbname), then run: uv run alembic upgrade head"
         )
-        raise SqlNotConfiguredError()
+        raise SqlNotConfiguredException()
     async with AsyncSessionLocal() as session:
         await _set_tenant_context(session)
         yield session
@@ -144,7 +144,7 @@ async def get_db_transactional():
     Begins a transaction, commits on success, rolls back on exception.
     When tenant context is set (middleware), runs SET LOCAL app.current_tenant_id for RLS.
     Use for POST, PUT, PATCH, DELETE endpoints.
-    Raises SqlNotConfiguredError when database_backend is not 'postgres'.
+    Raises SqlNotConfiguredException when database_backend is not 'postgres'.
     """
     _ensure_engine()
     if AsyncSessionLocal is None:
@@ -152,7 +152,7 @@ async def get_db_transactional():
             "SQL database not configured: set DATABASE_BACKEND=postgres and DATABASE_URL "
             "(e.g. postgresql+asyncpg://user:pass@localhost:5432/dbname), then run: uv run alembic upgrade head"
         )
-        raise SqlNotConfiguredError()
+        raise SqlNotConfiguredException()
     async with AsyncSessionLocal() as session:
         async with session.begin():
             await _set_tenant_context(session)

@@ -274,11 +274,14 @@ async def get_tenant_id(
 
 
 async def get_event_service(
-    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_write)],
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> EventService:
     """Build EventService with hash chaining, schema validation, and workflow engine.
+
+    Event creation and workflows require PostgreSQL (WorkflowEngine, WorkflowRepository,
+    and event persistence use SQL). When database_backend is not 'postgres', raises 503
+    with a clear message instead of instantiating SQL-only components.
 
     EventService and WorkflowEngine depend on each other (event creation can trigger
     workflows; workflows can create events). We break the cycle by:
@@ -286,6 +289,16 @@ async def get_event_service(
     2. Creating WorkflowEngine with the event service.
     3. Storing the engine in the holder so the provider resolves on first use.
     """
+    if backend.db is None:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Event creation and workflows require PostgreSQL. "
+                "Set DATABASE_BACKEND=postgres and DATABASE_URL to use events and workflows."
+            ),
+        )
+    db = backend.db
+    audit_svc = SystemAuditService(db, HashService())
     event_repo = EventRepository(db)
     hash_service = HashService()
     subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=audit_svc)
@@ -694,25 +707,49 @@ async def get_user_repo_for_write(
 
 
 async def get_workflow_repo(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_read)],
 ) -> WorkflowRepository:
-    """Workflow repository for read operations (list, get by id)."""
-    return WorkflowRepository(db, audit_service=None)
+    """Workflow repository for read operations (list, get by id). Requires PostgreSQL."""
+    if backend.db is None:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Workflows require PostgreSQL. "
+                "Set DATABASE_BACKEND=postgres and DATABASE_URL to use workflows."
+            ),
+        )
+    return WorkflowRepository(backend.db, audit_service=None)
 
 
 async def get_workflow_repo_for_write(
-    db: Annotated[AsyncSession, Depends(get_db_transactional)],
-    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
+    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_write)],
 ) -> WorkflowRepository:
-    """Workflow repository for create/update/delete (transactional)."""
-    return WorkflowRepository(db, audit_service=audit_svc)
+    """Workflow repository for create/update/delete (transactional). Requires PostgreSQL."""
+    if backend.db is None:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Workflows require PostgreSQL. "
+                "Set DATABASE_BACKEND=postgres and DATABASE_URL to use workflows."
+            ),
+        )
+    audit_svc = SystemAuditService(backend.db, HashService())
+    return WorkflowRepository(backend.db, audit_service=audit_svc)
 
 
 async def get_workflow_execution_repo(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_read)],
 ) -> WorkflowExecutionRepository:
-    """Workflow execution repository for read (list by workflow, get by id)."""
-    return WorkflowExecutionRepository(db)
+    """Workflow execution repository for read (list by workflow, get by id). Requires PostgreSQL."""
+    if backend.db is None:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Workflows require PostgreSQL. "
+                "Set DATABASE_BACKEND=postgres and DATABASE_URL to use workflows."
+            ),
+        )
+    return WorkflowExecutionRepository(backend.db)
 
 
 async def get_role_repo(
