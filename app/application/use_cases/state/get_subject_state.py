@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime
 from typing import Any
 
 from app.application.dtos.event import EventResult
@@ -12,7 +13,7 @@ from app.application.interfaces.repositories import (
     ISubjectRepository,
     ISubjectSnapshotRepository,
 )
-from app.domain.exceptions import ResourceNotFoundException
+from app.domain.exceptions import ResourceNotFoundException, ValidationException
 
 
 def _apply_event(state: dict[str, Any], event: EventResult) -> None:
@@ -39,9 +40,9 @@ class GetSubjectStateUseCase:
         tenant_id: str,
         subject_id: str,
         as_of: str | None = None,
+        workflow_instance_id: str | None = None,
     ) -> StateResult:
-        """Return derived state by replaying events in order. Optionally filter by as_of (ISO8601 datetime). Uses snapshot + tail when available."""
-        from datetime import datetime
+        """Return derived state by replaying events in order. Optionally filter by as_of (ISO8601 datetime) and workflow_instance_id (stream). When workflow_instance_id is set, snapshot is not used (replay only for that stream)."""
 
         subject = await self._subject_repo.get_by_id_and_tenant(
             subject_id=subject_id,
@@ -52,15 +53,24 @@ class GetSubjectStateUseCase:
 
         as_of_dt: datetime | None = None
         if as_of:
-            as_of_dt = datetime.fromisoformat(as_of.replace("Z", "+00:00"))
+            try:
+                as_of_dt = datetime.fromisoformat(as_of.replace("Z", "+00:00"))
+            except ValueError as e:
+                raise ValidationException(
+                    f"Invalid as_of datetime: {as_of!r}. Expected ISO8601 (e.g. 2024-01-15T12:00:00Z)."
+                ) from e
 
+        # When scoping to a stream, do not use snapshot (snapshots are subject-scoped).
         snapshot = None
-        if self._snapshot_repo:
+        if self._snapshot_repo and workflow_instance_id is None:
             snapshot = await self._snapshot_repo.get_latest_by_subject(
                 subject_id=subject_id,
                 tenant_id=tenant_id,
             )
 
+        # If we have a snapshot, try snapshot + tail. snapshot_event from get_by_id may be
+        # None (e.g. referenced event was deleted); or use_snapshot may be False for as_of.
+        # In those cases the condition below fails and we fall through to full replay.
         if snapshot:
             snapshot_event = await self._event_repo.get_by_id(
                 snapshot.snapshot_at_event_id
@@ -76,6 +86,7 @@ class GetSubjectStateUseCase:
                     tenant_id=tenant_id,
                     as_of=as_of_dt,
                     after_event_id=snapshot.snapshot_at_event_id,
+                    workflow_instance_id=workflow_instance_id,
                 )
                 for event in tail:
                     _apply_event(state, event)
@@ -91,6 +102,7 @@ class GetSubjectStateUseCase:
             subject_id=subject_id,
             tenant_id=tenant_id,
             as_of=as_of_dt,
+            workflow_instance_id=workflow_instance_id,
         )
 
         state: dict[str, Any] = {}

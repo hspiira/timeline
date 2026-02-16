@@ -160,13 +160,18 @@ async def get_subject_state(
         default=None,
         description="ISO8601 datetime for time-travel (state as of this time)",
     ),
+    workflow_instance_id: str | None = Query(
+        default=None,
+        description="Scope state to this workflow instance (stream).",
+    ),
 ):
-    """Get derived state for subject (event replay). Optional as_of for time-travel."""
+    """Get derived state for subject (event replay). Optional as_of and workflow_instance_id."""
     try:
         result = await state_use_case.get_current_state(
             tenant_id=tenant_id,
             subject_id=subject_id,
             as_of=as_of,
+            workflow_instance_id=workflow_instance_id,
         )
         return SubjectStateResponse(
             state=result.state,

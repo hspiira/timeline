@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.application.dtos.user import UserResult
 from app.application.services.authorization_service import AuthorizationService
 from app.application.services.event_schema_validator import EventSchemaValidator
+from app.application.services.event_transition_validator import EventTransitionValidator
 from app.application.services.hash_service import HashService
 from app.application.services.document_category_metadata_validator import (
     DocumentCategoryMetadataValidator,
@@ -73,6 +74,7 @@ from app.infrastructure.persistence.repositories import (
     EmailAccountRepository,
     EventRepository,
     EventSchemaRepository,
+    EventTransitionRuleRepository,
     OAuthProviderConfigRepository,
     OAuthStateRepository,
     PermissionRepository,
@@ -291,6 +293,11 @@ async def get_event_service(
     )
     schema_validator = EventSchemaValidator(schema_repo)
     workflow_repo = WorkflowRepository(db, audit_service=audit_svc)
+    transition_rule_repo = EventTransitionRuleRepository(db)
+    transition_validator = EventTransitionValidator(
+        rule_repo=transition_rule_repo,
+        event_repo=event_repo,
+    )
 
     workflow_engine_holder: list[WorkflowEngine | None] = [None]
 
@@ -303,6 +310,7 @@ async def get_event_service(
         subject_repo=subject_repo,
         schema_validator=schema_validator,
         workflow_engine_provider=get_workflow_engine,
+        transition_validator=transition_validator,
     )
     notification_service = LogOnlyNotificationService()
     recipient_resolver = WorkflowRecipientResolver(db)
@@ -326,12 +334,19 @@ async def get_event_service(
 async def get_document_upload_service(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
     tenant_id: Annotated[str, Depends(get_tenant_id)],
+    tenant_repo: Annotated[
+        TenantRepository | FirestoreTenantRepository,
+        Depends(get_tenant_repo),
+    ],
     audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> DocumentUploadService:
-    """Build DocumentUploadService for upload (storage + document/tenant repos + optional category metadata validation)."""
+    """Build DocumentUploadService for upload (storage + document/tenant repos + optional category metadata validation).
+
+    Reuses the same TenantRepository instance as get_tenant_id to avoid a second
+    tenant lookup in the same request.
+    """
     storage = StorageFactory.create_storage_service()
     document_repo = DocumentRepository(db, audit_service=audit_svc)
-    tenant_repo = TenantRepository(db)
     category_repo = DocumentCategoryRepository(
         db, tenant_id=tenant_id, audit_service=audit_svc
     )
@@ -589,6 +604,20 @@ async def get_event_schema_repo_for_write(
     return EventSchemaRepository(
         db, cache_service=None, audit_service=audit_svc
     )
+
+
+async def get_event_transition_rule_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> EventTransitionRuleRepository:
+    """Event transition rule repository for read operations."""
+    return EventTransitionRuleRepository(db)
+
+
+async def get_event_transition_rule_repo_for_write(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> EventTransitionRuleRepository:
+    """Event transition rule repository for create/update/delete (transactional)."""
+    return EventTransitionRuleRepository(db)
 
 
 async def get_subject_type_repo(

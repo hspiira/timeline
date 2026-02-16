@@ -25,6 +25,8 @@ class EventCreateRequest(BaseModel):
     schema_version: int = Field(..., ge=1)
     event_time: AwareDatetime
     payload: dict[str, Any] = Field(default_factory=dict)
+    workflow_instance_id: str | None = None
+    correlation_id: str | None = None
 
     @field_validator("event_time", mode="before")
     @classmethod
@@ -43,6 +45,8 @@ class EventListResponse(BaseModel):
     subject_id: str
     event_type: str
     event_time: AwareDatetime
+    workflow_instance_id: str | None = None
+    correlation_id: str | None = None
 
 
 class EventResponse(BaseModel):
@@ -57,6 +61,8 @@ class EventResponse(BaseModel):
     event_time: AwareDatetime
     payload: dict[str, Any]
     hash: str
+    workflow_instance_id: str | None = None
+    correlation_id: str | None = None
 
 
 class EventVerificationResult(BaseModel):

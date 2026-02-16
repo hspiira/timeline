@@ -28,6 +28,8 @@ class EventEntity:
     event_time: datetime
     payload: dict[str, Any]
     chain: EventChain
+    workflow_instance_id: str | None = None
+    correlation_id: str | None = None
 
     def __post_init__(self) -> None:
         self.validate()

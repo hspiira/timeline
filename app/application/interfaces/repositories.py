@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from app.application.dtos.document_category import DocumentCategoryResult
     from app.application.dtos.event import EventCreate, EventResult, EventToPersist
     from app.application.dtos.event_schema import EventSchemaResult
+    from app.application.dtos.event_transition_rule import EventTransitionRuleResult
     from app.application.dtos.permission import PermissionResult
     from app.application.dtos.role import RoleResult
     from app.application.dtos.search import SearchResultItem
@@ -72,9 +73,10 @@ class IEventRepository(Protocol):
         tenant_id: str,
         as_of: datetime | None = None,
         after_event_id: str | None = None,
+        workflow_instance_id: str | None = None,
         limit: int = 10000,
     ) -> list[EventResult]:
-        """Return events for subject in chronological order (oldest first). If as_of is set, only events with event_time <= as_of. If after_event_id is set, only events after that event (for snapshot replay)."""
+        """Return events for subject in chronological order (oldest first). If as_of is set, only events with event_time <= as_of. If after_event_id is set, only events after that event (for snapshot replay). If workflow_instance_id is set, only events in that stream."""
 
     async def count_by_tenant(self, tenant_id: str) -> int:
         """Return total event count for tenant (for verification limit check)."""
@@ -200,6 +202,47 @@ class IEventSchemaRepository(Protocol):
 
     async def get_next_version(self, tenant_id: str, event_type: str) -> int:
         """Return next version number for event_type."""
+
+
+# Event transition rule repository interface
+class IEventTransitionRuleRepository(Protocol):
+    """Protocol for event transition rule repository (DIP)."""
+
+    async def get_by_id(self, rule_id: str) -> EventTransitionRuleResult | None:
+        """Return rule by id."""
+
+    async def get_by_id_and_tenant(
+        self, rule_id: str, tenant_id: str
+    ) -> EventTransitionRuleResult | None:
+        """Return rule by id if it belongs to tenant."""
+
+    async def get_rule_for_event_type(
+        self, tenant_id: str, event_type: str
+    ) -> EventTransitionRuleResult | None:
+        """Return the transition rule for (tenant_id, event_type), or None."""
+
+    async def get_by_tenant(
+        self, tenant_id: str, skip: int = 0, limit: int = 100
+    ) -> list[EventTransitionRuleResult]:
+        """Return all transition rules for tenant."""
+
+    async def get_entity_by_id(self, rule_id: str) -> object:
+        """Return ORM entity by id for update/delete."""
+
+    async def create_rule(
+        self,
+        tenant_id: str,
+        event_type: str,
+        required_prior_event_types: list[str],
+        description: str | None = None,
+    ) -> EventTransitionRuleResult:
+        """Create a transition rule."""
+
+    async def update(self, obj: object, *, skip_existence_check: bool = False) -> object:
+        """Update rule."""
+
+    async def delete(self, obj: object) -> None:
+        """Delete rule."""
 
 
 # Subject type repository interface

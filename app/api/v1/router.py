@@ -14,6 +14,7 @@ from app.api.v1.endpoints import (
     documents,
     email_accounts,
     event_schemas,
+    event_transition_rules,
     events,
     health,
     oauth_providers,
@@ -67,6 +68,11 @@ api_router.include_router(
 )
 api_router.include_router(
     event_schemas.router, prefix="/event-schemas", tags=["event-schemas"]
+)
+api_router.include_router(
+    event_transition_rules.router,
+    prefix="/event-transition-rules",
+    tags=["event-transition-rules"],
 )
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflows"])
 api_router.include_router(

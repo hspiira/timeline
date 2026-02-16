@@ -31,6 +31,20 @@ class IHashService(Protocol):
         """Compute hash for event data (canonical JSON + previous_hash)."""
 
 
+# Event transition validator interface
+class IEventTransitionValidator(Protocol):
+    """Protocol for validating that required prior event types exist before emitting an event type."""
+
+    async def validate_can_emit(
+        self,
+        tenant_id: str,
+        subject_id: str,
+        event_type: str,
+        workflow_instance_id: str | None = None,
+    ) -> None:
+        """Raise TransitionValidationException if rules exist and required prior event types are missing in the stream."""
+
+
 # Event schema validator interface
 class IEventSchemaValidator(Protocol):
     """Protocol for validating event payload against tenant schema (single responsibility)."""
@@ -42,7 +56,12 @@ class IEventSchemaValidator(Protocol):
         schema_version: int,
         payload: dict[str, Any],
     ) -> None:
-        """Raise ValueError if schema not found, inactive, or payload invalid."""
+        """Validate payload against tenant schema (version).
+
+        Raises app.domain.exceptions.ValidationException (or another TimelineException
+        subclass) when the schema is not found, inactive, or the payload fails validation,
+        so callers and centralized exception_handlers receive a domain-level 4xx error.
+        """
 
 
 # Event service interface

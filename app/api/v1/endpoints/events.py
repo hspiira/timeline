@@ -126,6 +126,8 @@ async def create_event(
         schema_version=body.schema_version,
         event_time=body.event_time,
         payload=body.payload,
+        workflow_instance_id=body.workflow_instance_id,
+        correlation_id=body.correlation_id,
     )
     try:
         created = await event_svc.create_event(tenant_id, cmd)
@@ -137,6 +139,8 @@ async def create_event(
             event_time=created.event_time,
             payload=created.payload,
             hash=created.chain.current_hash.value,
+            workflow_instance_id=created.workflow_instance_id,
+            correlation_id=created.correlation_id,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

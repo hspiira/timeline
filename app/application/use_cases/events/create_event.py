@@ -17,7 +17,11 @@ from app.domain.value_objects.core import EventChain, EventType, Hash
 from app.shared.telemetry.logging import get_logger
 
 if TYPE_CHECKING:
-    from app.application.interfaces.services import IEventSchemaValidator, IWorkflowEngine
+    from app.application.interfaces.services import (
+        IEventSchemaValidator,
+        IEventTransitionValidator,
+        IWorkflowEngine,
+    )
 
 
 def _event_result_to_entity(r: EventResult) -> EventEntity:
@@ -33,6 +37,8 @@ def _event_result_to_entity(r: EventResult) -> EventEntity:
         event_time=r.event_time,
         payload=r.payload,
         chain=chain,
+        workflow_instance_id=r.workflow_instance_id,
+        correlation_id=r.correlation_id,
     )
 
 logger = get_logger(__name__)
@@ -46,14 +52,16 @@ class EventService:
         event_repo: IEventRepository,
         hash_service: IHashService,
         subject_repo: ISubjectRepository,
-        schema_validator: "IEventSchemaValidator | None" = None,
-        workflow_engine_provider: Callable[[], "IWorkflowEngine | None"] | None = None,
+        schema_validator: IEventSchemaValidator | None = None,
+        workflow_engine_provider: Callable[[], IWorkflowEngine | None] | None = None,
+        transition_validator: IEventTransitionValidator | None = None,
     ) -> None:
         self.event_repo = event_repo
         self.hash_service = hash_service
         self.subject_repo = subject_repo
         self.schema_validator = schema_validator
         self._workflow_engine_provider = workflow_engine_provider
+        self.transition_validator = transition_validator
 
     @property
     def workflow_engine(self) -> "IWorkflowEngine | None":
@@ -82,6 +90,14 @@ class EventService:
                 data.event_type,
                 data.schema_version,
                 data.payload,
+            )
+
+        if self.transition_validator:
+            await self.transition_validator.validate_can_emit(
+                tenant_id=tenant_id,
+                subject_id=data.subject_id,
+                event_type=data.event_type,
+                workflow_instance_id=data.workflow_instance_id,
             )
 
         prev_event = await self.event_repo.get_last_event(data.subject_id, tenant_id)
@@ -149,6 +165,13 @@ class EventService:
                 event_data.event_time,
                 prev_time,
             )
+            if self.transition_validator:
+                await self.transition_validator.validate_can_emit(
+                    tenant_id=tenant_id,
+                    subject_id=event_data.subject_id,
+                    event_type=event_data.event_type,
+                    workflow_instance_id=event_data.workflow_instance_id,
+                )
             if not skip_schema_validation and self.schema_validator:
                 await self.schema_validator.validate_payload(
                     tenant_id,
@@ -173,6 +196,8 @@ class EventService:
                     payload=event_data.payload,
                     hash=event_hash,
                     previous_hash=prev_hash,
+                    workflow_instance_id=event_data.workflow_instance_id,
+                    correlation_id=event_data.correlation_id,
                 )
             )
             chain_state[event_data.subject_id] = (event_hash, event_data.event_time)

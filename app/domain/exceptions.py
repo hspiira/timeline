@@ -246,6 +246,32 @@ class CredentialException(TimelineException):
         super().__init__(message, "CREDENTIAL_ERROR")
 
 
+class TransitionValidationException(TimelineException):
+    """Raised when an event type is emitted without required prior event types in the stream."""
+
+    def __init__(
+        self,
+        message: str,
+        event_type: str,
+        required_prior_event_types: list[str],
+    ) -> None:
+        """Initialize with message and transition context.
+
+        Args:
+            message: Human-readable description.
+            event_type: The event type that was rejected.
+            required_prior_event_types: Event types that must have occurred first.
+        """
+        super().__init__(
+            message,
+            "TRANSITION_VIOLATION",
+            {
+                "event_type": event_type,
+                "required_prior_event_types": required_prior_event_types,
+            },
+        )
+
+
 class DuplicateAssignmentException(TimelineException):
     """Raised when assigning a role/permission that is already assigned (unique constraint)."""
 

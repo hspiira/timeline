@@ -5,6 +5,9 @@ from app.infrastructure.persistence.models.document import Document
 from app.infrastructure.persistence.models.email_account import EmailAccount
 from app.infrastructure.persistence.models.event import Event
 from app.infrastructure.persistence.models.event_schema import EventSchema
+from app.infrastructure.persistence.models.event_transition_rule import (
+    EventTransitionRule,
+)
 from app.infrastructure.persistence.models.mixins import (
     AuditedMultiTenantModel,
     CuidMixin,
@@ -45,6 +48,7 @@ __all__ = [
     "Event",
     "Document",
     "EventSchema",
+    "EventTransitionRule",
     "Role",
     "Permission",
     "RolePermission",

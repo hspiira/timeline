@@ -12,6 +12,7 @@ from sqlalchemy import (
     Integer,
     String,
     event,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, Mapper, mapped_column
@@ -37,6 +38,8 @@ class Event(CuidMixin, TenantMixin, Base):
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     previous_hash: Mapped[str | None] = mapped_column(String)
     hash: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    workflow_instance_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    correlation_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -44,6 +47,13 @@ class Event(CuidMixin, TenantMixin, Base):
     __table_args__ = (
         Index("ix_event_subject_time", "subject_id", "event_time"),
         Index("ix_event_tenant_subject", "tenant_id", "subject_id"),
+        Index(
+            "ix_event_tenant_subject_workflow",
+            "tenant_id",
+            "subject_id",
+            "workflow_instance_id",
+            postgresql_where=text("workflow_instance_id IS NOT NULL"),
+        ),
         Index(
             "ix_event_tenant_type_version", "tenant_id", "event_type", "schema_version"
         ),

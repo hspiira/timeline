@@ -18,6 +18,9 @@ from app.infrastructure.persistence.repositories.event_repo import EventReposito
 from app.infrastructure.persistence.repositories.event_schema_repo import (
     EventSchemaRepository,
 )
+from app.infrastructure.persistence.repositories.event_transition_rule_repo import (
+    EventTransitionRuleRepository,
+)
 from app.infrastructure.persistence.repositories.oauth_provider_config_repo import (
     OAuthProviderConfigRepository,
 )
@@ -59,6 +62,7 @@ __all__ = [
     "EmailAccountRepository",
     "EventRepository",
     "EventSchemaRepository",
+    "EventTransitionRuleRepository",
     "OAuthProviderConfigRepository",
     "OAuthStateRepository",
     "PermissionRepository",

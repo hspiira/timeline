@@ -22,6 +22,7 @@ from app.domain.exceptions import (
     SqlNotConfiguredError,
     TenantNotFoundException,
     TimelineException,
+    TransitionValidationException,
     ValidationException,
     VerificationLimitExceededException,
 )
@@ -54,6 +55,7 @@ __all__ = [
     "TenantNotFoundException",
     "TenantStatus",
     "TimelineException",
+    "TransitionValidationException",
     "ValidationException",
     "VerificationLimitExceededException",
 ]

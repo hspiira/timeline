@@ -22,6 +22,8 @@ def _event_to_result(e: Event) -> EventResult:
         payload=e.payload,
         previous_hash=e.previous_hash,
         hash=e.hash,
+        workflow_instance_id=e.workflow_instance_id,
+        correlation_id=e.correlation_id,
     )
 
 
@@ -72,7 +74,7 @@ class EventRepository(BaseRepository[Event]):
         )
         rows = result.scalars().all()
         # First row per subject_id is the latest (ordered by event_time desc, id desc).
-        out: dict[str, EventResult | None] = {sid: None for sid in subject_ids}
+        out: dict[str, EventResult | None] = dict.fromkeys(subject_ids)
         for e in rows:
             if out.get(e.subject_id) is None:
                 out[e.subject_id] = _event_to_result(e)
@@ -94,6 +96,8 @@ class EventRepository(BaseRepository[Event]):
             payload=data.payload,
             hash=event_hash,
             previous_hash=previous_hash,
+            workflow_instance_id=data.workflow_instance_id,
+            correlation_id=data.correlation_id,
         )
         created = await self.create(event)
         return _event_to_result(created)
@@ -120,27 +124,33 @@ class EventRepository(BaseRepository[Event]):
         tenant_id: str,
         as_of: datetime | None = None,
         after_event_id: str | None = None,
+        workflow_instance_id: str | None = None,
         limit: int = 10000,
     ) -> list[EventResult]:
-        """Return events for subject in chronological order (oldest first). If as_of is set, only events with event_time <= as_of. If after_event_id is set, only events after that event (for snapshot replay)."""
+        """Return events for subject in chronological order (oldest first). If as_of is set, only events with event_time <= as_of. If after_event_id is set, only events after that event (for snapshot replay). If workflow_instance_id is set, only events in that stream."""
         q = (
             select(Event)
             .where(Event.subject_id == subject_id, Event.tenant_id == tenant_id)
         )
+        if workflow_instance_id is not None:
+            q = q.where(Event.workflow_instance_id == workflow_instance_id)
         if as_of is not None:
             q = q.where(Event.event_time <= as_of)
         if after_event_id is not None:
-            # Subquery: event_time and id of the after_event_id (must be same subject/tenant)
             after_event = await self.get_by_id(after_event_id)
-            if after_event and after_event.subject_id == subject_id and after_event.tenant_id == tenant_id:
-                from sqlalchemy import or_
-                q = q.where(
-                    (Event.event_time > after_event.event_time)
-                    | (
-                        (Event.event_time == after_event.event_time)
-                        & (Event.id > after_event_id)
-                    )
+            if not after_event:
+                return []
+            if after_event.subject_id != subject_id or after_event.tenant_id != tenant_id:
+                raise ValueError(
+                    f"after_event_id {after_event_id!r} does not belong to subject_id={subject_id!r}, tenant_id={tenant_id!r}"
                 )
+            q = q.where(
+                (Event.event_time > after_event.event_time)
+                | (
+                    (Event.event_time == after_event.event_time)
+                    & (Event.id > after_event_id)
+                )
+            )
         q = q.order_by(asc(Event.event_time), asc(Event.id)).limit(limit)
         result = await self.db.execute(q)
         return [_event_to_result(e) for e in result.scalars().all()]
@@ -208,6 +218,8 @@ class EventRepository(BaseRepository[Event]):
                 payload=e.payload,
                 hash=e.hash,
                 previous_hash=e.previous_hash,
+                workflow_instance_id=e.workflow_instance_id,
+                correlation_id=e.correlation_id,
             )
             for e in events
         ]

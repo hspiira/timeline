@@ -14,6 +14,8 @@ class EventCreate:
     schema_version: int
     event_time: datetime
     payload: dict[str, Any]
+    workflow_instance_id: str | None = None
+    correlation_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -29,6 +31,8 @@ class EventResult:
     payload: dict[str, Any]
     previous_hash: str | None
     hash: str
+    workflow_instance_id: str | None = None
+    correlation_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -42,3 +46,5 @@ class EventToPersist:
     payload: dict[str, Any]
     hash: str
     previous_hash: str | None
+    workflow_instance_id: str | None = None
+    correlation_id: str | None = None
