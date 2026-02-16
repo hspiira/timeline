@@ -42,7 +42,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     ref
   ) => {
     const baseStyles =
-      'w-full rounded-none bg-background border transition-colors placeholder:text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed'
+      'w-full rounded-none bg-background border border-input text-foreground transition-colors placeholder:text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed'
     const focusStyles = 'focus:outline-none focus:ring-1'
 
     const activeVariant = error ? 'error' : variant

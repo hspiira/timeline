@@ -60,7 +60,7 @@ code {
 }
 
 .dark {
-  --background: oklch(0.10 0 0);
+  --background: #13120a;
   --foreground: oklch(0.95 0 0);
   --card: oklch(0.12 0 0);
   --card-foreground: oklch(0.95 0 0);

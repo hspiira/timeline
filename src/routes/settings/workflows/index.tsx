@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/useToast'
 import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { timelineApi } from '@/lib/api-client'
 import { Plus, Play, Pause, Trash2, CheckCircle, SquarePen } from 'lucide-react'
-import { WorkflowFormModal } from '@/components/workflows/WorkflowFormModal'
+import { WorkflowCreateModal } from '@/components/workflows/WorkflowCreateModal'
 import { WorkflowEditModal } from '@/components/workflows/WorkflowEditModal'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { ErrorModal } from '@/components/ui/ErrorModal'
@@ -71,33 +71,21 @@ function WorkflowsPage() {
   const [editingWorkflow, setEditingWorkflow] = useState<Workflow | null>(null)
   const [filterEventType, setFilterEventType] = useState<string>('')
 
-  const handleCreateWorkflow = async (workflowData: WorkflowCreate) => {
+  const handleCreateWorkflow = async (workflowData: WorkflowCreate): Promise<boolean> => {
     if (hasNoAccess) {
       setError('You do not have permission to create workflows')
       return false
     }
-
     try {
       const { data, error: apiError } = await timelineApi.workflows.create(workflowData)
-
-      if (apiError) {
-        const errorMsg =
-          typeof apiError === 'object' && 'message' in apiError
-            ? (apiError as any).message
-            : 'Failed to create workflow'
-        setError(errorMsg)
-        return false
-      }
-
+      if (apiError) return false
       if (data) {
         setWorkflows((prev) => [data, ...prev])
         setShowCreateModal(false)
         return true
       }
       return false
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Unexpected error creating workflow'
-      setError(errorMsg)
+    } catch {
       return false
     }
   }
@@ -308,19 +296,18 @@ function WorkflowsPage() {
 
   const filteredWorkflows = filterEventType
     ? workflows.filter((w: Workflow) => {
-        const triggerEventType = (w as any).trigger?.event_type || ''
+        const triggerEventType = w.trigger_event_type || ''
         return triggerEventType === filterEventType
       })
     : workflows
 
   return (
     <>
-      {/* Create Workflow Modal */}
       {showCreateModal && !hasNoAccess && (
-        <WorkflowFormModal
+        <WorkflowCreateModal
           onClose={() => setShowCreateModal(false)}
           onSubmit={handleCreateWorkflow}
-          title="Create Workflow"
+          title="Create workflow"
         />
       )}
 

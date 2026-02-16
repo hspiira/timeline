@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, useLocation, useNavigate } from '@tanstack/react-router'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useHasAuditAccess } from '@/hooks/useHasAuditAccess'
-import { Shield, Database, Zap, Users, KeyRound, Layers, FolderOpen, ClipboardList } from 'lucide-react'
+import { Shield, Database, Zap, Users, KeyRound, Layers, FolderOpen, ClipboardList, GitBranch } from 'lucide-react'
 
 export const Route = createFileRoute('/settings')({
   component: SettingsLayout,
@@ -46,6 +46,12 @@ function SettingsLayout() {
       description: 'Manage JSON schemas',
     },
     {
+      path: '/settings/event-transition-rules',
+      label: 'Transition rules',
+      icon: GitBranch,
+      description: 'Require prior event types before creating an event',
+    },
+    {
       path: '/settings/subject-types',
       label: 'Subject Types',
       icon: Layers,
@@ -81,9 +87,9 @@ function SettingsLayout() {
     <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-start">
       {/* Sidebar */}
       <div className="w-full lg:w-64 lg:shrink-0">
-        <div className="p-3 lg:p-4 lg:sticky lg:top-16 lg:h-fit rounded-none border border-border">
+        <div className="p-3 lg:p-4 lg:sticky lg:top-16 lg:h-fit rounded-none">
           <h2 className="text-md font-semibold text-foreground mb-4">Settings</h2>
-          <nav className="space-y-1">
+          <nav className="space-y-0.5">
             {menuItems
             .filter((item) => {
               if (item.path === '/settings/audit-log') return hasAuditAccess === true
@@ -96,10 +102,8 @@ function SettingsLayout() {
                 <button
                   key={item.path}
                   onClick={() => navigate({ to: item.path })}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-none transition-colors text-left ${
-                    active
-                      ? 'bg-primary/10 border border-primary/30'
-                      : 'hover:bg-muted border border-transparent'
+                  className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-none transition-colors text-left ${
+                    active ? 'bg-primary/10' : 'hover:bg-muted'
                   }`}
                 >
                   <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />

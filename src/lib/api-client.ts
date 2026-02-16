@@ -270,6 +270,10 @@ export const timelineApi = {
       }),
   },
 
+  retention: {
+    run: () => client.POST('/api/v1/retention/run', {}),
+  },
+
   subjectTypes: {
     list: (params?: { skip?: number; limit?: number }) =>
       client.GET('/api/v1/subject-types', {
@@ -359,6 +363,29 @@ export const timelineApi = {
     delete: (id: string) =>
       client.DELETE('/api/v1/event-schemas/{schema_id}', {
         params: { path: { schema_id: id } },
+      }),
+  },
+
+  eventTransitionRules: {
+    list: (params?: { skip?: number; limit?: number }) =>
+      client.GET('/api/v1/event-transition-rules', { params: { query: params } }),
+    get: (ruleId: string) =>
+      client.GET('/api/v1/event-transition-rules/{rule_id}', {
+        params: { path: { rule_id: ruleId } },
+      }),
+    create: (data: components['schemas']['EventTransitionRuleCreateRequest']) =>
+      client.POST('/api/v1/event-transition-rules', { body: data }),
+    update: (
+      ruleId: string,
+      data: components['schemas']['EventTransitionRuleUpdate']
+    ) =>
+      client.PATCH('/api/v1/event-transition-rules/{rule_id}', {
+        params: { path: { rule_id: ruleId } },
+        body: data,
+      }),
+    delete: (ruleId: string) =>
+      client.DELETE('/api/v1/event-transition-rules/{rule_id}', {
+        params: { path: { rule_id: ruleId } },
       }),
   },
 

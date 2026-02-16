@@ -30,10 +30,12 @@ import { Route as SettingsSchemasIndexRouteImport } from './routes/settings/sche
 import { Route as SettingsRolesIndexRouteImport } from './routes/settings/roles/index'
 import { Route as SettingsPermissionsIndexRouteImport } from './routes/settings/permissions/index'
 import { Route as SettingsOauthProvidersIndexRouteImport } from './routes/settings/oauth-providers/index'
+import { Route as SettingsEventTransitionRulesIndexRouteImport } from './routes/settings/event-transition-rules/index'
 import { Route as SettingsDocumentCategoriesIndexRouteImport } from './routes/settings/document-categories/index'
 import { Route as SettingsAuditLogIndexRouteImport } from './routes/settings/audit-log/index'
 import { Route as AdminRolesIndexRouteImport } from './routes/admin/roles/index'
 import { Route as AdminPermissionsIndexRouteImport } from './routes/admin/permissions/index'
+import { Route as SettingsWorkflowsCreateRouteImport } from './routes/settings/workflows/create'
 import { Route as EventsSubjectSubjectIdRouteImport } from './routes/events/subject.$subjectId'
 import { Route as EmailAccountsOauthCallbackRouteImport } from './routes/email-accounts/oauth/callback'
 import { Route as SubjectsSubjectIdEventsEventIdRouteImport } from './routes/subjects/$subjectId_/events/$eventId'
@@ -146,6 +148,12 @@ const SettingsOauthProvidersIndexRoute =
     path: '/oauth-providers/',
     getParentRoute: () => SettingsRoute,
   } as any)
+const SettingsEventTransitionRulesIndexRoute =
+  SettingsEventTransitionRulesIndexRouteImport.update({
+    id: '/event-transition-rules/',
+    path: '/event-transition-rules/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
 const SettingsDocumentCategoriesIndexRoute =
   SettingsDocumentCategoriesIndexRouteImport.update({
     id: '/document-categories/',
@@ -166,6 +174,11 @@ const AdminPermissionsIndexRoute = AdminPermissionsIndexRouteImport.update({
   id: '/admin/permissions/',
   path: '/admin/permissions/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsWorkflowsCreateRoute = SettingsWorkflowsCreateRouteImport.update({
+  id: '/workflows/create',
+  path: '/workflows/create',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const EventsSubjectSubjectIdRoute = EventsSubjectSubjectIdRouteImport.update({
   id: '/events/subject/$subjectId',
@@ -202,10 +215,12 @@ export interface FileRoutesByFullPath {
   '/subjects/': typeof SubjectsIndexRoute
   '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
+  '/settings/workflows/create': typeof SettingsWorkflowsCreateRoute
   '/admin/permissions/': typeof AdminPermissionsIndexRoute
   '/admin/roles/': typeof AdminRolesIndexRoute
   '/settings/audit-log/': typeof SettingsAuditLogIndexRoute
   '/settings/document-categories/': typeof SettingsDocumentCategoriesIndexRoute
+  '/settings/event-transition-rules/': typeof SettingsEventTransitionRulesIndexRoute
   '/settings/oauth-providers/': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions/': typeof SettingsPermissionsIndexRoute
   '/settings/roles/': typeof SettingsRolesIndexRoute
@@ -232,10 +247,12 @@ export interface FileRoutesByTo {
   '/subjects': typeof SubjectsIndexRoute
   '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
+  '/settings/workflows/create': typeof SettingsWorkflowsCreateRoute
   '/admin/permissions': typeof AdminPermissionsIndexRoute
   '/admin/roles': typeof AdminRolesIndexRoute
   '/settings/audit-log': typeof SettingsAuditLogIndexRoute
   '/settings/document-categories': typeof SettingsDocumentCategoriesIndexRoute
+  '/settings/event-transition-rules': typeof SettingsEventTransitionRulesIndexRoute
   '/settings/oauth-providers': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions': typeof SettingsPermissionsIndexRoute
   '/settings/roles': typeof SettingsRolesIndexRoute
@@ -263,10 +280,12 @@ export interface FileRoutesById {
   '/subjects/': typeof SubjectsIndexRoute
   '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
+  '/settings/workflows/create': typeof SettingsWorkflowsCreateRoute
   '/admin/permissions/': typeof AdminPermissionsIndexRoute
   '/admin/roles/': typeof AdminRolesIndexRoute
   '/settings/audit-log/': typeof SettingsAuditLogIndexRoute
   '/settings/document-categories/': typeof SettingsDocumentCategoriesIndexRoute
+  '/settings/event-transition-rules/': typeof SettingsEventTransitionRulesIndexRoute
   '/settings/oauth-providers/': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions/': typeof SettingsPermissionsIndexRoute
   '/settings/roles/': typeof SettingsRolesIndexRoute
@@ -295,10 +314,12 @@ export interface FileRouteTypes {
     | '/subjects/'
     | '/email-accounts/oauth/callback'
     | '/events/subject/$subjectId'
+    | '/settings/workflows/create'
     | '/admin/permissions/'
     | '/admin/roles/'
     | '/settings/audit-log/'
     | '/settings/document-categories/'
+    | '/settings/event-transition-rules/'
     | '/settings/oauth-providers/'
     | '/settings/permissions/'
     | '/settings/roles/'
@@ -325,10 +346,12 @@ export interface FileRouteTypes {
     | '/subjects'
     | '/email-accounts/oauth/callback'
     | '/events/subject/$subjectId'
+    | '/settings/workflows/create'
     | '/admin/permissions'
     | '/admin/roles'
     | '/settings/audit-log'
     | '/settings/document-categories'
+    | '/settings/event-transition-rules'
     | '/settings/oauth-providers'
     | '/settings/permissions'
     | '/settings/roles'
@@ -355,10 +378,12 @@ export interface FileRouteTypes {
     | '/subjects/'
     | '/email-accounts/oauth/callback'
     | '/events/subject/$subjectId'
+    | '/settings/workflows/create'
     | '/admin/permissions/'
     | '/admin/roles/'
     | '/settings/audit-log/'
     | '/settings/document-categories/'
+    | '/settings/event-transition-rules/'
     | '/settings/oauth-providers/'
     | '/settings/permissions/'
     | '/settings/roles/'
@@ -540,6 +565,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsOauthProvidersIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/event-transition-rules/': {
+      id: '/settings/event-transition-rules/'
+      path: '/event-transition-rules'
+      fullPath: '/settings/event-transition-rules/'
+      preLoaderRoute: typeof SettingsEventTransitionRulesIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/document-categories/': {
       id: '/settings/document-categories/'
       path: '/document-categories'
@@ -568,6 +600,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPermissionsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/workflows/create': {
+      id: '/settings/workflows/create'
+      path: '/workflows/create'
+      fullPath: '/settings/workflows/create'
+      preLoaderRoute: typeof SettingsWorkflowsCreateRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/events/subject/$subjectId': {
       id: '/events/subject/$subjectId'
       path: '/events/subject/$subjectId'
@@ -593,8 +632,10 @@ declare module '@tanstack/react-router' {
 }
 
 interface SettingsRouteChildren {
+  SettingsWorkflowsCreateRoute: typeof SettingsWorkflowsCreateRoute
   SettingsAuditLogIndexRoute: typeof SettingsAuditLogIndexRoute
   SettingsDocumentCategoriesIndexRoute: typeof SettingsDocumentCategoriesIndexRoute
+  SettingsEventTransitionRulesIndexRoute: typeof SettingsEventTransitionRulesIndexRoute
   SettingsOauthProvidersIndexRoute: typeof SettingsOauthProvidersIndexRoute
   SettingsPermissionsIndexRoute: typeof SettingsPermissionsIndexRoute
   SettingsRolesIndexRoute: typeof SettingsRolesIndexRoute
@@ -605,8 +646,11 @@ interface SettingsRouteChildren {
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsWorkflowsCreateRoute: SettingsWorkflowsCreateRoute,
   SettingsAuditLogIndexRoute: SettingsAuditLogIndexRoute,
   SettingsDocumentCategoriesIndexRoute: SettingsDocumentCategoriesIndexRoute,
+  SettingsEventTransitionRulesIndexRoute:
+    SettingsEventTransitionRulesIndexRoute,
   SettingsOauthProvidersIndexRoute: SettingsOauthProvidersIndexRoute,
   SettingsPermissionsIndexRoute: SettingsPermissionsIndexRoute,
   SettingsRolesIndexRoute: SettingsRolesIndexRoute,

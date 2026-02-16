@@ -1195,6 +1195,80 @@ export interface paths {
         patch: operations["update_event_schema_api_v1_event_schemas__schema_id__patch"];
         trace?: never;
     };
+    "/api/v1/event-transition-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Event Transition Rules
+         * @description List all event transition rules for the tenant.
+         */
+        get: operations["list_event_transition_rules_api_v1_event_transition_rules_get"];
+        put?: never;
+        /**
+         * Create Event Transition Rule
+         * @description Create an event transition rule (tenant-scoped). One rule per event_type.
+         */
+        post: operations["create_event_transition_rule_api_v1_event_transition_rules_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/event-transition-rules/{rule_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Get Event Transition Rule
+         * @description Get event transition rule by id (tenant-scoped).
+         */
+        get: operations["get_event_transition_rule_api_v1_event_transition_rules__rule_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Event Transition Rule
+         * @description Delete event transition rule by id. Tenant-scoped.
+         */
+        delete: operations["delete_event_transition_rule_api_v1_event_transition_rules__rule_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Event Transition Rule
+         * @description Update event transition rule (partial). Tenant-scoped.
+         */
+        patch: operations["update_event_transition_rule_api_v1_event_transition_rules__rule_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/retention/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Retention
+         * @description Run document retention for the current tenant.
+         */
+        post: operations["run_retention_api_v1_retention_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workflows": {
         parameters: {
             query?: never;
@@ -2047,6 +2121,44 @@ export interface components {
             is_active?: boolean | null;
         };
         /**
+         * EventTransitionRuleCreateRequest
+         * @description Request body for creating an event transition rule.
+         */
+        EventTransitionRuleCreateRequest: {
+            /** Event Type */
+            event_type: string;
+            /** Required Prior Event Types */
+            required_prior_event_types: string[];
+            /** Description */
+            description?: string | null;
+        };
+        /**
+         * EventTransitionRuleResponse
+         * @description Event transition rule response.
+         */
+        EventTransitionRuleResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Event Type */
+            event_type: string;
+            /** Required Prior Event Types */
+            required_prior_event_types: string[];
+            /** Description */
+            description: string | null;
+        };
+        /**
+         * EventTransitionRuleUpdate
+         * @description Request body for PATCH (partial update).
+         */
+        EventTransitionRuleUpdate: {
+            /** Required Prior Event Types */
+            required_prior_event_types?: string[] | null;
+            /** Description */
+            description?: string | null;
+        };
+        /**
          * EventVerificationResult
          * @description Result of verifying a single event (hash + chain).
          */
@@ -2338,6 +2450,20 @@ export interface components {
              * @description Password (min 8 characters)
              */
             password: string;
+        };
+        /**
+         * RetentionRunResponse
+         * @description Response for POST /retention/run (soft-delete summary).
+         */
+        RetentionRunResponse: {
+            /** Tenant Id */
+            tenant_id: string;
+            /** Soft Deleted By Category */
+            soft_deleted_by_category?: {
+                [key: string]: number;
+            };
+            /** Total Soft Deleted */
+            total_soft_deleted: number;
         };
         /**
          * RoleCreateRequest
@@ -5551,6 +5677,110 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    list_event_transition_rules_api_v1_event_transition_rules_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: { [name: string]: unknown };
+                content: { "application/json": components["schemas"]["EventTransitionRuleResponse"][] };
+            };
+            422: {
+                headers: { [name: string]: unknown };
+                content: { "application/json": components["schemas"]["HTTPValidationError"] };
+            };
+        };
+    };
+    create_event_transition_rule_api_v1_event_transition_rules_post: {
+        parameters: { query?: never; header?: never; path?: never; cookie?: never };
+        requestBody: { content: { "application/json": components["schemas"]["EventTransitionRuleCreateRequest"] } };
+        responses: {
+            201: {
+                headers: { [name: string]: unknown };
+                content: { "application/json": components["schemas"]["EventTransitionRuleResponse"] };
+            };
+            422: {
+                headers: { [name: string]: unknown };
+                content: { "application/json": components["schemas"]["HTTPValidationError"] };
+            };
+        };
+    };
+    get_event_transition_rule_api_v1_event_transition_rules__rule_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: { rule_id: string };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: { [name: string]: unknown };
+                content: { "application/json": components["schemas"]["EventTransitionRuleResponse"] };
+            };
+            422: {
+                headers: { [name: string]: unknown };
+                content: { "application/json": components["schemas"]["HTTPValidationError"] };
+            };
+        };
+    };
+    update_event_transition_rule_api_v1_event_transition_rules__rule_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: { rule_id: string };
+            cookie?: never;
+        };
+        requestBody: { content: { "application/json": components["schemas"]["EventTransitionRuleUpdate"] } };
+        responses: {
+            200: {
+                headers: { [name: string]: unknown };
+                content: { "application/json": components["schemas"]["EventTransitionRuleResponse"] };
+            };
+            422: {
+                headers: { [name: string]: unknown };
+                content: { "application/json": components["schemas"]["HTTPValidationError"] };
+            };
+        };
+    };
+    delete_event_transition_rule_api_v1_event_transition_rules__rule_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: { rule_id: string };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: { headers: { [name: string]: unknown }; content?: never };
+            422: {
+                headers: { [name: string]: unknown };
+                content: { "application/json": components["schemas"]["HTTPValidationError"] };
+            };
+        };
+    };
+    run_retention_api_v1_retention_run_post: {
+        parameters: { query?: never; header?: never; path?: never; cookie?: never };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: { [name: string]: unknown };
+                content: { "application/json": components["schemas"]["RetentionRunResponse"] };
+            };
+            422: {
+                headers: { [name: string]: unknown };
+                content: { "application/json": components["schemas"]["HTTPValidationError"] };
             };
         };
     };

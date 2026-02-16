@@ -231,11 +231,11 @@ function CreateEventPage() {
         payload: state.payload,
       }
 
-      const { data, error: createError } = await timelineApi.events.create(eventCreateData)
+      const { data, error: createError, response } = await timelineApi.events.create(eventCreateData)
 
       if (createError) {
         const display = getApiErrorDisplay(
-          { error: createError },
+          { error: createError, status: response?.status },
           'Failed to create event'
         )
         setApiError(display.message)

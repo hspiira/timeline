@@ -37,9 +37,21 @@ export function getApiErrorDisplay(
     return { message, code: 'VALIDATION_ERROR', fieldErrors }
   }
 
-  // Schema validation error: { error: "SCHEMA_VALIDATION_ERROR", message: "...", details: { schema_type, errors: [] } }
+  // Transition violation (409): { error: "TRANSITION_VIOLATION", message: "...", details: { event_type, required_prior_event_types } }
   const code = typeof obj?.error === 'string' ? obj.error : undefined
   const details = obj && typeof obj.details === 'object' && obj.details !== null ? (obj.details as Record<string, unknown>) : null
+  const requiredPrior = details && Array.isArray(details.required_prior_event_types) ? (details.required_prior_event_types as string[]) : null
+  if (code === 'TRANSITION_VIOLATION') {
+    const message =
+      typeof obj?.message === 'string'
+        ? obj.message
+        : requiredPrior && requiredPrior.length > 0
+          ? `This event type cannot be created yet. Required prior event types: ${requiredPrior.join(', ')}.`
+          : 'This event type cannot be created yet; required prior events are missing.'
+    return { message, code: 'TRANSITION_VIOLATION' }
+  }
+
+  // Schema validation error: { error: "SCHEMA_VALIDATION_ERROR", message: "...", details: { schema_type, errors: [] } }
   const detailsErrors = details && Array.isArray(details.errors) ? details.errors : []
   if (code === 'SCHEMA_VALIDATION_ERROR' && detailsErrors.length > 0) {
     const fieldErrors: ApiFieldError[] = detailsErrors

@@ -6,6 +6,7 @@ import { LandingPage } from '@/components/landing/LandingPage'
 import { MinimalActivityFeed } from '@/components/dashboard/MinimalActivityFeed'
 import { StatsGrid } from '@/components/dashboard/StatsGrid'
 import { timelineApi } from '@/lib/api-client'
+import { getApiErrorDisplay } from '@/lib/api-utils'
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import type { components } from '@/lib/timeline-api'
 import type { WorkflowResponse } from '@/lib/types'
@@ -64,7 +65,13 @@ function HomePage() {
       if (analyticsResult.status === 'fulfilled' && analyticsResult.value.data) {
         newData.stats = analyticsResult.value.data
       } else if (analyticsResult.status === 'fulfilled' && analyticsResult.value.error) {
-        newErrors.push({ field: 'analytics', message: 'Failed to load dashboard stats' })
+        const val = analyticsResult.value as { error: unknown; response?: { status?: number } }
+        const status = val.response?.status
+        const display = getApiErrorDisplay(
+          { error: val.error, status },
+          status === 403 ? 'Access denied to dashboard' : 'Failed to load dashboard stats'
+        )
+        newErrors.push({ field: 'analytics', message: display.message })
       } else if (analyticsResult.status === 'rejected') {
         newErrors.push({ field: 'analytics', message: 'Failed to load dashboard stats' })
       }

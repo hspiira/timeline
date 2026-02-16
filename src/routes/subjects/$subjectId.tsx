@@ -15,6 +15,9 @@ import type { SubjectResponse, EventResponse, EventListResponse } from '@/lib/ty
 import { LoadingIcon } from '@/components/ui/icons'
 import { Button } from '@/components/ui/button'
 import { Modal, ModalActions } from '@/components/ui/Modal'
+import { getApiErrorDisplay } from '@/lib/api-utils'
+import { useHasSubjectExportAccess } from '@/hooks/useHasSubjectExportAccess'
+import { useHasSubjectErasureAccess } from '@/hooks/useHasSubjectErasureAccess'
 
 const PAGE_SIZE = 10
 
@@ -45,10 +48,16 @@ function SubjectDetailPage() {
   const [showUploadPanel, setShowUploadPanel] = useState(false)
   const [derivedState, setDerivedState] = useState<{ state: Record<string, unknown>; last_event_id: string | null; event_count: number } | null>(null)
   const [derivedStateLoading, setDerivedStateLoading] = useState(false)
+  const [asOf, setAsOf] = useState<string | null>(null)
   const [showErasureModal, setShowErasureModal] = useState(false)
   const [erasureStrategy, setErasureStrategy] = useState<'anonymize' | 'delete'>('anonymize')
   const [erasureLoading, setErasureLoading] = useState(false)
   const [exportLoading, setExportLoading] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const [erasureError, setErasureError] = useState<string | null>(null)
+
+  const hasExportAccess = useHasSubjectExportAccess(!!authState.user)
+  const hasErasureAccess = useHasSubjectErasureAccess(!!authState.user)
 
   const totalPages = Math.ceil(totalEvents / PAGE_SIZE)
 
@@ -76,13 +85,13 @@ function SubjectDetailPage() {
     }
   }, [currentPage, subject])
 
-  // Fetch derived state when State tab is active
+  // Fetch derived state when State tab is active (and when asOf changes)
   useEffect(() => {
     if (activeTab !== 'state' || !authState.user) return
     let cancelled = false
     setDerivedStateLoading(true)
     setDerivedState(null)
-    timelineApi.subjects.getState(subjectId)
+    timelineApi.subjects.getState(subjectId, asOf ? { as_of: asOf } : undefined)
       .then(({ data, error }) => {
         if (cancelled) return
         setDerivedStateLoading(false)
@@ -100,7 +109,7 @@ function SubjectDetailPage() {
         if (!cancelled) setDerivedStateLoading(false)
       })
     return () => { cancelled = true }
-  }, [subjectId, activeTab, authState.user])
+  }, [subjectId, activeTab, authState.user, asOf])
 
   const fetchSubjectDocumentCount = useCallback(async () => {
     const { data, error } = await timelineApi.documents.listBySubject(subjectId)
@@ -200,11 +209,18 @@ function SubjectDetailPage() {
   }
 
   const handleExport = async () => {
+    setExportError(null)
     setExportLoading(true)
     try {
-      const { data, error } = await timelineApi.subjects.export(subjectId)
+      const result = await timelineApi.subjects.export(subjectId)
+      const { data, error } = result
+      const status = result.response?.status
       if (error) {
-        setError(error instanceof Error ? error.message : 'Export failed')
+        const display = getApiErrorDisplay(
+          { error, status },
+          status === 403 ? 'Access denied' : 'Export failed'
+        )
+        setExportError(display.message)
         return
       }
       const blob = new Blob([JSON.stringify(data ?? {}, null, 2)], {
@@ -217,27 +233,42 @@ function SubjectDetailPage() {
       a.click()
       URL.revokeObjectURL(url)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Export failed')
+      const display = getApiErrorDisplay(
+        { error: err },
+        'Export failed'
+      )
+      setExportError(display.message)
     } finally {
       setExportLoading(false)
     }
   }
 
   const handleErasureConfirm = async () => {
+    setErasureError(null)
     setErasureLoading(true)
     try {
-      const { error } = await timelineApi.subjects.erasure(subjectId, {
+      const result = await timelineApi.subjects.erasure(subjectId, {
         strategy: erasureStrategy,
       })
+      const { error } = result
+      const status = result.response?.status
       if (error) {
-        setError(error instanceof Error ? error.message : 'Erasure failed')
+        const display = getApiErrorDisplay(
+          { error, status },
+          status === 403 ? 'Access denied' : 'Erasure failed'
+        )
+        setErasureError(display.message)
         setErasureLoading(false)
         return
       }
       setShowErasureModal(false)
       navigate({ to: '/subjects' })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erasure failed')
+      const display = getApiErrorDisplay(
+        { error: err },
+        'Erasure failed'
+      )
+      setErasureError(display.message)
     } finally {
       setErasureLoading(false)
     }
@@ -381,28 +412,37 @@ function SubjectDetailPage() {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 pt-2 border-t border-border">
-          <Button
-            onClick={() => navigate({ to: `/verify/${subjectId}` })}
-            variant="primary"
-            size="sm"
-          >
-            <Shield className="w-4 h-4" />
-            Verify Chain
-          </Button>
-          <Button
-            onClick={handleExport}
-            disabled={exportLoading}
-            variant="outline"
-            size="sm"
-          >
-            {exportLoading ? (
-              <LoadingIcon size="sm" />
-            ) : (
-              <Download className="w-4 h-4" />
+        <div className="flex flex-col gap-2 pt-2 border-t border-border">
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => navigate({ to: `/verify/${subjectId}` })}
+              variant="primary"
+              size="sm"
+            >
+              <Shield className="w-4 h-4" />
+              Verify Chain
+            </Button>
+            {hasExportAccess !== false && (
+              <Button
+                onClick={handleExport}
+                disabled={exportLoading}
+                variant="outline"
+                size="sm"
+              >
+                {exportLoading ? (
+                  <LoadingIcon size="sm" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                Export
+              </Button>
             )}
-            Export
-          </Button>
+          </div>
+          {exportError && (
+            <p className="text-sm text-destructive" role="alert">
+              {exportError}
+            </p>
+          )}
         </div>
       </div>
 
@@ -591,6 +631,42 @@ function SubjectDetailPage() {
       {/* State tab — derived state from event replay */}
       {activeTab === 'state' && (
         <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50">
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <label className="text-sm text-muted-foreground">
+              As of (optional)
+              <input
+                type="datetime-local"
+                value={
+                  asOf
+                    ? (() => {
+                        const d = new Date(asOf)
+                        const y = d.getFullYear()
+                        const m = String(d.getMonth() + 1).padStart(2, '0')
+                        const day = String(d.getDate()).padStart(2, '0')
+                        const h = String(d.getHours()).padStart(2, '0')
+                        const min = String(d.getMinutes()).padStart(2, '0')
+                        return `${y}-${m}-${day}T${h}:${min}`
+                      })()
+                    : ''
+                }
+                onChange={(e) => {
+                  const v = e.target.value
+                  setAsOf(v ? new Date(v).toISOString() : null)
+                }}
+                className="ml-2 rounded-none border border-input bg-background px-2 py-1 text-sm text-foreground"
+              />
+            </label>
+            {asOf && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setAsOf(null)}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
           {derivedStateLoading ? (
             <div className="flex items-center gap-2 text-muted-foreground">
               <LoadingIcon size="sm" />
@@ -621,26 +697,33 @@ function SubjectDetailPage() {
       )}
 
       {/* Danger zone — erasure */}
-      <div className="mt-8 border border-destructive/30 rounded-none p-4 bg-destructive/5">
-        <h3 className="text-sm font-semibold text-destructive mb-2">Danger zone</h3>
-        <p className="text-xs text-muted-foreground mb-3">
-          Erase or anonymize this subject’s data. This cannot be undone.
-        </p>
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={() => setShowErasureModal(true)}
-          disabled={erasureLoading}
-        >
-          {erasureLoading ? <LoadingIcon size="sm" /> : <Trash2 className="w-4 h-4" />}
-          Erase / Anonymize
-        </Button>
-      </div>
+      {hasErasureAccess !== false && (
+        <div className="mt-8 border border-destructive/30 rounded-none p-4 bg-destructive/5">
+          <h3 className="text-sm font-semibold text-destructive mb-2">Danger zone</h3>
+          <p className="text-xs text-muted-foreground mb-3">
+            Erase or anonymize this subject’s data. This cannot be undone.
+          </p>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setShowErasureModal(true)}
+            disabled={erasureLoading}
+          >
+            {erasureLoading ? <LoadingIcon size="sm" /> : <Trash2 className="w-4 h-4" />}
+            Erase / Anonymize
+          </Button>
+        </div>
+      )}
 
       {/* Erasure confirmation modal */}
       <Modal
         isOpen={showErasureModal}
-        onClose={() => !erasureLoading && setShowErasureModal(false)}
+        onClose={() => {
+          if (!erasureLoading) {
+            setShowErasureModal(false)
+            setErasureError(null)
+          }
+        }}
         title="Erase subject data"
         maxWidth="max-w-md"
         closeButton
@@ -673,6 +756,11 @@ function SubjectDetailPage() {
         <p className="text-sm text-muted-foreground mb-4">
           Choose how to erase this subject’s data. This action cannot be undone.
         </p>
+        {erasureError && (
+          <p className="text-sm text-destructive mb-4" role="alert">
+            {erasureError}
+          </p>
+        )}
         <div className="space-y-3 mb-4">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
