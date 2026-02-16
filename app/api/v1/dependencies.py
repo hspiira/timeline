@@ -46,6 +46,7 @@ from app.application.use_cases.search import SearchService
 from app.application.use_cases.state import (
     CreateSubjectSnapshotUseCase,
     GetSubjectStateUseCase,
+    RunSnapshotJobUseCase,
 )
 from app.application.use_cases.subjects import (
     SubjectErasureService,
@@ -576,6 +577,21 @@ async def get_create_subject_snapshot_use_case(
     )
 
 
+async def get_run_snapshot_job_use_case(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    create_snapshot_use_case: Annotated[
+        CreateSubjectSnapshotUseCase, Depends(get_create_subject_snapshot_use_case)
+    ],
+) -> RunSnapshotJobUseCase:
+    """Run snapshot job use case (transactional: list subjects then create snapshots)."""
+    subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=None)
+    return RunSnapshotJobUseCase(
+        subject_repo=subject_repo,
+        create_snapshot_use_case=create_snapshot_use_case,
+    )
+
+
 async def get_dashboard_stats_use_case(
     subject_repo: Annotated[SubjectRepository, Depends(get_subject_repo)],
     event_repo: Annotated[EventRepository, Depends(get_event_repo)],
@@ -732,7 +748,7 @@ async def get_permission_repo_for_write(
 async def get_role_permission_repo(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> RolePermissionRepository:
-    """Role–permission repository for read (e.g. get_permissions_for_role)."""
+    """Role-permission repository for read (e.g. get_permissions_for_role)."""
     return RolePermissionRepository(db, audit_service=None)
 
 
@@ -740,14 +756,14 @@ async def get_role_permission_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
     audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> RolePermissionRepository:
-    """Role–permission repository for assign/remove (transactional)."""
+    """Role-permission repository for assign/remove (transactional)."""
     return RolePermissionRepository(db, audit_service=audit_svc)
 
 
 async def get_user_role_repo(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> UserRoleRepository:
-    """User–role repository for read (e.g. get_user_roles)."""
+    """User-role repository for read (e.g. get_user_roles)."""
     return UserRoleRepository(db, audit_service=None)
 
 
@@ -755,7 +771,7 @@ async def get_user_role_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
     audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> UserRoleRepository:
-    """User–role repository for assign/remove (transactional)."""
+    """User-role repository for assign/remove (transactional)."""
     return UserRoleRepository(db, audit_service=audit_svc)
 
 
@@ -804,15 +820,14 @@ async def get_email_account_repo_for_write(
 
 
 async def get_oauth_config_service(
-    request: Request,
     oauth_repo: Annotated[
         OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo_for_write)
     ],
     state_repo: Annotated[
         OAuthStateRepository, Depends(get_oauth_state_repo)
     ],
-    envelope_encryptor: EnvelopeEncryptor = Depends(get_envelope_encryptor),
-    driver_registry: OAuthDriverRegistry = Depends(get_oauth_driver_registry),
+    envelope_encryptor: Annotated[EnvelopeEncryptor, Depends(get_envelope_encryptor)],
+    driver_registry: Annotated[OAuthDriverRegistry, Depends(get_oauth_driver_registry)],
 ) -> OAuthConfigService:
     """OAuth config and flow service (composition root)."""
     return OAuthConfigService(

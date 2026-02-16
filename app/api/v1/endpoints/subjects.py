@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from app.api.v1.dependencies import (
     get_create_subject_snapshot_use_case,
     get_get_subject_state_use_case,
+    get_run_snapshot_job_use_case,
     get_subject_erasure_service,
     get_subject_export_service,
     get_subject_service,
@@ -16,6 +17,11 @@ from app.api.v1.dependencies import (
 from app.application.use_cases.state import (
     CreateSubjectSnapshotUseCase,
     GetSubjectStateUseCase,
+    RunSnapshotJobUseCase,
+)
+from app.application.use_cases.state.run_snapshot_job import (
+    SNAPSHOT_JOB_DEFAULT_LIMIT,
+    SNAPSHOT_JOB_MAX_LIMIT,
 )
 from app.application.use_cases.subjects import (
     ErasureStrategy,
@@ -26,10 +32,12 @@ from app.application.use_cases.subjects import (
 from app.core.limiter import limit_writes
 from app.domain.exceptions import ResourceNotFoundException, ValidationException
 from app.schemas.subject import (
+    ExportSubjectResponse,
     SubjectCreateRequest,
     SubjectErasureRequest,
     SubjectResponse,
     SubjectSnapshotResponse,
+    SnapshotRunResponse,
     SubjectStateResponse,
     SubjectUpdate,
 )
@@ -57,7 +65,37 @@ async def create_subject(
     return SubjectResponse.model_validate(created)
 
 
-@router.post("/{subject_id}/export")
+@router.post("/snapshots/run", response_model=SnapshotRunResponse)
+@limit_writes
+async def run_snapshot_job(
+    request: Request,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    job_use_case: Annotated[
+        RunSnapshotJobUseCase, Depends(get_run_snapshot_job_use_case)
+    ],
+    limit: Annotated[
+        int,
+        Query(
+            ge=1,
+            le=SNAPSHOT_JOB_MAX_LIMIT,
+            description="Max subjects to process",
+        ),
+    ] = SNAPSHOT_JOB_DEFAULT_LIMIT,
+    _: Annotated[object, Depends(require_permission("subject", "update"))] = None,
+):
+    """Run batch snapshot creation for the current tenant. Call from cron or scripts."""
+    result = await job_use_case.run(tenant_id=tenant_id, limit=limit)
+    return SnapshotRunResponse(
+        tenant_id=result.tenant_id,
+        subjects_processed=result.subjects_processed,
+        snapshots_created_or_updated=result.snapshots_created_or_updated,
+        skipped_no_events=result.skipped_no_events,
+        error_count=result.error_count,
+        error_subject_ids=list(result.error_subject_ids),
+    )
+
+
+@router.post("/{subject_id}/export", response_model=ExportSubjectResponse)
 @limit_writes
 async def export_subject_data(
     request: Request,
@@ -74,12 +112,12 @@ async def export_subject_data(
             tenant_id=tenant_id,
             subject_id=subject_id,
         )
-        return {
-            "subject": result.subject,
-            "events": result.events,
-            "documents": result.documents,
-            "exported_at": result.exported_at.isoformat(),
-        }
+        return ExportSubjectResponse(
+            subject=result.subject,
+            events=result.events,
+            documents=result.documents,
+            exported_at=result.exported_at.isoformat(),
+        )
     except ResourceNotFoundException:
         raise HTTPException(status_code=404, detail="Subject not found") from None
 
@@ -219,7 +257,7 @@ async def list_subjects(
     return [SubjectResponse.model_validate(s) for s in subjects]
 
 
-@router.put("/{subject_id}", response_model=SubjectResponse)
+@router.patch("/{subject_id}", response_model=SubjectResponse)
 @limit_writes
 async def update_subject(
     request: Request,
@@ -229,7 +267,7 @@ async def update_subject(
     subject_svc: Annotated[SubjectService, Depends(get_subject_service)],
     _: Annotated[object, Depends(require_permission("subject", "update"))] = None,
 ):
-    """Update subject (e.g. external_ref, display_name, attributes). Tenant-scoped."""
+    """Partial update (patch) of subject (e.g. external_ref, display_name, attributes). Tenant-scoped."""
     try:
         updated = await subject_svc.update_subject(
             tenant_id=tenant_id,

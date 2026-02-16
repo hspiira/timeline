@@ -1,7 +1,7 @@
 """Subject API schemas."""
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -47,10 +47,19 @@ class SubjectResponse(BaseModel):
 class SubjectErasureRequest(BaseModel):
     """Request body for subject data erasure (GDPR)."""
 
-    strategy: str = Field(
+    strategy: Literal["anonymize", "delete"] = Field(
         default="anonymize",
         description="anonymize (redact PII) or delete (remove subject and documents)",
     )
+
+
+class ExportSubjectResponse(BaseModel):
+    """Response for subject data export (GDPR): subject, events, document refs (no binary)."""
+
+    subject: dict[str, Any]
+    events: list[dict[str, Any]]
+    documents: list[dict[str, Any]]
+    exported_at: str
 
 
 class SubjectStateResponse(BaseModel):
@@ -69,3 +78,14 @@ class SubjectSnapshotResponse(BaseModel):
     snapshot_at_event_id: str
     event_count_at_snapshot: int
     created_at: datetime
+
+
+class SnapshotRunResponse(BaseModel):
+    """Response after running the batch snapshot job for the current tenant."""
+
+    tenant_id: str
+    subjects_processed: int
+    snapshots_created_or_updated: int
+    skipped_no_events: int
+    error_count: int
+    error_subject_ids: list[str] = Field(default_factory=list)

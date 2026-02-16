@@ -16,3 +16,15 @@ class SubjectSnapshotResult:
     state_json: dict[str, Any]
     event_count_at_snapshot: int
     created_at: datetime
+
+
+@dataclass(frozen=True)
+class SnapshotRunResult:
+    """Result of running the batch snapshot job for a tenant."""
+
+    tenant_id: str
+    subjects_processed: int
+    snapshots_created_or_updated: int
+    skipped_no_events: int
+    error_count: int
+    error_subject_ids: tuple[str, ...]
