@@ -1,11 +1,11 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState, useEffect, useCallback } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { timelineApi } from '@/lib/api-client'
-import { Plus, Play, Pause, Trash2, CheckCircle, SquarePen } from 'lucide-react'
+import { Plus, Play, Pause, Trash2, CheckCircle, SquarePen, Network } from 'lucide-react'
 import { WorkflowCreateModal } from '@/components/workflows/WorkflowCreateModal'
 import { WorkflowEditModal } from '@/components/workflows/WorkflowEditModal'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
@@ -348,14 +348,22 @@ function WorkflowsPage() {
           <p className="text-sm text-muted-foreground mt-0.5">Manage event-driven automation workflows</p>
         </div>
         {!hasNoAccess && (
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            variant="primary"
-            size="md"
-          >
-            <Plus className="w-4 h-4" />
-            Workflow
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link to="/settings/workflows/builder">
+              <Button variant="secondary" size="md">
+                <Network className="w-4 h-4" />
+                Graph builder
+              </Button>
+            </Link>
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              variant="primary"
+              size="md"
+            >
+              <Plus className="w-4 h-4" />
+              Workflow
+            </Button>
+          </div>
         )}
       </div>
 

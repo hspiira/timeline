@@ -36,6 +36,7 @@ import { Route as SettingsAuditLogIndexRouteImport } from './routes/settings/aud
 import { Route as AdminRolesIndexRouteImport } from './routes/admin/roles/index'
 import { Route as AdminPermissionsIndexRouteImport } from './routes/admin/permissions/index'
 import { Route as SettingsWorkflowsCreateRouteImport } from './routes/settings/workflows/create'
+import { Route as SettingsWorkflowsBuilderRouteImport } from './routes/settings/workflows/builder'
 import { Route as EventsSubjectSubjectIdRouteImport } from './routes/events/subject.$subjectId'
 import { Route as EmailAccountsOauthCallbackRouteImport } from './routes/email-accounts/oauth/callback'
 import { Route as SubjectsSubjectIdEventsEventIdRouteImport } from './routes/subjects/$subjectId_/events/$eventId'
@@ -180,6 +181,12 @@ const SettingsWorkflowsCreateRoute = SettingsWorkflowsCreateRouteImport.update({
   path: '/workflows/create',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsWorkflowsBuilderRoute =
+  SettingsWorkflowsBuilderRouteImport.update({
+    id: '/workflows/builder',
+    path: '/workflows/builder',
+    getParentRoute: () => SettingsRoute,
+  } as any)
 const EventsSubjectSubjectIdRoute = EventsSubjectSubjectIdRouteImport.update({
   id: '/events/subject/$subjectId',
   path: '/events/subject/$subjectId',
@@ -215,6 +222,7 @@ export interface FileRoutesByFullPath {
   '/subjects/': typeof SubjectsIndexRoute
   '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
+  '/settings/workflows/builder': typeof SettingsWorkflowsBuilderRoute
   '/settings/workflows/create': typeof SettingsWorkflowsCreateRoute
   '/admin/permissions/': typeof AdminPermissionsIndexRoute
   '/admin/roles/': typeof AdminRolesIndexRoute
@@ -247,6 +255,7 @@ export interface FileRoutesByTo {
   '/subjects': typeof SubjectsIndexRoute
   '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
+  '/settings/workflows/builder': typeof SettingsWorkflowsBuilderRoute
   '/settings/workflows/create': typeof SettingsWorkflowsCreateRoute
   '/admin/permissions': typeof AdminPermissionsIndexRoute
   '/admin/roles': typeof AdminRolesIndexRoute
@@ -280,6 +289,7 @@ export interface FileRoutesById {
   '/subjects/': typeof SubjectsIndexRoute
   '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
+  '/settings/workflows/builder': typeof SettingsWorkflowsBuilderRoute
   '/settings/workflows/create': typeof SettingsWorkflowsCreateRoute
   '/admin/permissions/': typeof AdminPermissionsIndexRoute
   '/admin/roles/': typeof AdminRolesIndexRoute
@@ -314,6 +324,7 @@ export interface FileRouteTypes {
     | '/subjects/'
     | '/email-accounts/oauth/callback'
     | '/events/subject/$subjectId'
+    | '/settings/workflows/builder'
     | '/settings/workflows/create'
     | '/admin/permissions/'
     | '/admin/roles/'
@@ -346,6 +357,7 @@ export interface FileRouteTypes {
     | '/subjects'
     | '/email-accounts/oauth/callback'
     | '/events/subject/$subjectId'
+    | '/settings/workflows/builder'
     | '/settings/workflows/create'
     | '/admin/permissions'
     | '/admin/roles'
@@ -378,6 +390,7 @@ export interface FileRouteTypes {
     | '/subjects/'
     | '/email-accounts/oauth/callback'
     | '/events/subject/$subjectId'
+    | '/settings/workflows/builder'
     | '/settings/workflows/create'
     | '/admin/permissions/'
     | '/admin/roles/'
@@ -607,6 +620,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsWorkflowsCreateRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/workflows/builder': {
+      id: '/settings/workflows/builder'
+      path: '/workflows/builder'
+      fullPath: '/settings/workflows/builder'
+      preLoaderRoute: typeof SettingsWorkflowsBuilderRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/events/subject/$subjectId': {
       id: '/events/subject/$subjectId'
       path: '/events/subject/$subjectId'
@@ -632,6 +652,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface SettingsRouteChildren {
+  SettingsWorkflowsBuilderRoute: typeof SettingsWorkflowsBuilderRoute
   SettingsWorkflowsCreateRoute: typeof SettingsWorkflowsCreateRoute
   SettingsAuditLogIndexRoute: typeof SettingsAuditLogIndexRoute
   SettingsDocumentCategoriesIndexRoute: typeof SettingsDocumentCategoriesIndexRoute
@@ -646,6 +667,7 @@ interface SettingsRouteChildren {
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsWorkflowsBuilderRoute: SettingsWorkflowsBuilderRoute,
   SettingsWorkflowsCreateRoute: SettingsWorkflowsCreateRoute,
   SettingsAuditLogIndexRoute: SettingsAuditLogIndexRoute,
   SettingsDocumentCategoriesIndexRoute: SettingsDocumentCategoriesIndexRoute,

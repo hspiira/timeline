@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -14,6 +14,7 @@ import {
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
+  horizontalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useEventTypes } from '@/hooks/useEventTypes'
@@ -21,84 +22,266 @@ import { useFormSubmit } from '@/hooks/useFormSubmit'
 import type { components } from '@/lib/timeline-api'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/button'
-import { FormField, FormInput, FormTextarea } from '@/components/ui/FormField'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { ErrorAlert } from '@/components/ui/ErrorAlert'
-import { ArrowDown, GripVertical, Zap, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowRight, GripVertical, Zap, Trash2, Plus, GitBranch, Info, Mail, UserCog } from 'lucide-react'
+
+export type FlowDirection = 'lr' | 'tb'
 
 type WorkflowCreate = components['schemas']['WorkflowCreateRequest']
 
-interface ActionItem {
+/** Process/Action step (rectangle) – single action in the flow */
+interface ActionStep {
   id: string
+  kind: 'action'
   type: string
   params: Record<string, unknown>
 }
 
+const MAX_DECISION_BRANCHES = 3
+
+/** Decision step (diamond) – up to 3 connectors to action/decision shapes */
+interface DecisionStep {
+  id: string
+  kind: 'decision'
+  condition: string
+  /** Step IDs this decision connects to (max 3) */
+  branches: string[]
+}
+
+type Step = ActionStep | DecisionStep
+
+function isActionStep(s: Step): s is ActionStep {
+  return s.kind === 'action'
+}
+
+function isDecisionStep(s: Step): s is DecisionStep {
+  return s.kind === 'decision'
+}
+
 const ACTION_TYPES = [
-  { value: 'create_event', label: 'Create Event' },
-  { value: 'send_email', label: 'Send Email' },
-  { value: 'update_subject', label: 'Update Subject' },
+  { value: 'create_event', label: 'Create Event', icon: Zap },
+  { value: 'send_email', label: 'Send Email', icon: Mail },
+  { value: 'update_subject', label: 'Update Subject', icon: UserCog },
 ] as const
 
-function FlowArrow() {
+function getActionTypeInfo(type: string): { label: string; icon: React.ComponentType<{ className?: string }> } {
+  const found = ACTION_TYPES.find((o) => o.value === type)
+  return found
+    ? { label: found.label, icon: found.icon }
+    : { label: type, icon: Zap }
+}
+
+const FLOW_LAYOUT = {
+  lr: {
+    canvas: 'flex flex-row items-center justify-start pl-8 pr-8',
+    mainContainer: 'flex flex-row items-center gap-0 flex-nowrap',
+    stepWrapper: 'flex flex-row items-center gap-0 shrink-0 flex-wrap',
+    branchWrapper: 'flex flex-row items-center gap-0 shrink-0',
+  },
+  tb: {
+    canvas: 'flex flex-col items-center justify-start',
+    mainContainer: 'flex flex-col items-center gap-0',
+    stepWrapper: 'flex flex-col items-center shrink-0',
+    branchWrapper: 'flex flex-col items-center shrink-0',
+  },
+} as const
+
+function FlowArrow({ direction }: { direction: FlowDirection }) {
+  if (direction === 'lr') {
+    return (
+      <div className="flex items-center flex-shrink-0 px-1" aria-hidden>
+        <div className="w-6 h-px bg-muted-foreground/25" />
+        <ArrowRight className="w-4 h-4 text-muted-foreground/40 shrink-0" strokeWidth={2} />
+        <div className="w-6 h-px bg-muted-foreground/25" />
+      </div>
+    )
+  }
   return (
-    <div className="flex flex-col items-center py-1" aria-hidden>
-      <div className="w-px h-3 bg-border" />
-      <ArrowDown className="w-4 h-4 text-muted-foreground" />
-      <div className="w-px h-3 bg-border" />
+    <div className="flex flex-col items-center flex-shrink-0" aria-hidden>
+      <div className="w-px h-6 bg-muted-foreground/25" />
+      <ArrowDown className="w-4 h-4 text-muted-foreground/40" strokeWidth={2} />
+      <div className="w-px h-6 bg-muted-foreground/25" />
     </div>
   )
 }
 
-function TriggerNode({
+const BRANCH_LABELS = ['is true', 'is false', 'else'] as const
+
+/** Curved connector from decision with label on the line (reference style) */
+function BranchConnector({
+  direction,
+  branchIndex,
+  label,
+}: {
+  direction: FlowDirection
+  branchIndex: number
+  label: string
+}) {
+  if (direction === 'lr') {
+    const offset = branchIndex === 0 ? 8 : branchIndex === 1 ? 0 : -8
+    const width = 52
+    const height = 28
+    const cy = height / 2 + offset
+    const pathD = `M 0 ${height / 2} Q ${width / 2} ${cy} ${width} ${height / 2}`
+    return (
+      <div className="flex items-center flex-shrink-0 relative" style={{ width: width + 8 }}>
+        <svg width={width} height={height} className="overflow-visible" aria-hidden>
+          <path d={pathD} fill="none" stroke="currentColor" strokeWidth={1.5} className="text-muted-foreground/50" />
+          <polygon points={`${width},${height/2} ${width-5},${height/2-3} ${width-5},${height/2+3}`} fill="currentColor" className="text-muted-foreground/50" />
+        </svg>
+        <span
+          className="absolute text-[10px] font-medium text-muted-foreground bg-background px-1.5 py-0.5 rounded border border-border/70 whitespace-nowrap shadow-sm"
+          style={{ left: width / 2 - 24, top: height / 2 - 10 }}
+        >
+          ● {label}
+        </span>
+      </div>
+    )
+  }
+  const offset = branchIndex === 0 ? -16 : branchIndex === 1 ? 0 : 16
+  const width = 28
+  const height = 48
+  const cx = width / 2 + offset
+  const pathD = `M ${width / 2} 0 Q ${cx} ${height / 2} ${width / 2} ${height}`
+  return (
+    <div className="flex flex-col items-center flex-shrink-0 relative" style={{ height: height + 8 }}>
+      <svg width={width} height={height} className="overflow-visible" aria-hidden>
+        <path d={pathD} fill="none" stroke="currentColor" strokeWidth={1.5} className="text-muted-foreground/50" />
+        <polygon points={`${width/2},${height} ${width/2-3},${height-5} ${width/2+3},${height-5}`} fill="currentColor" className="text-muted-foreground/50" />
+      </svg>
+      <span
+        className="absolute text-[10px] font-medium text-muted-foreground bg-background px-1.5 py-0.5 rounded border border-border/70 whitespace-nowrap shadow-sm"
+        style={{ left: width / 2 - 22, top: height / 2 - 10 }}
+      >
+        ● {label}
+      </span>
+    </div>
+  )
+}
+
+/** Small type label above a shape (e.g. "Launch action", "Check if / else") */
+function ShapeTypeLabel({
+  icon: Icon,
+  label,
+  className = '',
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  className?: string
+}) {
+  return (
+    <div className={`flex items-center justify-center gap-1.5 text-muted-foreground mb-1.5 ${className}`}>
+      <Icon className="w-3.5 h-3.5 shrink-0" />
+      <span className="text-[11px] font-medium uppercase tracking-wide">{label}</span>
+    </div>
+  )
+}
+
+const ADD_STEP_BTN_CLASS =
+  'flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-muted-foreground/30 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors shrink-0'
+
+function AddStepButtons({
+  onAddAction,
+  onAddDecision,
+  disabled,
+}: {
+  onAddAction: () => void
+  onAddDecision: () => void
+  disabled?: boolean
+}) {
+  return (
+    <div className="flex items-center gap-2 shrink-0 flex-nowrap">
+      <button type="button" onClick={onAddAction} disabled={disabled} className={ADD_STEP_BTN_CLASS}>
+        <Plus className="w-4 h-4" />
+        <span className="text-sm font-medium">Add step</span>
+      </button>
+      <button type="button" onClick={onAddDecision} disabled={disabled} className={ADD_STEP_BTN_CLASS}>
+        <GitBranch className="w-4 h-4" />
+        <span className="text-sm font-medium">Add condition</span>
+      </button>
+    </div>
+  )
+}
+
+/** Start shape (circle) with trigger – type label above like reference */
+function StartShape({
   eventType,
   eventTypes,
   loading,
   onChange,
   disabled,
+  direction,
 }: {
   eventType: string
   eventTypes: string[]
   loading: boolean
   onChange: (value: string) => void
   disabled?: boolean
+  direction: FlowDirection
 }) {
-  return (
-    <div className="flex flex-col items-center">
-      <div className="px-4 py-3 bg-primary/10 border border-primary/30 rounded-none min-w-[200px] text-center">
-        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Trigger</div>
-        <Select
-          value={eventType}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled || loading}
-          className="w-full text-sm font-medium bg-background"
-        >
-          <option value="">Select event type...</option>
-          {eventTypes.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </Select>
-      </div>
+  const selectEl = (
+      <Select
+        value={eventType}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled || loading}
+        className={
+          direction === 'lr'
+          ? 'w-44 text-sm bg-background border border-border rounded-lg py-2 font-medium text-foreground [color-scheme:inherit]'
+          : 'w-56 text-sm bg-background border border-border rounded-lg py-2 text-center font-medium text-foreground [color-scheme:inherit]'
+        }
+      >
+        <option value="">When event type…</option>
+      {eventTypes.map((t) => (
+        <option key={t} value={t}>
+          {t}
+        </option>
+      ))}
+    </Select>
+  )
+  const circle = (
+    <div className="flex flex-col items-center justify-center w-16 h-16 rounded-full bg-background border border-border shrink-0">
+      <span className="text-xs font-semibold uppercase tracking-widest text-foreground">Start</span>
     </div>
   )
+  const triggerBlock = (
+    <div className="flex flex-col items-center shrink-0">
+      <ShapeTypeLabel icon={Zap} label="Trigger" />
+      {direction === 'lr' ? (
+        <div className="flex flex-row items-center gap-3">
+          {circle}
+          {selectEl}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-3">
+          {circle}
+          {selectEl}
+        </div>
+      )}
+    </div>
+  )
+  return triggerBlock
 }
 
-function ActionNode({
-  action,
-  index,
+/** Action/Process shape (rectangle): definition lives inside the shape */
+function ActionShape({
+  step,
   isSelected,
   onSelect,
   onRemove,
+  onUpdate,
+  paramsInput,
+  onParamsInputChange,
   disabled,
 }: {
-  action: ActionItem
-  index: number
+  step: ActionStep
   isSelected: boolean
   onSelect: () => void
   onRemove: () => void
+  onUpdate: (updates: Partial<Pick<ActionStep, 'type' | 'params'>>) => void
+  paramsInput: string
+  onParamsInputChange: (value: string) => void
   disabled?: boolean
 }) {
   const {
@@ -107,60 +290,259 @@ function ActionNode({
     setNodeRef,
     transform,
     transition,
-  } = useSortable({ id: action.id })
+  } = useSortable({ id: step.id })
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   }
 
-  const label = ACTION_TYPES.find((a) => a.value === action.type)?.label ?? action.type
+  const { label: actionLabel, icon: ActionIcon } = getActionTypeInfo(step.type)
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="flex flex-col items-center"
+      className="flex flex-col items-center w-[280px] min-w-[280px] shrink-0"
     >
+      <ShapeTypeLabel icon={ActionIcon} label={actionLabel} />
       <div
         role="button"
         tabIndex={0}
         onClick={onSelect}
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect()}
         className={`
-          flex items-center gap-2 px-4 py-3 min-w-[220px] rounded-none border cursor-pointer transition-colors
-          ${isSelected ? 'bg-primary/15 border-primary/50 ring-1 ring-primary/30' : 'bg-card border-border hover:border-muted-foreground/40'}
+          w-full rounded-xl border border-border bg-background overflow-hidden transition-all
+          ${isSelected ? 'border-primary/50 ring-2 ring-primary/20' : 'hover:border-muted-foreground/40'}
         `}
       >
-        <button
-          type="button"
-          className="p-1 touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground disabled:pointer-events-none"
-          aria-label="Drag to reorder"
-          disabled={disabled}
-          {...attributes}
-          {...listeners}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="w-4 h-4" />
-        </button>
-        <Zap className="w-4 h-4 text-primary shrink-0" />
-        <div className="flex-1 text-left min-w-0">
-          <div className="text-xs text-muted-foreground">Action {index + 1}</div>
-          <div className="text-sm font-medium truncate">{label}</div>
-        </div>
-        {!disabled && (
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-border/60">
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              onRemove()
-            }}
-            className="p-1 text-muted-foreground hover:text-destructive rounded-none transition-colors"
-            aria-label="Remove action"
+            className="p-1.5 touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground disabled:pointer-events-none rounded-md hover:bg-muted/60"
+            aria-label="Drag to reorder"
+            disabled={disabled}
+            {...attributes}
+            {...listeners}
+            onClick={(e) => e.stopPropagation()}
           >
-            <Trash2 className="w-4 h-4" />
+            <GripVertical className="w-4 h-4" />
           </button>
-        )}
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10">
+            <Zap className="w-3.5 h-3.5 text-primary" />
+          </div>
+          <Select
+            value={step.type}
+            onChange={(e) => {
+              e.stopPropagation()
+              onUpdate({ type: e.target.value })
+            }}
+            disabled={disabled}
+            className="flex-1 min-w-0 text-sm font-medium border-0 bg-transparent py-1 focus:ring-0 cursor-pointer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {ACTION_TYPES.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </Select>
+          {!disabled && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onRemove() }}
+              className="p-1.5 text-muted-foreground hover:text-destructive rounded-md hover:bg-destructive/10 transition-colors"
+              aria-label="Remove"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        <div className="px-3 py-2 bg-muted/30" onClick={(e) => e.stopPropagation()}>
+          <label className="block text-xs font-medium text-foreground uppercase tracking-wide mb-1">
+            Params
+          </label>
+          <Input
+            type="text"
+            placeholder='{"key": "value"}'
+            value={paramsInput}
+            onChange={(e) => onParamsInputChange(e.target.value)}
+            disabled={disabled}
+            className="font-mono text-sm h-9 text-foreground placeholder:text-muted-foreground"
+          />
+          <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
+            For create_event: payload should match the target event type’s schema. Other actions: action-specific config.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Renders Action or Decision shape for a step (DRY: single place for step→shape mapping) */
+function StepShape({
+  step,
+  isSelected,
+  onSelect,
+  onRemove,
+  onUpdateAction,
+  onUpdateDecision,
+  onParamsInputChange,
+  paramsInputValue,
+  onAddBranch,
+  disabled,
+}: {
+  step: Step
+  isSelected: boolean
+  onSelect: () => void
+  onRemove: () => void
+  onUpdateAction: (u: Partial<Pick<ActionStep, 'type' | 'params'>>) => void
+  onUpdateDecision: (value: string) => void
+  onParamsInputChange: (raw: string) => void
+  paramsInputValue: string
+  onAddBranch?: () => void
+  disabled?: boolean
+}) {
+  if (isActionStep(step)) {
+    return (
+      <ActionShape
+        step={step}
+        isSelected={isSelected}
+        onSelect={onSelect}
+        onRemove={onRemove}
+        onUpdate={onUpdateAction}
+        paramsInput={paramsInputValue}
+        onParamsInputChange={onParamsInputChange}
+        disabled={disabled}
+      />
+    )
+  }
+  return (
+    <DecisionShape
+      step={step}
+      isSelected={isSelected}
+      onSelect={onSelect}
+      onRemove={onRemove}
+      onConditionChange={onUpdateDecision}
+      onAddBranch={onAddBranch}
+      disabled={disabled}
+    />
+  )
+}
+
+/** Decision shape (diamond) – flowchart symbol, up to 3 connectors to action shapes */
+function DecisionShape({
+  step,
+  isSelected,
+  onSelect,
+  onRemove,
+  onConditionChange,
+  onAddBranch,
+  disabled,
+}: {
+  step: DecisionStep
+  isSelected: boolean
+  onSelect: () => void
+  onRemove: () => void
+  onConditionChange: (value: string) => void
+  onAddBranch?: () => void
+  disabled?: boolean
+}) {
+  const branchCount = step.branches?.length ?? 0
+  const canAddBranch = branchCount < MAX_DECISION_BRANCHES && onAddBranch && !disabled
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: step.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  // Diamond: flowchart decision symbol – condition text wraps, no box around component
+  const w = 168
+  const h = 112
+  const points = `${w / 2},4 ${w - 4},${h / 2} ${w / 2},${h - 4} 4,${h / 2}`
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex flex-col items-center justify-center shrink-0"
+    >
+      <ShapeTypeLabel icon={Info} label="Check if / else" />
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onSelect}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect()}
+        className="relative transition-colors outline-none border-0 ring-0"
+      >
+        <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
+          <polygon
+            points={points}
+            fill="var(--card)"
+            stroke="currentColor"
+            strokeWidth={1.5}
+            className={
+              isSelected
+                ? 'stroke-primary/60 text-primary/60'
+                : 'stroke-border text-border hover:stroke-muted-foreground/50'
+            }
+          />
+        </svg>
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center p-3 pt-4 pointer-events-none box-border"
+          style={{ width: w, height: h }}
+        >
+          <textarea
+            value={step.condition}
+            onChange={(e) => onConditionChange(e.target.value)}
+            placeholder="e.g. payload.amount > 100"
+            disabled={disabled}
+            rows={3}
+            className="w-full min-w-0 max-w-[136px] min-h-[3.25rem] text-xs text-center font-mono text-foreground placeholder:text-muted-foreground pointer-events-auto bg-transparent border-0 shadow-none resize-none rounded-none py-1 px-2 break-words focus:outline-none focus:ring-0"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+        <div className="absolute top-1 right-1 flex gap-0.5 pointer-events-auto">
+          <button
+            type="button"
+            className="p-1 touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:pointer-events-none rounded border-0 bg-transparent"
+            aria-label="Drag to reorder"
+            disabled={disabled}
+            {...attributes}
+            {...listeners}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="w-3.5 h-3.5" />
+          </button>
+          {canAddBranch && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onAddBranch() }}
+              className="p-1 text-muted-foreground hover:text-primary hover:bg-muted/50 rounded border-0 bg-transparent text-[10px] font-medium"
+              aria-label="Add branch"
+              title={`Add branch (${branchCount}/${MAX_DECISION_BRANCHES})`}
+            >
+              <Plus className="w-3 h-3" />
+            </button>
+          )}
+          {!disabled && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onRemove() }}
+              className="p-1 text-muted-foreground hover:text-destructive hover:bg-muted/50 rounded border-0 bg-transparent"
+              aria-label="Remove"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -177,32 +559,31 @@ export function WorkflowCreateModal({ onClose, onSubmit, title = 'Create workflo
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [flowDirection, setFlowDirection] = useState<FlowDirection>('lr')
   const [triggerEventType, setTriggerEventType] = useState('')
-  const [actions, setActions] = useState<ActionItem[]>([])
-  const [selectedActionId, setSelectedActionId] = useState<string | null>(null)
+  const [steps, setSteps] = useState<Step[]>([])
+  /** Ordered IDs for the main flow (branch steps are only in decision.branches) */
+  const [mainFlowStepIds, setMainFlowStepIds] = useState<string[]>([])
+  const [selectedStepId, setSelectedStepId] = useState<string | null>(null)
   const [isActive, setIsActive] = useState(true)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [paramsInput, setParamsInput] = useState('')
 
   const { execute, loading, error, setError } = useFormSubmit()
 
-  const selectedAction = useMemo(
-    () => actions.find((a) => a.id === selectedActionId) ?? null,
-    [actions, selectedActionId]
-  )
-
   useEffect(() => {
-    const action = actions.find((a) => a.id === selectedActionId)
-    if (action) {
+    const step = steps.find((s) => s.id === selectedStepId)
+    if (step && isActionStep(step)) {
       setParamsInput(
-        Object.keys(action.params).length === 0
+        Object.keys(step.params).length === 0
           ? ''
-          : JSON.stringify(action.params, null, 0)
+          : JSON.stringify(step.params, null, 0)
       )
     } else {
       setParamsInput('')
     }
-  }, [selectedActionId, actions])
+  }, [selectedStepId, steps])
+
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -212,36 +593,130 @@ export function WorkflowCreateModal({ onClose, onSubmit, title = 'Create workflo
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (over && active.id !== over.id) {
-      setActions((prev) => {
-        const ids = prev.map((a) => a.id)
-        const oldIndex = ids.indexOf(active.id as string)
-        const newIndex = ids.indexOf(over.id as string)
+      setMainFlowStepIds((prev) => {
+        const oldIndex = prev.indexOf(active.id as string)
+        const newIndex = prev.indexOf(over.id as string)
         if (oldIndex === -1 || newIndex === -1) return prev
         return arrayMove(prev, oldIndex, newIndex)
       })
     }
   }
 
+  const getStep = (id: string): Step | undefined => steps.find((s) => s.id === id)
+
+  const getParamsInputForStep = (step: ActionStep): string =>
+    selectedStepId === step.id
+      ? paramsInput
+      : Object.keys(step.params).length === 0
+        ? ''
+        : JSON.stringify(step.params, null, 0)
+
+  const stepToPayloadEntries = (
+    step: Step,
+    get: (id: string) => Step | undefined
+  ): { type: string; params: Record<string, unknown> | null }[] => {
+    if (isActionStep(step)) {
+      return [{ type: step.type, params: step.params || null }]
+    }
+    const entries: { type: string; params: Record<string, unknown> | null }[] = [
+      { type: 'condition', params: { expression: step.condition } },
+    ]
+    for (const branchId of step.branches ?? []) {
+      const b = get(branchId)
+      if (!b) continue
+      if (isActionStep(b)) {
+        entries.push({ type: b.type, params: b.params || null })
+      } else {
+        entries.push({ type: 'condition', params: { expression: b.condition } })
+      }
+    }
+    return entries
+  }
+
   const addAction = () => {
-    const newAction: ActionItem = {
+    const newStep: ActionStep = {
       id: `action-${Date.now()}`,
+      kind: 'action',
       type: 'create_event',
       params: {},
     }
-    setActions((prev) => [...prev, newAction])
-    setSelectedActionId(newAction.id)
-    setFieldErrors((e) => ({ ...e, actions: '' }))
+    setSteps((prev) => [...prev, newStep])
+    setMainFlowStepIds((prev) => [...prev, newStep.id])
+    setSelectedStepId(newStep.id)
+    setFieldErrors((e) => ({ ...e, steps: '' }))
   }
 
-  const removeAction = (id: string) => {
-    setActions((prev) => prev.filter((a) => a.id !== id))
-    if (selectedActionId === id) setSelectedActionId(null)
+  const addDecision = () => {
+    const newStep: DecisionStep = {
+      id: `decision-${Date.now()}`,
+      kind: 'decision',
+      condition: '',
+      branches: [],
+    }
+    setSteps((prev) => [...prev, newStep])
+    setMainFlowStepIds((prev) => [...prev, newStep.id])
+    setSelectedStepId(newStep.id)
+    setFieldErrors((e) => ({ ...e, steps: '' }))
   }
 
-  const updateAction = (id: string, updates: Partial<Pick<ActionItem, 'type' | 'params'>>) => {
-    setActions((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, ...updates } : a))
+  const removeStep = (id: string) => {
+    setMainFlowStepIds((prev) => prev.filter((sid) => sid !== id))
+    setSteps((prev) =>
+      prev
+        .filter((s) => s.id !== id)
+        .map((s) =>
+          isDecisionStep(s) ? { ...s, branches: s.branches.filter((b) => b !== id) } : s
+        )
     )
+    if (selectedStepId === id) setSelectedStepId(null)
+  }
+
+  const addBranchToDecision = (decisionId: string) => {
+    const candidate = steps.find((s) => s.id === decisionId && isDecisionStep(s))
+    const decision = candidate && isDecisionStep(candidate) ? candidate : null
+    if (!decision || decision.branches.length >= MAX_DECISION_BRANCHES) return
+    const newStep: ActionStep = {
+      id: `action-${Date.now()}`,
+      kind: 'action',
+      type: 'create_event',
+      params: {},
+    }
+    setSteps((prev) => {
+      const updated = prev.map((s) =>
+        s.id === decisionId && isDecisionStep(s)
+          ? { ...s, branches: [...s.branches, newStep.id] }
+          : s
+      )
+      return [...updated, newStep]
+    })
+    setSelectedStepId(newStep.id)
+  }
+
+  const updateActionStep = (id: string, updates: Partial<Pick<ActionStep, 'type' | 'params'>>) => {
+    setSteps((prev) =>
+      prev.map((s) => (s.id === id && isActionStep(s) ? { ...s, ...updates } : s))
+    )
+  }
+
+  const updateDecisionStep = (id: string, condition: string) => {
+    setSteps((prev) =>
+      prev.map((s) => (s.id === id && isDecisionStep(s) ? { ...s, condition } : s))
+    )
+  }
+
+  const handleParamsInput = (id: string, raw: string) => {
+    setParamsInput(raw)
+    const trimmed = raw.trim()
+    if (!trimmed) {
+      updateActionStep(id, { params: {} })
+      return
+    }
+    try {
+      const parsed = JSON.parse(trimmed) as Record<string, unknown>
+      updateActionStep(id, { params: parsed })
+    } catch {
+      // allow typing invalid JSON
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -250,19 +725,24 @@ export function WorkflowCreateModal({ onClose, onSubmit, title = 'Create workflo
 
     const errors: Record<string, string> = {}
     if (!name.trim()) errors.name = 'Workflow name is required'
-    if (!triggerEventType.trim()) errors.triggerEventType = 'Trigger event type is required'
-    if (actions.length === 0) errors.actions = 'At least one action is required'
+    if (!triggerEventType.trim()) errors.triggerEventType = 'Trigger (event type) is required'
+    if (mainFlowStepIds.length === 0) errors.steps = 'Add at least one step (action or condition)'
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors)
       return
     }
 
+    const actionsPayload = mainFlowStepIds.flatMap((id) => {
+      const step = getStep(id)
+      return step ? stepToPayloadEntries(step, getStep) : []
+    })
+
     const payload: WorkflowCreate = {
       name: name.trim(),
       description: description.trim() || undefined,
       trigger_event_type: triggerEventType,
-      actions: actions.map((a) => ({ type: a.type, params: a.params || null })),
+      actions: actionsPayload,
       execution_order: 0,
       is_active: isActive,
     }
@@ -275,7 +755,7 @@ export function WorkflowCreateModal({ onClose, onSubmit, title = 'Create workflo
     }
   }
 
-  const actionIds = actions.map((a) => a.id)
+  const sortStrategy = flowDirection === 'lr' ? horizontalListSortingStrategy : verticalListSortingStrategy
 
   return (
     <Modal
@@ -286,208 +766,192 @@ export function WorkflowCreateModal({ onClose, onSubmit, title = 'Create workflo
       closeButton={!loading}
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <p className="text-sm text-muted-foreground -mt-2">
-          Define trigger and actions; reorder by dragging.
-        </p>
-
-        <div className="flex flex-col lg:flex-row gap-6 max-h-[70vh] overflow-auto">
-          {/* Flowchart */}
-          <div className="flex-1 min-w-0">
-            <div className="bg-card/50 border border-border rounded-none p-6 min-h-[280px]">
-              <h3 className="text-sm font-semibold text-foreground/90 mb-4">Flow</h3>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <div className="flex flex-col items-center">
-                  <TriggerNode
-                    eventType={triggerEventType}
-                    eventTypes={eventTypes}
-                    loading={loadingEventTypes}
-                    onChange={(v) => {
-                      setTriggerEventType(v)
-                      setFieldErrors((e) => ({ ...e, triggerEventType: '' }))
-                    }}
-                    disabled={loading}
-                  />
-
-                  {actions.length > 0 && (
-                    <>
-                      <FlowArrow />
-                      <SortableContext items={actionIds} strategy={verticalListSortingStrategy}>
-                        {actions.map((action, index) => (
-                          <div key={action.id} className="flex flex-col items-center">
-                            <ActionNode
-                              action={action}
-                              index={index}
-                              isSelected={selectedActionId === action.id}
-                              onSelect={() => setSelectedActionId(action.id)}
-                              onRemove={() => removeAction(action.id)}
-                              disabled={loading}
-                            />
-                            {index < actions.length - 1 && <FlowArrow />}
-                          </div>
-                        ))}
-                      </SortableContext>
-                    </>
-                  )}
-
-                  {actions.length === 0 && (
-                    <div className="mt-4 py-6 px-6 border border-dashed border-border rounded-none text-center text-sm text-muted-foreground">
-                      No actions yet. Add one in the settings panel →
-                    </div>
-                  )}
-                </div>
-              </DndContext>
-            </div>
+        {/* Workflow name + description: compact bar above canvas */}
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Workflow name</label>
+            <Input
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value)
+                setFieldErrors((e) => ({ ...e, name: '' }))
+              }}
+              placeholder="e.g. Alert on high priority"
+              disabled={loading}
+              className={fieldErrors.name ? 'border-destructive' : ''}
+            />
+            {fieldErrors.name && (
+              <p className="text-xs text-destructive mt-1">{fieldErrors.name}</p>
+            )}
           </div>
-
-          {/* Settings sidebar */}
-          <div className="w-full lg:w-80 shrink-0 space-y-4">
-            <div className="bg-card/50 border border-border rounded-none p-4 space-y-4">
-              <h3 className="text-sm font-semibold text-foreground/90">Settings</h3>
-
-              {error && <ErrorAlert message={error} />}
-
-              <FormField label="Workflow name" required error={fieldErrors.name}>
-                <FormInput
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value)
-                    setFieldErrors((e) => ({ ...e, name: '' }))
-                  }}
-                  placeholder="e.g. Alert on high priority events"
-                  disabled={loading}
-                  error={fieldErrors.name}
-                />
-              </FormField>
-
-              <FormField label="Description">
-                <FormTextarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Optional description"
-                  rows={2}
-                  disabled={loading}
-                />
-              </FormField>
-
-              <FormField
-                label="Trigger event type"
-                required
-                error={fieldErrors.triggerEventType}
-                hint="Event type that starts this workflow"
-              >
-                <Select
-                  value={triggerEventType}
-                  onChange={(e) => {
-                    setTriggerEventType(e.target.value)
-                    setFieldErrors((e) => ({ ...e, triggerEventType: '' }))
-                  }}
-                  disabled={loading || loadingEventTypes}
-                  error={fieldErrors.triggerEventType}
-                  className="w-full"
-                >
-                  <option value="">Select event type...</option>
-                  {eventTypes.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
-
-              <div className="border-t border-border pt-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-foreground/90">Actions</span>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    onClick={addAction}
-                    disabled={loading}
-                  >
-                    Add action
-                  </Button>
-                </div>
-                {fieldErrors.actions && (
-                  <p className="text-xs text-destructive mb-2">{fieldErrors.actions}</p>
-                )}
-              </div>
-
-              {selectedAction && (
-                <div className="border-t border-border pt-4 space-y-3">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Edit action {actions.findIndex((a) => a.id === selectedAction.id) + 1}
-                  </h4>
-                  <FormField label="Action type">
-                    <Select
-                      value={selectedAction.type}
-                      onChange={(e) =>
-                        updateAction(selectedAction.id, { type: e.target.value })
-                      }
-                      disabled={loading}
-                      className="w-full"
-                    >
-                      {ACTION_TYPES.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </Select>
-                  </FormField>
-                  <FormField label="Parameters (JSON)">
-                    <Input
-                      type="text"
-                      placeholder='e.g. {"key": "value"}'
-                      value={paramsInput}
-                      onChange={(e) => {
-                        const raw = e.target.value
-                        setParamsInput(raw)
-                        const trimmed = raw.trim()
-                        if (!trimmed) {
-                          updateAction(selectedAction.id, { params: {} })
-                          return
-                        }
-                        try {
-                          const parsed = JSON.parse(trimmed) as Record<string, unknown>
-                          updateAction(selectedAction.id, { params: parsed })
-                        } catch {
-                          // allow typing invalid JSON meanwhile
-                        }
-                      }}
-                      disabled={loading}
-                      className="font-mono text-xs"
-                    />
-                  </FormField>
-                </div>
-              )}
-
-              <div className="border-t border-border pt-4 flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="workflow-create-active"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                  disabled={loading}
-                  className="rounded-none"
-                />
-                <label htmlFor="workflow-create-active" className="text-sm font-medium text-foreground/90">
-                  Activate workflow after creation
-                </label>
-              </div>
-            </div>
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Description (optional)</label>
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Short description"
+              disabled={loading}
+            />
+          </div>
+          <div className="shrink-0">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Flow direction</label>
+            <Select
+              value={flowDirection}
+              onChange={(e) => setFlowDirection((e.target.value || 'lr') as FlowDirection)}
+              disabled={loading}
+              className="w-[180px]"
+            >
+              <option value="lr">Left to right</option>
+              <option value="tb">Top to bottom</option>
+            </Select>
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-2 border-t border-border">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
-            Cancel
-          </Button>
-          <Button type="submit" variant="primary" disabled={loading}>
-            {loading ? 'Creating...' : 'Create workflow'}
-          </Button>
+        {/* ERD-style canvas: shapes drawn from start */}
+        <div
+          className="relative min-h-[360px] rounded-xl border border-border/60 overflow-hidden bg-muted/40 text-muted-foreground/[0.2]"
+          style={{
+            backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+            backgroundSize: '16px 16px',
+          }}
+        >
+          <div className={`absolute inset-0 overflow-auto pt-8 pb-8 ${FLOW_LAYOUT[flowDirection].canvas}`}>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <div className={FLOW_LAYOUT[flowDirection].mainContainer}>
+                <div className="shrink-0">
+                  <StartShape
+                  eventType={triggerEventType}
+                  eventTypes={eventTypes}
+                  loading={loadingEventTypes}
+                  onChange={(v) => {
+                    setTriggerEventType(v)
+                    setFieldErrors((e) => ({ ...e, triggerEventType: '' }))
+                  }}
+                  disabled={loading}
+                  direction={flowDirection}
+                />
+                </div>
+
+                {mainFlowStepIds.length > 0 && (
+                  <>
+                    <FlowArrow direction={flowDirection} />
+                    <SortableContext items={mainFlowStepIds} strategy={sortStrategy}>
+                      {mainFlowStepIds.map((stepId) => {
+                        const step = getStep(stepId)
+                        if (!step) return null
+                        const isDecisionWithBranches =
+                          isDecisionStep(step) && (step.branches?.length ?? 0) > 0
+                        const layout = FLOW_LAYOUT[flowDirection]
+                        return (
+                          <div key={step.id} className={layout.stepWrapper}>
+                            <StepShape
+                              step={step}
+                              isSelected={selectedStepId === step.id}
+                              onSelect={() => setSelectedStepId(step.id)}
+                              onRemove={() => removeStep(step.id)}
+                              onUpdateAction={(u) => updateActionStep(step.id, u)}
+                              onUpdateDecision={(value) => updateDecisionStep(step.id, value)}
+                              onParamsInputChange={(raw) => handleParamsInput(step.id, raw)}
+                              paramsInputValue={isActionStep(step) ? getParamsInputForStep(step) : ''}
+                              onAddBranch={isDecisionStep(step) ? () => addBranchToDecision(step.id) : undefined}
+                              disabled={loading}
+                            />
+                            {isDecisionWithBranches && isDecisionStep(step)
+                              ? (step.branches ?? []).map((branchId, branchIdx) => {
+                                  const branchStep = getStep(branchId)
+                                  if (!branchStep) return null
+                                  const branchLabel = BRANCH_LABELS[branchIdx] ?? `Branch ${branchIdx + 1}`
+                                  return (
+                                    <div key={branchId} className={layout.branchWrapper}>
+                                      <BranchConnector
+                                        direction={flowDirection}
+                                        branchIndex={branchIdx}
+                                        label={branchLabel}
+                                      />
+                                      <FlowArrow direction={flowDirection} />
+                                      <StepShape
+                                        step={branchStep}
+                                        isSelected={selectedStepId === branchStep.id}
+                                        onSelect={() => setSelectedStepId(branchStep.id)}
+                                        onRemove={() => removeStep(branchStep.id)}
+                                        onUpdateAction={(u) => updateActionStep(branchStep.id, u)}
+                                        onUpdateDecision={(value) =>
+                                          updateDecisionStep(branchStep.id, value)
+                                        }
+                                        onParamsInputChange={(raw) =>
+                                          handleParamsInput(branchStep.id, raw)
+                                        }
+                                        paramsInputValue={
+                                          isActionStep(branchStep)
+                                            ? getParamsInputForStep(branchStep)
+                                            : ''
+                                        }
+                                        disabled={loading}
+                                      />
+                                    </div>
+                                  )
+                                })
+                              : null}
+                            <FlowArrow direction={flowDirection} />
+                          </div>
+                        )
+                      })}
+                    </SortableContext>
+                    <FlowArrow direction={flowDirection} />
+                    <AddStepButtons
+                      onAddAction={addAction}
+                      onAddDecision={addDecision}
+                      disabled={loading}
+                    />
+                  </>
+                )}
+
+                {mainFlowStepIds.length === 0 && (
+                  <>
+                    <FlowArrow direction={flowDirection} />
+                    <AddStepButtons
+                      onAddAction={addAction}
+                      onAddDecision={addDecision}
+                      disabled={loading}
+                    />
+                  </>
+                )}
+              </div>
+            </DndContext>
+          </div>
+        </div>
+
+        {(fieldErrors.triggerEventType || fieldErrors.steps) && (
+          <p className="text-xs text-destructive">
+            {fieldErrors.triggerEventType || fieldErrors.steps}
+          </p>
+        )}
+
+        {error && <ErrorAlert message={error} />}
+
+        <div className="flex flex-wrap items-center justify-end gap-4 pt-2 border-t border-border">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              disabled={loading}
+              className="rounded-none"
+            />
+            <span className="text-sm text-foreground/90">Activate after creation</span>
+          </label>
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" disabled={loading}>
+              {loading ? 'Creating...' : 'Create workflow'}
+            </Button>
+          </div>
         </div>
       </form>
     </Modal>
