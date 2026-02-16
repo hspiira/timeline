@@ -5,6 +5,7 @@
 
 import type { Workflow, WorkflowNode, WorkflowEdge } from './types'
 import type { Node, Edge } from '@xyflow/react'
+import { MarkerType } from '@xyflow/react'
 
 export interface WorkflowNodeData extends Record<string, unknown> {
   workflowNode: WorkflowNode
@@ -29,6 +30,7 @@ export function workflowToFlow(workflow: Workflow): {
     id: e.id,
     source: e.from,
     target: e.to,
+    markerEnd: { type: MarkerType.ArrowClosed },
     ...(e.label != null && {
       sourceHandle: e.label,
       data: { label: e.label },

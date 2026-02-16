@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/useToast'
 import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { timelineApi } from '@/lib/api-client'
 import { Plus, Play, Pause, Trash2, CheckCircle, SquarePen, Network } from 'lucide-react'
-import { WorkflowCreateModal } from '@/components/workflows/WorkflowCreateModal'
+import { WorkflowCreateModalGraph } from '@/components/workflows/WorkflowCreateModalGraph'
 import { WorkflowEditModal } from '@/components/workflows/WorkflowEditModal'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { ErrorModal } from '@/components/ui/ErrorModal'
@@ -304,7 +304,7 @@ function WorkflowsPage() {
   return (
     <>
       {showCreateModal && !hasNoAccess && (
-        <WorkflowCreateModal
+        <WorkflowCreateModalGraph
           onClose={() => setShowCreateModal(false)}
           onSubmit={handleCreateWorkflow}
           title="Create workflow"
