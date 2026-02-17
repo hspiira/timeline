@@ -18,6 +18,13 @@ const timeOptions: Intl.DateTimeFormatOptions = {
   hour12: false,
 }
 
+const timeWithSecondsOptions: Intl.DateTimeFormatOptions = {
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+}
+
 const dateTimeOptions: Intl.DateTimeFormatOptions = {
   day: '2-digit',
   month: '2-digit',
@@ -41,6 +48,11 @@ export function formatEventDate(date: Date | string): string {
 /** e.g. "14:30" (24-hour UK) */
 export function formatEventTime(date: Date | string): string {
   return new Date(date).toLocaleTimeString(locale, timeOptions)
+}
+
+/** e.g. "14:30:45" (24-hour UK with seconds, for timeline) */
+export function formatEventTimeWithSeconds(date: Date | string): string {
+  return new Date(date).toLocaleTimeString(locale, timeWithSecondsOptions)
 }
 
 /** e.g. "14/02/2025, 14:30" (UK dd/mm/yyyy and 24h) */

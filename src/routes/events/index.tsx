@@ -1,21 +1,37 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { Plus, Activity, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Activity, Calendar, Table2, List, FileStack, Loader2 } from 'lucide-react'
 import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useStore } from '@tanstack/react-store'
 import { timelineApi } from '@/lib/api-client'
 import { authStore } from '@/lib/auth-store'
 import { EventDocumentsModal } from '@/components/documents/EventDocumentsModal'
 import { EventDetailsModal } from '@/components/events/EventDetailsModal'
+import { EventDetailPanel } from '@/components/events/EventDetailPanel'
 import { EventsTable } from '@/components/events/EventsTable'
+import { EventsTimeline } from '@/components/events/EventsTimeline'
 import { EmptyState } from '@/components/ui/EmptyState'
 import type { EventResponse, EventListResponse } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { useIsLg } from '@/hooks/useMediaQuery'
+import { cn } from '@/lib/utils'
 
-const EVENTS_PAGE_SIZE_OPTIONS = [10, 20, 50]
-const DEFAULT_EVENTS_PAGE_SIZE = 20
+const EVENTS_PAGE_SIZE = 20
+const EVENTS_VIEW_STORAGE_KEY = 'events-view-mode'
+
+function getStoredViewMode(): 'table' | 'timeline' {
+  if (typeof window === 'undefined') return 'timeline'
+  try {
+    const v = window.localStorage.getItem(EVENTS_VIEW_STORAGE_KEY)
+    if (v === 'table' || v === 'timeline') return v
+  } catch {
+    // ignore
+  }
+  return 'timeline'
+}
 
 export const Route = createFileRoute('/events/')({
   beforeLoad: () => {
@@ -37,8 +53,25 @@ function EventsPage() {
   const [documentCounts, setDocumentCounts] = useState<Record<string, number>>({})
   const [subjectDisplayNames, setSubjectDisplayNames] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(DEFAULT_EVENTS_PAGE_SIZE)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [totalCount, setTotalCount] = useState<number | null>(null)
+  const loadingMoreRef = useRef(false)
+  const hasMoreRef = useRef(true)
+  const [viewMode, setViewMode] = useState<'table' | 'timeline'>(getStoredViewMode)
+  const isLg = useIsLg()
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const [refetchTrigger, setRefetchTrigger] = useState(0)
+
+  // Persist view mode
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(EVENTS_VIEW_STORAGE_KEY, viewMode)
+    } catch {
+      // ignore
+    }
+  }, [viewMode])
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -50,44 +83,56 @@ function EventsPage() {
   // Reset to first page when filter changes
   useEffect(() => {
     setPage(0)
+    setHasMore(true)
   }, [filterEventType])
 
   useEffect(() => {
-    if (authState.user) {
-      fetchEvents()
+    if (!authState.user) return
+    const isAppend = page > 0
+    if (isAppend) {
+      loadingMoreRef.current = true
+      setLoadingMore(true)
+    } else {
+      setLoading(true)
     }
-  }, [filterEventType, authState.user, page, pageSize])
-
-  const fetchEvents = async () => {
-    setLoading(true)
     setError(null)
-    try {
-      // Load all registered event types from schemas (so filter shows every type, not only those with events)
-      const schemaRes = await timelineApi.eventSchemas.list({ limit: 500 })
-      const schemaList = Array.isArray(schemaRes.data) ? schemaRes.data : []
-      const types: string[] = [...new Set(schemaList.map((s) => s.event_type).filter((x): x is string => Boolean(x)))]
-      setEventTypes(types)
+    let cancelled = false
 
-      const listParams = {
-        skip: page * pageSize,
-        limit: pageSize,
-        ...(filterEventType ? { event_type: filterEventType } : {}),
-      }
-      const [{ data: listData, error: apiError }, countRes] = await Promise.all([
-        timelineApi.events.listAll(listParams),
-        timelineApi.events.count(),
-      ])
+    const run = async () => {
+      try {
+        if (!isAppend) {
+          const schemaRes = await timelineApi.eventSchemas.list({ limit: 500 })
+          const schemaList = Array.isArray(schemaRes.data) ? schemaRes.data : []
+          const types: string[] = [...new Set(schemaList.map((s) => s.event_type).filter((x): x is string => Boolean(x)))]
+          setEventTypes(types)
+        }
 
-      if (apiError) {
-        const errorMessage =
-          (apiError as { message?: string })?.message || 'Unable to connect to the server'
-        setError(errorMessage)
-        console.error('API error:', apiError)
-      } else if (listData) {
-        // Total count is only accurate when not filtering by event_type
-        setTotalCount(filterEventType ? null : (countRes.data?.total ?? null))
+        const listParams = {
+          skip: page * EVENTS_PAGE_SIZE,
+          limit: EVENTS_PAGE_SIZE,
+          ...(filterEventType ? { event_type: filterEventType } : {}),
+        }
+        const promises: [Promise<{ data?: EventListResponse[]; error?: unknown }>, Promise<{ data?: { total?: number } }>?] = [
+          timelineApi.events.listAll(listParams),
+        ]
+        if (!isAppend) {
+          promises.push(timelineApi.events.count())
+        }
+        const results = await Promise.all(promises)
+        const listData = (results[0] as { data?: EventListResponse[]; error?: unknown }).data
+        const apiError = (results[0] as { error?: unknown }).error
+        const countRes = !isAppend ? results[1] : null
 
-        // Fetch full event details (needed for EventsTable payload display)
+        if (cancelled) return
+        if (apiError) {
+          const errorMessage =
+            (apiError as { message?: string })?.message || 'Unable to connect to the server'
+          setError(errorMessage)
+          console.error('API error:', apiError)
+          return
+        }
+        if (!listData) return
+
         const fullEvents = await Promise.all(
           listData.map(async (item: EventListResponse) => {
             const { data } = await timelineApi.events.get(item.id)
@@ -95,23 +140,33 @@ function EventsPage() {
           })
         )
         const validEvents = fullEvents.filter((e): e is EventResponse => e != null)
-        setEvents(validEvents)
+        if (cancelled) return
+
+        if (isAppend) {
+          setEvents((prev) => {
+            const next = [...prev, ...validEvents]
+            if (validEvents.length < EVENTS_PAGE_SIZE) setHasMore(false)
+            else if (totalCount != null && next.length >= totalCount) setHasMore(false)
+            return next
+          })
+        } else {
+          setEvents(validEvents)
+          const total = filterEventType ? null : (countRes?.data?.total ?? null)
+          if (total != null) setTotalCount(total)
+          setHasMore(
+            total != null ? validEvents.length < total : validEvents.length >= EVENTS_PAGE_SIZE
+          )
+        }
 
         const uniqueSubjectIds = [...new Set(validEvents.map((e) => e.subject_id))]
-
-        // Load document counts and subject display names for current page in parallel
         const [documentResults, subjectResults] = await Promise.all([
           Promise.all(
             listData.map(async (item: EventListResponse) => {
               try {
                 const { data: docs, error } = await timelineApi.documents.listByEvent(item.id)
-                if (error) {
-                  console.warn(`API error loading documents for event ${item.id}:`, error)
-                  return { eventId: item.id, count: 0 }
-                }
+                if (error) return { eventId: item.id, count: 0 }
                 return { eventId: item.id, count: Array.isArray(docs) ? docs.length : 0 }
-              } catch (err) {
-                console.error(`Failed to load documents for event ${item.id}:`, err)
+              } catch {
                 return { eventId: item.id, count: 0 }
               }
             })
@@ -123,26 +178,62 @@ function EventsPage() {
             })
           ),
         ])
+        if (cancelled) return
 
         const counts: Record<string, number> = {}
-        documentResults.forEach(({ eventId, count }) => {
-          counts[eventId] = count
-        })
-        setDocumentCounts(counts)
-
+        documentResults.forEach(({ eventId, count }) => { counts[eventId] = count })
         const names: Record<string, string> = {}
-        subjectResults.forEach(({ subjectId, displayName }) => {
-          names[subjectId] = displayName
-        })
-        setSubjectDisplayNames(names)
+        subjectResults.forEach(({ subjectId, displayName }) => { names[subjectId] = displayName })
+
+        if (isAppend) {
+          setDocumentCounts((prev) => ({ ...prev, ...counts }))
+          setSubjectDisplayNames((prev) => ({ ...prev, ...names }))
+        } else {
+          setDocumentCounts(counts)
+          setSubjectDisplayNames(names)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError('An unexpected error occurred')
+          console.error('Error:', err)
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+          setLoadingMore(false)
+          loadingMoreRef.current = false
+        }
       }
-    } catch (err) {
-      setError('An unexpected error occurred')
-      console.error('Error:', err)
-    } finally {
-      setLoading(false)
     }
-  }
+    run()
+    return () => { cancelled = true }
+  }, [filterEventType, authState.user, page, refetchTrigger])
+
+  // Keep refs in sync for observer
+  hasMoreRef.current = hasMore
+  loadingMoreRef.current = loadingMore
+
+  const loadMore = useCallback(() => {
+    if (loadingMoreRef.current || !hasMoreRef.current) return
+    setPage((p) => p + 1)
+  }, [])
+
+  // Infinite scroll: when sentinel is visible, load next page
+  useEffect(() => {
+    const scrollEl = scrollContainerRef.current
+    const sentinel = sentinelRef.current
+    if (!scrollEl || !sentinel || events.length === 0) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return
+        if (loadingMoreRef.current || !hasMoreRef.current) return
+        loadMore()
+      },
+      { root: scrollEl, rootMargin: '200px', threshold: 0 }
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [events.length, loadMore])
 
   if (authState.isLoading) {
     return (
@@ -184,7 +275,7 @@ function EventsPage() {
             {error}. Please check your connection and try again.
           </p>
           <Button
-            onClick={fetchEvents}
+            onClick={() => { setPage(0); setRefetchTrigger((t) => t + 1) }}
             variant="primary"
             size="sm"
           >
@@ -197,36 +288,73 @@ function EventsPage() {
   }
 
   return (
-    <>
-      {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h1 className="text-lg font-bold text-foreground mb-0.5">
-              Events
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Browse and manage all timeline events
-            </p>
-          </div>
+    <div className="flex flex-col min-h-0">
+      {/* Page header: fixed, never scrolls */}
+      <div className="flex items-center justify-between shrink-0 mb-3">
+        <div>
+          <h1 className="text-lg font-bold text-foreground mb-0.5">
+            Events
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Browse and manage all timeline events
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <ToggleGroup
+            type="single"
+            value={viewMode}
+            onValueChange={(v) => v && (v === 'table' || v === 'timeline') && setViewMode(v)}
+            variant="outline"
+            size="sm"
+          >
+            <ToggleGroupItem value="table" aria-label="Table view">
+              <Table2 className="w-4 h-4" />
+              Table
+            </ToggleGroupItem>
+            <ToggleGroupItem value="timeline" aria-label="Timeline view">
+              <List className="w-4 h-4" />
+              Timeline
+            </ToggleGroupItem>
+          </ToggleGroup>
           <Button onClick={() => navigate({ to: '/events/create' })} variant="primary" size="sm">
             <Plus className="w-4 h-4" />
             Log Event
           </Button>
         </div>
+      </div>
 
-        {/* Filters */}
-        {eventTypes.length > 0 && (
-          <div className="bg-card/80 backdrop-blur-sm rounded-none p-2.5 border border-border/50 mb-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="text-sm font-medium text-foreground/90">
-                Filter by type:
+      {/* Empty State or Events card — card fills remaining height when we have events */}
+      {events.length === 0 ? (
+        <div className="bg-card/80 backdrop-blur-sm rounded-none border border-border/50 shrink-0">
+          <EmptyState
+            icon={Calendar}
+            title="No events yet"
+            description="Events are recorded actions or state changes tracked in chronological order. Log your first event to build a timeline history."
+            action={{
+              label: 'Log Your First Event',
+              onClick: () => navigate({ to: '/events/create' }),
+            }}
+          />
+        </div>
+      ) : (
+        <div
+          className={cn(
+            'bg-card/95 backdrop-blur-sm rounded-none border-x border-t border-border/60 flex flex-col min-h-0 flex-1 overflow-hidden',
+            events.length > 0 && 'max-h-[calc(110vh-12rem)]'
+          )}
+        >
+          {/* Container header: filter only */}
+          {eventTypes.length > 0 && (
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 shrink-0 bg-muted/20 min-h-[2.75rem] overflow-visible">
+              <label className="text-sm font-medium text-muted-foreground whitespace-nowrap leading-normal">
+                Filter by type
               </label>
               <Select
                 value={filterEventType}
                 onChange={(e) => setFilterEventType(e.target.value)}
-                className="px-2.5 py-1 bg-background border border-input rounded-none text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="h-9 min-w-[10rem] px-3 bg-background border border-input rounded-none text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring leading-normal"
               >
-                <option value="">All Event Types</option>
+                <option value="">All types</option>
                 {eventTypes.map((type) => (
                   <option key={type} value={type}>
                     {type}
@@ -238,106 +366,94 @@ function EventsPage() {
                   onClick={() => setFilterEventType('')}
                   variant="ghost"
                   size="sm"
+                  className="h-9 px-3 text-sm text-muted-foreground hover:text-foreground leading-normal"
                 >
-                  Clear filter
+                  Clear
                 </Button>
               )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Empty State or Events Timeline */}
-        {events.length === 0 ? (
-          <div className="bg-card/80 backdrop-blur-sm rounded-none border border-border/50">
-            <EmptyState
-              icon={Calendar}
-              title="No events yet"
-              description="Events are recorded actions or state changes tracked in chronological order. Log your first event to build a timeline history."
-              action={{
-                label: 'Log Your First Event',
-                onClick: () => navigate({ to: '/events/create' }),
-              }}
-            />
-          </div>
-        ) : (
-          <div className="bg-card/80 backdrop-blur-sm rounded-none border border-border/60 overflow-hidden">
-            <h2 className="font-display text-xs font-semibold uppercase tracking-wider text-muted-foreground px-4 pt-4 pb-2 border-b border-border/60">
-              Events
-            </h2>
-            <div className="p-4">
-            <EventsTable
-              events={events}
-              documentCounts={documentCounts}
-              showSubjectColumn
-              subjectDisplayNames={subjectDisplayNames}
-              onViewDetails={(e) => setDetailsEventId(e.id)}
-              onViewDocuments={(e) => setSelectedEventId(e.id)}
-            />
-            </div>
-            {/* Pagination */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-border/60 bg-[var(--dashboard-accent-muted)]/20">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>Show</span>
-                <select
-                  value={pageSize}
-                  onChange={(e) => {
-                    setPageSize(Number(e.target.value))
-                    setPage(0)
-                  }}
-                  className="bg-background border border-input rounded-none text-foreground px-2.5 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {EVENTS_PAGE_SIZE_OPTIONS.map((size) => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
-                  ))}
-                </select>
-                <span>per page</span>
+          {viewMode === 'timeline' && isLg ? (
+            /* Two-column: only the events list (left) and detail panel (right) scroll independently */
+            <div className="flex flex-1 min-h-0">
+              <div className="flex-1 min-w-0 flex flex-col min-h-0 overflow-hidden relative">
+                <div ref={scrollContainerRef} className="px-4 pt-4 pb-0 flex-1 min-h-0 overflow-y-auto">
+                  <EventsTimeline
+                    events={events}
+                    documentCounts={documentCounts}
+                    showSubjectColumn
+                    subjectDisplayNames={subjectDisplayNames}
+                    onSelectEvent={(e) => setDetailsEventId(e.id)}
+                    selectedEventId={detailsEventId}
+                    onViewDetails={(e) => setDetailsEventId(e.id)}
+                    onViewDocuments={(e) => setSelectedEventId(e.id)}
+                  />
+                  <div ref={sentinelRef} className="flex items-center justify-center py-2 min-h-[1rem]">
+                    {loadingMore && <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />}
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>
-                  {totalCount !== null
-                    ? `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, totalCount)} of ${totalCount}`
-                    : `${page * pageSize + 1}–${page * pageSize + events.length}`}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  disabled={page === 0}
-                  variant="ghost"
-                  size="sm"
-                  title="Previous page"
-                  aria-label="Previous page"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <span className="px-2 text-sm text-muted-foreground">
-                  {totalCount !== null
-                    ? `Page ${page + 1} of ${Math.ceil(totalCount / pageSize) || 1}`
-                    : `Page ${page + 1}`}
-                </span>
-                <Button
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={
-                    totalCount !== null
-                      ? (page + 1) * pageSize >= totalCount
-                      : events.length < pageSize
-                  }
-                  variant="ghost"
-                  size="sm"
-                  title="Next page"
-                  aria-label="Next page"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+              <div className="hidden lg:flex lg:w-[min(420px,36rem)] lg:shrink-0 lg:flex-col lg:min-h-0 lg:overflow-hidden border-l border-border/60">
+                {detailsEventId ? (
+                  (() => {
+                    const event = events.find((e) => e.id === detailsEventId)
+                    return event ? (
+                      <EventDetailPanel
+                        event={event}
+                        onClose={() => setDetailsEventId(null)}
+                        className="flex-1 min-h-0 overflow-hidden"
+                      />
+                    ) : null
+                  })()
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-2 flex-1 px-4 py-8 text-center text-muted-foreground min-h-0">
+                    <FileStack className="w-10 h-10 opacity-40" strokeWidth={1.25} />
+                    <p className="text-sm font-medium">Select an event</p>
+                    <p className="text-xs max-w-[200px]">
+                      Click any event on the timeline to view its details here.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="flex-1 min-h-0 overflow-hidden relative">
+              <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-0">
+                <div>
+                  {viewMode === 'table' ? (
+                    <EventsTable
+                      events={events}
+                      documentCounts={documentCounts}
+                      showSubjectColumn
+                      subjectDisplayNames={subjectDisplayNames}
+                      onViewDetails={(e) => setDetailsEventId(e.id)}
+                      onViewDocuments={(e) => setSelectedEventId(e.id)}
+                    />
+                  ) : (
+                    <EventsTimeline
+                      events={events}
+                      documentCounts={documentCounts}
+                      showSubjectColumn
+                      subjectDisplayNames={subjectDisplayNames}
+                      onSelectEvent={(e) => setDetailsEventId(e.id)}
+                      selectedEventId={detailsEventId}
+                      onViewDetails={(e) => setDetailsEventId(e.id)}
+                      onViewDocuments={(e) => setSelectedEventId(e.id)}
+                    />
+                  )}
+                  <div ref={sentinelRef} className="flex items-center justify-center py-2 min-h-[1rem]">
+                    {loadingMore && <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
-        {/* Documents Modal */}
-        {selectedEventId && events.length > 0 && (() => {
+      {/* Documents Modal */}
+      {selectedEventId && events.length > 0 && (() => {
           const event = events.find(e => e.id === selectedEventId)
           return event ? (
             <EventDocumentsModal
@@ -346,16 +462,16 @@ function EventsPage() {
               eventType={event.event_type}
               onClose={() => setSelectedEventId(null)}
               onDocumentsUpdated={() => {
-                // Refresh documents
                 setSelectedEventId(null)
-                fetchEvents()
+                setPage(0)
+                setRefetchTrigger((t) => t + 1)
               }}
             />
           ) : null
         })()}
 
-        {/* Details Modal */}
-        {detailsEventId && events.length > 0 && (() => {
+      {/* Details Modal: only when not using the side panel (table view or narrow screen) */}
+      {detailsEventId && events.length > 0 && !(viewMode === 'timeline' && isLg) && (() => {
           const event = events.find(e => e.id === detailsEventId)
           return event ? (
             <EventDetailsModal
@@ -364,7 +480,6 @@ function EventsPage() {
             />
           ) : null
         })()}
-
-    </>
+    </div>
   )
 }
