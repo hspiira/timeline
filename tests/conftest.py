@@ -70,16 +70,21 @@ async def auth_headers(client: AsyncClient) -> dict[str, str] | None:
     secret = os.environ.get("CREATE_TENANT_SECRET", _TEST_CREATE_TENANT_SECRET)
 
     code = f"test-{uuid.uuid4().hex[:12]}"
+    admin_password = "TestAdminPassword123!"
     create_resp = await client.post(
         "/api/v1/tenants",
-        json={"code": code, "name": f"Test Tenant {code}"},
+        json={
+            "code": code,
+            "name": f"Test Tenant {code}",
+            "admin_initial_password": admin_password,
+        },
         headers={"X-Create-Tenant-Secret": secret},
     )
     if create_resp.status_code != 201:
         pytest.skip(f"Could not create test tenant: {create_resp.status_code} {create_resp.text}")
     data = create_resp.json()
-    admin_password = data["admin_password"]
     tenant_id = data["tenant_id"]
+    assert "admin_password" not in data
     login_resp = await client.post(
         "/api/v1/auth/login",
         json={

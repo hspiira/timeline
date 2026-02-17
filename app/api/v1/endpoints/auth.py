@@ -76,7 +76,8 @@ async def login(
     check_auth_rate_per_tenant_code(body.tenant_code)
     tenant = await tenant_repo.get_by_code(body.tenant_code)
     if not tenant:
-        raise HTTPException(status_code=401, detail="Invalid tenant or credentials")
+        # Same message as wrong user/password to avoid tenant enumeration.
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     tenant_id = tenant.id
 
     user = await user_repo.authenticate(

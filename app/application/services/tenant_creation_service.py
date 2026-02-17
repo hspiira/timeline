@@ -32,13 +32,19 @@ class TenantCreationService:
         self.init_service = init_service
         self.audit_service = audit_service
 
-    async def create_tenant(self, code: str, name: str) -> TenantCreationResult:
+    async def create_tenant(
+        self,
+        code: str,
+        name: str,
+        admin_initial_password: str | None = None,
+    ) -> TenantCreationResult:
         """Create tenant, init RBAC, create admin user, assign admin role.
 
-        Admin password is always auto-generated and returned in the result.
-        Caller must run this within a single DB transaction (e.g. use a
-        transactional session dependency) so that tenant creation, RBAC init,
-        user creation and role assignment are atomic.
+        If admin_initial_password is provided, it is used for the admin user;
+        otherwise a password is generated (but never returned). Caller must run
+        this within a single DB transaction (e.g. use a transactional session
+        dependency) so that tenant creation, RBAC init, user creation and role
+        assignment are atomic.
 
         Timeout / cancellation:
         - Postgres: the whole flow runs in one transaction; on request timeout
@@ -64,7 +70,11 @@ class TenantCreationService:
             tenant_id=tenant_id,
         )
 
-        password = self._generate_secure_password()
+        password = (
+            admin_initial_password
+            if admin_initial_password is not None
+            else self._generate_secure_password()
+        )
         admin_username = "admin"
         admin_email = f"admin@{code}.timeline"
         admin_user = await self.user_repo.create_user(
@@ -106,7 +116,6 @@ class TenantCreationService:
             tenant_code=created_tenant.code,
             tenant_name=created_tenant.name,
             admin_username=admin_username,
-            admin_password=password,
         )
 
     @staticmethod

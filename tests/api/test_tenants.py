@@ -67,6 +67,17 @@ async def test_create_tenant_name_too_long_returns_422(client: AsyncClient) -> N
     assert response.status_code == 422
 
 
+async def test_create_tenant_admin_initial_password_too_short_returns_422(
+    client: AsyncClient,
+) -> None:
+    """POST /api/v1/tenants with admin_initial_password shorter than 8 chars fails validation."""
+    response = await client.post(
+        "/api/v1/tenants",
+        json={"code": "acme", "name": "Acme", "admin_initial_password": "short"},
+    )
+    assert response.status_code == 422
+
+
 async def test_create_tenant_when_secret_not_configured_returns_503(
     client: AsyncClient,
 ) -> None:
@@ -131,7 +142,11 @@ async def test_create_tenant_with_correct_secret_returns_201(client: AsyncClient
     code = f"acme-{__import__('uuid').uuid4().hex[:8]}"
     response = await client.post(
         "/api/v1/tenants",
-        json={"code": code, "name": "Acme Corp"},
+        json={
+            "code": code,
+            "name": "Acme Corp",
+            "admin_initial_password": "AcmeAdminPass123!",
+        },
         headers={"X-Create-Tenant-Secret": secret},
     )
     assert response.status_code == 201
@@ -139,4 +154,4 @@ async def test_create_tenant_with_correct_secret_returns_201(client: AsyncClient
     assert data["tenant_code"] == code
     assert "tenant_id" in data
     assert "admin_username" in data
-    assert "admin_password" in data
+    assert "admin_password" not in data

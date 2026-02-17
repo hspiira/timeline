@@ -52,16 +52,28 @@ def _timeline_exception_handler(
     return JSONResponse(status_code=status, content=content)
 
 
+def _make_errors_json_safe(obj: Any) -> Any:
+    """Recursively convert validation error details to JSON-serializable form (e.g. Exception -> str)."""
+    if isinstance(obj, Exception):
+        return str(obj)
+    if isinstance(obj, dict):
+        return {k: _make_errors_json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_make_errors_json_safe(v) for v in obj]
+    return obj
+
+
 def _validation_exception_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
     """Return 422 with validation error details."""
+    details = _make_errors_json_safe(exc.errors())
     return JSONResponse(
         status_code=422,
         content={
             "error": "VALIDATION_ERROR",
             "message": "Request validation failed",
-            "details": exc.errors(),
+            "details": details,
         },
     )
 

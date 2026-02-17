@@ -3,6 +3,7 @@
 Usage:
     APP_ROLE=timeline_app uv run python -m scripts.verify_rls_roles
     VERIFY_RLS_MIGRATOR_ROLE=timeline_migrator APP_ROLE=timeline_app uv run python -m scripts.verify_rls_roles
+    VERIFY_RLS_POLICIES=1 uv run python -m scripts.verify_rls_roles   # also check that tenant_isolation policies exist
 
 Reads DATABASE_URL from environment (or app.core.config). APP_ROLE defaults to the
 user from DATABASE_URL. Exits 0 if checks pass, 1 otherwise.
@@ -86,6 +87,20 @@ async def _main() -> int:
                 print(
                     f"RLS check failed: migrator role '{migrator_role}' does not have BYPASSRLS. "
                     "Run: ALTER ROLE " + migrator_role + " BYPASSRLS;",
+                    file=sys.stderr,
+                )
+                return 1
+
+        # Optional: verify that tenant_isolation policies exist (avoids false sense of security)
+        if os.environ.get("VERIFY_RLS_POLICIES", "").lower() in ("1", "true", "yes"):
+            n = await conn.fetchval(
+                "SELECT count(*) FROM pg_policies WHERE policyname = $1",
+                "tenant_isolation",
+            )
+            if n is None or n == 0:
+                print(
+                    "RLS check failed: no tenant_isolation policies found. "
+                    "Ensure RLS migration (e.g. w1x2y3z4a5b6) has been applied.",
                     file=sys.stderr,
                 )
                 return 1

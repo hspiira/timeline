@@ -1,5 +1,6 @@
 """Tenant API: thin routes delegating to TenantCreationService and tenant repo (Postgres or Firestore)."""
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -13,9 +14,11 @@ from app.api.v1.dependencies import (
 )
 from app.application.interfaces.repositories import ITenantRepository
 from app.application.services.tenant_creation_service import TenantCreationService
-from app.core.limiter import limit_create_tenant, limit_writes
 from app.core.config import get_settings
+from app.core.limiter import limit_create_tenant, limit_writes
 from app.domain.enums import TenantStatus
+from app.infrastructure.persistence import database
+from app.infrastructure.services.api_audit_log_service import ApiAuditLogService
 from app.schemas.tenant import (
     TenantCreateRequest,
     TenantCreateResponse,
@@ -23,6 +26,8 @@ from app.schemas.tenant import (
     TenantStatusUpdate,
     TenantUpdate,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -53,16 +58,50 @@ async def create_tenant(
         raise HTTPException(status_code=401, detail="Unauthorized tenant creation")
 
     try:
+        admin_password = (
+            body.admin_initial_password.get_secret_value()
+            if body.admin_initial_password is not None
+            else None
+        )
         result = await tenant_svc.create_tenant(
             code=body.code,
             name=body.name,
+            admin_initial_password=admin_password,
         )
+        # API audit log: tenant creation has no JWT/tenant header; log explicitly (Postgres only).
+        settings = get_settings()
+        if settings.database_backend == "postgres" and database.AsyncSessionLocal is not None:
+            database._ensure_engine()
+            request_id = getattr(request.state, "request_id", None)
+            client_host = request.client.host if request.client else None
+            forwarded = request.headers.get("X-Forwarded-For")
+            ip_address = (forwarded.split(",")[0].strip() if forwarded else None) or client_host
+            user_agent = request.headers.get("User-Agent")
+            try:
+                async with database.AsyncSessionLocal() as session:
+                    async with session.begin():
+                        svc = ApiAuditLogService(session)
+                        await svc.log_action(
+                            tenant_id=result.tenant_id,
+                            user_id=None,
+                            action="create",
+                            resource_type="tenants",
+                            resource_id=result.tenant_id,
+                            old_values=None,
+                            new_values=None,
+                            ip_address=ip_address,
+                            user_agent=user_agent,
+                            request_id=request_id,
+                            success=True,
+                            error_message=None,
+                        )
+            except Exception as e:
+                logger.warning("Failed to write audit log for tenant creation: %s", e, exc_info=True)
         return TenantCreateResponse(
             tenant_id=result.tenant_id,
             tenant_code=result.tenant_code,
             tenant_name=result.tenant_name,
             admin_username=result.admin_username,
-            admin_password=result.admin_password,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

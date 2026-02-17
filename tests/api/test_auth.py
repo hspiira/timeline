@@ -46,7 +46,8 @@ async def test_login_invalid_credentials_returns_401(client: AsyncClient) -> Non
     """POST /api/v1/auth/login with valid shape but unknown tenant returns 401.
 
     Does not require a real DB; app resolves tenant by code and returns 401
-    when tenant is not found or credentials fail.
+    when tenant is not found or credentials fail. Message must be generic
+    (same as wrong password) to avoid tenant enumeration.
     """
     response = await client.post(
         "/api/v1/auth/login",
@@ -57,6 +58,7 @@ async def test_login_invalid_credentials_returns_401(client: AsyncClient) -> Non
         },
     )
     assert response.status_code == 401
+    assert response.json().get("message") == "Invalid credentials"
 
 
 async def test_register_missing_body_returns_422(client: AsyncClient) -> None:

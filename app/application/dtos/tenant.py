@@ -7,13 +7,12 @@ from app.domain.enums import TenantStatus
 
 @dataclass(frozen=True)
 class TenantCreationResult:
-    """Result of tenant creation (new tenant + admin user + RBAC)."""
+    """Result of tenant creation (new tenant + admin user + RBAC). Admin password is never included."""
 
     tenant_id: str
     tenant_code: str
     tenant_name: str
     admin_username: str
-    admin_password: str
 
 
 @dataclass(frozen=True)

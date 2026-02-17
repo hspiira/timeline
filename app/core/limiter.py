@@ -35,11 +35,10 @@ _auth_per_tenant_lock = Lock()
 
 def check_auth_rate_per_tenant_code(tenant_code: str) -> None:
     """Raise 429 if too many auth attempts for this tenant_code in the last minute."""
-    if not tenant_code:
-        return
+    # Use sentinel for empty/missing so we still rate-limit (avoid bypass).
     now = time.monotonic()
     cutoff = now - AUTH_PER_TENANT_CODE_WINDOW_SEC
-    key = tenant_code.strip().lower()
+    key = (tenant_code or "").strip().lower() or "_empty"
     with _auth_per_tenant_lock:
         _auth_per_tenant[key] = [t for t in _auth_per_tenant[key] if t > cutoff]
         if len(_auth_per_tenant[key]) >= AUTH_PER_TENANT_CODE_LIMIT:
