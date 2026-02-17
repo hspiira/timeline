@@ -13,7 +13,7 @@ import type { Workflow } from '@/lib/workflow-builder'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
 import { ErrorAlert } from '@/components/ui/ErrorAlert'
 import { WorkflowBuilderCanvas } from '@/components/workflow-builder/WorkflowBuilderCanvas'
 import { NodePaletteRow } from '@/components/workflow-builder/NodePaletteRow'
@@ -174,19 +174,18 @@ export function WorkflowEditModalGraph({
             <label className="block text-xs font-medium text-muted-foreground mb-1">
               Trigger event type
             </label>
-            <Select
+            <SingleSelectCombobox
               value={triggerNode ? (triggerNode.configuration?.eventType as string) ?? '' : triggerEventType}
-              onChange={(e) => handleTriggerEventTypeChange(e.target.value)}
+              onValueChange={handleTriggerEventTypeChange}
+              options={[
+                { value: '', label: 'When event type…' },
+                ...eventTypes.map((t) => ({ value: t, label: t })),
+              ]}
+              placeholder="When event type…"
               disabled={loading || loadingEventTypes}
-              className={fieldErrors.triggerEventType ? 'border-destructive' : ''}
-            >
-              <option value="">When event type…</option>
-              {eventTypes.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </Select>
+              error={fieldErrors.triggerEventType}
+              className={fieldErrors.triggerEventType ? 'border-destructive rounded-none border-input/80' : 'rounded-none border-input/80'}
+            />
             {fieldErrors.triggerEventType && (
               <p className="text-xs text-destructive mt-1">{fieldErrors.triggerEventType}</p>
             )}

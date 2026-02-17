@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useStore } from '@tanstack/react-store'
-import { ArrowLeft, CheckCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Copy, KeyRound } from 'lucide-react'
 import { authStore, authActions } from '@/lib/auth-store'
 import { useRedirectIfAuthenticated } from '@/lib/hooks'
 import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
@@ -12,12 +12,15 @@ export const Route = createFileRoute('/register')({
   component: RegisterTenantPage,
 })
 
-/** Backend returns this after tenant creation; admin password is never returned (user sets it in the form). */
+/** C2 tenant creation response: admin sets password via set_password_url. */
 interface TenantCreationResult {
   tenant_id: string
   tenant_code: string
   tenant_name: string
   admin_username: string
+  admin_email: string
+  set_password_url?: string | null
+  set_password_expires_at?: string | null
 }
 
 function RegisterTenantPage() {
@@ -25,36 +28,57 @@ function RegisterTenantPage() {
   const authState = useStore(authStore)
   const [tenantCode, setTenantCode] = useState('')
   const [tenantName, setTenantName] = useState('')
-  const [adminPassword, setAdminPassword] = useState('')
-  const [showAdminPassword, setShowAdminPassword] = useState(false)
   const [createdTenant, setCreatedTenant] = useState<TenantCreationResult | null>(null)
+  const [copied, setCopied] = useState(false)
 
-  // Redirect if already logged in
   const isAuthenticated = useRedirectIfAuthenticated()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     authActions.clearError()
-
     try {
       const result = await authActions.registerTenant({
-        code: tenantCode,
-        name: tenantName,
-        admin_initial_password: adminPassword.trim() || undefined,
+        code: tenantCode.trim(),
+        name: tenantName.trim(),
       })
-
       setCreatedTenant(result)
     } catch (error) {
       console.error('Tenant registration failed:', error)
     }
   }
 
-  const handleContinueToLogin = () => {
+  const handleCopyLink = () => {
+    if (!createdTenant?.set_password_url) return
+    void navigator.clipboard.writeText(createdTenant.set_password_url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  /** Parse token from set_password_url and go to our set-password page in the same tab. */
+  const goToSetPassword = () => {
+    if (!createdTenant?.set_password_url) return
+    try {
+      const url = new URL(createdTenant.set_password_url, window.location.origin)
+      const token = url.searchParams.get('token') ?? ''
+      if (token) {
+        navigate({
+          to: '/set-password',
+          search: { token, tenant: createdTenant.tenant_code },
+        })
+      } else {
+        window.location.href = createdTenant.set_password_url
+      }
+    } catch {
+      window.location.href = createdTenant.set_password_url
+    }
+  }
+
+  const goToLogin = () => {
     if (createdTenant) {
-      // Navigate to login with the tenant code pre-filled
       navigate({
         to: '/login',
-        search: { tenant: createdTenant.tenant_code },
+        search: { tenant: createdTenant.tenant_code, redirect: undefined },
       })
     }
   }
@@ -64,58 +88,107 @@ function RegisterTenantPage() {
     return null
   }
 
-  // Show success screen with admin credentials
+  // C2 success: show set-password link; admin sets password via link, then logs in
   if (createdTenant) {
+    const setPasswordUrl = createdTenant.set_password_url ?? ''
+    const expiresAt = createdTenant.set_password_expires_at
+      ? new Date(createdTenant.set_password_expires_at).toLocaleString(undefined, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        })
+      : null
+
     return (
       <AuthPageLayout>
         <div className="w-full max-w-md py-12">
           <div className="bg-card/80 backdrop-blur-md border border-white/10 shadow-xl rounded-lg p-8">
-            {/* Logo */}
             <div className="flex justify-center mb-6">
               <img src="/logo.svg" alt="Timeline" className="w-16 h-16" />
             </div>
-
-            {/* Success Header */}
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-none bg-primary/10 flex items-center justify-center shrink-0">
                 <CheckCircle className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-foreground">Tenant Created</h1>
+                <h1 className="text-lg font-bold text-foreground">Tenant created</h1>
                 <p className="text-sm text-muted-foreground">{createdTenant.tenant_name}</p>
               </div>
             </div>
-
-            {/* Tenant Details */}
-            <div className="space-y-3 mb-6">
-              <div className="flex items-center justify-between py-2 border-b border-border">
-                <span className="text-sm text-muted-foreground">Tenant Code</span>
-                <code className="text-sm font-mono text-foreground">{createdTenant.tenant_code}</code>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b border-border">
-                <span className="text-sm text-muted-foreground">Admin Username</span>
-                <code className="text-sm font-mono text-foreground">{createdTenant.admin_username}</code>
-              </div>
-            </div>
-
-            <p className="text-sm text-muted-foreground mb-6">
-              Use the password you entered to sign in.
+            <p className="text-sm text-muted-foreground mb-4">
+              Open the link below to set your admin password, then log in.
             </p>
-
-            {/* Continue Button */}
-            <Button onClick={handleContinueToLogin} className="w-full">
-              Continue to Login
+            <dl className="space-y-0 mb-6">
+              <div className="flex items-baseline gap-4 py-3 border-b border-border">
+                <dt className="text-sm text-muted-foreground shrink-0 w-28">Tenant code</dt>
+                <dd className="text-sm font-mono text-foreground min-w-0">{createdTenant.tenant_code}</dd>
+              </div>
+              <div className="flex items-baseline gap-4 py-3 border-b border-border">
+                <dt className="text-sm text-muted-foreground shrink-0 w-28">Username</dt>
+                <dd className="text-sm font-mono text-foreground min-w-0">{createdTenant.admin_username}</dd>
+              </div>
+              <div className="flex items-baseline gap-4 py-3 border-b border-border">
+                <dt className="text-sm text-muted-foreground shrink-0 w-28">Email</dt>
+                <dd className="text-sm text-foreground min-w-0 break-all">{createdTenant.admin_email}</dd>
+              </div>
+              {expiresAt && (
+                <div className="flex items-baseline gap-4 py-3 border-b border-border">
+                  <dt className="text-sm text-muted-foreground shrink-0 w-28">Link expires</dt>
+                  <dd className="text-xs text-muted-foreground">{expiresAt}</dd>
+                </div>
+              )}
+            </dl>
+            {setPasswordUrl ? (
+              <>
+                <div className="mb-4">
+                  <span className="text-sm text-muted-foreground">Set-password link</span>
+                  <div className="mt-1 flex gap-2">
+                    <Input
+                      readOnly
+                      value={setPasswordUrl}
+                      className="font-mono text-xs flex-1 bg-muted/50"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleCopyLink}
+                      title={copied ? 'Copied!' : 'Copy link'}
+                      aria-label={copied ? 'Copied!' : 'Copy link'}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  onClick={goToSetPassword}
+                  className="w-full"
+                >
+                  <KeyRound className="w-4 h-4 mr-2" />
+                  Set your password
+                </Button>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground mb-4">
+                No set-password link was returned. Ensure the backend has <code className="text-xs bg-muted px-1 rounded">SET_PASSWORD_BASE_URL</code> configured.
+              </p>
+            )}
+            <p className="text-sm text-muted-foreground mt-6 mb-2">After you’ve set your password:</p>
+            <Button variant="secondary" onClick={goToLogin} className="w-full">
+              Go to login
             </Button>
-
-            {/* Bottom links */}
-            <div className="mt-6 flex flex-col items-center gap-3 text-center">
-              <Link
-                to="/"
-                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = '/'
+                }}
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                aria-label="Back to home"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to home
-              </Link>
+              </button>
             </div>
           </div>
         </div>
@@ -134,10 +207,10 @@ function RegisterTenantPage() {
 
           {/* Title */}
           <h1 className="text-2xl font-bold text-center mb-2 text-foreground">
-            Create Your Organization
+            Create tenant
           </h1>
           <p className="text-center text-muted-foreground mb-6">
-            Set up a new tenant for your team
+            Register your organisation. You’ll set the admin password via a link after creation.
           </p>
 
           {/* Error Message */}
@@ -154,7 +227,7 @@ function RegisterTenantPage() {
                 htmlFor="tenant-name"
                 className="block text-sm font-medium text-foreground mb-1.5"
               >
-                Organization Name
+                Tenant name
               </label>
               <Input
                 id="tenant-name"
@@ -162,10 +235,10 @@ function RegisterTenantPage() {
                 value={tenantName}
                 onChange={(e) => setTenantName(e.target.value)}
                 required
-                placeholder="Acme Corporation"
+                placeholder="Acme Corp"
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                Display name for your organization
+                Display name for your organisation
               </p>
             </div>
 
@@ -174,7 +247,7 @@ function RegisterTenantPage() {
                 htmlFor="tenant-code"
                 className="block text-sm font-medium text-foreground mb-1.5"
               >
-                Tenant Code
+                Tenant code
               </label>
               <Input
                 id="tenant-code"
@@ -185,55 +258,11 @@ function RegisterTenantPage() {
                 }
                 required
                 placeholder="acme-corp"
-                pattern="[a-z0-9-]+"
-                title="Lowercase letters, numbers, and hyphens only"
+                pattern="[a-z0-9\-]+"
+                title="3–15 characters: lowercase letters, numbers, and hyphens only"
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                Unique identifier for your organization (lowercase, no spaces)
-              </p>
-            </div>
-
-            <div>
-              <label
-                htmlFor="admin-password"
-                className="block text-sm font-medium text-foreground mb-1.5"
-              >
-                Admin password
-              </label>
-              <div className="relative">
-                <Input
-                  id="admin-password"
-                  type={showAdminPassword ? 'text' : 'password'}
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  required
-                  minLength={8}
-                  placeholder="••••••••"
-                  className="pr-10"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowAdminPassword(!showAdminPassword)}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 px-2 text-muted-foreground hover:text-foreground"
-                  aria-label={showAdminPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showAdminPassword ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                      <line x1="1" y1="1" x2="23" y2="23" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                  )}
-                </Button>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                At least 8 characters. You will use this to sign in as the admin user.
+                e.g. acme-corp · 3–15 characters
               </p>
             </div>
 
@@ -243,7 +272,7 @@ function RegisterTenantPage() {
               isLoading={authState.isLoading}
               className="w-full"
             >
-              {authState.isLoading ? 'Creating organization...' : 'Create Organization'}
+              {authState.isLoading ? 'Creating tenant...' : 'Create tenant'}
             </Button>
           </form>
 
@@ -253,19 +282,23 @@ function RegisterTenantPage() {
               Already have an account?{' '}
               <Link
                 to="/login"
-                search={{ tenant: '' }}
+                search={{ tenant: '', redirect: '/' }}
                 className="text-foreground font-medium hover:underline"
               >
                 Sign in
               </Link>
             </p>
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = '/'
+              }}
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              aria-label="Back to home"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to home
-            </Link>
+            </button>
           </div>
         </div>
       </div>

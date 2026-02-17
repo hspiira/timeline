@@ -126,12 +126,13 @@ function ComboboxContent({
   )
 }
 
+/** List is scrollable with a fixed max height (15rem) so it never overgrows with many items. */
 function ComboboxList({ className, ...props }: ComboboxPrimitive.List.Props) {
   return (
     <ComboboxPrimitive.List
       data-slot="combobox-list"
       className={cn(
-        "max-h-[min(calc(--spacing(96)---spacing(9)),calc(var(--available-height)---spacing(9)))] scroll-py-1 overflow-y-auto p-1 data-empty:p-0",
+        "max-h-60 overflow-y-auto scroll-py-1 p-1 data-empty:p-0",
         className
       )}
       {...props}
@@ -290,6 +291,82 @@ function useComboboxAnchor() {
   return React.useRef<HTMLDivElement | null>(null)
 }
 
+export type SingleSelectOption = { value: string; label: string }
+
+/** Build options from a list of strings (value and label are the same). */
+function optionsFromStrings(
+  strings: string[],
+  emptyOption?: { value: string; label: string }
+): SingleSelectOption[] {
+  const list = emptyOption ? [emptyOption, ...strings.map((s) => ({ value: s, label: s }))] : strings.map((s) => ({ value: s, label: s }))
+  return list
+}
+
+interface SingleSelectComboboxProps {
+  value: string
+  onValueChange: (value: string) => void
+  options: SingleSelectOption[]
+  placeholder?: string
+  disabled?: boolean
+  className?: string
+  emptyMessage?: string
+  error?: string
+  /** When true, allow clearing the selection (show clear button when value is set). */
+  clearable?: boolean
+}
+
+function SingleSelectCombobox({
+  value,
+  onValueChange,
+  options,
+  placeholder = 'Select…',
+  disabled = false,
+  className,
+  emptyMessage = 'No option found.',
+  error,
+  clearable = false,
+}: SingleSelectComboboxProps) {
+  const items = React.useMemo(
+    () => options.map((o) => o.value),
+    [options]
+  )
+
+  return (
+    <div className="w-full">
+      <Combobox
+        value={value}
+        onValueChange={(v) => onValueChange(v ?? '')}
+        items={items}
+      >
+        <ComboboxInput
+          placeholder={placeholder}
+          showTrigger
+          showClear={clearable && !!value}
+          disabled={disabled}
+          aria-label={placeholder}
+          className={cn('rounded-none border-input/80', className)}
+        />
+        <ComboboxContent className="rounded-none">
+          <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
+          <ComboboxList>
+            {(itemValue: string) => {
+              const opt = options.find((o) => o.value === itemValue)
+              return (
+                <ComboboxItem key={itemValue} value={itemValue}>
+                  {opt?.label ?? itemValue}
+                </ComboboxItem>
+              )
+            }}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
+      {error && (
+        <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>
+      )}
+    </div>
+  )
+}
+
 export {
   Combobox,
   ComboboxInput,
@@ -307,4 +384,6 @@ export {
   ComboboxTrigger,
   ComboboxValue,
   useComboboxAnchor,
+  SingleSelectCombobox,
+  optionsFromStrings,
 }

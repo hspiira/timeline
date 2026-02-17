@@ -6,7 +6,7 @@ import { FormError, FormField, FormInput, FormTextarea } from '@/components/ui/F
 import { FormModalActions } from '@/components/ui/FormModalActions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
 import { validateAlphanumericUnderscore } from '@/lib/validation'
 
 interface SchemaField {
@@ -544,16 +544,13 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
             </FormField>
 
           <FormField label="Type">
-            <Select
+            <SingleSelectCombobox
               value={editingField.type}
-              onChange={(e) => setEditingField({ ...editingField, type: e.target.value })}
-            >
-              {FIELD_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </Select>
+              onValueChange={(v) => setEditingField({ ...editingField, type: v })}
+              options={FIELD_TYPES.map((t) => ({ value: t.value, label: t.label }))}
+              placeholder="Type"
+              className=""
+            />
           </FormField>
 
             <FormField label="Description (optional)">
@@ -669,22 +666,21 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
               <label className="block text-sm font-medium text-foreground/90 mb-2">
                 Format (optional)
               </label>
-              <Select
+              <SingleSelectCombobox
                 value={editingField.format || ''}
-                onChange={(e) =>
+                onValueChange={(v) =>
                   setEditingField({
                     ...editingField,
-                    format: e.target.value || undefined,
+                    format: v || undefined,
                   })
                 }
-              >
-                <option value="">None</option>
-                {STRING_FORMATS.map((f) => (
-                  <option key={f.value} value={f.value}>
-                    {f.label}
-                  </option>
-                ))}
-              </Select>
+                options={[
+                  { value: '', label: 'None' },
+                  ...STRING_FORMATS.map((f) => ({ value: f.value, label: f.label })),
+                ]}
+                placeholder="None"
+                className=""
+              />
             </div>
           )}
 

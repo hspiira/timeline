@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { timelineApi } from '@/lib/api-client'
 import type { EventResponse, EventListResponse } from '@/lib/types'
 
-const EVENTS_PAGE_SIZE = 20
+export const EVENTS_PAGE_SIZE = 20
 
 const getApiErrorMessage = (err: unknown): string =>
   (err as { message?: string })?.message ?? 'Unable to connect to the server'
@@ -11,6 +11,10 @@ export interface UseEventsListOptions {
   /** When false, no fetch runs (e.g. user not authenticated). */
   enabled: boolean
   filterEventType: string
+  /** When true, fetch only the given page (no infinite scroll). Parent controls page. */
+  paged?: boolean
+  /** Current page (0-based). Used when paged is true. */
+  page?: number
 }
 
 export interface UseEventsListResult {
@@ -31,7 +35,7 @@ export interface UseEventsListResult {
  * Used by the events page; keeps data logic out of the UI component (SRP).
  */
 export function useEventsList(options: UseEventsListOptions): UseEventsListResult {
-  const { enabled, filterEventType } = options
+  const { enabled, filterEventType, paged = false, page: pagedPage = 0 } = options
   const [events, setEvents] = useState<EventResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -45,10 +49,14 @@ export function useEventsList(options: UseEventsListOptions): UseEventsListResul
   const loadingMoreRef = useRef(false)
   const hasMoreRef = useRef(true)
 
+  const effectivePage = paged ? pagedPage : page
+  const isAppend = !paged && page > 0
+
   const loadMore = useCallback(() => {
+    if (paged) return
     if (loadingMoreRef.current || !hasMoreRef.current) return
     setPage((p) => p + 1)
-  }, [])
+  }, [paged])
 
   const refetch = useCallback(() => {
     setPage(0)
@@ -57,13 +65,13 @@ export function useEventsList(options: UseEventsListOptions): UseEventsListResul
   }, [])
 
   useEffect(() => {
+    if (paged) return
     setPage(0)
     setHasMore(true)
-  }, [filterEventType])
+  }, [filterEventType, paged])
 
   useEffect(() => {
     if (!enabled) return
-    const isAppend = page > 0
     if (isAppend) {
       loadingMoreRef.current = true
       setLoadingMore(true)
@@ -76,21 +84,20 @@ export function useEventsList(options: UseEventsListOptions): UseEventsListResul
     const run = async () => {
       try {
         const listParams = {
-          skip: page * EVENTS_PAGE_SIZE,
+          skip: effectivePage * EVENTS_PAGE_SIZE,
           limit: EVENTS_PAGE_SIZE,
-          ...(filterEventType ? { event_type: filterEventType } : {}),
         }
         const promises: [
           Promise<{ data?: EventListResponse[]; error?: unknown }>,
           Promise<{ data?: { total?: number } }>?,
         ] = [timelineApi.events.listAll(listParams)]
-        if (!isAppend) {
+        if (!isAppend || paged) {
           promises.push(timelineApi.events.count())
         }
         const results = await Promise.all(promises)
         const listData = (results[0] as { data?: EventListResponse[]; error?: unknown }).data
         const apiError = (results[0] as { error?: unknown }).error
-        const countRes = !isAppend ? results[1] : null
+        const countRes = !isAppend || paged ? results[1] : null
 
         if (cancelled) return
         if (apiError) {
@@ -121,7 +128,11 @@ export function useEventsList(options: UseEventsListOptions): UseEventsListResul
           const total = filterEventType ? null : (countRes?.data?.total ?? null)
           if (total != null) setTotalCount(total)
           setHasMore(
-            total != null ? validEvents.length < total : validEvents.length >= EVENTS_PAGE_SIZE
+            paged
+              ? false
+              : total != null
+                ? validEvents.length < total
+                : validEvents.length >= EVENTS_PAGE_SIZE
           )
         }
 
@@ -180,7 +191,7 @@ export function useEventsList(options: UseEventsListOptions): UseEventsListResul
     return () => {
       cancelled = true
     }
-  }, [enabled, filterEventType, page, refetchTrigger])
+  }, [enabled, filterEventType, effectivePage, refetchTrigger, isAppend, paged])
 
   hasMoreRef.current = hasMore
   loadingMoreRef.current = loadingMore

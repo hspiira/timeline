@@ -23,7 +23,7 @@ import { CreateSubjectModal } from '@/components/subjects/CreateSubjectModal'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
 import { LoadingIcon } from '@/components/ui/icons'
 import type { SubjectWithMetadata } from '@/hooks/useSubjects'
 
@@ -306,18 +306,20 @@ function SubjectsPage() {
                 Filter by type:
               </label>
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Select
+                <SingleSelectCombobox
                   value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="flex-1 sm:flex-none"
-                >
-                  <option value="">All types</option>
-                  {filterTypeOptions.map(({ type_name, display_name }) => (
-                    <option key={type_name} value={type_name}>
-                      {display_name}
-                    </option>
-                  ))}
-                </Select>
+                  onValueChange={setFilterType}
+                  options={[
+                    { value: '', label: 'All types' },
+                    ...filterTypeOptions.map(({ type_name, display_name }) => ({
+                      value: type_name,
+                      label: display_name,
+                    })),
+                  ]}
+                  placeholder="All types"
+                  clearable
+                  className="flex-1 sm:flex-none min-w-0"
+                />
                 {filterType && (
                   <Button
                     onClick={() => setFilterType('')}

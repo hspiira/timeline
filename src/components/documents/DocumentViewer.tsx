@@ -67,22 +67,23 @@ export function DocumentViewer({ documentId, filename, fileType, onClose }: Docu
             return
           }
           // Inline content (legacy or different endpoint)
-          if (data instanceof Blob) {
-            setContent(data)
+          const value = data as unknown
+          if (value instanceof Blob) {
+            setContent(value)
             setDownloadUrl(null)
             setState('ready')
-          } else if (data instanceof ArrayBuffer) {
-            const blob = new Blob([data], { type: fileType || 'application/octet-stream' })
+          } else if (value instanceof ArrayBuffer) {
+            const blob = new Blob([value], { type: fileType || 'application/octet-stream' })
             setContent(blob)
             setDownloadUrl(null)
             setState('ready')
-          } else if (typeof data === 'string') {
-            const blob = new Blob([data], { type: fileType || 'application/octet-stream' })
+          } else if (typeof value === 'string') {
+            const blob = new Blob([value], { type: fileType || 'application/octet-stream' })
             setContent(blob)
             setDownloadUrl(null)
             setState('ready')
           } else {
-            const blob = new Blob([JSON.stringify(data)], { type: 'application/json' })
+            const blob = new Blob([JSON.stringify(value)], { type: 'application/json' })
             setContent(blob)
             setDownloadUrl(null)
             setState('ready')

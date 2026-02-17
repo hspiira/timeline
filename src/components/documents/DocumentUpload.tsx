@@ -3,7 +3,7 @@ import { Upload, X, CheckCircle } from 'lucide-react'
 import { timelineApi } from '@/lib/api-client'
 import { getApiErrorMessage } from '@/lib/api-utils'
 import { useToast } from '@/hooks/useToast'
-import { Select } from '@/components/ui/select'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
 import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
 import { Button } from '@/components/ui/button'
 import { JsonSchemaForm } from '@/components/shared/JsonSchemaForm'
@@ -291,27 +291,27 @@ export function DocumentUpload({
             Loading categories…
           </div>
         ) : useCategories ? (
-          <Select
+          <SingleSelectCombobox
             value={selectedCategoryId}
-            onChange={(e) => setSelectedCategoryId(e.target.value)}
-          >
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.display_name || c.category_name}
-              </option>
-            ))}
-          </Select>
+            onValueChange={setSelectedCategoryId}
+            options={categories.map((c) => ({
+              value: c.id,
+              label: c.display_name || c.category_name,
+            }))}
+            placeholder="Document type"
+            className=""
+          />
         ) : (
-          <Select
+          <SingleSelectCombobox
             value={documentType}
-            onChange={(e) => setDocumentType(e.target.value)}
-          >
-            {FALLBACK_DOCUMENT_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t.charAt(0).toUpperCase() + t.slice(1)}
-              </option>
-            ))}
-          </Select>
+            onValueChange={setDocumentType}
+            options={FALLBACK_DOCUMENT_TYPES.map((t) => ({
+              value: t,
+              label: t.charAt(0).toUpperCase() + t.slice(1),
+            }))}
+            placeholder="Document type"
+            className=""
+          />
         )}
         {useCategories && categoryFull?.default_retention_days != null && (
           <p className="text-xs text-muted-foreground mt-1">

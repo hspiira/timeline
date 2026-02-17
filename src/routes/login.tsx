@@ -8,16 +8,24 @@ import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
+/** Only allow relative app paths to avoid open redirects */
+function safeRedirectPath(raw: unknown): string | undefined {
+  const s = typeof raw === 'string' ? raw.trim() : ''
+  if (!s || !s.startsWith('/') || s.startsWith('//')) return undefined
+  return s
+}
+
 export const Route = createFileRoute('/login')({
   component: LoginPage,
   validateSearch: (search: Record<string, unknown>) => ({
     tenant: (search.tenant as string) || '',
+    redirect: safeRedirectPath(search.redirect),
   }),
 })
 
 function LoginPage() {
   const navigate = useNavigate()
-  const { tenant } = Route.useSearch()
+  const { tenant, redirect } = Route.useSearch()
   const authState = useStore(authStore)
   const [tenantCode, setTenantCode] = useState(tenant)
   const [username, setUsername] = useState('')
@@ -26,8 +34,12 @@ function LoginPage() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
-  // Redirect if already logged in
-  const isAuthenticated = useRedirectIfAuthenticated()
+  // Path-only for navigate() to avoid search schema mismatches; pathname is enough to return to the right page
+  const redirectTo = redirect ?? '/'
+  const redirectPath = redirectTo.includes('?') ? redirectTo.slice(0, redirectTo.indexOf('?')) : redirectTo
+
+  // Redirect if already logged in (to intended page or dashboard)
+  const isAuthenticated = useRedirectIfAuthenticated(redirectPath)
 
   // Only reflect loading state after mount so SSR and first client render match (avoids hydration mismatch).
   const showLoading = mounted && authState.isLoading
@@ -38,7 +50,7 @@ function LoginPage() {
 
     try {
       await authActions.login(username, password, tenantCode)
-      navigate({ to: '/' })
+      navigate({ to: redirectPath })
     } catch (error) {
       console.error('Login failed:', error)
     }
@@ -189,13 +201,17 @@ function LoginPage() {
                 Register your tenant
               </Link>
             </p>
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = '/'
+              }}
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              aria-label="Back to home"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to home
-            </Link>
+            </button>
           </div>
         </div>
       </div>

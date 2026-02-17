@@ -7,7 +7,7 @@ import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { DataTable } from '@/components/ui/DataTable'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/Modal'
-import { FormField, FormInput, FormTextarea } from '@/components/ui/FormField'
+import { FormField, FormInput, FormTextarea, FormError } from '@/components/ui/FormField'
 import { FormModalActions } from '@/components/ui/FormModalActions'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { ErrorModal } from '@/components/ui/ErrorModal'
@@ -227,55 +227,55 @@ function EventTransitionRulesPage() {
             editing ? 'Edit transition rule' : 'Create transition rule'
           }
           maxWidth="max-w-lg"
-          footer={
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                handleSubmit()
-              }}
-            >
-              {formError && (
-                <p className="text-sm text-destructive mb-2">{formError}</p>
-              )}
-              <FormModalActions
-                onCancel={closeModal}
-                submitLabel={editing ? 'Save' : 'Create'}
-                loadingLabel={editing ? 'Saving...' : 'Creating...'}
-                loading={saving}
-              />
-            </form>
-          }
         >
-          <div className="space-y-4">
-            <FormField label="Event type" required>
-              <FormInput
-                value={event_type}
-                onChange={(e) => setEventType(e.target.value)}
-                placeholder="e.g. payment_received"
-                disabled={!!editing}
-              />
-            </FormField>
-            <FormField
-              label="Required prior event types"
-              hint="Comma- or newline-separated list of event types that must exist before this one"
-              required
-            >
-              <FormTextarea
-                value={requiredPriorInput}
-                onChange={(e) => setRequiredPriorInput(e.target.value)}
-                placeholder="e.g. order_created, quote_sent"
-                rows={3}
-                className="font-mono text-sm"
-              />
-            </FormField>
-            <FormField label="Description">
-              <FormInput
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional"
-              />
-            </FormField>
-          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleSubmit()
+            }}
+          >
+            <div className="space-y-4">
+              {formError && <FormError message={formError} />}
+
+              <FormField label="Event type" required hint="The event type this rule applies to (e.g. payment_received).">
+                <FormInput
+                  value={event_type}
+                  onChange={(e) => setEventType(e.target.value)}
+                  placeholder="e.g. payment_received"
+                  disabled={!!editing}
+                />
+              </FormField>
+
+              <FormField
+                label="Required prior event types"
+                hint="Comma- or newline-separated list of event types that must exist before this one."
+                required
+              >
+                <FormTextarea
+                  value={requiredPriorInput}
+                  onChange={(e) => setRequiredPriorInput(e.target.value)}
+                  placeholder="e.g. order_created, quote_sent"
+                  rows={3}
+                  className="font-mono text-sm"
+                />
+              </FormField>
+
+              <FormField label="Description" hint="Optional note for this rule.">
+                <FormInput
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Optional"
+                />
+              </FormField>
+            </div>
+
+            <FormModalActions
+              onCancel={closeModal}
+              submitLabel={editing ? 'Save' : 'Create'}
+              loadingLabel={editing ? 'Saving...' : 'Creating...'}
+              loading={saving}
+            />
+          </form>
         </Modal>
       )}
 

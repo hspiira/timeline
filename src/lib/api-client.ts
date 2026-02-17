@@ -25,6 +25,11 @@ export function setAuthToken(token: string | null) {
 }
 
 export function getAuthToken(): string | null {
+  // In the browser, always read from localStorage so refresh/navigation sees the token
+  // even if this module was first evaluated in a context where it wasn't set (e.g. SSR).
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('auth_token')
+  }
   return authToken
 }
 
@@ -53,15 +58,14 @@ client.use({
     if (currentTenantId) {
       request.headers.set('X-Tenant-ID', currentTenantId)
     }
-    // Tenant creation: backend requires X-Create-Tenant-Secret when CREATE_TENANT_SECRET is set (dev/demo only)
-    const createTenantSecret = import.meta.env.VITE_CREATE_TENANT_SECRET
-    if (
-      typeof createTenantSecret === 'string' &&
-      createTenantSecret &&
-      request.method === 'POST' &&
-      request.url.includes('/api/v1/tenants')
-    ) {
-      request.headers.set('X-Create-Tenant-Secret', createTenantSecret)
+    // Tenant creation: backend returns 401 without matching X-Create-Tenant-Secret (CREATE_TENANT_SECRET in backend .env).
+    // Set VITE_CREATE_TENANT_SECRET in frontend .env to the same value; trim to avoid newline/space mismatches.
+    if (request.method === 'POST' && request.url.includes('/api/v1/tenants')) {
+      const raw = import.meta.env.VITE_CREATE_TENANT_SECRET
+      const secret = typeof raw === 'string' ? raw.trim() : ''
+      if (secret) {
+        request.headers.set('X-Create-Tenant-Secret', secret)
+      }
     }
     if (request.body && !(request.body instanceof FormData)) {
       request.headers.set('Content-Type', 'application/json')
@@ -103,6 +107,8 @@ export const timelineApi = {
     },
     register: (data: components['schemas']['RegisterRequest']) =>
       client.POST('/api/v1/auth/register', { body: data }),
+    setInitialPassword: (data: components['schemas']['SetInitialPasswordRequest']) =>
+      client.POST('/api/v1/auth/set-initial-password', { body: data }),
   },
 
   users: {
@@ -311,14 +317,11 @@ export const timelineApi = {
   },
 
   events: {
-    listAll: (params?: { event_type?: string; skip?: number; limit?: number }) =>
+    listAll: (params?: { skip?: number; limit?: number }) =>
       client.GET('/api/v1/events', {
         params: { query: params },
       }),
-    list: (
-      subjectId: string,
-      params?: { event_type?: string; skip?: number; limit?: number }
-    ) =>
+    list: (subjectId: string, params?: { skip?: number; limit?: number }) =>
       client.GET('/api/v1/events', {
         params: {
           query: { subject_id: subjectId, ...params },

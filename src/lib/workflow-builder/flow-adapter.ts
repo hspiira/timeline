@@ -28,11 +28,12 @@ export function workflowToFlow(workflow: Workflow): {
   }))
   const edges: Edge<WorkflowEdgeData>[] = workflow.edges.map((e) => {
     const isConditionEdge = e.label === 'true' || e.label === 'false'
+    const conditionHandle = isConditionEdge ? `bottom-${e.label}` : undefined
     return {
       id: e.id,
       source: e.from,
       target: e.to,
-      sourceHandle: isConditionEdge ? e.label : 'bottom',
+      sourceHandle: conditionHandle ?? 'bottom',
       targetHandle: 'top',
       type: 'smoothstep',
       markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
@@ -68,7 +69,9 @@ export function flowToWorkflow(
     }
   })
   const workflowEdges: WorkflowEdge[] = edges.map((e) => {
-    const label = e.data?.label ?? (['true', 'false'].includes(String(e.sourceHandle)) ? (e.sourceHandle as 'true' | 'false') : undefined)
+    const sh = String(e.sourceHandle ?? '')
+    const labelFromHandle = sh === 'true' || sh.endsWith('-true') ? 'true' : sh === 'false' || sh.endsWith('-false') ? 'false' : undefined
+    const label = e.data?.label ?? labelFromHandle
     return { id: e.id, from: e.source, to: e.target, ...(label != null && { label }) }
   })
   return {

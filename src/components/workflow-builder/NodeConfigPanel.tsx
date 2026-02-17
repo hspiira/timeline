@@ -1,13 +1,8 @@
 import type { WorkflowNode } from '@/lib/workflow-builder/types'
 import { nodeRegistry } from '@/lib/workflow-builder/node-registry'
+import { WORKFLOW_ACTION_TYPE_OPTIONS } from '@/lib/workflow-builder/action-types'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
-
-const ACTION_TYPE_OPTIONS = [
-  { value: 'create_event', label: 'Create Event' },
-  { value: 'send_email', label: 'Send Email' },
-  { value: 'update_subject', label: 'Update Subject' },
-] as const
+import { SingleSelectCombobox, optionsFromStrings } from '@/components/ui/combobox'
 
 export interface NodeConfigPanelProps {
   node: WorkflowNode
@@ -23,18 +18,13 @@ export function NodeConfigPanel({ node, eventTypes, onUpdate }: NodeConfigPanelP
     return (
       <div className="space-y-2">
         <label className="block text-xs font-medium text-muted-foreground">Trigger event type</label>
-        <Select
+        <SingleSelectCombobox
           value={(node.configuration?.eventType as string) ?? ''}
-          onChange={(e) => onUpdate({ eventType: e.target.value })}
+          onValueChange={(v) => onUpdate({ eventType: v })}
+          options={optionsFromStrings(eventTypes, { value: '', label: 'When event type…' })}
+          placeholder="When event type…"
           className="w-full"
-        >
-          <option value="">When event type…</option>
-          {eventTypes.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </Select>
+        />
       </div>
     )
   }
@@ -61,17 +51,13 @@ export function NodeConfigPanel({ node, eventTypes, onUpdate }: NodeConfigPanelP
       <div className="space-y-3">
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">Action type</label>
-          <Select
+          <SingleSelectCombobox
             value={actionType}
-            onChange={(e) => onUpdate({ actionType: e.target.value })}
+            onValueChange={(v) => onUpdate({ actionType: v })}
+            options={WORKFLOW_ACTION_TYPE_OPTIONS}
+            placeholder="Action type"
             className="w-full"
-          >
-            {ACTION_TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </Select>
+          />
         </div>
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">Params (JSON)</label>

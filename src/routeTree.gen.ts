@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SetPasswordRouteImport } from './routes/set-password'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
@@ -44,6 +45,11 @@ import { Route as SubjectsSubjectIdEventsEventIdRouteImport } from './routes/sub
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetPasswordRoute = SetPasswordRouteImport.update({
+  id: '/set-password',
+  path: '/set-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -209,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/set-password': typeof SetPasswordRoute
   '/settings': typeof SettingsRouteWithChildren
   '/email-accounts/$accountId': typeof EmailAccountsAccountIdRoute
   '/email-accounts/create': typeof EmailAccountsCreateRoute
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/set-password': typeof SetPasswordRoute
   '/settings': typeof SettingsRouteWithChildren
   '/email-accounts/$accountId': typeof EmailAccountsAccountIdRoute
   '/email-accounts/create': typeof EmailAccountsCreateRoute
@@ -276,6 +284,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/set-password': typeof SetPasswordRoute
   '/settings': typeof SettingsRouteWithChildren
   '/email-accounts/$accountId': typeof EmailAccountsAccountIdRoute
   '/email-accounts/create': typeof EmailAccountsCreateRoute
@@ -311,6 +320,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/set-password'
     | '/settings'
     | '/email-accounts/$accountId'
     | '/email-accounts/create'
@@ -344,6 +354,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/set-password'
     | '/settings'
     | '/email-accounts/$accountId'
     | '/email-accounts/create'
@@ -377,6 +388,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/set-password'
     | '/settings'
     | '/email-accounts/$accountId'
     | '/email-accounts/create'
@@ -411,6 +423,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  SetPasswordRoute: typeof SetPasswordRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   EmailAccountsAccountIdRoute: typeof EmailAccountsAccountIdRoute
   EmailAccountsCreateRoute: typeof EmailAccountsCreateRoute
@@ -436,6 +449,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/set-password': {
+      id: '/set-password'
+      path: '/set-password'
+      fullPath: '/set-password'
+      preLoaderRoute: typeof SetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -690,6 +710,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  SetPasswordRoute: SetPasswordRoute,
   SettingsRoute: SettingsRouteWithChildren,
   EmailAccountsAccountIdRoute: EmailAccountsAccountIdRoute,
   EmailAccountsCreateRoute: EmailAccountsCreateRoute,

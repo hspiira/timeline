@@ -16,7 +16,7 @@ type DashboardStatsResponse = components['schemas']['DashboardStatsResponse']
 
 export const Route = createFileRoute('/')({
   beforeLoad: () => {
-    requireAuthBeforeLoad()
+    requireAuthBeforeLoad('/')
   },
   component: HomePage,
 })

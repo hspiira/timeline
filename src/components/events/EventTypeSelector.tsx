@@ -1,4 +1,4 @@
-import { Select } from '@/components/ui/select'
+import { SingleSelectCombobox, optionsFromStrings } from '@/components/ui/combobox'
 import { useEventTypes } from '@/hooks/useEventTypes'
 
 type Props = {
@@ -7,29 +7,26 @@ type Props = {
   className?: string
 }
 
-export default function EventTypeSelector({ value, onChange, className = '' }: Props) {
+export default function EventTypeSelector({ value = '', onChange, className = '' }: Props) {
   const { types, loading, error } = useEventTypes()
+
+  const options = loading
+    ? [{ value: '', label: 'Loading...' }]
+    : types.length === 0
+      ? [{ value: '', label: 'No event types — add schemas in Settings' }]
+      : optionsFromStrings(types, { value: '', label: 'Select event type' })
 
   return (
     <div className={`w-full min-w-0 ${className}`}>
-      <Select
+      <SingleSelectCombobox
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onValueChange={onChange}
+        options={options}
+        placeholder="Select event type"
         error={error || undefined}
         disabled={loading}
         className="min-h-[2.25rem]"
-      >
-        <option value="">Select event type</option>
-        {loading ? (
-          <option value="">Loading...</option>
-        ) : types.length === 0 ? (
-          <option value="">No event types — add schemas in Settings</option>
-        ) : (
-          types.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))
-        )}
-      </Select>
+      />
     </div>
   )
 }

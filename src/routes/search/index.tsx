@@ -7,7 +7,7 @@ import { Search as SearchIcon, FileText, Calendar, Users, Loader2 } from 'lucide
 import { timelineApi } from '@/lib/api-client'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/search/')({
@@ -39,6 +39,7 @@ function ResultLink({ item }: { item: SearchResultItem }) {
       <Link
         to="/subjects/$subjectId"
         params={{ subjectId: item.id }}
+        search={{ tab: 'events' }}
         className="text-primary hover:underline font-medium"
       >
         {item.display_title}
@@ -61,6 +62,7 @@ function ResultLink({ item }: { item: SearchResultItem }) {
       <Link
         to="/subjects/$subjectId"
         params={{ subjectId: item.subject_id }}
+        search={{ tab: 'events' }}
         className="text-primary hover:underline font-medium"
       >
         {item.display_title}
@@ -130,17 +132,13 @@ function SearchPage() {
             aria-label="Search query"
           />
         </div>
-        <Select
+        <SingleSelectCombobox
           value={scope}
-          onChange={(e) => setScope(e.target.value)}
+          onValueChange={setScope}
+          options={SCOPE_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
+          placeholder="Scope"
           className="w-full sm:w-[140px]"
-        >
-          {SCOPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </Select>
+        />
         <Button onClick={runSearch} disabled={!query.trim()}>
           Search
         </Button>

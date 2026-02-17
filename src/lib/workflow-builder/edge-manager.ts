@@ -2,7 +2,7 @@
  * Edge Manager – add/remove edges, validate connections, optional cycle detection.
  */
 
-import type { Workflow, WorkflowEdge, WorkflowNode } from './types'
+import type { Workflow } from './types'
 import { nodeRegistry } from './node-registry'
 
 export interface ConnectionValidation {

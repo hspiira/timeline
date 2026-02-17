@@ -5,11 +5,12 @@ import { useFormSubmit } from '@/hooks/useFormSubmit'
 import { Modal } from '../ui/Modal'
 import { FormField, FormInput, FormTextarea } from '../ui/FormField'
 import { Input } from '../ui/input'
-import { Select } from '../ui/select'
+import { SingleSelectCombobox } from '../ui/combobox'
 import { Button } from '../ui/button'
 import { FormModalActions } from '../ui/FormModalActions'
 import { ErrorAlert } from '../ui/ErrorAlert'
 import { useEventTypes } from '@/hooks/useEventTypes'
+import { WORKFLOW_ACTION_TYPE_OPTIONS } from '@/lib/workflow-builder/action-types'
 
 type WorkflowCreate = components['schemas']['WorkflowCreateRequest']
 
@@ -162,26 +163,24 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
               error={state.fieldErrors.triggerEventType}
               hint="This workflow will be triggered when an event of this type is created"
             >
-              <Select
+              <SingleSelectCombobox
                 value={state.triggerEventType}
-                onChange={(e) =>
+                onValueChange={(v) =>
                   setState((prev) => ({
                     ...prev,
-                    triggerEventType: e.target.value,
+                    triggerEventType: v,
                     fieldErrors: { ...prev.fieldErrors, triggerEventType: '' },
                   }))
                 }
+                options={[
+                  { value: '', label: 'Select event type...' },
+                  ...eventTypes.map((type) => ({ value: type, label: type })),
+                ]}
+                placeholder="Select event type..."
                 disabled={loading || loadingEventTypes}
                 error={state.fieldErrors.triggerEventType}
                 className="w-full"
-              >
-                <option value="">Select event type...</option>
-                {eventTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </Select>
+              />
             </FormField>
           </div>
 
@@ -228,18 +227,14 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
                       </button>
                     </div>
 
-                    <Select
+                    <SingleSelectCombobox
                       value={action.action_type}
-                      onChange={(e) =>
-                        updateAction(action.id, { action_type: e.target.value })
-                      }
+                      onValueChange={(v) => updateAction(action.id, { action_type: v })}
+                      options={WORKFLOW_ACTION_TYPE_OPTIONS}
+                      placeholder="Action type"
                       disabled={loading}
                       className="text-sm"
-                    >
-                      <option value="create_event">Create Event</option>
-                      <option value="send_email">Send Email</option>
-                      <option value="update_subject">Update Subject</option>
-                    </Select>
+                    />
 
                     <Input
                       type="text"

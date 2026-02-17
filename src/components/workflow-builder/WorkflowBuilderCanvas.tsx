@@ -99,8 +99,13 @@ function WorkflowBuilderCanvasInner({
     (connection: Connection) => {
       const fromNode = nodes.find((n) => n.id === connection.source)
       const desc = fromNode ? nodeRegistry.getOptional(fromNode.type as NodeType) : undefined
-      const label = desc?.isCondition
-        ? (connection.sourceHandle as 'true' | 'false') ?? undefined
+      const sh = String(connection.sourceHandle ?? '')
+      const label: 'true' | 'false' | undefined = desc?.isCondition
+        ? sh === 'true' || sh.endsWith('-true')
+          ? 'true'
+          : sh === 'false' || sh.endsWith('-false')
+            ? 'false'
+            : undefined
         : undefined
       const nextWorkflow = flowToWorkflow(workflowId, workflowName, nodes, edges)
       const validation = validateConnection(
@@ -121,7 +126,6 @@ function WorkflowBuilderCanvasInner({
             ...connection,
             id: generateEdgeId(),
             ...(label != null && {
-              sourceHandle: label,
               data: { label },
               label: displayLabel,
             }),

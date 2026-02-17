@@ -46,6 +46,8 @@ export function WorkflowNodeShell({
 }: WorkflowNodeShellProps) {
   const connection = useConnection()
   const isConnecting = connection?.inProgress === true
+  const showTargetHandles = isConnecting || selected
+  const targetHide = !showTargetHandles ? '!opacity-0 pointer-events-none' : ''
 
   return (
     <div
@@ -66,30 +68,30 @@ export function WorkflowNodeShell({
         <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed">{description}</p>
       )}
 
-      {/* Target handles on all four sides — explicit ids so edges can resolve; always in DOM */}
+      {/* Target handles on all four sides — only visible when connecting or node selected */}
       <Handle
         type="target"
         position={Position.Top}
         id="top"
-        className={`${HANDLE_TARGET_CLASS} ${!isConnecting ? '!opacity-0 pointer-events-none' : ''}`}
+        className={`${HANDLE_TARGET_CLASS} ${targetHide}`}
       />
       <Handle
         type="target"
         position={Position.Right}
         id="right"
-        className={`${HANDLE_TARGET_CLASS} ${!isConnecting ? '!opacity-0 pointer-events-none' : ''}`}
+        className={`${HANDLE_TARGET_CLASS} ${targetHide}`}
       />
       <Handle
         type="target"
         position={Position.Bottom}
         id="bottom"
-        className={`${HANDLE_TARGET_CLASS} ${!isConnecting ? '!opacity-0 pointer-events-none' : ''}`}
+        className={`${HANDLE_TARGET_CLASS} ${targetHide}`}
       />
       <Handle
         type="target"
         position={Position.Left}
         id="left"
-        className={`${HANDLE_TARGET_CLASS} ${!isConnecting ? '!opacity-0 pointer-events-none' : ''}`}
+        className={`${HANDLE_TARGET_CLASS} ${targetHide}`}
       />
 
       {/* Source handles — provided by each node (all four sides where applicable) */}

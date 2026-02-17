@@ -8,7 +8,7 @@ import { ClipboardList, ChevronLeft, ChevronRight, Loader2, AlertCircle } from '
 import { DataTable } from '@/components/ui/DataTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/settings/audit-log/')({
@@ -225,18 +225,16 @@ function AuditLogPage() {
       <div className="flex flex-wrap items-end gap-3 p-4 rounded-lg border border-border bg-muted/30">
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Resource type</label>
-          <Select
+          <SingleSelectCombobox
             value={resourceType || 'all'}
-            onChange={(e) => setResourceType(e.target.value === 'all' ? '' : e.target.value)}
+            onValueChange={(v) => setResourceType(v === 'all' ? '' : v)}
+            options={[
+              { value: 'all', label: 'All' },
+              ...RESOURCE_TYPES.filter(Boolean).map((t) => ({ value: t, label: t })),
+            ]}
+            placeholder="Resource type"
             className="w-[140px]"
-          >
-            <option value="all">All</option>
-            {RESOURCE_TYPES.filter(Boolean).map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </Select>
+          />
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">User ID</label>

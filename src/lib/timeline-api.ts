@@ -46,6 +46,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/set-initial-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Initial Password
+         * @description Set initial admin password using one-time token (C2 tenant creation flow).
+         *
+         *     Token is from the set_password_url returned by POST /tenants when SET_PASSWORD_BASE_URL is set.
+         *     Requires PostgreSQL; returns 503 when database backend is not postgres.
+         */
+        post: operations["set_initial_password_api_v1_auth_set_initial_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -2691,6 +2714,27 @@ export interface components {
             display_title: string;
         };
         /**
+         * SetInitialPasswordRequest
+         * @description Request body for POST /auth/set-initial-password (C2 tenant creation flow).
+         */
+        SetInitialPasswordRequest: {
+            /**
+             * Token
+             * @description One-time token from set-password link
+             */
+            token: string;
+            /**
+             * Password
+             * @description New password (min 8 characters)
+             */
+            password: string;
+            /**
+             * Password Confirm
+             * @description Confirm new password
+             */
+            password_confirm: string;
+        };
+        /**
          * SnapshotRunResponse
          * @description Response after running the batch snapshot job for the current tenant.
          */
@@ -2953,7 +2997,10 @@ export interface components {
         };
         /**
          * TenantCreateResponse
-         * @description Response after tenant creation. Admin password is never returned (use admin_initial_password in request or password reset).
+         * @description Response after tenant creation. Admin password is never returned.
+         *
+         *     When C2 flow is enabled (Postgres + SET_PASSWORD_BASE_URL), set_password_url
+         *     and set_password_expires_at are included; show link in UI for user to set password.
          */
         TenantCreateResponse: {
             /** Tenant Id */
@@ -2964,6 +3011,12 @@ export interface components {
             tenant_name: string;
             /** Admin Username */
             admin_username: string;
+            /** Admin Email */
+            admin_email: string;
+            /** Set Password Url */
+            set_password_url?: string | null;
+            /** Set Password Expires At */
+            set_password_expires_at?: string | null;
         };
         /**
          * TenantResponse
@@ -3297,6 +3350,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["UserResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_initial_password_api_v1_auth_set_initial_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetInitialPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

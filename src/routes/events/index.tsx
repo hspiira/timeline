@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { Plus, Activity, Calendar, Table2, List, FileStack, Search, Filter, X } from 'lucide-react'
+import { Plus, Activity, Calendar, Table2, List, FileStack, Search, Filter, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { useStore } from '@tanstack/react-store'
@@ -26,7 +26,7 @@ import {
   ComboboxEmpty,
 } from '@/components/ui/combobox'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { useEventsList, useEventTypes, useIsLg } from '@/hooks'
+import { useEventsList, EVENTS_PAGE_SIZE, useEventTypes, useIsLg } from '@/hooks'
 import { findEventById } from '@/lib/events'
 import type { EventResponse } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -58,6 +58,7 @@ function EventsPage() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [detailsEventId, setDetailsEventId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'table' | 'timeline'>(getStoredViewMode)
+  const [tablePage, setTablePage] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const isLg = useIsLg()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -72,11 +73,21 @@ function EventsPage() {
     subjectDisplayNames,
     loadingMore,
     loadMore,
+    totalCount,
     refetch,
   } = useEventsList({
     enabled: !!authState.user,
     filterEventType,
+    paged: viewMode === 'table',
+    page: viewMode === 'table' ? tablePage : undefined,
   })
+
+  const totalPages = totalCount != null ? Math.ceil(totalCount / EVENTS_PAGE_SIZE) : 0
+  const showPagination = viewMode === 'table' && totalCount != null && totalPages > 1
+
+  const goToPage = (page: number) => {
+    if (page >= 0 && page < totalPages) setTablePage(page)
+  }
 
   // Persist view mode
   useEffect(() => {
@@ -90,14 +101,20 @@ function EventsPage() {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authState.isLoading && !authState.user) {
-      navigate({ to: '/login', search: { tenant: '' } })
+      navigate({ to: '/login', search: { tenant: '', redirect: undefined } })
     }
   }, [authState.isLoading, authState.user, navigate])
 
-  // Infinite scroll: when sentinel is visible, load next page
+  // Reset table page when filter changes (table view)
+  useEffect(() => {
+    if (viewMode === 'table') setTablePage(0)
+  }, [filterEventType, viewMode])
+
+  // Infinite scroll: only in timeline view; when sentinel is visible, load next page
   const loadMoreRef = useRef(loadMore)
   loadMoreRef.current = loadMore
   useEffect(() => {
+    if (viewMode !== 'timeline') return
     const scrollEl = scrollContainerRef.current
     const sentinel = sentinelRef.current
     if (!scrollEl || !sentinel || events.length === 0) return
@@ -110,13 +127,17 @@ function EventsPage() {
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [events.length])
+  }, [viewMode, events.length])
 
-  // Client-side search over loaded events (event type, subject, payload)
+  // Client-side filter by event type (backend does not filter) and search over loaded events
   const filteredEvents = useMemo(() => {
+    let list = events
+    if (filterEventType) {
+      list = list.filter((e) => (e.event_type ?? '') === filterEventType)
+    }
     const q = searchQuery.trim().toLowerCase()
-    if (!q) return events
-    return events.filter((e) => {
+    if (!q) return list
+    return list.filter((e) => {
       const type = (e.event_type ?? '').toLowerCase()
       const subjectId = (e.subject_id ?? '').toLowerCase()
       const subjectName = (subjectDisplayNames[e.subject_id] ?? '').toLowerCase()
@@ -131,7 +152,7 @@ function EventsPage() {
         payloadStr.includes(q)
       )
     })
-  }, [events, searchQuery, subjectDisplayNames])
+  }, [events, filterEventType, searchQuery, subjectDisplayNames])
 
   if (authState.isLoading) {
     return (
@@ -318,6 +339,7 @@ function EventsPage() {
                       selectedEventId={detailsEventId}
                     />
                   )}
+                  {/* Sentinel only in timeline view for infinite scroll */}
                   <EventsLoadingSentinel loading={loadingMore} sentinelRef={sentinelRef} />
                 </div>
               </div>
@@ -345,7 +367,7 @@ function EventsPage() {
               </div>
             </div>
           ) : (
-            <div className="flex-1 min-h-0 overflow-hidden relative">
+            <div className="flex-1 min-h-0 overflow-hidden relative flex flex-col">
               <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-0">
                 <div>
                   {filteredEvents.length === 0 ? (
@@ -359,9 +381,61 @@ function EventsPage() {
                       selectedEventId={detailsEventId}
                     />
                   )}
-                  <EventsLoadingSentinel loading={loadingMore} sentinelRef={sentinelRef} />
+                  {/* Sentinel only in timeline view; table view uses pagination below */}
+                  {viewMode === 'timeline' && (
+                    <EventsLoadingSentinel loading={loadingMore} sentinelRef={sentinelRef} />
+                  )}
                 </div>
               </div>
+              {showPagination && (
+                <div className="flex items-center justify-between shrink-0 px-4 py-3 border-t border-border/50 bg-muted/30">
+                  <div className="text-xs text-muted-foreground">
+                    Showing {tablePage * EVENTS_PAGE_SIZE + 1}–
+                    {Math.min((tablePage + 1) * EVENTS_PAGE_SIZE, totalCount ?? 0)} of {totalCount} events
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      onClick={() => goToPage(0)}
+                      disabled={tablePage === 0}
+                      variant="ghost"
+                      size="sm"
+                      title="First page"
+                    >
+                      <ChevronsLeft className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      onClick={() => goToPage(tablePage - 1)}
+                      disabled={tablePage === 0}
+                      variant="ghost"
+                      size="sm"
+                      title="Previous page"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <span className="px-3 text-xs text-foreground">
+                      Page {tablePage + 1} of {totalPages}
+                    </span>
+                    <Button
+                      onClick={() => goToPage(tablePage + 1)}
+                      disabled={tablePage >= totalPages - 1}
+                      variant="ghost"
+                      size="sm"
+                      title="Next page"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      onClick={() => goToPage(totalPages - 1)}
+                      disabled={tablePage >= totalPages - 1}
+                      variant="ghost"
+                      size="sm"
+                      title="Last page"
+                    >
+                      <ChevronsRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

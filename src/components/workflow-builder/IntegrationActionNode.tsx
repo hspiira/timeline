@@ -1,7 +1,9 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react'
 import { Play } from 'lucide-react'
 import type { WorkflowNodeData } from '@/lib/workflow-builder/flow-adapter'
 import { WorkflowNodeShell, HANDLE_CLASS } from './WorkflowNodeShell'
+
+const HIDE_WHEN_NOT_CONNECTING = '!opacity-0 pointer-events-none'
 
 export function IntegrationActionNode({ data, selected }: NodeProps<import('@xyflow/react').Node<WorkflowNodeData>>) {
   const w = data.workflowNode
@@ -9,6 +11,10 @@ export function IntegrationActionNode({ data, selected }: NodeProps<import('@xyf
   const operation = (w.configuration?.operation as string) ?? ''
   const title = integration || 'Integration'
   const description = operation || undefined
+  const connection = useConnection()
+  const isConnecting = connection?.inProgress === true
+  const showHandles = isConnecting || selected
+  const sourceClass = `${HANDLE_CLASS} ${!showHandles ? HIDE_WHEN_NOT_CONNECTING : ''}`
 
   return (
     <WorkflowNodeShell
@@ -19,10 +25,10 @@ export function IntegrationActionNode({ data, selected }: NodeProps<import('@xyf
       description={description}
       selected={selected}
     >
-      <Handle type="source" position={Position.Top} id="top" className={HANDLE_CLASS} />
-      <Handle type="source" position={Position.Right} id="right" className={HANDLE_CLASS} />
-      <Handle type="source" position={Position.Bottom} id="bottom" className={HANDLE_CLASS} />
-      <Handle type="source" position={Position.Left} id="left" className={HANDLE_CLASS} />
+      <Handle type="source" position={Position.Top} id="top" className={sourceClass} />
+      <Handle type="source" position={Position.Right} id="right" className={sourceClass} />
+      <Handle type="source" position={Position.Bottom} id="bottom" className={sourceClass} />
+      <Handle type="source" position={Position.Left} id="left" className={sourceClass} />
     </WorkflowNodeShell>
   )
 }

@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useToast } from '@/hooks/useToast'
 import { useFormSubmit } from '@/hooks/useFormSubmit'
 import { FormField, FormInput, FormError } from '@/components/ui/FormField'
 import { FormModalActions } from '@/components/ui/FormModalActions'
 import { Modal } from '@/components/ui/Modal'
-import { Select } from '@/components/ui/select'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
 import { JsonSchemaForm } from '@/components/shared/JsonSchemaForm'
 import type { JsonSchema } from '@/components/shared/JsonSchemaForm'
-import { validateAlphanumericUnderscore } from '@/lib/validation'
 import { timelineApi } from '@/lib/api-client'
 import type { components } from '@/lib/timeline-api'
 
@@ -63,17 +61,16 @@ export function CreateSubjectModal({
   const [attributeSchema, setAttributeSchema] = useState<JsonSchema | null>(null)
   const [schemaLoading, setSchemaLoading] = useState(false)
   const { execute, loading, error, setError } = useFormSubmit()
-  const toast = useToast()
 
-  // Use dropdown when we have options (merged list from parent = linked to subject types list)
+  // Subject type is always chosen from the list (Settings → Subject types)
   const options = subjectTypeOptions?.length
     ? subjectTypeOptions
     : subjectTypes.map((t) => ({ type_name: t.type_name, display_name: t.display_name || t.type_name }))
-  const useDropdown = options.length > 0
+  const hasTypes = options.length > 0
 
-  // When subject type is selected (and we have list), fetch full type to get schema (need id from subjectTypes)
+  // When subject type is selected, fetch full type to get schema (need id from subjectTypes)
   useEffect(() => {
-    if (!subjectType || !useDropdown) {
+    if (!subjectType || !hasTypes) {
       setAttributeSchema(null)
       setAttributes({})
       return
@@ -112,24 +109,16 @@ export function CreateSubjectModal({
     return () => {
       mounted = false
     }
-  }, [subjectType, useDropdown, subjectTypes])
+  }, [subjectType, hasTypes, subjectTypes])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
-    const value = useDropdown ? subjectType : subjectType.trim().toLowerCase()
+    const value = subjectType.trim()
     if (!value) {
       setError('Subject type is required')
       return
-    }
-    if (!useDropdown) {
-      const validationError = validateAlphanumericUnderscore(value, 'Subject type')
-      if (validationError) {
-        setError(validationError)
-        toast.error('Validation error', validationError)
-        return
-      }
     }
 
     const success = await execute(() =>
@@ -166,39 +155,27 @@ export function CreateSubjectModal({
         <div className="space-y-4">
           {error && <FormError message={error} />}
 
-          {/* Subject Type - full width */}
+          {/* Subject Type - always from list (Settings → Subject types) */}
           <FormField
             label="Subject Type"
             required
             hint={
-              useDropdown
+              hasTypes
                 ? 'Choose from configured types (Settings → Subject types)'
-                : 'Alphanumeric characters and underscores only'
+                : 'Add at least one subject type in Settings → Subject types to create subjects.'
             }
           >
-            {useDropdown ? (
-              <Select
-                value={subjectType}
-                onChange={(e) => setSubjectType(e.target.value)}
-                disabled={loading}
-              >
-                <option value="">Select type...</option>
-                {options.map((opt) => (
-                  <option key={opt.type_name} value={opt.type_name}>
-                    {opt.display_name}
-                  </option>
-                ))}
-              </Select>
-            ) : (
-              <FormInput
-                type="text"
-                value={subjectType}
-                onChange={(e) => setSubjectType(e.target.value)}
-                placeholder="e.g., user, order, project"
-                disabled={loading}
-                autoFocus
-              />
-            )}
+            <SingleSelectCombobox
+              value={subjectType}
+              onValueChange={setSubjectType}
+              options={[
+                { value: '', label: hasTypes ? 'Select type...' : 'No subject types yet' },
+                ...options.map((opt) => ({ value: opt.type_name, label: opt.display_name })),
+              ]}
+              placeholder={hasTypes ? 'Select type...' : 'No subject types yet'}
+              disabled={loading || !hasTypes}
+              className=""
+            />
           </FormField>
 
           {/* Display name + External ref on one row */}
@@ -249,6 +226,7 @@ export function CreateSubjectModal({
           loadingLabel="Creating..."
           onCancel={onClose}
           loading={loading}
+          submitDisabled={!hasTypes}
         />
       </form>
     </Modal>

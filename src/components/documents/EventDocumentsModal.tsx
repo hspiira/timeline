@@ -6,7 +6,7 @@ import type { components } from '@/lib/timeline-api'
 import { DocumentList } from './DocumentList'
 import { EventDocumentUpload } from './EventDocumentUpload'
 import { Button } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
 import { JsonSchemaForm } from '@/components/shared/JsonSchemaForm'
 import type { JsonSchema } from '@/components/shared/JsonSchemaForm'
 import { LoadingIcon } from '@/components/ui/icons'
@@ -255,16 +255,16 @@ export function EventDocumentsModal({
                 <>
                   <div>
                     <label className="block text-sm font-medium text-foreground/90 mb-1">Document type</label>
-                    <Select
+                    <SingleSelectCombobox
                       value={selectedCategoryId}
-                      onChange={(e) => setSelectedCategoryId(e.target.value)}
-                    >
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.display_name || c.category_name}
-                        </option>
-                      ))}
-                    </Select>
+                      onValueChange={setSelectedCategoryId}
+                      options={categories.map((c) => ({
+                        value: c.id,
+                        label: c.display_name || c.category_name,
+                      }))}
+                      placeholder="Document type"
+                      className=""
+                    />
                     {categoryFull?.default_retention_days != null && (
                       <p className="text-xs text-muted-foreground mt-1">
                         Retention: {categoryFull.default_retention_days} days

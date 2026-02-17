@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
 
 export interface FieldSchema {
   type?: 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array'
@@ -134,19 +135,20 @@ export function JsonSchemaForm({
                 />
               </div>
             ) : fieldSchema.enum ? (
-              <select
+              <SingleSelectCombobox
                 value={toDisplayValue(fieldValue)}
-                onChange={(e) => handleChange(fieldName, e.target.value)}
+                onValueChange={(v) => handleChange(fieldName, v)}
+                options={[
+                  { value: '', label: `Select ${fieldName}` },
+                  ...fieldSchema.enum.map((opt: unknown) => {
+                    const s = String(opt)
+                    return { value: s, label: s }
+                  }),
+                ]}
+                placeholder={`Select ${fieldName}`}
+                error={fieldError}
                 className={inputClassName(Boolean(fieldError))}
-                required={isReq}
-              >
-                <option value="">Select {fieldName}</option>
-                {fieldSchema.enum.map((opt: unknown) => (
-                  <option key={String(opt)} value={String(opt)}>
-                    {String(opt)}
-                  </option>
-                ))}
-              </select>
+              />
             ) : fieldSchema.type === 'number' || fieldSchema.type === 'integer' ? (
               <input
                 type="number"

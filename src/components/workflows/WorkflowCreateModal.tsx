@@ -18,14 +18,15 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useEventTypes } from '@/hooks/useEventTypes'
+import { WORKFLOW_ACTION_TYPES, getActionTypeInfo } from '@/lib/workflow-builder/action-types'
 import { useFormSubmit } from '@/hooks/useFormSubmit'
 import type { components } from '@/lib/timeline-api'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
 import { ErrorAlert } from '@/components/ui/ErrorAlert'
-import { ArrowDown, ArrowRight, GripVertical, Zap, Trash2, Plus, GitBranch, Info, Mail, UserCog } from 'lucide-react'
+import { ArrowDown, ArrowRight, GripVertical, Zap, Trash2, Plus, GitBranch, Info } from 'lucide-react'
 
 export type FlowDirection = 'lr' | 'tb'
 
@@ -58,19 +59,6 @@ function isActionStep(s: Step): s is ActionStep {
 
 function isDecisionStep(s: Step): s is DecisionStep {
   return s.kind === 'decision'
-}
-
-const ACTION_TYPES = [
-  { value: 'create_event', label: 'Create Event', icon: Zap },
-  { value: 'send_email', label: 'Send Email', icon: Mail },
-  { value: 'update_subject', label: 'Update Subject', icon: UserCog },
-] as const
-
-function getActionTypeInfo(type: string): { label: string; icon: React.ComponentType<{ className?: string }> } {
-  const found = ACTION_TYPES.find((o) => o.value === type)
-  return found
-    ? { label: found.label, icon: found.icon }
-    : { label: type, icon: Zap }
 }
 
 const FLOW_LAYOUT = {
@@ -222,23 +210,21 @@ function StartShape({
   direction: FlowDirection
 }) {
   const selectEl = (
-      <Select
+      <SingleSelectCombobox
         value={eventType}
-        onChange={(e) => onChange(e.target.value)}
+        onValueChange={onChange}
+        options={[
+          { value: '', label: 'When event type…' },
+          ...eventTypes.map((t) => ({ value: t, label: t })),
+        ]}
+        placeholder="When event type…"
         disabled={disabled || loading}
         className={
           direction === 'lr'
-          ? 'w-44 text-sm bg-background border border-border rounded-lg py-2 font-medium text-foreground [color-scheme:inherit]'
-          : 'w-56 text-sm bg-background border border-border rounded-lg py-2 text-center font-medium text-foreground [color-scheme:inherit]'
+            ? 'w-44 text-sm rounded-lg border-border [color-scheme:inherit]'
+            : 'w-56 text-sm rounded-lg border-border text-center [color-scheme:inherit]'
         }
-      >
-        <option value="">When event type…</option>
-      {eventTypes.map((t) => (
-        <option key={t} value={t}>
-          {t}
-        </option>
-      ))}
-    </Select>
+      />
   )
   const circle = (
     <div className="flex flex-col items-center justify-center w-16 h-16 rounded-full bg-background border border-border shrink-0">
@@ -331,22 +317,16 @@ function ActionShape({
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10">
             <Zap className="w-3.5 h-3.5 text-primary" />
           </div>
-          <Select
-            value={step.type}
-            onChange={(e) => {
-              e.stopPropagation()
-              onUpdate({ type: e.target.value })
-            }}
-            disabled={disabled}
-            className="flex-1 min-w-0 text-sm font-medium border-0 bg-transparent py-1 focus:ring-0 cursor-pointer"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {ACTION_TYPES.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </Select>
+          <div onClick={(e) => e.stopPropagation()} className="flex-1 min-w-0">
+            <SingleSelectCombobox
+              value={step.type}
+              onValueChange={(v) => onUpdate({ type: v })}
+              options={WORKFLOW_ACTION_TYPES.map((opt) => ({ value: opt.value, label: opt.label }))}
+              placeholder="Action type"
+              disabled={disabled}
+              className="min-w-0 text-sm font-medium border-0 rounded-none bg-transparent py-1 h-auto cursor-pointer [&_[data-slot=input-group]]:border-0 [&_[data-slot=input-group]]:shadow-none"
+            />
+          </div>
           {!disabled && (
             <button
               type="button"
@@ -795,15 +775,17 @@ export function WorkflowCreateModal({ onClose, onSubmit, title = 'Create workflo
           </div>
           <div className="shrink-0">
             <label className="block text-xs font-medium text-muted-foreground mb-1">Flow direction</label>
-            <Select
+            <SingleSelectCombobox
               value={flowDirection}
-              onChange={(e) => setFlowDirection((e.target.value || 'lr') as FlowDirection)}
+              onValueChange={(v) => setFlowDirection((v || 'lr') as FlowDirection)}
+              options={[
+                { value: 'lr', label: 'Left to right' },
+                { value: 'tb', label: 'Top to bottom' },
+              ]}
+              placeholder="Flow direction"
               disabled={loading}
               className="w-[180px]"
-            >
-              <option value="lr">Left to right</option>
-              <option value="tb">Top to bottom</option>
-            </Select>
+            />
           </div>
         </div>
 

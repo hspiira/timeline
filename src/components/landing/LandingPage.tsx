@@ -60,6 +60,7 @@ export function LandingPage() {
         </Link>
         <Link
           to="/login"
+          search={{ tenant: '', redirect: undefined }}
           className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-foreground/90 transition-all duration-300 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
         >
           Sign in
@@ -88,6 +89,7 @@ export function LandingPage() {
           >
             <Link
               to="/login"
+              search={{ tenant: '', redirect: undefined }}
               className="group inline-flex items-center justify-center gap-2 rounded-lg bg-white/[0.08] px-8 py-3.5 text-sm font-medium text-foreground backdrop-blur-sm transition-all duration-300 hover:bg-white/[0.14] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(255,255,255,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:translate-y-0"
               style={{
                 background: 'linear-gradient(to right, rgba(255,255,255,0.06), rgba(255,255,255,0.12))',

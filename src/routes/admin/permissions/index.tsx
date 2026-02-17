@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/admin/permissions/')({
@@ -427,38 +428,34 @@ function PermissionFormModal({
             <label className="block text-sm font-medium text-foreground/90 mb-2">
               Resource <span className="text-destructive">*</span>
             </label>
-            <select
+            <SingleSelectCombobox
               value={resource}
-              onChange={(e) => setResource(e.target.value)}
-              className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              onValueChange={setResource}
+              options={[
+                { value: '', label: 'Select resource...' },
+                ...resources.map((res) => ({ value: res, label: res })),
+              ]}
+              placeholder="Select resource..."
               disabled={loading}
-            >
-              <option value="">Select resource...</option>
-              {resources.map((res) => (
-                <option key={res} value={res}>
-                  {res}
-                </option>
-              ))}
-            </select>
+              className="w-full"
+            />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-foreground/90 mb-2">
               Action <span className="text-destructive">*</span>
             </label>
-            <select
+            <SingleSelectCombobox
               value={action}
-              onChange={(e) => setAction(e.target.value)}
-              className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              onValueChange={setAction}
+              options={[
+                { value: '', label: 'Select action...' },
+                ...actions.map((act) => ({ value: act, label: act })),
+              ]}
+              placeholder="Select action..."
               disabled={loading}
-            >
-              <option value="">Select action...</option>
-              {actions.map((act) => (
-                <option key={act} value={act}>
-                  {act}
-                </option>
-              ))}
-            </select>
+              className="w-full"
+            />
           </div>
 
           <div>

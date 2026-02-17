@@ -8,6 +8,7 @@ export {
 export { useDebouncedSearch } from './useDebouncedSearch'
 export { useEventTypes, type UseEventTypesResult } from './useEventTypes'
 export {
+  EVENTS_PAGE_SIZE,
   useEventsList,
   type UseEventsListOptions,
   type UseEventsListResult,
