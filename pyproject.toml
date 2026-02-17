@@ -65,6 +65,9 @@ dev = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "requires_db: mark test as requiring PostgreSQL (skip when DATABASE_BACKEND != postgres or DATABASE_URL unset)",
+]
 
 [tool.mypy]
 python_version = "3.12"
