@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from '@tanstack/react-store'
 import { ArrowLeft } from 'lucide-react'
 import { authStore, authActions } from '@/lib/auth-store'
@@ -23,9 +23,14 @@ function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   // Redirect if already logged in
   const isAuthenticated = useRedirectIfAuthenticated()
+
+  // Only reflect loading state after mount so SSR and first client render match (avoids hydration mismatch).
+  const showLoading = mounted && authState.isLoading
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -165,11 +170,11 @@ function LoginPage() {
 
             <Button
               type="submit"
-              disabled={authState.isLoading}
-              isLoading={authState.isLoading}
+              disabled={showLoading}
+              isLoading={showLoading}
               className="w-full"
             >
-              {authState.isLoading ? 'Signing in...' : 'Sign In'}
+              {showLoading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
 

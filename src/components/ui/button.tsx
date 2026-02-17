@@ -5,6 +5,13 @@ import { Loader2 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
+/** Only show loading state after mount so SSR/first client render match (avoids hydration mismatch). */
+function useIsMounted() {
+  const [mounted, setMounted] = React.useState(false)
+  React.useEffect(() => setMounted(true), [])
+  return mounted
+}
+
 const buttonVariants = cva(
   'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none text-sm font-medium transition-colors outline-none focus:ring-2 focus:ring-offset-0 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*="size-"])]:size-4 shrink-0 [&_svg]:shrink-0 focus-visible:ring-ring/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
   {
@@ -57,7 +64,25 @@ function Button({
     asChild?: boolean
     isLoading?: boolean
   }) {
+  const mounted = useIsMounted()
+  const showLoading = mounted && isLoading
   const Comp = asChild ? Slot : 'button'
+
+  // When asChild, Slot expects exactly one child (React.Children.only). Pass only children.
+  if (asChild) {
+    return (
+      <Comp
+        data-slot="button"
+        data-variant={variant}
+        data-size={size}
+        className={cn(buttonVariants({ variant, size, className }))}
+        disabled={disabled}
+        {...props}
+      >
+        {children}
+      </Comp>
+    )
+  }
 
   return (
     <Comp
@@ -65,10 +90,10 @@ function Button({
       data-variant={variant}
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
-      disabled={disabled ?? isLoading}
+      disabled={disabled ?? showLoading}
       {...props}
     >
-      {!asChild && isLoading && (
+      {showLoading && (
         <Loader2 className="size-4 animate-spin shrink-0" />
       )}
       {children}

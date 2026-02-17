@@ -21,7 +21,7 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { SkeletonBreadcrumbs, Skeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/button'
 import { DocumentList } from '@/components/documents/DocumentList'
-import { PayloadModernView } from '@/components/events/PayloadModernView'
+import { PayloadModernView } from '@/components/events'
 import { LoadingIcon } from '@/components/ui/icons'
 import type { EventResponse, EventListResponse } from '@/lib/types'
 

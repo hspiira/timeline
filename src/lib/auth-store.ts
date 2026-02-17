@@ -10,10 +10,14 @@ interface AuthState {
   error: string | null
 }
 
+const storedToken = getAuthToken()
 const initialState: AuthState = {
   user: null,
-  token: getAuthToken(),
-  isLoading: false,
+  token: storedToken,
+  // When a token exists, we haven't rehydrated user yet — stay in loading so
+  // protected routes don't redirect to login before initAuth() runs (and thus
+  // preserve the current URL and avoid redirect-to-dashboard on refresh).
+  isLoading: !!storedToken,
   error: null,
 }
 
