@@ -143,12 +143,14 @@ class UserRepository(AuditableRepository[User]):
         except IntegrityError:
             raise DuplicateEmailException()
 
-    async def update_password(self, user_id: str, new_password: str) -> User | None:
+    async def update_password(self, user_id: str, new_password: str) -> UserResult | None:
+        """Update user password by id; return updated user result or None if not found."""
         user = await super().get_by_id(user_id)
         if not user:
             return None
         user.hashed_password = await asyncio.to_thread(get_password_hash, new_password)
-        return await self.update(user)
+        updated = await self.update(user)
+        return _user_to_result(updated)
 
     async def deactivate(self, user_id: str, tenant_id: str) -> User | None:
         user = await self.get_by_id_and_tenant(user_id, tenant_id)

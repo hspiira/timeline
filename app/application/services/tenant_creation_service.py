@@ -7,7 +7,11 @@ import string
 from typing import TYPE_CHECKING
 
 from app.application.dtos.tenant import TenantCreationResult
-from app.application.interfaces.repositories import ITenantRepository, IUserRepository
+from app.application.interfaces.repositories import (
+    IPasswordSetTokenStore,
+    ITenantRepository,
+    IUserRepository,
+)
 from app.application.interfaces.services import ITenantInitializationService
 from app.domain.enums import TenantStatus
 from app.domain.exceptions import TenantAlreadyExistsException
@@ -26,11 +30,13 @@ class TenantCreationService:
         user_repo: IUserRepository,
         init_service: ITenantInitializationService,
         audit_service: IAuditService | None = None,
+        token_store: IPasswordSetTokenStore | None = None,
     ) -> None:
         self.tenant_repo = tenant_repo
         self.user_repo = user_repo
         self.init_service = init_service
         self.audit_service = audit_service
+        self.token_store = token_store
 
     async def create_tenant(
         self,
@@ -89,6 +95,13 @@ class TenantCreationService:
             admin_user_id=admin_user.id,
         )
 
+        set_password_token: str | None = None
+        set_password_expires_at = None
+        if self.token_store is not None:
+            set_password_token, set_password_expires_at = await self.token_store.create(
+                admin_user.id
+            )
+
         if self.audit_service is not None:
             status_value = (
                 created_tenant.status.value
@@ -116,6 +129,9 @@ class TenantCreationService:
             tenant_code=created_tenant.code,
             tenant_name=created_tenant.name,
             admin_username=admin_username,
+            admin_email=admin_email,
+            set_password_token=set_password_token,
+            set_password_expires_at=set_password_expires_at,
         )
 
     @staticmethod

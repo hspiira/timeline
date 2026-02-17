@@ -27,6 +27,9 @@ from app.infrastructure.persistence.repositories.oauth_provider_config_repo impo
 from app.infrastructure.persistence.repositories.oauth_state_repo import (
     OAuthStateRepository,
 )
+from app.infrastructure.persistence.repositories.password_set_token_repo import (
+    PasswordSetTokenStore,
+)
 from app.infrastructure.persistence.repositories.permission_repo import (
     PermissionRepository,
 )
@@ -65,6 +68,7 @@ __all__ = [
     "EventTransitionRuleRepository",
     "OAuthProviderConfigRepository",
     "OAuthStateRepository",
+    "PasswordSetTokenStore",
     "PermissionRepository",
     "RolePermissionRepository",
     "RoleRepository",

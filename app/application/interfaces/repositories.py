@@ -401,6 +401,20 @@ class IUserRepository(Protocol):
     ) -> UserResult:
         """Create user with hashed password; return created user."""
 
+    async def update_password(self, user_id: str, new_password: str) -> UserResult | None:
+        """Update user password by id; return updated user or None if not found."""
+
+
+# Password set token store (one-time token for C2 set-initial-password flow)
+class IPasswordSetTokenStore(Protocol):
+    """One-time token for setting initial admin password. Create at tenant creation; redeem at set-password."""
+
+    async def create(self, user_id: str) -> tuple[str, datetime]:
+        """Create a one-time token for user; return (raw_token, expires_at)."""
+
+    async def redeem(self, token: str) -> str | None:
+        """If token is valid and not expired/used, mark used and return user_id; else None."""
+
 
 # Document repository interface
 class IDocumentRepository(Protocol):

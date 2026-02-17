@@ -154,4 +154,8 @@ async def test_create_tenant_with_correct_secret_returns_201(client: AsyncClient
     assert data["tenant_code"] == code
     assert "tenant_id" in data
     assert "admin_username" in data
+    assert "admin_email" in data
     assert "admin_password" not in data
+    # C2: set_password_url and set_password_expires_at when SET_PASSWORD_BASE_URL is set
+    assert "set_password_url" in data
+    assert "set_password_expires_at" in data

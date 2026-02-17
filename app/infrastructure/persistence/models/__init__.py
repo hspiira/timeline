@@ -35,11 +35,13 @@ from app.infrastructure.persistence.models.subject import Subject
 from app.infrastructure.persistence.models.subject_snapshot import SubjectSnapshot
 from app.infrastructure.persistence.models.task import Task
 from app.infrastructure.persistence.models.tenant import Tenant
+from app.infrastructure.persistence.models.password_set_token import PasswordSetToken
 from app.infrastructure.persistence.models.user import User
 from app.infrastructure.persistence.models.workflow import Workflow, WorkflowExecution
 
 __all__ = [
     "AuditLog",
+    "PasswordSetToken",
     "Tenant",
     "User",
     "Subject",

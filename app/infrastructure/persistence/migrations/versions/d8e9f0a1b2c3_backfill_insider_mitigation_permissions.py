@@ -50,8 +50,8 @@ def upgrade() -> None:
             pid = generate_cuid()
             conn.execute(
                 text(
-                    "INSERT INTO permission (id, tenant_id, code, resource, action, description, created_at, updated_at) "
-                    "VALUES (:id, :tenant_id, :code, :resource, :action, :description, now(), now())"
+                    "INSERT INTO permission (id, tenant_id, code, resource, action, description) "
+                    "VALUES (:id, :tenant_id, :code, :resource, :action, :description)"
                 ),
                 {
                     "id": pid,
@@ -75,8 +75,8 @@ def upgrade() -> None:
                 rp_id = generate_cuid()
                 conn.execute(
                     text(
-                        "INSERT INTO role_permission (id, tenant_id, role_id, permission_id, created_at, updated_at) "
-                        "VALUES (:id, :tenant_id, :role_id, :permission_id, now(), now()) "
+                        "INSERT INTO role_permission (id, tenant_id, role_id, permission_id) "
+                        "VALUES (:id, :tenant_id, :role_id, :permission_id) "
                         "ON CONFLICT ON CONSTRAINT uq_role_permission DO NOTHING"
                     ),
                     {
@@ -97,8 +97,8 @@ def upgrade() -> None:
                 rp_id = generate_cuid()
                 conn.execute(
                     text(
-                        "INSERT INTO role_permission (id, tenant_id, role_id, permission_id, created_at, updated_at) "
-                        "VALUES (:id, :tenant_id, :role_id, :permission_id, now(), now()) "
+                        "INSERT INTO role_permission (id, tenant_id, role_id, permission_id) "
+                        "VALUES (:id, :tenant_id, :role_id, :permission_id) "
                         "ON CONFLICT ON CONSTRAINT uq_role_permission DO NOTHING"
                     ),
                     {

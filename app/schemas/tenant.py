@@ -1,5 +1,7 @@
 """Tenant API schemas."""
 
+from datetime import datetime
+
 from pydantic import BaseModel, Field, SecretStr, field_validator
 
 from app.domain.enums import TenantStatus
@@ -47,12 +49,20 @@ class TenantCreateRequest(BaseModel):
 
 
 class TenantCreateResponse(BaseModel):
-    """Response after tenant creation. Admin password is never returned (use admin_initial_password in request or password reset)."""
+    """Response after tenant creation. Admin password is never returned.
+
+    When C2 flow is enabled (Postgres + SET_PASSWORD_BASE_URL), set_password_url
+    and set_password_expires_at are included; show link in UI for user to set password.
+    """
 
     tenant_id: str
     tenant_code: str
     tenant_name: str
     admin_username: str
+    admin_email: str
+    # Full URL for set-password page (C2). E.g. https://app.example.com/set-password?token=...
+    set_password_url: str | None = None
+    set_password_expires_at: datetime | None = None
 
 
 class TenantUpdate(BaseModel):

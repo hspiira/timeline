@@ -79,6 +79,7 @@ from app.infrastructure.persistence.repositories import (
     EventTransitionRuleRepository,
     OAuthProviderConfigRepository,
     OAuthStateRepository,
+    PasswordSetTokenStore,
     PermissionRepository,
     RolePermissionRepository,
     RoleRepository,
@@ -204,6 +205,14 @@ async def get_system_audit_service(
 ) -> SystemAuditService:
     """Build SystemAuditService for Postgres write path (same session as request)."""
     return SystemAuditService(db, HashService())
+
+
+async def get_set_password_deps(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> tuple[PasswordSetTokenStore, UserRepository]:
+    """Token store and user repo for POST /auth/set-initial-password (same transaction). Postgres only."""
+    audit_svc = SystemAuditService(db, HashService())
+    return (PasswordSetTokenStore(db), UserRepository(db, audit_service=audit_svc))
 
 
 async def get_tenant_repo(
@@ -433,11 +442,13 @@ async def get_tenant_creation_service(
     """Build TenantCreationService (Postgres or Firestore from config)."""
     if backend.db is not None:
         audit_svc = SystemAuditService(backend.db, HashService())
+        token_store = PasswordSetTokenStore(backend.db)
         return TenantCreationService(
             tenant_repo=TenantRepository(backend.db),
             user_repo=UserRepository(backend.db, audit_service=audit_svc),
             init_service=TenantInitializationService(backend.db),
             audit_service=audit_svc,
+            token_store=token_store,
         )
     assert backend.firestore is not None
     return TenantCreationService(

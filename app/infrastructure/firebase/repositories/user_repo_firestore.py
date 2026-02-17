@@ -112,3 +112,15 @@ class FirestoreUserRepository:
             email=email,
             is_active=True,
         )
+
+    async def update_password(self, user_id: str, new_password: str) -> UserResult | None:
+        """Update user password by id; return updated user or None if not found."""
+        doc_ref = self._coll.document(user_id)
+        doc = await doc_ref.get()
+        if not doc or not doc.exists:
+            return None
+        data = doc.to_dict()
+        hashed = await asyncio.to_thread(get_password_hash, new_password)
+        now = utc_now()
+        await doc_ref.update({"hashed_password": hashed, "updated_at": now})
+        return self._to_result(user_id, {**data, "hashed_password": hashed, "updated_at": now})

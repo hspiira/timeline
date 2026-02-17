@@ -97,11 +97,18 @@ async def create_tenant(
                         )
             except Exception as e:
                 logger.warning("Failed to write audit log for tenant creation: %s", e, exc_info=True)
+        set_password_url = None
+        if result.set_password_token and settings.set_password_base_url:
+            base = settings.set_password_base_url.rstrip("/")
+            set_password_url = f"{base}/set-password?token={result.set_password_token}"
         return TenantCreateResponse(
             tenant_id=result.tenant_id,
             tenant_code=result.tenant_code,
             tenant_name=result.tenant_name,
             admin_username=result.admin_username,
+            admin_email=result.admin_email,
+            set_password_url=set_password_url,
+            set_password_expires_at=result.set_password_expires_at,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

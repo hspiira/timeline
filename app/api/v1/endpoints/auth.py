@@ -12,6 +12,7 @@ from app.api.v1.dependencies import (
     AuthSecurity,
     get_auth_security,
     get_current_user,
+    get_set_password_deps,
     get_tenant_repo,
     get_user_repo,
     get_user_repo_for_write,
@@ -22,7 +23,15 @@ from app.application.services.user_service import UserService
 from app.core.limiter import check_auth_rate_per_tenant_code, limit_auth, limit_writes
 from app.infrastructure.persistence.repositories.tenant_repo import TenantRepository
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
-from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
+from app.infrastructure.persistence.repositories.password_set_token_repo import (
+    PasswordSetTokenStore,
+)
+from app.schemas.auth import (
+    LoginRequest,
+    RegisterRequest,
+    SetInitialPasswordRequest,
+    TokenResponse,
+)
 from app.schemas.user import UserResponse, UserUpdate
 
 router = APIRouter()
@@ -58,6 +67,34 @@ async def register(
     except Exception:
         # Hide specific failure reasons (e.g. duplicate user/email) behind a generic message.
         raise HTTPException(status_code=400, detail="Registration failed")
+
+
+@router.post("/set-initial-password", status_code=204)
+@limit_auth
+async def set_initial_password(
+    request: Request,
+    body: SetInitialPasswordRequest,
+    deps: Annotated[
+        tuple[PasswordSetTokenStore, UserRepository],
+        Depends(get_set_password_deps),
+    ],
+):
+    """Set initial admin password using one-time token (C2 tenant creation flow).
+
+    Token is from the set_password_url returned by POST /tenants when SET_PASSWORD_BASE_URL is set.
+    Requires PostgreSQL; returns 503 when database backend is not postgres.
+    """
+    token_store, user_repo = deps
+    user_id = await token_store.redeem(body.token)
+    if not user_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired link. Request a new link from your administrator.",
+        )
+    updated = await user_repo.update_password(user_id, body.password)
+    if not updated:
+        raise HTTPException(status_code=400, detail="User not found")
+    return None
 
 
 @router.post("/login", response_model=TokenResponse)

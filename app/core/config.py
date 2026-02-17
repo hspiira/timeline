@@ -80,6 +80,10 @@ class Settings(BaseSettings):
     # In production, this should be set; when unset, tenant creation can be
     # disabled at the route level.
     create_tenant_secret: SecretStr | None = None
+    # Base URL for set-password link (C2 flow). E.g. https://app.example.com or
+    # http://localhost:3000. Link returned as {set_password_base_url}/set-password?token=...
+    # When empty, set_password_url is not included in tenant create response.
+    set_password_base_url: str = ""
 
     # Request / middleware
     request_timeout_seconds: int = 60
