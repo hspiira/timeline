@@ -1,26 +1,28 @@
-import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react'
-import { Plug } from 'lucide-react'
+import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { Play } from 'lucide-react'
 import type { WorkflowNodeData } from '@/lib/workflow-builder/flow-adapter'
+import { WorkflowNodeShell, HANDLE_CLASS } from './WorkflowNodeShell'
 
-export function IntegrationActionNode({ data }: NodeProps<import('@xyflow/react').Node<WorkflowNodeData>>) {
-  const connection = useConnection()
-  const showTargetHandles = connection?.inProgress === true
+export function IntegrationActionNode({ data, selected }: NodeProps<import('@xyflow/react').Node<WorkflowNodeData>>) {
   const w = data.workflowNode
   const integration = (w.configuration?.integration as string) ?? ''
   const operation = (w.configuration?.operation as string) ?? ''
-  const label = [integration, operation].filter(Boolean).join(' · ') || 'Integration'
+  const title = integration || 'Integration'
+  const description = operation || undefined
+
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-border bg-background min-w-0 max-w-[180px] shrink-0 px-2 py-1.5 relative">
-      {showTargetHandles && (
-        <>
-          <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-primary" />
-          <Handle type="target" position={Position.Left} className="!w-3 !h-3 !bg-primary" />
-        </>
-      )}
-      <Plug className="w-5 h-5 shrink-0 text-primary" />
-      <span className="text-xs font-medium text-foreground truncate" title={label}>{label}</span>
-      <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-primary" />
-      <Handle type="source" position={Position.Right} className="!w-3 !h-3 !bg-primary" />
-    </div>
+    <WorkflowNodeShell
+      badgeLabel="3rd Party Action"
+      badgeIcon={<Play className="w-3 h-3" />}
+      badgeVariant="violet"
+      title={title}
+      description={description}
+      selected={selected}
+    >
+      <Handle type="source" position={Position.Top} id="top" className={HANDLE_CLASS} />
+      <Handle type="source" position={Position.Right} id="right" className={HANDLE_CLASS} />
+      <Handle type="source" position={Position.Bottom} id="bottom" className={HANDLE_CLASS} />
+      <Handle type="source" position={Position.Left} id="left" className={HANDLE_CLASS} />
+    </WorkflowNodeShell>
   )
 }

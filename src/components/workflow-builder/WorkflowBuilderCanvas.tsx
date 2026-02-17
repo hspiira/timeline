@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ReactFlow,
+  ReactFlowProvider,
   Background,
   Controls,
   useNodesState,
   useEdgesState,
+  useUpdateNodeInternals,
   addEdge,
   MarkerType,
   type Connection,
@@ -38,6 +40,17 @@ const nodeTypes = {
   terminal: TerminalNode,
 }
 
+const defaultEdgeOptions = {
+  type: 'smoothstep',
+  markerEnd: {
+    type: MarkerType.ArrowClosed,
+    width: 14,
+    height: 14,
+  },
+  pathOptions: { borderRadius: 20 },
+  style: { strokeWidth: 1.5 },
+}
+
 export interface WorkflowBuilderCanvasProps {
   workflow: Workflow
   workflowId: string
@@ -52,7 +65,7 @@ export interface WorkflowBuilderCanvasProps {
   onSelectionChange?: (selectedNodeId: string | null) => void
 }
 
-export function WorkflowBuilderCanvas({
+function WorkflowBuilderCanvasInner({
   workflow,
   workflowId,
   workflowName,
@@ -60,23 +73,27 @@ export function WorkflowBuilderCanvas({
   allowCircular = false,
   topPanel,
   className,
-  height = '500px',
+  height = '600px',
   onSelectionChange,
 }: WorkflowBuilderCanvasProps) {
   const { nodes: initialNodes, edges: initialEdges } = workflowToFlow(workflow)
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
+  const updateNodeInternals = useUpdateNodeInternals()
   const reactFlowRef = useRef<HTMLDivElement>(null)
   const flowInstanceRef = useRef<ReactFlowInstance<Node<WorkflowNodeData>> | null>(null)
   const lastPushedWorkflowRef = useRef<Workflow | null>(null)
-  const [layoutDirection, setLayoutDirection] = useState<'horizontal' | 'vertical'>('horizontal')
+  const [layoutDirection, setLayoutDirection] = useState<'horizontal' | 'vertical'>('vertical')
 
   useEffect(() => {
     if (workflow === lastPushedWorkflowRef.current) return
     const { nodes: wNodes, edges: wEdges } = workflowToFlow(workflow)
     setNodes(wNodes)
     setEdges(wEdges)
-  }, [workflow, setNodes, setEdges])
+    const ids = wNodes.map((n) => n.id)
+    const t = setTimeout(() => ids.forEach((id) => updateNodeInternals(id)), 0)
+    return () => clearTimeout(t)
+  }, [workflow, setNodes, setEdges, updateNodeInternals])
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -96,12 +113,18 @@ export function WorkflowBuilderCanvas({
       if (!validation.valid) {
         return
       }
+      const displayLabel =
+        label === 'true' ? 'is true' : label === 'false' ? 'is false' : label
       setEdges((eds) =>
         addEdge(
           {
             ...connection,
             id: generateEdgeId(),
-            ...(label != null && { sourceHandle: label, data: { label }, label }),
+            ...(label != null && {
+              sourceHandle: label,
+              data: { label },
+              label: displayLabel,
+            }),
           },
           eds
         )
@@ -147,7 +170,7 @@ export function WorkflowBuilderCanvas({
 
   const handleInit = useCallback((instance: ReactFlowInstance<Node<WorkflowNodeData>>) => {
     flowInstanceRef.current = instance
-    instance.fitView({ padding: 0.2, duration: 0 })
+    instance.fitView({ padding: 0.3, duration: 200 })
   }, [])
 
   const handleSelectionChange = useCallback(
@@ -160,9 +183,9 @@ export function WorkflowBuilderCanvas({
 
   const applyLayout = useCallback(
     (direction: 'horizontal' | 'vertical') => {
-      const triggerIds = nodes.filter(
-        (n) => nodeRegistry.getOptional(n.type as NodeType)?.isTrigger
-      ).map((n) => n.id)
+      const triggerIds = nodes
+        .filter((n) => nodeRegistry.getOptional(n.type as NodeType)?.isTrigger)
+        .map((n) => n.id)
       const order: string[] = []
       const visited = new Set<string>()
       const queue = [...triggerIds]
@@ -178,15 +201,21 @@ export function WorkflowBuilderCanvas({
       nodes.forEach((n) => {
         if (!visited.has(n.id)) order.push(n.id)
       })
-      const spacing = direction === 'horizontal' ? 260 : 120
+      const spacing = direction === 'horizontal' ? 320 : 160
       setNodes((nds) =>
         nds.map((node) => {
           const i = order.indexOf(node.id)
-          const pos = i >= 0 ? (direction === 'horizontal' ? { x: i * spacing, y: 0 } : { x: 0, y: i * spacing }) : node.position
+          const pos =
+            i >= 0
+              ? direction === 'horizontal'
+                ? { x: i * spacing, y: 0 }
+                : { x: 0, y: i * spacing }
+              : node.position
           return { ...node, position: pos }
         })
       )
       setLayoutDirection(direction)
+      setTimeout(() => flowInstanceRef.current?.fitView({ padding: 0.3, duration: 300 }), 50)
     },
     [nodes, edges, setNodes]
   )
@@ -194,7 +223,7 @@ export function WorkflowBuilderCanvas({
   return (
     <div
       ref={reactFlowRef}
-      className={`w-full shrink-0 rounded-xl border border-border bg-muted/30 overflow-hidden ${className ?? ''}`}
+      className={`workflow-canvas w-full shrink-0 rounded-xl border border-border bg-muted/20 overflow-hidden ${className ?? ''}`}
       style={{ height, minHeight: height, maxHeight: height }}
     >
       <ReactFlow
@@ -208,42 +237,50 @@ export function WorkflowBuilderCanvas({
         onInit={handleInit}
         onSelectionChange={handleSelectionChange}
         nodeTypes={nodeTypes}
-        defaultEdgeOptions={{ markerEnd: { type: MarkerType.ArrowClosed } }}
+        defaultEdgeOptions={defaultEdgeOptions}
         fitView={false}
-        className="bg-muted/20"
+        className="bg-muted/10"
       >
-        <Background />
-        <Controls />
+        <Background gap={20} size={1} />
+        <Controls showInteractive={false} />
         <Panel position="top-center" className="w-full max-w-full pt-0 px-2 pb-2">
           <div className="flex items-center justify-between gap-4 w-full">
             {topPanel != null ? (
-              <div className="flex items-center">
-                {topPanel}
-              </div>
+              <div className="flex items-center">{topPanel}</div>
             ) : (
-              <span className="text-xs text-muted-foreground">Drag nodes from the palette and drop here.</span>
+              <span className="text-[11px] text-muted-foreground/70">
+                Drag nodes from the palette and drop here
+              </span>
             )}
-            <div className="flex rounded-md border border-border bg-background/95 overflow-hidden shrink-0">
+            <div className="flex rounded-lg border border-border bg-card/90 backdrop-blur-sm overflow-hidden shrink-0">
               <button
                 type="button"
                 onClick={() => applyLayout('horizontal')}
                 title="Horizontal layout"
-                className={`p-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors ${layoutDirection === 'horizontal' ? 'bg-muted/50 text-foreground' : ''}`}
+                className={`p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors ${layoutDirection === 'horizontal' ? 'bg-muted/50 text-foreground' : ''}`}
               >
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
               <button
                 type="button"
                 onClick={() => applyLayout('vertical')}
                 title="Vertical layout"
-                className={`p-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors border-l border-border ${layoutDirection === 'vertical' ? 'bg-muted/50 text-foreground' : ''}`}
+                className={`p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors border-l border-border ${layoutDirection === 'vertical' ? 'bg-muted/50 text-foreground' : ''}`}
               >
-                <ArrowDown className="w-4 h-4" />
+                <ArrowDown className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
         </Panel>
       </ReactFlow>
     </div>
+  )
+}
+
+export function WorkflowBuilderCanvas(props: WorkflowBuilderCanvasProps) {
+  return (
+    <ReactFlowProvider>
+      <WorkflowBuilderCanvasInner {...props} />
+    </ReactFlowProvider>
   )
 }

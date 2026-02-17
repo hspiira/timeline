@@ -150,3 +150,53 @@ code {
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Workflow builder React Flow overrides ────────────────── */
+
+.workflow-canvas .react-flow__handle {
+  transition: opacity 0.15s ease, transform 0.15s ease, background-color 0.15s ease;
+}
+.workflow-canvas .react-flow__handle:hover {
+  opacity: 1 !important;
+  transform: scale(1.4);
+}
+
+.workflow-canvas .react-flow__edge-path {
+  stroke: var(--color-foreground);
+  stroke-opacity: 0.5;
+  transition: stroke-opacity 0.15s ease;
+}
+.workflow-canvas .react-flow__edge:hover .react-flow__edge-path,
+.workflow-canvas .react-flow__edge.selected .react-flow__edge-path {
+  stroke-opacity: 0.85;
+}
+
+.workflow-canvas .react-flow__edge .react-flow__edge-textwrapper {
+  pointer-events: none;
+}
+.workflow-canvas .react-flow__edge-text {
+  font-size: 10px;
+  font-weight: 500;
+  fill: var(--color-muted-foreground);
+}
+
+.workflow-canvas .react-flow__connection-path {
+  stroke: var(--color-muted-foreground);
+  stroke-width: 1.5;
+  opacity: 0.5;
+}
+
+/* Arrow marker on edges */
+.workflow-canvas .react-flow__arrowhead polyline,
+.workflow-canvas .react-flow__arrowhead polygon {
+  fill: var(--color-foreground);
+  stroke: var(--color-foreground);
+  stroke-opacity: 0.5;
+}
+
+/* Subtle node focus ring */
+.workflow-canvas .react-flow__node:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
