@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { Plus, Activity, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
 import { useEffect, useState } from 'react'
@@ -17,6 +18,9 @@ const EVENTS_PAGE_SIZE_OPTIONS = [10, 20, 50]
 const DEFAULT_EVENTS_PAGE_SIZE = 20
 
 export const Route = createFileRoute('/events/')({
+  beforeLoad: () => {
+    requireAuthBeforeLoad()
+  },
   component: EventsPage,
 })
 
@@ -31,6 +35,7 @@ function EventsPage() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [detailsEventId, setDetailsEventId] = useState<string | null>(null)
   const [documentCounts, setDocumentCounts] = useState<Record<string, number>>({})
+  const [subjectDisplayNames, setSubjectDisplayNames] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(DEFAULT_EVENTS_PAGE_SIZE)
   const [totalCount, setTotalCount] = useState<number | null>(null)
@@ -92,27 +97,44 @@ function EventsPage() {
         const validEvents = fullEvents.filter((e): e is EventResponse => e != null)
         setEvents(validEvents)
 
-        // Load document counts for current page only
-        const documentPromises = listData.map(async (item: EventListResponse) => {
-          try {
-            const { data: docs, error } = await timelineApi.documents.listByEvent(item.id)
-            if (error) {
-              console.warn(`API error loading documents for event ${item.id}:`, error)
-              return { eventId: item.id, count: 0 }
-            }
-            return { eventId: item.id, count: Array.isArray(docs) ? docs.length : 0 }
-          } catch (err) {
-            console.error(`Failed to load documents for event ${item.id}:`, err)
-            return { eventId: item.id, count: 0 }
-          }
-        })
+        const uniqueSubjectIds = [...new Set(validEvents.map((e) => e.subject_id))]
 
-        const documentResults = await Promise.all(documentPromises)
+        // Load document counts and subject display names for current page in parallel
+        const [documentResults, subjectResults] = await Promise.all([
+          Promise.all(
+            listData.map(async (item: EventListResponse) => {
+              try {
+                const { data: docs, error } = await timelineApi.documents.listByEvent(item.id)
+                if (error) {
+                  console.warn(`API error loading documents for event ${item.id}:`, error)
+                  return { eventId: item.id, count: 0 }
+                }
+                return { eventId: item.id, count: Array.isArray(docs) ? docs.length : 0 }
+              } catch (err) {
+                console.error(`Failed to load documents for event ${item.id}:`, err)
+                return { eventId: item.id, count: 0 }
+              }
+            })
+          ),
+          Promise.all(
+            uniqueSubjectIds.map(async (subjectId) => {
+              const { data } = await timelineApi.subjects.get(subjectId)
+              return { subjectId, displayName: data?.display_name ?? subjectId }
+            })
+          ),
+        ])
+
         const counts: Record<string, number> = {}
         documentResults.forEach(({ eventId, count }) => {
           counts[eventId] = count
         })
         setDocumentCounts(counts)
+
+        const names: Record<string, string> = {}
+        subjectResults.forEach(({ subjectId, displayName }) => {
+          names[subjectId] = displayName
+        })
+        setSubjectDisplayNames(names)
       }
     } catch (err) {
       setError('An unexpected error occurred')
@@ -247,6 +269,7 @@ function EventsPage() {
               events={events}
               documentCounts={documentCounts}
               showSubjectColumn
+              subjectDisplayNames={subjectDisplayNames}
               onViewDetails={(e) => setDetailsEventId(e.id)}
               onViewDocuments={(e) => setSelectedEventId(e.id)}
             />

@@ -14,10 +14,23 @@ export interface DocumentViewerProps {
 
 type ViewerState = 'loading' | 'ready' | 'error'
 
+/** API may return { url, expires_in_hours } (signed URL) or inline content. */
+function isDownloadUrlResponse(
+  data: unknown
+): data is { url: string; expires_in_hours?: number } {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'url' in data &&
+    typeof (data as { url: unknown }).url === 'string'
+  )
+}
+
 export function DocumentViewer({ documentId, filename, fileType, onClose }: DocumentViewerProps) {
   const [state, setState] = useState<ViewerState>('loading')
   const [error, setError] = useState<string | null>(null)
   const [content, setContent] = useState<Blob | null>(null)
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
 
   // Handle Escape key to close modal
   useEffect(() => {
@@ -46,24 +59,32 @@ export function DocumentViewer({ documentId, filename, fileType, onClose }: Docu
         }
 
         if (data) {
-          // Handle different data types
+          // API returns { url, expires_in_hours } for download-url endpoint
+          if (isDownloadUrlResponse(data)) {
+            setDownloadUrl(data.url)
+            setContent(null)
+            setState('ready')
+            return
+          }
+          // Inline content (legacy or different endpoint)
           if (data instanceof Blob) {
             setContent(data)
+            setDownloadUrl(null)
             setState('ready')
           } else if (data instanceof ArrayBuffer) {
-            // Convert ArrayBuffer to Blob with proper mime type
             const blob = new Blob([data], { type: fileType || 'application/octet-stream' })
             setContent(blob)
+            setDownloadUrl(null)
             setState('ready')
           } else if (typeof data === 'string') {
-            // If it's a string, convert to Blob
             const blob = new Blob([data], { type: fileType || 'application/octet-stream' })
             setContent(blob)
+            setDownloadUrl(null)
             setState('ready')
           } else {
-            // Fallback for other types
             const blob = new Blob([JSON.stringify(data)], { type: 'application/json' })
             setContent(blob)
+            setDownloadUrl(null)
             setState('ready')
           }
         }
@@ -80,43 +101,44 @@ export function DocumentViewer({ documentId, filename, fileType, onClose }: Docu
   const isImage = fileType.startsWith('image/')
   const isPdf = fileType === 'application/pdf'
   const isPreviewable = isImage || isPdf
-
+  // When API returned a URL, use it for preview (image/iframe) or show download; do not create object URL from blob
   const imageUrl = useMemo(() => {
-    if (state === 'ready' && isImage && content instanceof Blob) {
-      return URL.createObjectURL(content)
+    if (state === 'ready' && isImage) {
+      if (downloadUrl) return downloadUrl
+      if (content instanceof Blob) return URL.createObjectURL(content)
     }
-  }, [state, isImage, content])
+    return undefined
+  }, [state, isImage, content, downloadUrl])
 
   useEffect(() => {
     return () => {
-      if (imageUrl) {
+      if (imageUrl && content instanceof Blob) {
         URL.revokeObjectURL(imageUrl)
       }
     }
-  }, [imageUrl])
+  }, [imageUrl, content])
 
-  const handleDownload = async () => {
-    try {
-      const { data, error: downloadError } = await timelineApi.documents.download(documentId)
-
-      if (downloadError) {
-        setError(getApiErrorMessage(downloadError, 'Failed to download'))
-        return
-      }
-
-      if (data) {
-        const url = window.URL.createObjectURL(data as unknown as Blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = filename
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-      }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to download'
-      setError(errorMsg)
+  const handleDownload = () => {
+    if (downloadUrl) {
+      const a = document.createElement('a')
+      a.href = downloadUrl
+      a.download = filename
+      a.rel = 'noopener noreferrer'
+      a.target = '_blank'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      return
+    }
+    if (content instanceof Blob) {
+      const url = window.URL.createObjectURL(content)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
     }
   }
 
@@ -194,19 +216,36 @@ export function DocumentViewer({ documentId, filename, fileType, onClose }: Docu
                   src={imageUrl}
                   alt={filename}
                   className="max-w-full max-h-full object-contain"
+                  referrerPolicy="no-referrer"
                 />
               )}
 
               {isPdf && (
-                <div className="flex flex-col items-center justify-center gap-4">
-                  <FileIcon className="w-16 h-16 text-muted-foreground/50" />
-                  <div className="text-center">
-                    <p className="text-foreground font-medium">PDF Preview</p>
-                    <p className="text-sm text-muted-foreground mt-1">PDF preview is not available in your browser</p>
-                    <Button onClick={handleDownload} className="mt-4">
-                      Download PDF
-                    </Button>
-                  </div>
+                <div className="flex flex-col items-center justify-center gap-4 flex-1 min-h-0 w-full">
+                  {downloadUrl ? (
+                    <>
+                      <iframe
+                        src={downloadUrl}
+                        title={filename}
+                        className="w-full flex-1 min-h-[60vh] border-0 rounded-none"
+                        referrerPolicy="no-referrer"
+                      />
+                      <Button onClick={handleDownload} className="mt-4 shrink-0">
+                        Download PDF
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <FileIcon className="w-16 h-16 text-muted-foreground/50" />
+                      <div className="text-center">
+                        <p className="text-foreground font-medium">PDF Preview</p>
+                        <p className="text-sm text-muted-foreground mt-1">PDF preview is not available in your browser</p>
+                        <Button onClick={handleDownload} className="mt-4">
+                          Download PDF
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 

@@ -36,6 +36,8 @@ export interface paths {
         /**
          * Register
          * @description Register a new user with tenant_code (public endpoint). Resolves tenant by code.
+         *
+         *     Error responses are intentionally generic to avoid tenant enumeration.
          */
         post: operations["register_api_v1_auth_register_post"];
         delete?: never;
@@ -289,13 +291,17 @@ export interface paths {
         };
         /**
          * List Tenants
-         * @description List active tenants (paginated). Requires tenant:read and X-Tenant-ID header.
+         * @description Return the current tenant only (tenant:read grants access to own tenant; no cross-tenant enumeration).
          */
         get: operations["list_tenants_api_v1_tenants_get"];
         put?: never;
         /**
          * Create Tenant
-         * @description Create a new tenant with admin user and RBAC. Only name and tenant code required; admin password is auto-generated.
+         * @description Create a new tenant with admin user and RBAC.
+         *
+         *     This endpoint is protected by a shared secret header:
+         *     - Settings must define CREATE_TENANT_SECRET.
+         *     - Requests must include X-Create-Tenant-Secret matching that value.
          */
         post: operations["create_tenant_api_v1_tenants_post"];
         delete?: never;
@@ -500,7 +506,7 @@ export interface paths {
         };
         /**
          * Get Document Category
-         * @description Get document category by id (must belong to tenant).
+         * @description Get document category by id (tenant-scoped).
          */
         get: operations["get_document_category_api_v1_document_categories__category_id__get"];
         put?: never;
@@ -514,7 +520,7 @@ export interface paths {
         head?: never;
         /**
          * Update Document Category
-         * @description Update document category (partial).
+         * @description Update document category (partial, tenant-scoped).
          */
         patch: operations["update_document_category_api_v1_document_categories__category_id__patch"];
         trace?: never;
@@ -642,7 +648,10 @@ export interface paths {
         put?: never;
         /**
          * Email Account Webhook
-         * @description Provider callback (e.g. Gmail push). If EMAIL_WEBHOOK_SECRET is set, X-Webhook-Signature-256 is required.
+         * @description Provider callback (e.g. Gmail push).
+         *
+         *     EMAIL_WEBHOOK_SECRET must be set, and callers must send
+         *     X-Webhook-Signature-256: sha256=<hmac_sha256(secret, body)>.
          */
         post: operations["email_account_webhook_api_v1_email_accounts__account_id__webhook_post"];
         delete?: never;
@@ -695,6 +704,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/subjects/snapshots/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Snapshot Job
+         * @description Run batch snapshot creation for the current tenant. Call from cron or scripts.
+         */
+        post: operations["run_snapshot_job_api_v1_subjects_snapshots_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/subjects/{subject_id}/export": {
         parameters: {
             query?: never;
@@ -735,6 +764,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/subjects/{subject_id}/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Subject Snapshot
+         * @description Create or replace the subject snapshot (on-demand state checkpoint). Fails if subject has no events.
+         */
+        post: operations["create_subject_snapshot_api_v1_subjects__subject_id__snapshot_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/subjects/{subject_id}/state": {
         parameters: {
             query?: never;
@@ -744,7 +793,7 @@ export interface paths {
         };
         /**
          * Get Subject State
-         * @description Get derived state for subject (event replay). Optional as_of for time-travel.
+         * @description Get derived state for subject (event replay). Optional as_of and workflow_instance_id.
          */
         get: operations["get_subject_state_api_v1_subjects__subject_id__state_get"];
         put?: never;
@@ -767,11 +816,7 @@ export interface paths {
          * @description Get subject by id (tenant-scoped).
          */
         get: operations["get_subject_api_v1_subjects__subject_id__get"];
-        /**
-         * Update Subject
-         * @description Update subject (e.g. external_ref, display_name, attributes). Tenant-scoped.
-         */
-        put: operations["update_subject_api_v1_subjects__subject_id__put"];
+        put?: never;
         post?: never;
         /**
          * Delete Subject
@@ -780,7 +825,11 @@ export interface paths {
         delete: operations["delete_subject_api_v1_subjects__subject_id__delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update Subject
+         * @description Partial update (patch) of subject (e.g. external_ref, display_name, attributes). Tenant-scoped.
+         */
+        patch: operations["update_subject_api_v1_subjects__subject_id__patch"];
         trace?: never;
     };
     "/api/v1/subject-types": {
@@ -930,12 +979,12 @@ export interface paths {
         put?: never;
         /**
          * Assign Role To User
-         * @description Assign a role to a user (tenant-scoped). Verifies user and role exist and belong to tenant.
+         * @description Assign a role to a user (tenant-scoped). Admin role requires user_role:assign_admin; other roles require user_role:update.
          */
         post: operations["assign_role_to_user_api_v1_users__user_id__roles__role_id__post"];
         /**
          * Remove Role From User
-         * @description Remove a role from a user (tenant-scoped).
+         * @description Remove a role from a user (tenant-scoped). Admin role requires user_role:assign_admin; other roles require user_role:update.
          */
         delete: operations["remove_role_from_user_api_v1_users__user_id__roles__role_id__delete"];
         options?: never;
@@ -1006,7 +1055,7 @@ export interface paths {
         put?: never;
         /**
          * Assign Permission To Role
-         * @description Assign a permission to a role. Tenant-scoped.
+         * @description Assign a permission to a role. Tenant-scoped. Permission must belong to the same tenant. Requires role:manage_permissions (admin-only by default).
          */
         post: operations["assign_permission_to_role_api_v1_roles__role_id__permissions_post"];
         delete?: never;
@@ -1027,9 +1076,34 @@ export interface paths {
         post?: never;
         /**
          * Remove Permission From Role
-         * @description Remove a permission from a role. Tenant-scoped.
+         * @description Remove a permission from a role. Tenant-scoped. Requires role:manage_permissions (admin-only by default).
          */
         delete: operations["remove_permission_from_role_api_v1_roles__role_id__permissions__permission_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/retention/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Retention
+         * @description Run document retention for the current tenant.
+         *
+         *     For each document category that has default_retention_days set, soft-deletes
+         *     documents whose document_type matches the category and whose created_at is
+         *     older than (now - default_retention_days). Returns a summary of how many
+         *     documents were soft-deleted per category.
+         */
+        post: operations["run_retention_api_v1_retention_run_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1223,9 +1297,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                rule_id: string;
-            };
+            path?: never;
             cookie?: never;
         };
         /**
@@ -1247,26 +1319,6 @@ export interface paths {
          * @description Update event transition rule (partial). Tenant-scoped.
          */
         patch: operations["update_event_transition_rule_api_v1_event_transition_rules__rule_id__patch"];
-        trace?: never;
-    };
-    "/api/v1/retention/run": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Run Retention
-         * @description Run document retention for the current tenant.
-         */
-        post: operations["run_retention_api_v1_retention_run_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/v1/workflows": {
@@ -1649,6 +1701,8 @@ export interface components {
             skip: number;
             /** Limit */
             limit: number;
+            /** Total */
+            total: number;
         };
         /** Body_upload_document_api_v1_documents_post */
         Body_upload_document_api_v1_documents_post: {
@@ -2006,6 +2060,10 @@ export interface components {
             payload?: {
                 [key: string]: unknown;
             };
+            /** Workflow Instance Id */
+            workflow_instance_id?: string | null;
+            /** Correlation Id */
+            correlation_id?: string | null;
         };
         /**
          * EventListResponse
@@ -2023,6 +2081,10 @@ export interface components {
              * Format: date-time
              */
             event_time: string;
+            /** Workflow Instance Id */
+            workflow_instance_id?: string | null;
+            /** Correlation Id */
+            correlation_id?: string | null;
         };
         /**
          * EventResponse
@@ -2048,6 +2110,10 @@ export interface components {
             };
             /** Hash */
             hash: string;
+            /** Workflow Instance Id */
+            workflow_instance_id?: string | null;
+            /** Correlation Id */
+            correlation_id?: string | null;
         };
         /**
          * EventSchemaCreateRequest
@@ -2127,10 +2193,32 @@ export interface components {
         EventTransitionRuleCreateRequest: {
             /** Event Type */
             event_type: string;
-            /** Required Prior Event Types */
+            /**
+             * Required Prior Event Types
+             * @description All of these event types must have occurred in the stream before the event_type can be emitted.
+             */
             required_prior_event_types: string[];
             /** Description */
             description?: string | null;
+            /**
+             * Prior Event Payload Conditions
+             * @description Optional payload conditions per prior event type (last occurrence must match).
+             */
+            prior_event_payload_conditions?: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
+            } | null;
+            /**
+             * Max Occurrences Per Stream
+             * @description Max times this event type may appear in the stream.
+             */
+            max_occurrences_per_stream?: number | null;
+            /**
+             * Fresh Prior Event Type
+             * @description Require a new prior event of this type after the last emission of the current type.
+             */
+            fresh_prior_event_type?: string | null;
         };
         /**
          * EventTransitionRuleResponse
@@ -2147,16 +2235,39 @@ export interface components {
             required_prior_event_types: string[];
             /** Description */
             description: string | null;
+            /** Prior Event Payload Conditions */
+            prior_event_payload_conditions?: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
+            } | null;
+            /** Max Occurrences Per Stream */
+            max_occurrences_per_stream?: number | null;
+            /** Fresh Prior Event Type */
+            fresh_prior_event_type?: string | null;
         };
         /**
          * EventTransitionRuleUpdate
          * @description Request body for PATCH (partial update).
          */
         EventTransitionRuleUpdate: {
-            /** Required Prior Event Types */
+            /**
+             * Required Prior Event Types
+             * @description Replace the list of required prior event types.
+             */
             required_prior_event_types?: string[] | null;
             /** Description */
             description?: string | null;
+            /** Prior Event Payload Conditions */
+            prior_event_payload_conditions?: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
+            } | null;
+            /** Max Occurrences Per Stream */
+            max_occurrences_per_stream?: number | null;
+            /** Fresh Prior Event Type */
+            fresh_prior_event_type?: string | null;
         };
         /**
          * EventVerificationResult
@@ -2184,6 +2295,26 @@ export interface components {
             expected_hash?: string | null;
             /** Actual Hash */
             actual_hash?: string | null;
+        };
+        /**
+         * ExportSubjectResponse
+         * @description Response for subject data export (GDPR): subject, events, document refs (no binary).
+         */
+        ExportSubjectResponse: {
+            /** Subject */
+            subject: {
+                [key: string]: unknown;
+            };
+            /** Events */
+            events: {
+                [key: string]: unknown;
+            }[];
+            /** Documents */
+            documents: {
+                [key: string]: unknown;
+            }[];
+            /** Exported At */
+            exported_at: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -2453,13 +2584,13 @@ export interface components {
         };
         /**
          * RetentionRunResponse
-         * @description Response for POST /retention/run (soft-delete summary).
+         * @description Response after running document retention for the current tenant.
          */
         RetentionRunResponse: {
             /** Tenant Id */
             tenant_id: string;
             /** Soft Deleted By Category */
-            soft_deleted_by_category?: {
+            soft_deleted_by_category: {
                 [key: string]: number;
             };
             /** Total Soft Deleted */
@@ -2545,8 +2676,9 @@ export interface components {
             /**
              * Resource Type
              * @description subject | event | document
+             * @enum {string}
              */
-            resource_type: string;
+            resource_type: "subject" | "event" | "document";
             /** Id */
             id: string;
             /** Tenant Id */
@@ -2557,6 +2689,24 @@ export interface components {
             subject_id?: string | null;
             /** Display Title */
             display_title: string;
+        };
+        /**
+         * SnapshotRunResponse
+         * @description Response after running the batch snapshot job for the current tenant.
+         */
+        SnapshotRunResponse: {
+            /** Tenant Id */
+            tenant_id: string;
+            /** Subjects Processed */
+            subjects_processed: number;
+            /** Snapshots Created Or Updated */
+            snapshots_created_or_updated: number;
+            /** Skipped No Events */
+            skipped_no_events: number;
+            /** Error Count */
+            error_count: number;
+            /** Error Subject Ids */
+            error_subject_ids?: string[];
         };
         /**
          * SubjectCreateRequest
@@ -2583,8 +2733,9 @@ export interface components {
              * Strategy
              * @description anonymize (redact PII) or delete (remove subject and documents)
              * @default anonymize
+             * @enum {string}
              */
-            strategy: string;
+            strategy: "anonymize" | "delete";
         };
         /**
          * SubjectResponse
@@ -2600,11 +2751,30 @@ export interface components {
             /** External Ref */
             external_ref: string | null;
             /** Display Name */
-            display_name: string;
+            display_name?: string | null;
             /** Attributes */
-            attributes: {
+            attributes?: {
                 [key: string]: unknown;
-            };
+            } | null;
+        };
+        /**
+         * SubjectSnapshotResponse
+         * @description Created or updated subject snapshot (on-demand checkpoint).
+         */
+        SubjectSnapshotResponse: {
+            /** Id */
+            id: string;
+            /** Subject Id */
+            subject_id: string;
+            /** Snapshot At Event Id */
+            snapshot_at_event_id: string;
+            /** Event Count At Snapshot */
+            event_count_at_snapshot: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /**
          * SubjectStateResponse
@@ -2759,14 +2929,15 @@ export interface components {
          * TenantCreateRequest
          * @description Request body for creating a new tenant with admin user.
          *
-         *     Only name and tenant code are required. Admin password is auto-generated
-         *     and returned in the response. Tenant code is normalized: lowercase,
-         *     spaces replaced with '-'.
+         *     Code and name are required. Optionally provide admin_initial_password
+         *     (min 8 chars); if not provided, a password is generated but not returned
+         *     (admin must use password reset or another flow for first access).
+         *     Tenant code is normalized: lowercase, spaces replaced with '-'.
          */
         TenantCreateRequest: {
             /**
              * Code
-             * @description Unique tenant code (normalized to lowercase, hyphen-separated)
+             * @description Unique tenant code (normalized to lowercase, hyphen-separated slug)
              */
             code: string;
             /**
@@ -2774,10 +2945,15 @@ export interface components {
              * @description Display name
              */
             name: string;
+            /**
+             * Admin Initial Password
+             * @description Optional initial admin password (min 8 chars); if set, used and never returned in response
+             */
+            admin_initial_password?: string | null;
         };
         /**
          * TenantCreateResponse
-         * @description Response after tenant creation. Includes generated admin password (show once, then change).
+         * @description Response after tenant creation. Admin password is never returned (use admin_initial_password in request or password reset).
          */
         TenantCreateResponse: {
             /** Tenant Id */
@@ -2788,12 +2964,6 @@ export interface components {
             tenant_name: string;
             /** Admin Username */
             admin_username: string;
-            /**
-             * Admin Password
-             * Format: password
-             * @description Auto-generated; show once to the user
-             */
-            admin_password: string;
         };
         /**
          * TenantResponse
@@ -3524,10 +3694,7 @@ export interface operations {
     };
     list_tenants_api_v1_tenants_get: {
         parameters: {
-            query?: {
-                skip?: number;
-                limit?: number;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -3541,15 +3708,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TenantResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -4515,6 +4673,38 @@ export interface operations {
             };
         };
     };
+    run_snapshot_job_api_v1_subjects_snapshots_run_post: {
+        parameters: {
+            query?: {
+                /** @description Max subjects to process */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SnapshotRunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     export_subject_data_api_v1_subjects__subject_id__export_post: {
         parameters: {
             query?: never;
@@ -4532,7 +4722,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ExportSubjectResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4579,11 +4769,44 @@ export interface operations {
             };
         };
     };
+    create_subject_snapshot_api_v1_subjects__subject_id__snapshot_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectSnapshotResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_subject_state_api_v1_subjects__subject_id__state_get: {
         parameters: {
             query?: {
                 /** @description ISO8601 datetime for time-travel (state as of this time) */
                 as_of?: string | null;
+                /** @description Scope state to this workflow instance (stream). */
+                workflow_instance_id?: string | null;
             };
             header?: never;
             path: {
@@ -4644,7 +4867,36 @@ export interface operations {
             };
         };
     };
-    update_subject_api_v1_subjects__subject_id__put: {
+    delete_subject_api_v1_subjects__subject_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_subject_api_v1_subjects__subject_id__patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -4667,35 +4919,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SubjectResponse"];
                 };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_subject_api_v1_subjects__subject_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                subject_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -5301,6 +5524,26 @@ export interface operations {
             };
         };
     };
+    run_retention_api_v1_retention_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetentionRunResponse"];
+                };
+            };
+        };
+    };
     list_permissions_api_v1_permissions_get: {
         parameters: {
             query?: {
@@ -5692,27 +5935,56 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful Response */
             200: {
-                headers: { [name: string]: unknown };
-                content: { "application/json": components["schemas"]["EventTransitionRuleResponse"][] };
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventTransitionRuleResponse"][];
+                };
             };
+            /** @description Validation Error */
             422: {
-                headers: { [name: string]: unknown };
-                content: { "application/json": components["schemas"]["HTTPValidationError"] };
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
     create_event_transition_rule_api_v1_event_transition_rules_post: {
-        parameters: { query?: never; header?: never; path?: never; cookie?: never };
-        requestBody: { content: { "application/json": components["schemas"]["EventTransitionRuleCreateRequest"] } };
-        responses: {
-            201: {
-                headers: { [name: string]: unknown };
-                content: { "application/json": components["schemas"]["EventTransitionRuleResponse"] };
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventTransitionRuleCreateRequest"];
             };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventTransitionRuleResponse"];
+                };
+            };
+            /** @description Validation Error */
             422: {
-                headers: { [name: string]: unknown };
-                content: { "application/json": components["schemas"]["HTTPValidationError"] };
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
@@ -5720,37 +5992,30 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path: { rule_id: string };
+            path: {
+                rule_id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Successful Response */
             200: {
-                headers: { [name: string]: unknown };
-                content: { "application/json": components["schemas"]["EventTransitionRuleResponse"] };
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventTransitionRuleResponse"];
+                };
             };
+            /** @description Validation Error */
             422: {
-                headers: { [name: string]: unknown };
-                content: { "application/json": components["schemas"]["HTTPValidationError"] };
-            };
-        };
-    };
-    update_event_transition_rule_api_v1_event_transition_rules__rule_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: { rule_id: string };
-            cookie?: never;
-        };
-        requestBody: { content: { "application/json": components["schemas"]["EventTransitionRuleUpdate"] } };
-        responses: {
-            200: {
-                headers: { [name: string]: unknown };
-                content: { "application/json": components["schemas"]["EventTransitionRuleResponse"] };
-            };
-            422: {
-                headers: { [name: string]: unknown };
-                content: { "application/json": components["schemas"]["HTTPValidationError"] };
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
@@ -5758,29 +6023,63 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path: { rule_id: string };
+            path: {
+                rule_id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            204: { headers: { [name: string]: unknown }; content?: never };
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
             422: {
-                headers: { [name: string]: unknown };
-                content: { "application/json": components["schemas"]["HTTPValidationError"] };
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
-    run_retention_api_v1_retention_run_post: {
-        parameters: { query?: never; header?: never; path?: never; cookie?: never };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: { [name: string]: unknown };
-                content: { "application/json": components["schemas"]["RetentionRunResponse"] };
+    update_event_transition_rule_api_v1_event_transition_rules__rule_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: string;
             };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventTransitionRuleUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventTransitionRuleResponse"];
+                };
+            };
+            /** @description Validation Error */
             422: {
-                headers: { [name: string]: unknown };
-                content: { "application/json": components["schemas"]["HTTPValidationError"] };
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

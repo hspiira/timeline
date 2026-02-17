@@ -1,9 +1,13 @@
 import { createFileRoute, Outlet, useLocation, useNavigate } from '@tanstack/react-router'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useHasAuditAccess } from '@/hooks/useHasAuditAccess'
 import { Shield, Database, Zap, Users, KeyRound, Layers, FolderOpen, ClipboardList, GitBranch } from 'lucide-react'
 
 export const Route = createFileRoute('/settings')({
+  beforeLoad: () => {
+    requireAuthBeforeLoad()
+  },
   component: SettingsLayout,
 })
 

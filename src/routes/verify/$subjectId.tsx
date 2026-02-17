@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useEffect, useCallback } from 'react'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useFetchWithError } from '@/hooks/useFetchWithError'
@@ -11,11 +12,12 @@ import { SkeletonBreadcrumbs, Skeleton } from '@/components/ui/Skeleton'
 import type { components } from '@/lib/timeline-api'
 import { Button } from '@/components/ui/button'
 
-export const Route = createFileRoute('/verify/$subjectId')(
-  {
-    component: VerifyPage,
-  }
-)
+export const Route = createFileRoute('/verify/$subjectId')({
+  beforeLoad: () => {
+    requireAuthBeforeLoad()
+  },
+  component: VerifyPage,
+})
 
 type ChainVerificationResponse = components['schemas']['ChainVerificationResponse']
 

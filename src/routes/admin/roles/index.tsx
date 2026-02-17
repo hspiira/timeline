@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useEffect, useState, useCallback } from 'react'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
@@ -18,6 +19,9 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/admin/roles/')({
+  beforeLoad: () => {
+    requireAuthBeforeLoad()
+  },
   component: RolesPage,
 })
 

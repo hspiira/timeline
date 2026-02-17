@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useState, useEffect } from 'react'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
@@ -10,6 +11,9 @@ import SubjectSelector from '@/components/subjects/SubjectSelector'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/email-accounts/create')({
+  beforeLoad: () => {
+    requireAuthBeforeLoad()
+  },
   component: CreateEmailAccountPage,
 })
 

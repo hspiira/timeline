@@ -14,6 +14,13 @@ export const env = createEnv({
 
   client: {
     VITE_APP_TITLE: z.string().min(1).optional(),
+    /** API base URL (e.g. https://api.example.com). Defaults to http://localhost:8000 in dev. */
+    VITE_API_URL: z.string().url().optional(),
+    /**
+     * Tenant creation secret sent as X-Create-Tenant-Secret for POST /tenants.
+     * Dev/demo only — never set the real secret in production (it would be exposed in the client bundle).
+     */
+    VITE_CREATE_TENANT_SECRET: z.string().optional(),
   },
 
   /**

@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useEffect, useState, useMemo } from 'react'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { timelineApi } from '@/lib/api-client'
@@ -17,6 +18,9 @@ import { Link } from '@tanstack/react-router'
 import { formatFullDateTime } from '@/lib/format-date'
 
 export const Route = createFileRoute('/events/create')({
+  beforeLoad: () => {
+    requireAuthBeforeLoad()
+  },
   component: CreateEventPage,
 })
 

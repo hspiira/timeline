@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useEffect, useState } from 'react'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { CheckCircle, XCircle, Mail, AlertTriangle } from 'lucide-react'
@@ -6,6 +7,9 @@ import { Button } from '@/components/ui/button'
 import { LoadingIcon } from '@/components/ui/icons'
 
 export const Route = createFileRoute('/email-accounts/oauth/callback')({
+  beforeLoad: () => {
+    requireAuthBeforeLoad()
+  },
   component: OAuthCallbackPage,
   validateSearch: (search: Record<string, unknown>) => ({
     // Success params (from backend redirect)
@@ -58,15 +62,9 @@ function OAuthCallbackPage() {
     return null
   }
 
-  const handleViewAccount = () => {
-    if (searchParams.email_account_id) {
-      navigate({
-        to: '/email-accounts/$accountId',
-        params: { accountId: searchParams.email_account_id },
-      })
-    } else {
-      navigate({ to: '/email-accounts' })
-    }
+  // Security: do not trust email_account_id from URL; always go to list (backend enforces ownership on account endpoints).
+  const handleViewAccounts = () => {
+    navigate({ to: '/email-accounts' })
   }
 
   const handleTryAgain = () => {
@@ -146,11 +144,8 @@ function OAuthCallbackPage() {
           <p className="text-xs text-muted-foreground mb-6 capitalize">Provider: {searchParams.provider}</p>
         )}
         <div className="flex items-center justify-center gap-2">
-          <Button onClick={handleViewAccount} variant="primary" size="md">
-            View Account
-          </Button>
-          <Button onClick={() => navigate({ to: '/email-accounts' })} variant="secondary" size="md">
-            All Accounts
+          <Button onClick={handleViewAccounts} variant="primary" size="md">
+            Back to Email Accounts
           </Button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { Calendar, Tag, AlertCircle, Boxes, FileText, Shield, ChevronLeft, ChevronRight, Upload, Download, Trash2, Database } from 'lucide-react'
 import { useEffect, useState, useCallback } from 'react'
 import { useStore } from '@tanstack/react-store'
@@ -24,6 +25,9 @@ const PAGE_SIZE = 10
 type Tab = 'events' | 'documents' | 'state'
 
 export const Route = createFileRoute('/subjects/$subjectId')({
+  beforeLoad: () => {
+    requireAuthBeforeLoad()
+  },
   component: SubjectDetailPage,
   validateSearch: (search: Record<string, unknown>) => ({
     tab: (search.tab === 'documents' ? 'documents' : search.tab === 'state' ? 'state' : 'events') as Tab,

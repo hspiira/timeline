@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useState, useCallback, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
@@ -10,6 +11,9 @@ import { Select } from '@/components/ui/select'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/search/')({
+  beforeLoad: () => {
+    requireAuthBeforeLoad()
+  },
   validateSearch: (search: Record<string, unknown>) => ({
     q: typeof search.q === 'string' ? search.q : '',
     scope: (typeof search.scope === 'string' && ['all', 'subjects', 'events', 'documents'].includes(search.scope))

@@ -304,7 +304,7 @@ function DocumentCategoriesPage() {
           title={
             editing ? 'Edit Document Category' : 'Create Document Category'
           }
-          maxWidth="max-w-lg"
+          maxWidth="max-w-2xl"
           footer={
             <form
               onSubmit={(e) => {
@@ -324,7 +324,7 @@ function DocumentCategoriesPage() {
             </form>
           }
         >
-          <div className="space-y-4">
+          <div className="space-y-3">
             <FormField label="Category name" required>
               <FormInput
                 value={category_name}
@@ -348,8 +348,8 @@ function DocumentCategoriesPage() {
               />
             </FormField>
             <FormField
-              label="Metadata schema (JSON)"
-              hint="Optional JSON Schema for document metadata"
+              label="Metadata schema"
+              hint="Optional: JSON Schema for document metadata. Use valid JSON."
             >
               <FormTextarea
                 value={metadataSchemaJson}
@@ -371,15 +371,17 @@ function DocumentCategoriesPage() {
                 placeholder="e.g. 365"
               />
             </FormField>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={is_active}
-                onChange={(e) => setIsActive(e.target.checked)}
-                className="rounded border-input"
-              />
-              <span className="text-sm">Active</span>
-            </label>
+            <div className="grid grid-cols-3 gap-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={is_active}
+                  onChange={(e) => setIsActive(e.target.checked)}
+                  className="rounded border-input"
+                />
+                <span className="text-sm">Active</span>
+              </label>
+            </div>
           </div>
         </Modal>
       )}
@@ -394,7 +396,7 @@ function DocumentCategoriesPage() {
           cancelText="Cancel"
           isDestructive={true}
           details={{
-            Category: deleting.category_name,
+            'Category': deleting.category_name,
             'Display name': deleting.display_name || '—',
           }}
           onConfirm={handleDeleteConfirm}

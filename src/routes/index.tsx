@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useStore } from '@tanstack/react-store'
 import { authStore } from '@/lib/auth-store'
@@ -14,6 +15,9 @@ import type { WorkflowResponse } from '@/lib/types'
 type DashboardStatsResponse = components['schemas']['DashboardStatsResponse']
 
 export const Route = createFileRoute('/')({
+  beforeLoad: () => {
+    requireAuthBeforeLoad()
+  },
   component: HomePage,
 })
 

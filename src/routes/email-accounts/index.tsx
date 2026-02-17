@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useState, useEffect } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
@@ -17,6 +18,9 @@ import {
 } from '@/hooks/useSyncProgress'
 
 export const Route = createFileRoute('/email-accounts/')({
+  beforeLoad: () => {
+    requireAuthBeforeLoad()
+  },
   component: EmailAccountsPage,
 })
 

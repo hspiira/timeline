@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { Calendar, Tag, AlertCircle, Activity, FileText, Shield, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { useEffect, useState, useCallback } from 'react'
 import { useStore } from '@tanstack/react-store'
@@ -20,6 +21,9 @@ import { Button } from '@/components/ui/button'
 const PAGE_SIZE = 50
 
 export const Route = createFileRoute('/events/subject/$subjectId')({
+  beforeLoad: () => {
+    requireAuthBeforeLoad()
+  },
   component: SubjectEventsPage,
 })
 

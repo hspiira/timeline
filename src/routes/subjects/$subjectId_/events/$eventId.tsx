@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useEffect, useState } from 'react'
 import {
   ArrowLeft,
@@ -25,6 +26,9 @@ import { LoadingIcon } from '@/components/ui/icons'
 import type { EventResponse, EventListResponse } from '@/lib/types'
 
 export const Route = createFileRoute('/subjects/$subjectId_/events/$eventId')({
+  beforeLoad: () => {
+    requireAuthBeforeLoad()
+  },
   component: EventDetailPage,
 })
 

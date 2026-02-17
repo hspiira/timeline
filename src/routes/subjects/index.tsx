@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import {
   Plus,
   Users,
@@ -27,6 +28,9 @@ import { LoadingIcon } from '@/components/ui/icons'
 import type { SubjectWithMetadata } from '@/hooks/useSubjects'
 
 export const Route = createFileRoute('/subjects/')({
+  beforeLoad: () => {
+    requireAuthBeforeLoad()
+  },
   component: SubjectsPage,
 })
 

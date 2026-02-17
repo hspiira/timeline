@@ -53,6 +53,16 @@ client.use({
     if (currentTenantId) {
       request.headers.set('X-Tenant-ID', currentTenantId)
     }
+    // Tenant creation: backend requires X-Create-Tenant-Secret when CREATE_TENANT_SECRET is set (dev/demo only)
+    const createTenantSecret = import.meta.env.VITE_CREATE_TENANT_SECRET
+    if (
+      typeof createTenantSecret === 'string' &&
+      createTenantSecret &&
+      request.method === 'POST' &&
+      request.url.includes('/api/v1/tenants')
+    ) {
+      request.headers.set('X-Create-Tenant-Secret', createTenantSecret)
+    }
     if (request.body && !(request.body instanceof FormData)) {
       request.headers.set('Content-Type', 'application/json')
     } else if (request.body instanceof FormData) {
@@ -118,12 +128,13 @@ export const timelineApi = {
   },
 
   tenants: {
-    list: (params?: { skip?: number; limit?: number; active_only?: boolean }) =>
-      client.GET('/api/v1/tenants', { params: { query: params } }),
+    /** Backend returns current tenant only (no query params). */
+    list: () => client.GET('/api/v1/tenants'),
     get: (id: string) =>
       client.GET('/api/v1/tenants/{tenant_id}', {
         params: { path: { tenant_id: id } },
       }),
+    /** Create tenant (requires X-Create-Tenant-Secret when backend CREATE_TENANT_SECRET is set). admin_initial_password optional; if set, used and never returned. */
     create: (data: components['schemas']['TenantCreateRequest']) =>
       client.POST('/api/v1/tenants', { body: data }),
     update: (id: string, data: components['schemas']['TenantUpdate']) =>
@@ -224,7 +235,7 @@ export const timelineApi = {
     create: (data: components['schemas']['SubjectCreateRequest']) =>
       client.POST('/api/v1/subjects', { body: data }),
     update: (id: string, data: components['schemas']['SubjectUpdate']) =>
-      client.PUT('/api/v1/subjects/{subject_id}', {
+      client.PATCH('/api/v1/subjects/{subject_id}', {
         params: { path: { subject_id: id } },
         body: data,
       }),

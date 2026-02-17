@@ -7,7 +7,7 @@ import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { timelineApi } from '@/lib/api-client'
 import { Plus, Play, Pause, Trash2, CheckCircle, SquarePen, Network } from 'lucide-react'
 import { WorkflowCreateModalGraph } from '@/components/workflows/WorkflowCreateModalGraph'
-import { WorkflowEditModal } from '@/components/workflows/WorkflowEditModal'
+import { WorkflowEditModalGraph } from '@/components/workflows/WorkflowEditModalGraph'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { ErrorModal } from '@/components/ui/ErrorModal'
 import { DataTable } from '@/components/ui/DataTable'
@@ -313,7 +313,7 @@ function WorkflowsPage() {
 
       {/* Edit Workflow Modal */}
       {editingWorkflow && !hasNoAccess && (
-        <WorkflowEditModal
+        <WorkflowEditModalGraph
           workflow={editingWorkflow}
           onClose={() => setEditingWorkflow(null)}
           onSave={handleUpdateWorkflow}

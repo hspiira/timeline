@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useState, useCallback } from 'react'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { timelineApi } from '@/lib/api-client'
@@ -9,6 +10,9 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/verify/tenant')({
+  beforeLoad: () => {
+    requireAuthBeforeLoad()
+  },
   component: VerifyTenantPage,
 })
 

@@ -6,7 +6,10 @@ import { formatEventDate, formatEventTime } from '@/lib/format-date'
 export interface EventsTableProps {
   events: EventResponse[]
   documentCounts?: Record<string, number>
+  /** When true, shows a Subject column. Pass subjectDisplayNames to show display names instead of ids. */
   showSubjectColumn?: boolean
+  /** Map of subject_id -> display_name for the Subject column. Falls back to subject_id when missing. */
+  subjectDisplayNames?: Record<string, string>
   onViewDetails?: (event: EventResponse) => void
   onViewDocuments?: (event: EventResponse) => void
 }
@@ -21,6 +24,7 @@ export function EventsTable({
   events,
   documentCounts = {},
   showSubjectColumn = false,
+  subjectDisplayNames,
   onViewDetails,
   onViewDocuments,
 }: EventsTableProps) {
@@ -72,14 +76,15 @@ export function EventsTable({
                   </span>
                 </td>
                 {showSubjectColumn && (
-                  <td className="py-2 px-4">
+                  <td className="py-2 px-4 max-w-[180px]">
                     <Link
                       to="/subjects/$subjectId"
                       params={{ subjectId: event.subject_id }}
                       search={{ tab: 'events' }}
-                      className="font-mono text-xs truncate max-w-[140px] inline-block text-muted-foreground hover:text-[var(--dashboard-accent)] transition-colors"
+                      className="text-sm truncate block text-muted-foreground hover:text-[var(--dashboard-accent)] transition-colors"
+                      title={subjectDisplayNames?.[event.subject_id] ? event.subject_id : undefined}
                     >
-                      {event.subject_id}
+                      {subjectDisplayNames?.[event.subject_id] ?? event.subject_id}
                     </Link>
                   </td>
                 )}

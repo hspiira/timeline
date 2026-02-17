@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useStore } from '@tanstack/react-store'
-import { ArrowLeft, CheckCircle, AlertTriangle, Copy, Check } from 'lucide-react'
+import { ArrowLeft, CheckCircle } from 'lucide-react'
 import { authStore, authActions } from '@/lib/auth-store'
 import { useRedirectIfAuthenticated } from '@/lib/hooks'
 import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
@@ -12,12 +12,12 @@ export const Route = createFileRoute('/register')({
   component: RegisterTenantPage,
 })
 
+/** Backend returns this after tenant creation; admin password is never returned (user sets it in the form). */
 interface TenantCreationResult {
   tenant_id: string
   tenant_code: string
   tenant_name: string
   admin_username: string
-  admin_password: string
 }
 
 function RegisterTenantPage() {
@@ -25,16 +25,9 @@ function RegisterTenantPage() {
   const authState = useStore(authStore)
   const [tenantCode, setTenantCode] = useState('')
   const [tenantName, setTenantName] = useState('')
+  const [adminPassword, setAdminPassword] = useState('')
+  const [showAdminPassword, setShowAdminPassword] = useState(false)
   const [createdTenant, setCreatedTenant] = useState<TenantCreationResult | null>(null)
-  const [copiedPassword, setCopiedPassword] = useState(false)
-
-  const copyPassword = () => {
-    if (createdTenant) {
-      navigator.clipboard.writeText(createdTenant.admin_password)
-      setCopiedPassword(true)
-      setTimeout(() => setCopiedPassword(false), 2000)
-    }
-  }
 
   // Redirect if already logged in
   const isAuthenticated = useRedirectIfAuthenticated()
@@ -47,9 +40,9 @@ function RegisterTenantPage() {
       const result = await authActions.registerTenant({
         code: tenantCode,
         name: tenantName,
+        admin_initial_password: adminPassword.trim() || undefined,
       })
 
-      // Show the admin credentials
       setCreatedTenant(result)
     } catch (error) {
       console.error('Tenant registration failed:', error)
@@ -105,31 +98,9 @@ function RegisterTenantPage() {
               </div>
             </div>
 
-            {/* Password with Warning */}
-            <div className="bg-muted/50 border border-border rounded-none p-4 mb-6">
-              <div className="flex items-start gap-2 mb-3">
-                <AlertTriangle className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-                <p className="text-xs text-muted-foreground">
-                  Save this password now. It won't be shown again.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 text-sm font-mono text-foreground bg-card px-3 py-2 rounded-none border border-border break-all">
-                  {createdTenant.admin_password}
-                </code>
-                <button
-                  onClick={copyPassword}
-                  className="p-2 hover:bg-muted rounded-none transition-colors shrink-0"
-                  title="Copy password"
-                >
-                  {copiedPassword ? (
-                    <Check className="w-4 h-4 text-primary" />
-                  ) : (
-                    <Copy className="w-4 h-4 text-muted-foreground" />
-                  )}
-                </button>
-              </div>
-            </div>
+            <p className="text-sm text-muted-foreground mb-6">
+              Use the password you entered to sign in.
+            </p>
 
             {/* Continue Button */}
             <Button onClick={handleContinueToLogin} className="w-full">
@@ -219,6 +190,50 @@ function RegisterTenantPage() {
               />
               <p className="mt-1 text-xs text-muted-foreground">
                 Unique identifier for your organization (lowercase, no spaces)
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="admin-password"
+                className="block text-sm font-medium text-foreground mb-1.5"
+              >
+                Admin password
+              </label>
+              <div className="relative">
+                <Input
+                  id="admin-password"
+                  type={showAdminPassword ? 'text' : 'password'}
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  placeholder="••••••••"
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAdminPassword(!showAdminPassword)}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 px-2 text-muted-foreground hover:text-foreground"
+                  aria-label={showAdminPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showAdminPassword ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </Button>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                At least 8 characters. You will use this to sign in as the admin user.
               </p>
             </div>
 

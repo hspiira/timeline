@@ -85,7 +85,11 @@ export const authActions = {
     }
   },
 
-  async registerTenant(data: { code: string; name: string }) {
+  async registerTenant(data: {
+    code: string
+    name: string
+    admin_initial_password?: string
+  }) {
     authStore.setState((state) => ({ ...state, isLoading: true, error: null }))
 
     try {
@@ -98,6 +102,7 @@ export const authActions = {
       }
 
       authStore.setState((state) => ({ ...state, isLoading: false }))
+      // Backend returns { tenant_id, tenant_code, tenant_name, admin_username } — no password
       return response.data
     } catch (error) {
       const errorMessage =
