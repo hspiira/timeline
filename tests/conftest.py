@@ -4,17 +4,23 @@ Uses app.main:app for HTTP tests and app.infrastructure.persistence.database
 for DB-dependent fixtures. All imports use app.*.
 """
 
+import os
 import uuid
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.infrastructure.persistence.database import (
     AsyncSessionLocal,
     _ensure_engine,
 )
 from app.main import app
+
+# When CREATE_TENANT_SECRET is not set, tests that create tenants set this so
+# POST /api/v1/tenants succeeds. The app reads settings on each request.
+_TEST_CREATE_TENANT_SECRET = "test-create-tenant-secret"
 
 
 @pytest.fixture
@@ -57,10 +63,17 @@ async def auth_headers(client: AsyncClient) -> dict[str, str] | None:
         pytest.skip(
             "Postgres not configured: set DATABASE_BACKEND=postgres and DATABASE_URL"
         )
+    # Ensure tenant creation is allowed in tests (secret required by endpoint).
+    if "CREATE_TENANT_SECRET" not in os.environ:
+        os.environ["CREATE_TENANT_SECRET"] = _TEST_CREATE_TENANT_SECRET
+        get_settings.cache_clear()
+    secret = os.environ.get("CREATE_TENANT_SECRET", _TEST_CREATE_TENANT_SECRET)
+
     code = f"test-{uuid.uuid4().hex[:12]}"
     create_resp = await client.post(
         "/api/v1/tenants",
         json={"code": code, "name": f"Test Tenant {code}"},
+        headers={"X-Create-Tenant-Secret": secret},
     )
     if create_resp.status_code != 201:
         pytest.skip(f"Could not create test tenant: {create_resp.status_code} {create_resp.text}")

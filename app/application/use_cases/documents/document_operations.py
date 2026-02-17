@@ -18,6 +18,7 @@ from app.application.dtos.document import (
 from app.application.interfaces.repositories import (
     IDocumentRepository,
     ITenantRepository,
+    ISubjectRepository,
 )
 from app.application.interfaces.storage import IStorageService
 from app.domain.exceptions import (
@@ -70,12 +71,14 @@ class DocumentUploadService:
         tenant_repo: ITenantRepository,
         category_repo: "IDocumentCategoryRepository | None" = None,
         metadata_validator: "DocumentCategoryMetadataValidator | None" = None,
+        subject_repo: ISubjectRepository | None = None,
     ) -> None:
         self.storage = storage_service
         self.document_repo = document_repo
         self.tenant_repo = tenant_repo
         self.category_repo = category_repo
         self.metadata_validator = metadata_validator
+        self.subject_repo = subject_repo
 
     def _generate_storage_ref(
         self,
@@ -118,6 +121,14 @@ class DocumentUploadService:
         tenant = await self.tenant_repo.get_by_id(tenant_id)
         if not tenant:
             raise ResourceNotFoundException("tenant", tenant_id)
+
+        # Ensure subject exists and belongs to the tenant when a subject repo is available.
+        if self.subject_repo is not None:
+            subject = await self.subject_repo.get_by_id_and_tenant(
+                subject_id, tenant_id
+            )
+            if not subject:
+                raise ResourceNotFoundException("subject", subject_id)
 
         checksum, file_size = await self._compute_checksum_and_size(file_data)
         _rewind_if_seekable(file_data)

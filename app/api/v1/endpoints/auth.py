@@ -36,17 +36,27 @@ async def register(
     user_repo: Annotated[UserRepository, Depends(get_user_repo_for_write)],
     tenant_repo: Annotated[TenantRepository, Depends(get_tenant_repo)],
 ):
-    """Register a new user with tenant_code (public endpoint). Resolves tenant by code."""
-    tenant = await tenant_repo.get_by_code(body.tenant_code)
-    if not tenant:
-        raise HTTPException(status_code=400, detail="Invalid tenant code")
-    user = await user_repo.create_user(
-        tenant_id=tenant.id,
-        username=body.username,
-        email=body.email,
-        password=body.password,
-    )
-    return UserResponse.model_validate(user)
+    """Register a new user with tenant_code (public endpoint). Resolves tenant by code.
+
+    Error responses are intentionally generic to avoid tenant enumeration.
+    """
+    try:
+        tenant = await tenant_repo.get_by_code(body.tenant_code)
+        if not tenant:
+            raise HTTPException(status_code=400, detail="Registration failed")
+        user = await user_repo.create_user(
+            tenant_id=tenant.id,
+            username=body.username,
+            email=body.email,
+            password=body.password,
+        )
+        return UserResponse.model_validate(user)
+    except HTTPException:
+        # Re-raise our own HTTPExceptions unchanged.
+        raise
+    except Exception:
+        # Hide specific failure reasons (e.g. duplicate user/email) behind a generic message.
+        raise HTTPException(status_code=400, detail="Registration failed")
 
 
 @router.post("/login", response_model=TokenResponse)

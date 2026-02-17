@@ -75,6 +75,12 @@ class Settings(BaseSettings):
     # X-Webhook-Signature-256: sha256=<hex(hmac_sha256(secret, body))>.
     email_webhook_secret: SecretStr | None = None
 
+    # Tenant creation: optional shared secret for POST /api/v1/tenants.
+    # When set, the endpoint requires X-Create-Tenant-Secret header to match.
+    # In production, this should be set; when unset, tenant creation can be
+    # disabled at the route level.
+    create_tenant_secret: SecretStr | None = None
+
     # Request / middleware
     request_timeout_seconds: int = 60
     request_id_header: str = "X-Request-ID"

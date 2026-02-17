@@ -1,6 +1,13 @@
 """Tests for auth endpoints (validation and error responses; no DB for success path)."""
 
+import os
+import uuid
+
+import pytest
 from httpx import AsyncClient
+
+from app.core.config import get_settings
+from tests.conftest import _TEST_CREATE_TENANT_SECRET
 
 
 async def test_login_missing_body_returns_422(client: AsyncClient) -> None:
@@ -70,3 +77,67 @@ async def test_register_invalid_email_returns_422(client: AsyncClient) -> None:
         },
     )
     assert response.status_code == 422
+
+
+async def test_register_invalid_tenant_code_returns_400_generic(
+    client: AsyncClient,
+) -> None:
+    """POST /api/v1/auth/register with unknown tenant_code returns 400 with generic message (no enumeration)."""
+    response = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "tenant_code": "nonexistent-tenant-code-xyz",
+            "username": "user",
+            "email": "user@example.com",
+            "password": "password123",
+        },
+    )
+    assert response.status_code == 400
+    assert response.json().get("message") == "Registration failed"
+
+
+@pytest.mark.requires_db
+async def test_register_duplicate_user_returns_400_generic(client: AsyncClient) -> None:
+    """POST /api/v1/auth/register with existing email returns 400 with generic message (no enumeration)."""
+    from app.infrastructure.persistence.database import AsyncSessionLocal, _ensure_engine
+
+    _ensure_engine()
+    if AsyncSessionLocal is None:
+        pytest.skip("Postgres not configured")
+
+    if "CREATE_TENANT_SECRET" not in os.environ:
+        os.environ["CREATE_TENANT_SECRET"] = _TEST_CREATE_TENANT_SECRET
+        get_settings.cache_clear()
+    secret = os.environ.get("CREATE_TENANT_SECRET", _TEST_CREATE_TENANT_SECRET)
+    code = f"reg-{uuid.uuid4().hex[:10]}"
+    create_resp = await client.post(
+        "/api/v1/tenants",
+        json={"code": code, "name": "Reg Test"},
+        headers={"X-Create-Tenant-Secret": secret},
+    )
+    if create_resp.status_code != 201:
+        pytest.skip(f"Could not create tenant: {create_resp.status_code}")
+
+    email = f"dup-{uuid.uuid4().hex[:8]}@example.com"
+    reg1 = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "tenant_code": code,
+            "username": "user1",
+            "email": email,
+            "password": "password123",
+        },
+    )
+    assert reg1.status_code == 201
+
+    reg2 = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "tenant_code": code,
+            "username": "user2",
+            "email": email,
+            "password": "otherpass456",
+        },
+    )
+    assert reg2.status_code == 400
+    assert reg2.json().get("message") == "Registration failed"

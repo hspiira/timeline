@@ -361,6 +361,9 @@ async def get_document_upload_service(
     """
     storage = StorageFactory.create_storage_service()
     document_repo = DocumentRepository(db, audit_service=audit_svc)
+    subject_repo = SubjectRepository(
+        db, tenant_id=tenant_id, audit_service=audit_svc
+    )
     category_repo = DocumentCategoryRepository(
         db, tenant_id=tenant_id, audit_service=audit_svc
     )
@@ -371,6 +374,7 @@ async def get_document_upload_service(
         tenant_repo=tenant_repo,
         category_repo=category_repo,
         metadata_validator=metadata_validator,
+        subject_repo=subject_repo,
     )
 
 

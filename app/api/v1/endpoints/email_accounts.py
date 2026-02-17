@@ -236,14 +236,24 @@ async def email_account_webhook(
         EmailAccountRepository, Depends(get_email_account_repo)
     ],
 ):
-    """Provider callback (e.g. Gmail push). If EMAIL_WEBHOOK_SECRET is set, X-Webhook-Signature-256 is required."""
+    """Provider callback (e.g. Gmail push).
+
+    EMAIL_WEBHOOK_SECRET must be set, and callers must send
+    X-Webhook-Signature-256: sha256=<hmac_sha256(secret, body)>.
+    """
     body = await request.body()
     settings = get_settings()
-    if settings.email_webhook_secret:
-        sig = request.headers.get("X-Webhook-Signature-256")
-        secret = settings.email_webhook_secret.get_secret_value()
-        if not _verify_webhook_signature(body, sig, secret):
-            raise HTTPException(status_code=401, detail="Invalid or missing webhook signature")
+    if not settings.email_webhook_secret:
+        raise HTTPException(
+            status_code=503,
+            detail="Email webhook is not configured (EMAIL_WEBHOOK_SECRET is not set).",
+        )
+    sig = request.headers.get("X-Webhook-Signature-256")
+    secret = settings.email_webhook_secret.get_secret_value()
+    if not _verify_webhook_signature(body, sig, secret):
+        raise HTTPException(
+            status_code=401, detail="Invalid or missing webhook signature"
+        )
     account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
     if not account:
         raise HTTPException(status_code=404, detail="Email account not found")

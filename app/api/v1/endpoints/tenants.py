@@ -14,6 +14,7 @@ from app.api.v1.dependencies import (
 from app.application.interfaces.repositories import ITenantRepository
 from app.application.services.tenant_creation_service import TenantCreationService
 from app.core.limiter import limit_create_tenant, limit_writes
+from app.core.config import get_settings
 from app.domain.enums import TenantStatus
 from app.schemas.tenant import (
     TenantCreateRequest,
@@ -33,7 +34,24 @@ async def create_tenant(
     body: TenantCreateRequest,
     tenant_svc: TenantCreationService = Depends(get_tenant_creation_service),
 ):
-    """Create a new tenant with admin user and RBAC. Only name and tenant code required; admin password is auto-generated."""
+    """Create a new tenant with admin user and RBAC.
+
+    This endpoint is protected by a shared secret header:
+    - Settings must define CREATE_TENANT_SECRET.
+    - Requests must include X-Create-Tenant-Secret matching that value.
+    """
+    settings = get_settings()
+    if not settings.create_tenant_secret:
+        raise HTTPException(
+            status_code=503,
+            detail="Tenant creation is not configured (CREATE_TENANT_SECRET is not set).",
+        )
+
+    header_secret = request.headers.get("X-Create-Tenant-Secret")
+    expected = settings.create_tenant_secret.get_secret_value()
+    if not header_secret or header_secret != expected:
+        raise HTTPException(status_code=401, detail="Unauthorized tenant creation")
+
     try:
         result = await tenant_svc.create_tenant(
             code=body.code,
