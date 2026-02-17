@@ -1,0 +1,97 @@
+{
+  "_comment": "Full seed from tenant registration to events. Flow: tenant+RBAC+admin → event_schemas → subjects → users (agent) → workflows → events. All references: tenant_code; subject external_ref; event_type. One dummy password for all users (hashed by script). See docs/SEED_FROM_REGISTRATION_FLOW.md.",
+  "seed_password": "SeedPassword1!",
+  "tenants": [
+    {
+      "code": "acme",
+      "name": "Acme Corp",
+      "status": "active"
+    }
+  ],
+  "event_transition_rules": [
+    {
+      "tenant_code": "acme",
+      "event_type": "order",
+      "required_prior_event_types": ["client"],
+      "description": "Order events require at least one prior client event in the stream."
+    }
+  ],
+  "event_schemas": [
+    {
+      "tenant_code": "acme",
+      "event_type": "client",
+      "is_active": true,
+      "schema_definition": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "status": { "type": "string", "enum": ["new", "active", "inactive"] }
+        },
+        "required": ["name", "email"]
+      }
+    },
+    {
+      "tenant_code": "acme",
+      "event_type": "order",
+      "is_active": true,
+      "schema_definition": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "number" },
+          "currency": { "type": "string" },
+          "items": { "type": "integer" }
+        },
+        "required": ["total", "currency"]
+      }
+    }
+  ],
+  "subjects": [
+    { "tenant_code": "acme", "subject_type": "client", "external_ref": "EXT-001" },
+    { "tenant_code": "acme", "subject_type": "order", "external_ref": "ORD-001" }
+  ],
+  "users": [
+    { "tenant_code": "acme", "username": "alice", "email": "alice@acme.example.com" },
+    { "tenant_code": "acme", "username": "bob", "email": "bob@acme.example.com" }
+  ],
+  "workflows": [
+    {
+      "tenant_code": "acme",
+      "name": "On client created",
+      "description": "When a client event is created, append a follow-up event.",
+      "trigger_event_type": "client",
+      "is_active": true,
+      "trigger_conditions": null,
+      "actions": [
+        {
+          "type": "create_event",
+          "params": {
+            "event_type": "order",
+            "schema_version": 1,
+            "payload": { "total": 0, "currency": "USD", "items": 0 }
+          }
+        }
+      ],
+      "max_executions_per_day": null,
+      "execution_order": 0
+    }
+  ],
+  "events": [
+    {
+      "tenant_code": "acme",
+      "subject_external_ref": "EXT-001",
+      "event_type": "client",
+      "schema_version": 1,
+      "event_time": "2025-02-01T10:00:00Z",
+      "payload": { "name": "Acme Client One", "email": "client1@acme.example.com", "status": "active" }
+    },
+    {
+      "tenant_code": "acme",
+      "subject_external_ref": "ORD-001",
+      "event_type": "order",
+      "schema_version": 1,
+      "event_time": "2025-02-01T11:00:00Z",
+      "payload": { "total": 99.99, "currency": "USD", "items": 2 }
+    }
+  ]
+}
