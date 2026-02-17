@@ -5,6 +5,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import (
+    get_authorization_service,
+    get_current_user,
     get_role_repo,
     get_tenant_id,
     get_user_repo,
@@ -13,6 +15,7 @@ from app.api.v1.dependencies import (
     require_permission,
 )
 from app.application.dtos.user import UserResult
+from app.application.services.authorization_service import AuthorizationService
 from app.core.limiter import limit_writes
 from app.infrastructure.persistence.repositories.role_repo import RoleRepository
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
@@ -59,18 +62,23 @@ async def assign_role_to_user(
     user_id: str,
     role_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
+    current_user: Annotated[UserResult, Depends(get_current_user)],
+    auth_svc: Annotated[AuthorizationService, Depends(get_authorization_service)],
     user_repo: Annotated[UserRepository, Depends(get_user_repo)],
     role_repo: Annotated[RoleRepository, Depends(get_role_repo)],
     user_role_repo: Annotated[UserRoleRepository, Depends(get_user_role_repo_for_write)],
-    _: Annotated[object, Depends(require_permission("user_role", "update"))] = None,
 ):
-    """Assign a role to a user (tenant-scoped). Verifies user and role exist and belong to tenant."""
+    """Assign a role to a user (tenant-scoped). Admin role requires user_role:assign_admin; other roles require user_role:update."""
     user = await user_repo.get_by_id_and_tenant(user_id, tenant_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
+    if role.code == "admin":
+        await auth_svc.require_permission(current_user.id, tenant_id, "user_role", "assign_admin")
+    else:
+        await auth_svc.require_permission(current_user.id, tenant_id, "user_role", "update")
     await user_role_repo.assign_role_to_user(
         user_id=user_id,
         role_id=role_id,
@@ -86,10 +94,19 @@ async def remove_role_from_user(
     user_id: str,
     role_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
+    current_user: Annotated[UserResult, Depends(get_current_user)],
+    auth_svc: Annotated[AuthorizationService, Depends(get_authorization_service)],
+    role_repo: Annotated[RoleRepository, Depends(get_role_repo)],
     user_role_repo: Annotated[UserRoleRepository, Depends(get_user_role_repo_for_write)],
-    _: Annotated[object, Depends(require_permission("user_role", "update"))] = None,
 ):
-    """Remove a role from a user (tenant-scoped)."""
+    """Remove a role from a user (tenant-scoped). Admin role requires user_role:assign_admin; other roles require user_role:update."""
+    role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+    if role.code == "admin":
+        await auth_svc.require_permission(current_user.id, tenant_id, "user_role", "assign_admin")
+    else:
+        await auth_svc.require_permission(current_user.id, tenant_id, "user_role", "update")
     removed = await user_role_repo.remove_role_from_user(
         user_id=user_id, role_id=role_id, tenant_id=tenant_id
     )

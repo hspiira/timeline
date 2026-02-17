@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
+    get_permission_repo,
     get_role_permission_repo_for_write,
     get_role_repo,
     get_role_repo_for_write,
@@ -15,6 +16,9 @@ from app.api.v1.dependencies import (
 from app.domain.exceptions import DuplicateAssignmentException, ValidationException
 from app.application.services.role_service import RoleService
 from app.core.limiter import limit_writes
+from app.infrastructure.persistence.repositories.permission_repo import (
+    PermissionRepository,
+)
 from app.infrastructure.persistence.repositories.role_permission_repo import (
     RolePermissionRepository,
 )
@@ -142,15 +146,19 @@ async def assign_permission_to_role(
     body: RolePermissionAssign,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     role_repo: Annotated[RoleRepository, Depends(get_role_repo)],
+    permission_repo: Annotated[PermissionRepository, Depends(get_permission_repo)],
     role_permission_repo: Annotated[
         RolePermissionRepository, Depends(get_role_permission_repo_for_write)
     ],
-    _: Annotated[object, Depends(require_permission("role", "update"))] = None,
+    _: Annotated[object, Depends(require_permission("role", "manage_permissions"))] = None,
 ):
-    """Assign a permission to a role. Tenant-scoped."""
+    """Assign a permission to a role. Tenant-scoped. Permission must belong to the same tenant. Requires role:manage_permissions (admin-only by default)."""
     role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
+    permission = await permission_repo.get_by_id_and_tenant(body.permission_id, tenant_id)
+    if not permission:
+        raise HTTPException(status_code=404, detail="Permission not found")
     try:
         await role_permission_repo.assign_permission_to_role(
             role_id=role_id,
@@ -178,9 +186,9 @@ async def remove_permission_from_role(
     role_permission_repo: Annotated[
         RolePermissionRepository, Depends(get_role_permission_repo_for_write)
     ],
-    _: Annotated[object, Depends(require_permission("role", "update"))] = None,
+    _: Annotated[object, Depends(require_permission("role", "manage_permissions"))] = None,
 ):
-    """Remove a permission from a role. Tenant-scoped."""
+    """Remove a permission from a role. Tenant-scoped. Requires role:manage_permissions (admin-only by default)."""
     role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")

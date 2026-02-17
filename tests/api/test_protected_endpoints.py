@@ -10,16 +10,15 @@ async def test_list_tenants_with_auth_returns_200(
     client: AsyncClient,
     auth_headers: dict[str, str] | None,
 ) -> None:
-    """GET /api/v1/tenants with valid JWT and X-Tenant-ID returns 200 and list."""
+    """GET /api/v1/tenants with valid JWT and X-Tenant-ID returns 200 and list containing current tenant only."""
     if auth_headers is None:
         pytest.skip("auth_headers not available (Postgres not configured)")
     response = await client.get("/api/v1/tenants", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
-    # Our test tenant should be in the list
-    tenant_ids = [t["id"] for t in data]
-    assert auth_headers["X-Tenant-ID"] in tenant_ids
+    assert len(data) == 1
+    assert data[0]["id"] == auth_headers["X-Tenant-ID"]
 
 
 @pytest.mark.requires_db

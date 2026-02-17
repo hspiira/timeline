@@ -14,6 +14,7 @@ from app.application.services.system_audit_schema import (
     SYSTEM_AUDIT_SUBJECT_TYPE,
     get_system_audit_schema_definition,
 )
+from app.domain.exceptions import ResourceNotFoundException
 from app.infrastructure.persistence.models.event_schema import EventSchema
 from app.infrastructure.persistence.models.permission import (
     Permission,
@@ -52,9 +53,13 @@ SYSTEM_PERMISSIONS: list[tuple[str, str, str, str]] = [
     ("user:list", "user", "list", "List users"),
     ("role:create", "role", "create", "Create roles"),
     ("role:read", "role", "read", "View roles"),
-    ("role:update", "role", "update", "Modify roles"),
+    ("role:update", "role", "update", "Modify role name/description (not permissions)"),
     ("role:delete", "role", "delete", "Delete roles"),
+    ("role:manage_permissions", "role", "manage_permissions", "Assign/remove permissions to/from roles (admin-only)"),
     ("role:assign", "role", "assign", "Assign roles to users"),
+    ("user_role:read", "user_role", "read", "View user role assignments"),
+    ("user_role:update", "user_role", "update", "Assign/remove non-admin roles to/from users"),
+    ("user_role:assign_admin", "user_role", "assign_admin", "Assign or remove admin role (admin-only)"),
     ("permission:create", "permission", "create", "Create permissions"),
     ("permission:read", "permission", "read", "View permissions"),
     ("permission:delete", "permission", "delete", "Delete permissions"),
@@ -72,6 +77,10 @@ SYSTEM_PERMISSIONS: list[tuple[str, str, str, str]] = [
     ("*:*", "*", "*", "Super admin - all permissions"),
 ]
 
+# Permissions that must not be granted via resource wildcards (e.g. subject:*).
+# GDPR-sensitive operations require explicit assignment (e.g. Administrator or DPO).
+GDPR_SENSITIVE_PERMISSIONS: frozenset[str] = frozenset({"subject:export", "subject:erasure"})
+
 DEFAULT_ROLES: dict[str, RoleData] = {
     "admin": {
         "name": "Administrator",
@@ -88,6 +97,8 @@ DEFAULT_ROLES: dict[str, RoleData] = {
             "user:read",
             "user:create",
             "user:list",
+            "user_role:read",
+            "user_role:update",
             "document:*",
             "event_schema:read",
             "workflow:*",
@@ -170,7 +181,7 @@ class TenantInitializationService:
             )
             admin_role_id = result.scalar_one_or_none()
             if not admin_role_id:
-                raise ValueError(f"Admin role not found for tenant {tenant_id}")
+                raise ResourceNotFoundException("role", f"admin:{tenant_id}")
         else:
             admin_role_id = tenant_roles["admin"]
 
@@ -246,7 +257,7 @@ class TenantInitializationService:
             return [
                 pid
                 for code, pid in permission_map.items()
-                if code.startswith(prefix + ":")
+                if code.startswith(prefix + ":") and code not in GDPR_SENSITIVE_PERMISSIONS
             ]
         pid = permission_map.get(pattern)
         return [pid] if pid else []

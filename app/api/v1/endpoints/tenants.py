@@ -109,16 +109,16 @@ async def create_tenant(
 
 @router.get("", response_model=list[TenantResponse])
 async def list_tenants(
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
     tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo)],
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
     _: Annotated[object, Depends(require_permission("tenant", "read"))] = None,
 ):
-    """List active tenants (paginated). Requires tenant:read and X-Tenant-ID header."""
-    tenants = await tenant_repo.get_active_tenants(skip=skip, limit=limit)
+    """Return the current tenant only (tenant:read grants access to own tenant; no cross-tenant enumeration)."""
+    tenant = await tenant_repo.get_by_id(tenant_id)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
     return [
-        TenantResponse(id=t.id, code=t.code, name=t.name, status=t.status)
-        for t in tenants
+        TenantResponse(id=tenant.id, code=tenant.code, name=tenant.name, status=tenant.status)
     ]
 
 
