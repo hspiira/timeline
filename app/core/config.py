@@ -168,6 +168,19 @@ class Settings(BaseSettings):
                 f"Invalid storage_backend '{self.storage_backend}'. "
                 "Must be one of: 'local', 's3'"
             )
+        # Production: do not run with debug=True (leaks stack traces in 500 responses).
+        if self.telemetry_environment == "production" and self.debug:
+            raise ValueError(
+                "debug must be False when telemetry_environment is 'production'. "
+                "Set DEBUG=false or TELEMETRY_ENVIRONMENT=development."
+            )
+        # CORS: wildcard origins with credentials are insecure.
+        origins = [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
+        if "*" in origins or self.allowed_origins.strip() == "*":
+            raise ValueError(
+                "allowed_origins must not be '*' (use explicit origins, e.g. "
+                "ALLOWED_ORIGINS=https://app.example.com)."
+            )
         return self
 
 

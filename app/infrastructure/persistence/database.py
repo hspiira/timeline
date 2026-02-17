@@ -13,12 +13,7 @@ policies restrict rows to the current tenant.
 """
 
 import logging
-import re
 from typing import Any
-
-# Strict format for tenant_id before interpolation into SET LOCAL (CUID/UUID-style).
-_TENANT_ID_MAX_LENGTH = 64
-_TENANT_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{1," + str(_TENANT_ID_MAX_LENGTH) + r"}$")
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -26,6 +21,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.core.config import get_settings
 from app.core.tenant_context import get_tenant_id as get_current_tenant_id
+from app.core.tenant_validation import is_valid_tenant_id_format
 from app.domain.exceptions import SqlNotConfiguredException
 
 logger = logging.getLogger(__name__)
@@ -92,9 +88,7 @@ def _quote_set_value(value: str) -> str:
 
 def _is_valid_tenant_id_for_set_local(value: str) -> bool:
     """Return True if value is safe to interpolate into SET LOCAL (format + length)."""
-    if not value or len(value) > _TENANT_ID_MAX_LENGTH:
-        return False
-    return bool(_TENANT_ID_RE.fullmatch(value))
+    return is_valid_tenant_id_format(value)
 
 
 async def _set_tenant_context(session: AsyncSession) -> None:
@@ -109,9 +103,8 @@ async def _set_tenant_context(session: AsyncSession) -> None:
         return
     if not _is_valid_tenant_id_for_set_local(tenant_id):
         logger.warning(
-            "Skipping SET LOCAL app.current_tenant_id: tenant_id failed format validation (length=%d, max=%d)",
+            "Skipping SET LOCAL app.current_tenant_id: tenant_id failed format validation (length=%d)",
             len(tenant_id),
-            _TENANT_ID_MAX_LENGTH,
         )
         return
     safe = _quote_set_value(tenant_id)

@@ -19,7 +19,7 @@ from app.application.use_cases.documents import (
     DocumentQueryService,
     DocumentUploadService,
 )
-from app.core.limiter import limit_writes
+from app.core.limiter import limit_upload, limit_writes
 from app.domain.exceptions import (
     ResourceNotFoundException,
     SchemaValidationException,
@@ -54,6 +54,7 @@ def _parse_metadata_form(value: str | None) -> dict | None:
     response_model=DocumentUploadResponse,
     status_code=201,
 )
+@limit_upload
 @limit_writes
 async def upload_document(
     request: Request,

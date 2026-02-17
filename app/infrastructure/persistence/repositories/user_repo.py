@@ -63,6 +63,7 @@ class UserRepository(AuditableRepository[User]):
         return "user"
 
     def _serialize_for_audit(self, obj: User) -> dict[str, Any]:
+        """Audit payload: never include password_hash or other secrets (see docs/AUDIT_AND_PII.md)."""
         return {
             "id": obj.id,
             "username": obj.username,

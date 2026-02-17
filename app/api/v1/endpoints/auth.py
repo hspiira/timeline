@@ -19,7 +19,7 @@ from app.api.v1.dependencies import (
 )
 from app.application.dtos.user import UserResult
 from app.application.services.user_service import UserService
-from app.core.limiter import limit_auth, limit_writes
+from app.core.limiter import check_auth_rate_per_tenant_code, limit_auth, limit_writes
 from app.infrastructure.persistence.repositories.tenant_repo import TenantRepository
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
@@ -40,6 +40,7 @@ async def register(
 
     Error responses are intentionally generic to avoid tenant enumeration.
     """
+    check_auth_rate_per_tenant_code(body.tenant_code)
     try:
         tenant = await tenant_repo.get_by_code(body.tenant_code)
         if not tenant:
@@ -72,6 +73,7 @@ async def login(
 
     Tenant is identified by tenant_code (e.g. org slug).
     """
+    check_auth_rate_per_tenant_code(body.tenant_code)
     tenant = await tenant_repo.get_by_code(body.tenant_code)
     if not tenant:
         raise HTTPException(status_code=401, detail="Invalid tenant or credentials")

@@ -54,6 +54,7 @@ from app.application.use_cases.subjects import (
     SubjectService,
 )
 from app.core.config import get_settings
+from app.core.tenant_validation import is_valid_tenant_id_format
 from app.infrastructure.external.storage.factory import StorageFactory
 from app.infrastructure.external.email.encryption import CredentialEncryptor
 from app.infrastructure.external.email.envelope_encryption import (
@@ -246,6 +247,11 @@ async def get_tenant_id(
         raise HTTPException(
             status_code=400,
             detail=f"Missing required header: {name}",
+        )
+    if not is_valid_tenant_id_format(value):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid tenant ID format (use alphanumeric, hyphen, underscore; max 64 characters)",
         )
     cache = getattr(request.app.state, "cache", None)
     cache_key = f"tenant:{value}"
