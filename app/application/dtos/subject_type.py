@@ -20,4 +20,5 @@ class SubjectTypeResult:
     color: str | None
     has_timeline: bool
     allow_documents: bool
+    allowed_event_types: list[str] | None
     created_by: str | None

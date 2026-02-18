@@ -19,6 +19,7 @@ class SubjectTypeCreateRequest(BaseModel):
     color: str | None = Field(default=None, max_length=50)
     has_timeline: bool = True
     allow_documents: bool = True
+    allowed_event_types: list[str] | None = Field(default=None)
 
 
 class SubjectTypeUpdateRequest(BaseModel):
@@ -34,6 +35,7 @@ class SubjectTypeUpdateRequest(BaseModel):
     color: str | None = Field(default=None, max_length=50)
     has_timeline: bool | None = None
     allow_documents: bool | None = None
+    allowed_event_types: list[str] | None = None
 
 
 class SubjectTypeListItem(BaseModel):
@@ -50,6 +52,7 @@ class SubjectTypeListItem(BaseModel):
     color: str | None
     has_timeline: bool
     allow_documents: bool
+    allowed_event_types: list[str] | None = None
 
 
 class SubjectTypeResponse(BaseModel):
@@ -71,4 +74,5 @@ class SubjectTypeResponse(BaseModel):
     color: str | None
     has_timeline: bool
     allow_documents: bool
+    allowed_event_types: list[str] | None = None
     created_by: str | None

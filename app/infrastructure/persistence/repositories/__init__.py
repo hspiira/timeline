@@ -41,6 +41,9 @@ from app.infrastructure.persistence.repositories.search_repo import SearchReposi
 from app.infrastructure.persistence.repositories.user_role_repo import (
     UserRoleRepository,
 )
+from app.infrastructure.persistence.repositories.subject_relationship_repo import (
+    SubjectRelationshipRepository,
+)
 from app.infrastructure.persistence.repositories.subject_repo import SubjectRepository
 from app.infrastructure.persistence.repositories.subject_snapshot_repo import (
     SubjectSnapshotRepository,
@@ -74,6 +77,7 @@ __all__ = [
     "RoleRepository",
     "SearchRepository",
     "UserRoleRepository",
+    "SubjectRelationshipRepository",
     "SubjectRepository",
     "SubjectSnapshotRepository",
     "SubjectTypeRepository",

@@ -28,6 +28,7 @@ def _config(
         color=None,
         has_timeline=True,
         allow_documents=True,
+        allowed_event_types=None,
         created_by=None,
     )
 

@@ -6,17 +6,19 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable
 
 from app.application.dtos.event import EventCreate, EventResult, EventToPersist
+from app.application.dtos.subject_type import SubjectTypeResult
 from app.application.interfaces.repositories import (
     IEventRepository,
     ISubjectRepository,
 )
 from app.application.interfaces.services import IHashService
 from app.domain.entities.event import EventEntity
-from app.domain.exceptions import ResourceNotFoundException
+from app.domain.exceptions import ResourceNotFoundException, ValidationException
 from app.domain.value_objects.core import EventChain, EventType, Hash
 from app.shared.telemetry.logging import get_logger
 
 if TYPE_CHECKING:
+    from app.application.interfaces.repositories import ISubjectTypeRepository
     from app.application.interfaces.services import (
         IEventSchemaValidator,
         IEventTransitionValidator,
@@ -55,6 +57,7 @@ class EventService:
         schema_validator: IEventSchemaValidator | None = None,
         workflow_engine_provider: Callable[[], IWorkflowEngine | None] | None = None,
         transition_validator: IEventTransitionValidator | None = None,
+        subject_type_repo: "ISubjectTypeRepository | None" = None,
     ) -> None:
         self.event_repo = event_repo
         self.hash_service = hash_service
@@ -62,6 +65,7 @@ class EventService:
         self.schema_validator = schema_validator
         self._workflow_engine_provider = workflow_engine_provider
         self.transition_validator = transition_validator
+        self.subject_type_repo = subject_type_repo
 
     @property
     def workflow_engine(self) -> "IWorkflowEngine | None":
@@ -83,6 +87,18 @@ class EventService:
         )
         if not subject:
             raise ResourceNotFoundException("subject", data.subject_id)
+
+        if self.subject_type_repo:
+            type_config = await self.subject_type_repo.get_by_tenant_and_type(
+                tenant_id, subject.subject_type.value
+            )
+            if type_config and type_config.allowed_event_types:
+                if data.event_type not in type_config.allowed_event_types:
+                    raise ValidationException(
+                        f"Event type '{data.event_type}' is not allowed for subject type '{subject.subject_type.value}'. "
+                        f"Allowed: {', '.join(type_config.allowed_event_types)}",
+                        field="event_type",
+                    )
 
         if self.schema_validator:
             await self.schema_validator.validate_payload(
@@ -141,10 +157,30 @@ class EventService:
 
         subject_ids = {e.subject_id for e in events}
         subjects = await self.subject_repo.get_by_ids_and_tenant(tenant_id, subject_ids)
-        found_ids = {s.id for s in subjects}
+        subject_by_id = {s.id: s for s in subjects}
         for sid in subject_ids:
-            if sid not in found_ids:
+            if sid not in subject_by_id:
                 raise ResourceNotFoundException("subject", sid)
+
+        if self.subject_type_repo:
+            unique_types = {s.subject_type.value for s in subjects}
+            type_config_by_name: dict[str, SubjectTypeResult] = {}
+            for type_name in unique_types:
+                config = await self.subject_type_repo.get_by_tenant_and_type(
+                    tenant_id, type_name
+                )
+                if config:
+                    type_config_by_name[type_name] = config
+            for event_data in events:
+                subject = subject_by_id[event_data.subject_id]
+                type_config = type_config_by_name.get(subject.subject_type.value)
+                if type_config and type_config.allowed_event_types:
+                    if event_data.event_type not in type_config.allowed_event_types:
+                        raise ValidationException(
+                            f"Event type '{event_data.event_type}' is not allowed for subject type '{subject.subject_type.value}'. "
+                            f"Allowed: {', '.join(type_config.allowed_event_types)}",
+                            field="event_type",
+                        )
 
         # Fetch last event per subject in one query (batch).
         last_events = await self.event_repo.get_last_events_for_subjects(

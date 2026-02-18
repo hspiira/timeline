@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from app.application.dtos.role import RoleResult
     from app.application.dtos.search import SearchResultItem
     from app.application.dtos.subject import SubjectResult
+    from app.application.dtos.subject_relationship import SubjectRelationshipResult
     from app.application.dtos.subject_snapshot import SubjectSnapshotResult
     from app.application.dtos.subject_type import SubjectTypeResult
     from app.application.dtos.task import TaskResult
@@ -158,6 +159,41 @@ class ISubjectRepository(Protocol):
         """Delete subject; return True if deleted, False if not found in tenant."""
 
 
+# Subject relationship repository interface
+class ISubjectRelationshipRepository(Protocol):
+    """Protocol for subject relationship repository (DIP)."""
+
+    async def create(
+        self,
+        tenant_id: str,
+        source_subject_id: str,
+        target_subject_id: str,
+        relationship_kind: str,
+        payload: dict | None = None,
+    ) -> SubjectRelationshipResult:
+        """Create a relationship; raise if duplicate or subject not found."""
+
+    async def delete(
+        self,
+        tenant_id: str,
+        source_subject_id: str,
+        target_subject_id: str,
+        relationship_kind: str,
+    ) -> bool:
+        """Delete relationship; return True if deleted, False if not found."""
+
+    async def list_for_subject(
+        self,
+        tenant_id: str,
+        subject_id: str,
+        *,
+        as_source: bool = True,
+        as_target: bool = True,
+        relationship_kind: str | None = None,
+    ) -> list[SubjectRelationshipResult]:
+        """List relationships where subject is source and/or target, optional kind filter."""
+
+
 # Subject snapshot repository interface
 class ISubjectSnapshotRepository(Protocol):
     """Protocol for subject snapshot repository (DIP)."""
@@ -278,6 +314,7 @@ class ISubjectTypeRepository(Protocol):
         color: str | None = None,
         has_timeline: bool = True,
         allow_documents: bool = True,
+        allowed_event_types: list[str] | None = None,
         created_by: str | None = None,
     ) -> SubjectTypeResult:
         """Create a subject type; return created entity."""
@@ -294,6 +331,7 @@ class ISubjectTypeRepository(Protocol):
         color: str | None = None,
         has_timeline: bool | None = None,
         allow_documents: bool | None = None,
+        allowed_event_types: list[str] | None = None,
     ) -> SubjectTypeResult | None:
         """Update subject type; return updated result or None if not found."""
 

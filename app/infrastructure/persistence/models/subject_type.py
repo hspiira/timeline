@@ -2,7 +2,16 @@
 
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.persistence.database import Base
@@ -24,6 +33,9 @@ class SubjectType(MultiTenantModel, Base):
     color: Mapped[str | None] = mapped_column(String(50), nullable=True)
     has_timeline: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     allow_documents: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    allowed_event_types: Mapped[list[str] | None] = mapped_column(
+        JSONB, nullable=True
+    )
     created_by: Mapped[str | None] = mapped_column(
         String, ForeignKey("app_user.id", ondelete="SET NULL"), nullable=True, index=True
     )

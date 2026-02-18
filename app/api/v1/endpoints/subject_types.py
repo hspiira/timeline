@@ -45,6 +45,7 @@ async def create_subject_type(
             color=body.color,
             has_timeline=body.has_timeline,
             allow_documents=body.allow_documents,
+            allowed_event_types=body.allowed_event_types,
             created_by=current_user.id,
         )
         return SubjectTypeResponse(
@@ -60,6 +61,7 @@ async def create_subject_type(
             color=created.color,
             has_timeline=created.has_timeline,
             allow_documents=created.allow_documents,
+            allowed_event_types=created.allowed_event_types,
             created_by=created.created_by,
         )
     except Exception as e:
@@ -94,6 +96,7 @@ async def list_subject_types(
             color=s.color,
             has_timeline=s.has_timeline,
             allow_documents=s.allow_documents,
+            allowed_event_types=s.allowed_event_types,
         )
         for s in items
     ]
@@ -123,6 +126,7 @@ async def get_subject_type(
         color=item.color,
         has_timeline=item.has_timeline,
         allow_documents=item.allow_documents,
+        allowed_event_types=item.allowed_event_types,
         created_by=item.created_by,
     )
 
@@ -151,6 +155,7 @@ async def update_subject_type(
         color=body.color,
         has_timeline=body.has_timeline,
         allow_documents=body.allow_documents,
+        allowed_event_types=body.allowed_event_types,
     )
     if not updated:
         raise HTTPException(status_code=404, detail="Subject type not found")
@@ -167,6 +172,7 @@ async def update_subject_type(
         color=updated.color,
         has_timeline=updated.has_timeline,
         allow_documents=updated.allow_documents,
+        allowed_event_types=updated.allowed_event_types,
         created_by=updated.created_by,
     )
 

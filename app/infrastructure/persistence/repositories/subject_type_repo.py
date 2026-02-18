@@ -32,6 +32,7 @@ def _to_result(s: SubjectType) -> SubjectTypeResult:
         color=s.color,
         has_timeline=s.has_timeline,
         allow_documents=s.allow_documents,
+        allowed_event_types=s.allowed_event_types,
         created_by=s.created_by,
     )
 
@@ -102,6 +103,7 @@ class SubjectTypeRepository(AuditableRepository[SubjectType]):
         color: str | None = None,
         has_timeline: bool = True,
         allow_documents: bool = True,
+        allowed_event_types: list[str] | None = None,
         created_by: str | None = None,
     ) -> SubjectTypeResult:
         entity = SubjectType(
@@ -116,6 +118,7 @@ class SubjectTypeRepository(AuditableRepository[SubjectType]):
             color=color,
             has_timeline=has_timeline,
             allow_documents=allow_documents,
+            allowed_event_types=allowed_event_types,
             created_by=created_by,
         )
         created = await self.create(entity)
@@ -133,6 +136,7 @@ class SubjectTypeRepository(AuditableRepository[SubjectType]):
         color: str | None = None,
         has_timeline: bool | None = None,
         allow_documents: bool | None = None,
+        allowed_event_types: list[str] | None = None,
     ) -> SubjectTypeResult | None:
         entity = await super().get_by_id(subject_type_id)
         if not entity:
@@ -153,6 +157,8 @@ class SubjectTypeRepository(AuditableRepository[SubjectType]):
             entity.has_timeline = has_timeline
         if allow_documents is not None:
             entity.allow_documents = allow_documents
+        if allowed_event_types is not None:
+            entity.allowed_event_types = allowed_event_types
         updated = await self.update(entity, skip_existence_check=True)
         return _to_result(updated)
 

@@ -51,6 +51,7 @@ from app.application.use_cases.state import (
 from app.application.use_cases.subjects import (
     SubjectErasureService,
     SubjectExportService,
+    SubjectRelationshipService,
     SubjectService,
 )
 from app.core.config import get_settings
@@ -84,6 +85,7 @@ from app.infrastructure.persistence.repositories import (
     RolePermissionRepository,
     RoleRepository,
     SearchRepository,
+    SubjectRelationshipRepository,
     SubjectRepository,
     SubjectSnapshotRepository,
     SubjectTypeRepository,
@@ -333,6 +335,7 @@ async def get_event_service(
     def get_workflow_engine() -> WorkflowEngine | None:
         return workflow_engine_holder[0]
 
+    subject_type_repo = SubjectTypeRepository(db, audit_service=audit_svc)
     event_service = EventService(
         event_repo=event_repo,
         hash_service=hash_service,
@@ -340,6 +343,7 @@ async def get_event_service(
         schema_validator=schema_validator,
         workflow_engine_provider=get_workflow_engine,
         transition_validator=transition_validator,
+        subject_type_repo=subject_type_repo,
     )
     notification_service = LogOnlyNotificationService()
     recipient_resolver = WorkflowRecipientResolver(db)
@@ -564,6 +568,24 @@ async def get_subject_erasure_service(
     return SubjectErasureService(
         subject_repo=subject_repo,
         document_repo=document_repo,
+    )
+
+
+async def get_subject_relationship_service(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
+) -> SubjectRelationshipService:
+    """Subject relationship use case (add, remove, list). Tenant-scoped."""
+    relationship_repo = SubjectRelationshipRepository(
+        db, tenant_id=tenant_id, audit_service=audit_svc
+    )
+    subject_repo = SubjectRepository(
+        db, tenant_id=tenant_id, audit_service=audit_svc
+    )
+    return SubjectRelationshipService(
+        relationship_repo=relationship_repo,
+        subject_repo=subject_repo,
     )
 
 

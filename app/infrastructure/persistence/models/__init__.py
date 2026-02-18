@@ -32,6 +32,9 @@ from app.infrastructure.persistence.models.permission import (
 )
 from app.infrastructure.persistence.models.role import Role
 from app.infrastructure.persistence.models.subject import Subject
+from app.infrastructure.persistence.models.subject_relationship import (
+    SubjectRelationship,
+)
 from app.infrastructure.persistence.models.subject_snapshot import SubjectSnapshot
 from app.infrastructure.persistence.models.task import Task
 from app.infrastructure.persistence.models.tenant import Tenant
@@ -45,6 +48,7 @@ __all__ = [
     "Tenant",
     "User",
     "Subject",
+    "SubjectRelationship",
     "SubjectSnapshot",
     "Task",
     "Event",

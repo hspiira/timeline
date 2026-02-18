@@ -10,6 +10,7 @@ from app.api.v1.dependencies import (
     get_run_snapshot_job_use_case,
     get_subject_erasure_service,
     get_subject_export_service,
+    get_subject_relationship_service,
     get_subject_service,
     get_tenant_id,
     require_permission,
@@ -27,6 +28,7 @@ from app.application.use_cases.subjects import (
     ErasureStrategy,
     SubjectErasureService,
     SubjectExportService,
+    SubjectRelationshipService,
     SubjectService,
 )
 from app.core.limiter import limit_writes
@@ -40,6 +42,11 @@ from app.schemas.subject import (
     SnapshotRunResponse,
     SubjectStateResponse,
     SubjectUpdate,
+)
+from app.schemas.subject_relationship import (
+    SubjectRelationshipCreateRequest,
+    SubjectRelationshipListItem,
+    SubjectRelationshipResponse,
 )
 
 router = APIRouter()
@@ -218,6 +225,116 @@ async def get_subject_state(
         )
     except ResourceNotFoundException:
         raise HTTPException(status_code=404, detail="Subject not found") from None
+
+
+@router.get(
+    "/{subject_id}/relationships",
+    response_model=list[SubjectRelationshipListItem],
+)
+async def list_subject_relationships(
+    subject_id: str,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    relationship_svc: Annotated[
+        SubjectRelationshipService, Depends(get_subject_relationship_service)
+    ],
+    _: Annotated[object, Depends(require_permission("subject", "read"))] = None,
+    as_source: bool = Query(True, description="Include relationships where subject is source"),
+    as_target: bool = Query(True, description="Include relationships where subject is target"),
+    relationship_kind: str | None = Query(
+        default=None,
+        description="Filter by relationship kind",
+    ),
+):
+    """List relationships for a subject (tenant-scoped)."""
+    try:
+        items = await relationship_svc.list_relationships(
+            tenant_id=tenant_id,
+            subject_id=subject_id,
+            as_source=as_source,
+            as_target=as_target,
+            relationship_kind=relationship_kind,
+        )
+        return [
+            SubjectRelationshipListItem(
+                id=r.id,
+                tenant_id=r.tenant_id,
+                source_subject_id=r.source_subject_id,
+                target_subject_id=r.target_subject_id,
+                relationship_kind=r.relationship_kind,
+                payload=r.payload,
+                created_at=r.created_at,
+            )
+            for r in items
+        ]
+    except ResourceNotFoundException:
+        raise HTTPException(status_code=404, detail="Subject not found") from None
+
+
+@router.post(
+    "/{subject_id}/relationships",
+    response_model=SubjectRelationshipResponse,
+    status_code=201,
+)
+@limit_writes
+async def add_subject_relationship(
+    request: Request,
+    subject_id: str,
+    body: SubjectRelationshipCreateRequest,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    relationship_svc: Annotated[
+        SubjectRelationshipService, Depends(get_subject_relationship_service)
+    ],
+    _: Annotated[object, Depends(require_permission("subject", "update"))] = None,
+):
+    """Add a relationship from this subject to target (tenant-scoped)."""
+    try:
+        created = await relationship_svc.add_relationship(
+            tenant_id=tenant_id,
+            source_subject_id=subject_id,
+            target_subject_id=body.target_subject_id,
+            relationship_kind=body.relationship_kind,
+            payload=body.payload,
+        )
+        return SubjectRelationshipResponse(
+            id=created.id,
+            tenant_id=created.tenant_id,
+            source_subject_id=created.source_subject_id,
+            target_subject_id=created.target_subject_id,
+            relationship_kind=created.relationship_kind,
+            payload=created.payload,
+            created_at=created.created_at,
+        )
+    except ResourceNotFoundException:
+        raise HTTPException(status_code=404, detail="Subject not found") from None
+    except ValidationException as e:
+        raise HTTPException(status_code=400, detail=e.message) from None
+
+
+@router.delete("/{subject_id}/relationships", status_code=204)
+@limit_writes
+async def remove_subject_relationship(
+    request: Request,
+    subject_id: str,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    relationship_svc: Annotated[
+        SubjectRelationshipService, Depends(get_subject_relationship_service)
+    ],
+    _: Annotated[object, Depends(require_permission("subject", "update"))] = None,
+    target_subject_id: str = Query(..., description="Target subject ID"),
+    relationship_kind: str = Query(..., description="Relationship kind"),
+):
+    """Remove a relationship (tenant-scoped)."""
+    deleted = await relationship_svc.remove_relationship(
+        tenant_id=tenant_id,
+        source_subject_id=subject_id,
+        target_subject_id=target_subject_id,
+        relationship_kind=relationship_kind,
+    )
+    if not deleted:
+        raise HTTPException(
+            status_code=404,
+            detail="Relationship not found",
+        ) from None
 
 
 @router.get("/{subject_id}", response_model=SubjectResponse)
