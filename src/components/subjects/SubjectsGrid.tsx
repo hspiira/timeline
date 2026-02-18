@@ -47,7 +47,6 @@ export function SubjectsGrid({
           icon: Icon,
           bgColor,
           textColor,
-          borderColor,
           headerBg,
           configColor,
         } = theme
@@ -57,23 +56,20 @@ export function SubjectsGrid({
           <div
             key={subject.id}
             onClick={() => handleSubjectClick(subject.id)}
-            className={`bg-card/80 backdrop-blur-sm rounded-none border ${useConfigColor ? '' : borderColor} hover:border-opacity-100 transition-all cursor-pointer overflow-hidden group`}
+            className="bg-card/80 backdrop-blur-sm rounded-none border border-border/25 transition-all cursor-pointer overflow-hidden group hover:border-border/40"
             style={
-              useConfigColor
-                ? { borderColor: configColor ?? undefined }
+              useConfigColor && configColor
+                ? { borderColor: `${configColor}20` }
                 : undefined
             }
           >
             {/* Header with icon and type */}
             <div
-              className={`p-4 border-b ${useConfigColor ? '' : `${borderColor} ${headerBg}`}`}
+              className={`p-4 border-b border-border/25 ${useConfigColor ? '' : headerBg}`}
               style={
-                useConfigColor
+                useConfigColor && configColor
                   ? {
-                      borderColor: configColor ?? undefined,
-                      backgroundColor: configColor
-                        ? `${configColor}20`
-                        : undefined,
+                      backgroundColor: `${configColor}15`,
                     }
                   : undefined
               }
@@ -99,12 +95,17 @@ export function SubjectsGrid({
                 </div>
               </div>
 
-              {/* Subject ID */}
-              <h3 className="font-semibold text-foreground truncate text-sm mb-1 group-hover:text-primary transition-colors">
-                {subject.id}
+              {/* Subject name: display name when set, else id */}
+              <h3 className="font-semibold text-foreground truncate text-sm mb-1 group-hover:text-primary transition-colors" title={subject.display_name?.trim() ? subject.id : undefined}>
+                {subject.display_name?.trim() || subject.id}
               </h3>
 
-              {/* External Reference */}
+              {/* ID when display name is shown; external ref when present */}
+              {subject.display_name?.trim() && (
+                <p className="text-xs text-muted-foreground truncate font-mono">
+                  ID: {subject.id}
+                </p>
+              )}
               {subject.external_ref && (
                 <p className="text-xs text-muted-foreground truncate">
                   Ref: {subject.external_ref}
@@ -134,7 +135,7 @@ export function SubjectsGrid({
             </div>
 
             {/* Footer with action hint */}
-            <div className="px-4 py-3 bg-muted/30 border-t border-border/30 flex items-center justify-between group-hover:bg-muted/50 transition-colors">
+            <div className="px-4 py-3 bg-muted/30 border-t border-border/20 flex items-center justify-between group-hover:bg-muted/50 transition-colors">
               <span className="text-xs font-medium text-muted-foreground">View details</span>
               <div className="flex items-center gap-2">
                 <Button

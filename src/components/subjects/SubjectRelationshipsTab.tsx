@@ -108,7 +108,7 @@ export function SubjectRelationshipsTab({
 
   if (loading) {
     return (
-      <div className="bg-card/80 backdrop-blur-sm rounded-none p-8 border border-border/50 text-center text-muted-foreground text-sm">
+      <div className="bg-card/80 backdrop-blur-sm rounded-none p-8 border border-border/30 text-center text-muted-foreground text-sm">
         Loading relationships…
       </div>
     )
@@ -116,7 +116,7 @@ export function SubjectRelationshipsTab({
 
   if (error) {
     return (
-      <div className="bg-card/80 backdrop-blur-sm rounded-none p-8 border border-border/50 text-center text-destructive text-sm">
+      <div className="bg-card/80 backdrop-blur-sm rounded-none p-8 border border-border/30 text-center text-destructive text-sm">
         {error}
       </div>
     )
@@ -125,8 +125,8 @@ export function SubjectRelationshipsTab({
   return (
     <div className="space-y-6">
       {/* Add relationship */}
-      <section className="bg-card/80 backdrop-blur-sm rounded-none border border-border/50 overflow-hidden">
-        <div className="border-l-[3px] border-primary bg-muted/20 px-4 py-3 flex items-center gap-2">
+      <section className="bg-card/80 backdrop-blur-sm rounded-none border border-border/30 overflow-hidden">
+        <div className="border-l-2 border-primary/80 bg-muted/20 px-4 py-3 flex items-center gap-2">
           <Plus className="w-4 h-4 text-primary shrink-0" />
           <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             Add relationship
@@ -181,8 +181,8 @@ export function SubjectRelationshipsTab({
       </section>
 
       {/* List */}
-      <section className="bg-card/80 backdrop-blur-sm rounded-none border border-border/50 overflow-hidden">
-        <div className="border-l-[3px] border-border bg-muted/15 px-4 py-3 flex items-center gap-2">
+      <section className="bg-card/80 backdrop-blur-sm rounded-none border border-border/30 overflow-hidden">
+        <div className="border-l-2 border-border/50 bg-muted/15 px-4 py-3 flex items-center gap-2">
           <Link2 className="w-4 h-4 text-muted-foreground shrink-0" />
           <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             Relationships
@@ -203,7 +203,7 @@ export function SubjectRelationshipsTab({
                 return (
                   <li
                     key={rel.id}
-                    className="flex items-center justify-between gap-3 py-2 px-3 rounded-none bg-muted/20 border border-border/50"
+                    className="flex items-center justify-between gap-3 py-2 px-3 rounded-none bg-muted/20 border border-border/30"
                   >
                     <div className="min-w-0 flex-1 flex items-center gap-2">
                       <span className="text-xs text-muted-foreground shrink-0">

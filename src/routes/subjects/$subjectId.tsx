@@ -306,7 +306,7 @@ function SubjectDetailPage() {
         <SkeletonBreadcrumbs />
 
         {/* Skeleton Header */}
-        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50 mb-4">
+        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/30 mb-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
               <Skeleton className="h-8 w-1/2 mb-2" />
@@ -321,13 +321,13 @@ function SubjectDetailPage() {
         </div>
 
         {/* Skeleton Tabs */}
-        <div className="flex gap-1 mb-3 border-b border-border">
+        <div className="flex gap-1 mb-3 border-b border-border/40">
           <Skeleton className="h-8 w-20" />
           <Skeleton className="h-8 w-24" />
         </div>
 
         {/* Skeleton Timeline */}
-        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50">
+        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/30">
           <Skeleton className="h-5 w-32 mb-4" />
           <SkeletonEventTimeline />
         </div>
@@ -386,16 +386,16 @@ function SubjectDetailPage() {
       <Breadcrumbs
         items={[
           { label: 'Subjects', href: '/subjects' },
-          { label: subject.id },
+          { label: subject.display_name?.trim() || subject.id },
         ]}
       />
 
       {/* Subject Header */}
-      <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50 mb-4">
+      <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/30 mb-4">
         <div className="flex items-start justify-between mb-3">
           <div>
             <h1 className="text-2xl font-bold text-foreground mb-1">
-              {subject.id}
+              {subject.display_name?.trim() || subject.id}
             </h1>
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
@@ -406,6 +406,12 @@ function SubjectDetailPage() {
                 <div className="flex items-center gap-1">
                   <span>Ref:</span>
                   <span className="font-mono">{subject.external_ref}</span>
+                </div>
+              )}
+              {(subject.display_name?.trim() || subject.external_ref) && (
+                <div className="flex items-center gap-1">
+                  <span>ID:</span>
+                  <span className="font-mono">{subject.id}</span>
                 </div>
               )}
               <div className="flex items-center gap-1">
@@ -423,7 +429,7 @@ function SubjectDetailPage() {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col gap-2 pt-2 border-t border-border">
+        <div className="flex flex-col gap-2 pt-2 border-t border-border/40">
           <div className="flex items-center gap-2">
             <Button
               onClick={() => navigate({ to: `/verify/${subjectId}` })}
@@ -458,7 +464,7 @@ function SubjectDetailPage() {
       </div>
 
       {/* Tabs — persisted in URL so reload keeps tab */}
-      <div className="flex gap-1 mb-3 border-b border-border">
+      <div className="flex gap-1 mb-3 border-b border-border/40">
         <button
           onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'events' } })}
           className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-none flex items-center gap-2 ${
@@ -509,7 +515,7 @@ function SubjectDetailPage() {
       {activeTab === 'events' && (
         <div>
           {events.length === 0 ? (
-            <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50">
+            <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/30">
               <EmptyState
                 icon={Boxes}
                 title="No events recorded"
@@ -531,7 +537,7 @@ function SubjectDetailPage() {
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4 px-4 py-3 bg-card/80 backdrop-blur-sm rounded-none border border-border/50">
+                <div className="flex items-center justify-between mt-4 px-4 py-3 bg-card/80 backdrop-blur-sm rounded-none border border-border/30">
                   <div className="text-xs text-muted-foreground">
                     Showing {currentPage * PAGE_SIZE + 1} - {Math.min((currentPage + 1) * PAGE_SIZE, totalEvents)} of {totalEvents} events
                   </div>
@@ -578,10 +584,10 @@ function SubjectDetailPage() {
           <div className="relative space-y-6 p-1">
             {(subjectDocumentCount === null || subjectDocumentCount === 0) && (
               <section
-                className="rounded-none border border-border/60 bg-card/90 backdrop-blur-sm overflow-hidden animate-in fade-in slide-in-from-top-1 duration-250"
+                className="rounded-none border border-border/40 bg-card/90 backdrop-blur-sm overflow-hidden animate-in fade-in slide-in-from-top-1 duration-250"
                 style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}
               >
-                <div className="border-l-[3px] border-primary bg-muted/20 dark:bg-muted/10 px-4 py-3 flex items-center gap-2">
+                <div className="border-l-2 border-primary/80 bg-muted/20 dark:bg-muted/10 px-4 py-3 flex items-center gap-2">
                   <Upload className="w-4 h-4 text-primary shrink-0" aria-hidden />
                   <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                     Add documents
@@ -604,10 +610,10 @@ function SubjectDetailPage() {
 
             {(subjectDocumentCount ?? 0) > 0 && (
               <section
-                className="rounded-none border border-border/60 bg-card/90 backdrop-blur-sm overflow-hidden animate-in fade-in slide-in-from-bottom-1 duration-250"
+                className="rounded-none border border-border/40 bg-card/90 backdrop-blur-sm overflow-hidden animate-in fade-in slide-in-from-bottom-1 duration-250"
                 style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}
               >
-                <div className="border-l-[3px] border-border bg-muted/15 dark:bg-muted/10 px-4 py-3 flex items-center justify-between gap-2">
+                <div className="border-l-2 border-border/50 bg-muted/15 dark:bg-muted/10 px-4 py-3 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden />
                     <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -625,7 +631,7 @@ function SubjectDetailPage() {
                   </Button>
                 </div>
                 {showUploadPanel && (
-                  <div className="border-t border-border/60 bg-muted/10 px-4 py-4">
+                  <div className="border-t border-border/40 bg-muted/10 px-4 py-4">
                     <DocumentUpload
                       subjectId={subjectId}
                       onError={(err) => console.error('Upload error:', err)}
@@ -662,7 +668,7 @@ function SubjectDetailPage() {
 
       {/* State tab — derived state from event replay */}
       {activeTab === 'state' && (
-        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50">
+        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/30">
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <label className="text-sm text-muted-foreground">
               As of (optional)
@@ -717,7 +723,7 @@ function SubjectDetailPage() {
               {Object.keys(derivedState.state).length === 0 ? (
                 <p className="text-sm text-muted-foreground">No derived state (empty object).</p>
               ) : (
-                <pre className="text-xs bg-muted/50 border border-border/50 rounded-none p-4 overflow-auto max-h-[60vh]">
+                <pre className="text-xs bg-muted/50 border border-border/30 rounded-none p-4 overflow-auto max-h-[60vh]">
                   {JSON.stringify(derivedState.state, null, 2)}
                 </pre>
               )}

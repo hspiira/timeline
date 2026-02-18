@@ -71,9 +71,9 @@ export function SubjectsTable({
               search={{ tab: 'events' }}
               onClick={(e) => e.stopPropagation()}
               className="font-medium text-foreground truncate block hover:text-primary transition-colors min-w-0"
-              title={subject.display_name ? undefined : subject.id}
+              title={subject.display_name?.trim() ? subject.id : undefined}
             >
-              {subject.display_name || subject.id}
+              {subject.display_name?.trim() || subject.id}
             </Link>
           </div>
         )

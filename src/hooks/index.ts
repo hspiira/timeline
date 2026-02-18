@@ -38,5 +38,6 @@ export {
   useSyncProgress,
 } from './useSyncProgress'
 export { useTimelineState } from './useTimelineState'
+export { useWorkflowsByEventType, WORKFLOWS_QUERY_KEY } from './useWorkflowsByEventType'
 export { useToast } from './useToast'
 export { useVirtualScroll } from './useVirtualScroll'

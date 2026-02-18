@@ -13,10 +13,14 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
+  Network,
+  ExternalLink,
+  Play,
 } from 'lucide-react'
 import { timelineApi } from '@/lib/api-client'
 import { formatFullDateTime } from '@/lib/format-date'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { useWorkflowsByEventType } from '@/hooks/useWorkflowsByEventType'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { SkeletonBreadcrumbs, Skeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/button'
@@ -31,6 +35,70 @@ export const Route = createFileRoute('/subjects/$subjectId_/events/$eventId')({
   },
   component: EventDetailPage,
 })
+
+/** Section showing workflows that are triggered by this event type. Builds business context on top of the event. */
+function EventTypeWorkflowsSection({ eventType }: { eventType: string }) {
+  const { workflows, isLoading } = useWorkflowsByEventType(eventType)
+
+  return (
+    <div className="bg-card rounded-none border border-border overflow-hidden mb-4">
+      <div className="px-4 py-3 border-b border-border bg-muted/30">
+        <h2 className="text-sm font-semibold flex items-center gap-2">
+          <Network className="w-4 h-4" />
+          Workflows triggered by this event type
+        </h2>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          When an event of type <span className="font-medium text-foreground">{eventType}</span> is
+          created, these workflows run.
+        </p>
+      </div>
+      <div className="p-4">
+        {isLoading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+            <LoadingIcon />
+            Loading workflows…
+          </div>
+        ) : workflows.length === 0 ? (
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p>No workflows are configured for this event type yet.</p>
+            <Link
+              to="/settings/workflows"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--dashboard-accent)] hover:underline"
+            >
+              <Play className="w-4 h-4" />
+              Create a workflow in Settings
+            </Link>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {workflows.map((w) => (
+              <li
+                key={w.id}
+                className="flex items-center justify-between gap-3 py-2 px-3 rounded-none bg-muted/30 border border-border/50"
+              >
+                <div className="min-w-0">
+                  <span className="font-medium text-foreground block truncate">{w.name}</span>
+                  <span
+                    className={`text-xs ${w.is_active ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}
+                  >
+                    {w.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <Link
+                  to="/settings/workflows"
+                  className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-[var(--dashboard-accent)] hover:underline"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Manage
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function EventDetailPage() {
   const { subjectId, eventId } = Route.useParams()
@@ -350,6 +418,9 @@ function EventDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Workflows triggered by this event type — event-driven automation context */}
+      <EventTypeWorkflowsSection eventType={event.event_type} />
 
       {/* Documents Section — label always shows count; list container hidden when count is 0 */}
       <div className="bg-card rounded-none border border-border overflow-hidden">
