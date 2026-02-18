@@ -160,7 +160,7 @@ export function CreateSubjectModal({
       isOpen={isOpen}
       onClose={onClose}
       title="Create Subject"
-      maxWidth="max-w-2xl"
+      maxWidth="max-w-4xl"
     >
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">

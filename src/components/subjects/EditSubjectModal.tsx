@@ -156,7 +156,7 @@ export function EditSubjectModal({
       isOpen={isOpen}
       onClose={onClose}
       title="Edit Subject"
-      maxWidth="max-w-md"
+      maxWidth="max-w-4xl"
     >
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
@@ -169,33 +169,33 @@ export function EditSubjectModal({
             </div>
           </FormField>
 
-          {/* Display name */}
-          <FormField
-            label="Display name"
-            hint="Optional human-readable label for this subject"
-          >
-            <FormInput
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="e.g. John Doe, Order #1234"
-              disabled={loading}
-            />
-          </FormField>
-
-          {/* External Reference */}
-          <FormField
-            label="External Reference"
-            hint="Leave blank to remove the external reference"
-          >
-            <FormInput
-              type="text"
-              value={externalRef}
-              onChange={(e) => setExternalRef(e.target.value)}
-              placeholder="e.g., external ID or reference"
-              disabled={loading}
-            />
-          </FormField>
+          {/* Display name + External Reference in two equal columns */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormField
+              label="Display name"
+              hint="Optional human-readable label for this subject"
+            >
+              <FormInput
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="e.g. John Doe, Order #1234"
+                disabled={loading}
+              />
+            </FormField>
+            <FormField
+              label="External Reference"
+              hint="Leave blank to remove the external reference"
+            >
+              <FormInput
+                type="text"
+                value={externalRef}
+                onChange={(e) => setExternalRef(e.target.value)}
+                placeholder="e.g., external ID or reference"
+                disabled={loading}
+              />
+            </FormField>
+          </div>
 
           {/* Attributes (schema-driven when type has schema) */}
           {schemaLoading && (

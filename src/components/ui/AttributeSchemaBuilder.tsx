@@ -78,9 +78,7 @@ function parseAllOfToRules(allOf: AllOfBlock[] | undefined): ConditionalRule[] {
 }
 
 function rulesToAllOf(rules: ConditionalRule[]): AllOfBlock[] | undefined {
-  const filtered = rules.filter(
-    (r) => r.triggerField.trim() && r.requiredFields.length > 0
-  )
+  const filtered = rules.filter((r) => r.triggerField.trim())
   if (filtered.length === 0) return undefined
   return filtered.map((r) => ({
     if: { properties: { [r.triggerField]: { const: r.triggerValue } } },
@@ -377,14 +375,14 @@ export function AttributeSchemaBuilder({
             </div>
           ))}
 
-          {fields.length >= 2 && (
+          {fields.length >= 1 && (
             <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
               <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <Filter className="w-3.5 h-3.5" />
                 Conditional required
               </div>
               <p className="text-[11px] text-muted-foreground">
-                When a field has a specific value, require other fields (e.g. when type = &quot;individual&quot;, require full_name).
+                When a field has a specific value, require other fields (e.g. when type = &quot;individual&quot;, require full_name). Add at least 2 fields to add a rule.
               </p>
               {conditionalRules.map((rule, ruleIndex) => {
                 const triggerFieldDef = fields.find((f) => f.key === rule.triggerField)
@@ -479,10 +477,10 @@ export function AttributeSchemaBuilder({
               })}
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() => updateConditionalRules([...conditionalRules, { triggerField: fields[0]?.key ?? '', triggerValue: '', requiredFields: [] }])}
-                disabled={disabled}
+                disabled={disabled || fields.length < 2}
                 className="text-xs h-7"
               >
                 <Plus className="w-3.5 h-3.5 mr-1" />

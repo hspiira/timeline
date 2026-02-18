@@ -8,6 +8,7 @@ import { DataTable } from '@/components/ui/DataTable'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/Modal'
 import { FormField, FormInput } from '@/components/ui/FormField'
+import { Textarea } from '@/components/ui/textarea'
 import { FormModalActions } from '@/components/ui/FormModalActions'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { IconPicker } from '@/components/ui/IconPicker'
@@ -313,7 +314,7 @@ function SubjectTypesPage() {
           isOpen={true}
           onClose={closeModal}
           title={editing ? 'Edit Subject Type' : 'Create Subject Type'}
-          maxWidth="max-w-2xl"
+          maxWidth="max-w-4xl"
           footer={
             <form
               onSubmit={(e) => {
@@ -334,26 +335,30 @@ function SubjectTypesPage() {
           }
         >
           <div className="space-y-3">
-            <FormField label="Type name" required>
-              <FormInput
-                value={type_name}
-                onChange={(e) => setTypeName(e.target.value)}
-                placeholder="e.g. client"
-                disabled={!!editing}
-              />
-            </FormField>
-            <FormField label="Display name" required>
-              <FormInput
-                value={display_name}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="e.g. Client"
-              />
-            </FormField>
+            <div className="grid grid-cols-2 gap-3">
+              <FormField label="Type name" required>
+                <FormInput
+                  value={type_name}
+                  onChange={(e) => setTypeName(e.target.value)}
+                  placeholder="e.g. client"
+                  disabled={!!editing}
+                />
+              </FormField>
+              <FormField label="Display name" required>
+                <FormInput
+                  value={display_name}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="e.g. Client"
+                />
+              </FormField>
+            </div>
             <FormField label="Description">
-              <FormInput
+              <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Optional"
+                rows={3}
+                className="min-h-[80px] resize-y text-sm"
               />
             </FormField>
             <FormField
