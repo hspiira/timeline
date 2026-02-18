@@ -16,11 +16,14 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SubjectsIndexRouteImport } from './routes/subjects/index'
 import { Route as SearchIndexRouteImport } from './routes/search/index'
+import { Route as FlowsIndexRouteImport } from './routes/flows/index'
 import { Route as EventsIndexRouteImport } from './routes/events/index'
 import { Route as EmailAccountsIndexRouteImport } from './routes/email-accounts/index'
 import { Route as VerifyTenantRouteImport } from './routes/verify/tenant'
 import { Route as VerifySubjectIdRouteImport } from './routes/verify/$subjectId'
 import { Route as SubjectsSubjectIdRouteImport } from './routes/subjects/$subjectId'
+import { Route as FlowsCreateRouteImport } from './routes/flows/create'
+import { Route as FlowsFlowIdRouteImport } from './routes/flows/$flowId'
 import { Route as EventsCreateRouteImport } from './routes/events/create'
 import { Route as EmailAccountsCreateRouteImport } from './routes/email-accounts/create'
 import { Route as EmailAccountsAccountIdRouteImport } from './routes/email-accounts/$accountId'
@@ -32,6 +35,7 @@ import { Route as SettingsRolesIndexRouteImport } from './routes/settings/roles/
 import { Route as SettingsRelationshipKindsIndexRouteImport } from './routes/settings/relationship-kinds/index'
 import { Route as SettingsPermissionsIndexRouteImport } from './routes/settings/permissions/index'
 import { Route as SettingsOauthProvidersIndexRouteImport } from './routes/settings/oauth-providers/index'
+import { Route as SettingsNamingTemplatesIndexRouteImport } from './routes/settings/naming-templates/index'
 import { Route as SettingsEventTransitionRulesIndexRouteImport } from './routes/settings/event-transition-rules/index'
 import { Route as SettingsDocumentCategoriesIndexRouteImport } from './routes/settings/document-categories/index'
 import { Route as SettingsAuditLogIndexRouteImport } from './routes/settings/audit-log/index'
@@ -78,6 +82,11 @@ const SearchIndexRoute = SearchIndexRouteImport.update({
   path: '/search/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FlowsIndexRoute = FlowsIndexRouteImport.update({
+  id: '/flows/',
+  path: '/flows/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EventsIndexRoute = EventsIndexRouteImport.update({
   id: '/events/',
   path: '/events/',
@@ -101,6 +110,16 @@ const VerifySubjectIdRoute = VerifySubjectIdRouteImport.update({
 const SubjectsSubjectIdRoute = SubjectsSubjectIdRouteImport.update({
   id: '/subjects/$subjectId',
   path: '/subjects/$subjectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FlowsCreateRoute = FlowsCreateRouteImport.update({
+  id: '/flows/create',
+  path: '/flows/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FlowsFlowIdRoute = FlowsFlowIdRouteImport.update({
+  id: '/flows/$flowId',
+  path: '/flows/$flowId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EventsCreateRoute = EventsCreateRouteImport.update({
@@ -160,6 +179,12 @@ const SettingsOauthProvidersIndexRoute =
   SettingsOauthProvidersIndexRouteImport.update({
     id: '/oauth-providers/',
     path: '/oauth-providers/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsNamingTemplatesIndexRoute =
+  SettingsNamingTemplatesIndexRouteImport.update({
+    id: '/naming-templates/',
+    path: '/naming-templates/',
     getParentRoute: () => SettingsRoute,
   } as any)
 const SettingsEventTransitionRulesIndexRoute =
@@ -227,11 +252,14 @@ export interface FileRoutesByFullPath {
   '/email-accounts/$accountId': typeof EmailAccountsAccountIdRoute
   '/email-accounts/create': typeof EmailAccountsCreateRoute
   '/events/create': typeof EventsCreateRoute
+  '/flows/$flowId': typeof FlowsFlowIdRoute
+  '/flows/create': typeof FlowsCreateRoute
   '/subjects/$subjectId': typeof SubjectsSubjectIdRoute
   '/verify/$subjectId': typeof VerifySubjectIdRoute
   '/verify/tenant': typeof VerifyTenantRoute
   '/email-accounts/': typeof EmailAccountsIndexRoute
   '/events/': typeof EventsIndexRoute
+  '/flows/': typeof FlowsIndexRoute
   '/search/': typeof SearchIndexRoute
   '/subjects/': typeof SubjectsIndexRoute
   '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
@@ -243,6 +271,7 @@ export interface FileRoutesByFullPath {
   '/settings/audit-log/': typeof SettingsAuditLogIndexRoute
   '/settings/document-categories/': typeof SettingsDocumentCategoriesIndexRoute
   '/settings/event-transition-rules/': typeof SettingsEventTransitionRulesIndexRoute
+  '/settings/naming-templates/': typeof SettingsNamingTemplatesIndexRoute
   '/settings/oauth-providers/': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions/': typeof SettingsPermissionsIndexRoute
   '/settings/relationship-kinds/': typeof SettingsRelationshipKindsIndexRoute
@@ -262,11 +291,14 @@ export interface FileRoutesByTo {
   '/email-accounts/$accountId': typeof EmailAccountsAccountIdRoute
   '/email-accounts/create': typeof EmailAccountsCreateRoute
   '/events/create': typeof EventsCreateRoute
+  '/flows/$flowId': typeof FlowsFlowIdRoute
+  '/flows/create': typeof FlowsCreateRoute
   '/subjects/$subjectId': typeof SubjectsSubjectIdRoute
   '/verify/$subjectId': typeof VerifySubjectIdRoute
   '/verify/tenant': typeof VerifyTenantRoute
   '/email-accounts': typeof EmailAccountsIndexRoute
   '/events': typeof EventsIndexRoute
+  '/flows': typeof FlowsIndexRoute
   '/search': typeof SearchIndexRoute
   '/subjects': typeof SubjectsIndexRoute
   '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
@@ -278,6 +310,7 @@ export interface FileRoutesByTo {
   '/settings/audit-log': typeof SettingsAuditLogIndexRoute
   '/settings/document-categories': typeof SettingsDocumentCategoriesIndexRoute
   '/settings/event-transition-rules': typeof SettingsEventTransitionRulesIndexRoute
+  '/settings/naming-templates': typeof SettingsNamingTemplatesIndexRoute
   '/settings/oauth-providers': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions': typeof SettingsPermissionsIndexRoute
   '/settings/relationship-kinds': typeof SettingsRelationshipKindsIndexRoute
@@ -298,11 +331,14 @@ export interface FileRoutesById {
   '/email-accounts/$accountId': typeof EmailAccountsAccountIdRoute
   '/email-accounts/create': typeof EmailAccountsCreateRoute
   '/events/create': typeof EventsCreateRoute
+  '/flows/$flowId': typeof FlowsFlowIdRoute
+  '/flows/create': typeof FlowsCreateRoute
   '/subjects/$subjectId': typeof SubjectsSubjectIdRoute
   '/verify/$subjectId': typeof VerifySubjectIdRoute
   '/verify/tenant': typeof VerifyTenantRoute
   '/email-accounts/': typeof EmailAccountsIndexRoute
   '/events/': typeof EventsIndexRoute
+  '/flows/': typeof FlowsIndexRoute
   '/search/': typeof SearchIndexRoute
   '/subjects/': typeof SubjectsIndexRoute
   '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
@@ -314,6 +350,7 @@ export interface FileRoutesById {
   '/settings/audit-log/': typeof SettingsAuditLogIndexRoute
   '/settings/document-categories/': typeof SettingsDocumentCategoriesIndexRoute
   '/settings/event-transition-rules/': typeof SettingsEventTransitionRulesIndexRoute
+  '/settings/naming-templates/': typeof SettingsNamingTemplatesIndexRoute
   '/settings/oauth-providers/': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions/': typeof SettingsPermissionsIndexRoute
   '/settings/relationship-kinds/': typeof SettingsRelationshipKindsIndexRoute
@@ -335,11 +372,14 @@ export interface FileRouteTypes {
     | '/email-accounts/$accountId'
     | '/email-accounts/create'
     | '/events/create'
+    | '/flows/$flowId'
+    | '/flows/create'
     | '/subjects/$subjectId'
     | '/verify/$subjectId'
     | '/verify/tenant'
     | '/email-accounts/'
     | '/events/'
+    | '/flows/'
     | '/search/'
     | '/subjects/'
     | '/email-accounts/oauth/callback'
@@ -351,6 +391,7 @@ export interface FileRouteTypes {
     | '/settings/audit-log/'
     | '/settings/document-categories/'
     | '/settings/event-transition-rules/'
+    | '/settings/naming-templates/'
     | '/settings/oauth-providers/'
     | '/settings/permissions/'
     | '/settings/relationship-kinds/'
@@ -370,11 +411,14 @@ export interface FileRouteTypes {
     | '/email-accounts/$accountId'
     | '/email-accounts/create'
     | '/events/create'
+    | '/flows/$flowId'
+    | '/flows/create'
     | '/subjects/$subjectId'
     | '/verify/$subjectId'
     | '/verify/tenant'
     | '/email-accounts'
     | '/events'
+    | '/flows'
     | '/search'
     | '/subjects'
     | '/email-accounts/oauth/callback'
@@ -386,6 +430,7 @@ export interface FileRouteTypes {
     | '/settings/audit-log'
     | '/settings/document-categories'
     | '/settings/event-transition-rules'
+    | '/settings/naming-templates'
     | '/settings/oauth-providers'
     | '/settings/permissions'
     | '/settings/relationship-kinds'
@@ -405,11 +450,14 @@ export interface FileRouteTypes {
     | '/email-accounts/$accountId'
     | '/email-accounts/create'
     | '/events/create'
+    | '/flows/$flowId'
+    | '/flows/create'
     | '/subjects/$subjectId'
     | '/verify/$subjectId'
     | '/verify/tenant'
     | '/email-accounts/'
     | '/events/'
+    | '/flows/'
     | '/search/'
     | '/subjects/'
     | '/email-accounts/oauth/callback'
@@ -421,6 +469,7 @@ export interface FileRouteTypes {
     | '/settings/audit-log/'
     | '/settings/document-categories/'
     | '/settings/event-transition-rules/'
+    | '/settings/naming-templates/'
     | '/settings/oauth-providers/'
     | '/settings/permissions/'
     | '/settings/relationship-kinds/'
@@ -441,11 +490,14 @@ export interface RootRouteChildren {
   EmailAccountsAccountIdRoute: typeof EmailAccountsAccountIdRoute
   EmailAccountsCreateRoute: typeof EmailAccountsCreateRoute
   EventsCreateRoute: typeof EventsCreateRoute
+  FlowsFlowIdRoute: typeof FlowsFlowIdRoute
+  FlowsCreateRoute: typeof FlowsCreateRoute
   SubjectsSubjectIdRoute: typeof SubjectsSubjectIdRoute
   VerifySubjectIdRoute: typeof VerifySubjectIdRoute
   VerifyTenantRoute: typeof VerifyTenantRoute
   EmailAccountsIndexRoute: typeof EmailAccountsIndexRoute
   EventsIndexRoute: typeof EventsIndexRoute
+  FlowsIndexRoute: typeof FlowsIndexRoute
   SearchIndexRoute: typeof SearchIndexRoute
   SubjectsIndexRoute: typeof SubjectsIndexRoute
   EmailAccountsOauthCallbackRoute: typeof EmailAccountsOauthCallbackRoute
@@ -506,6 +558,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SearchIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/flows/': {
+      id: '/flows/'
+      path: '/flows'
+      fullPath: '/flows/'
+      preLoaderRoute: typeof FlowsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/events/': {
       id: '/events/'
       path: '/events'
@@ -539,6 +598,20 @@ declare module '@tanstack/react-router' {
       path: '/subjects/$subjectId'
       fullPath: '/subjects/$subjectId'
       preLoaderRoute: typeof SubjectsSubjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/flows/create': {
+      id: '/flows/create'
+      path: '/flows/create'
+      fullPath: '/flows/create'
+      preLoaderRoute: typeof FlowsCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/flows/$flowId': {
+      id: '/flows/$flowId'
+      path: '/flows/$flowId'
+      fullPath: '/flows/$flowId'
+      preLoaderRoute: typeof FlowsFlowIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/events/create': {
@@ -616,6 +689,13 @@ declare module '@tanstack/react-router' {
       path: '/oauth-providers'
       fullPath: '/settings/oauth-providers/'
       preLoaderRoute: typeof SettingsOauthProvidersIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/naming-templates/': {
+      id: '/settings/naming-templates/'
+      path: '/naming-templates'
+      fullPath: '/settings/naming-templates/'
+      preLoaderRoute: typeof SettingsNamingTemplatesIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/settings/event-transition-rules/': {
@@ -697,6 +777,7 @@ interface SettingsRouteChildren {
   SettingsAuditLogIndexRoute: typeof SettingsAuditLogIndexRoute
   SettingsDocumentCategoriesIndexRoute: typeof SettingsDocumentCategoriesIndexRoute
   SettingsEventTransitionRulesIndexRoute: typeof SettingsEventTransitionRulesIndexRoute
+  SettingsNamingTemplatesIndexRoute: typeof SettingsNamingTemplatesIndexRoute
   SettingsOauthProvidersIndexRoute: typeof SettingsOauthProvidersIndexRoute
   SettingsPermissionsIndexRoute: typeof SettingsPermissionsIndexRoute
   SettingsRelationshipKindsIndexRoute: typeof SettingsRelationshipKindsIndexRoute
@@ -714,6 +795,7 @@ const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsDocumentCategoriesIndexRoute: SettingsDocumentCategoriesIndexRoute,
   SettingsEventTransitionRulesIndexRoute:
     SettingsEventTransitionRulesIndexRoute,
+  SettingsNamingTemplatesIndexRoute: SettingsNamingTemplatesIndexRoute,
   SettingsOauthProvidersIndexRoute: SettingsOauthProvidersIndexRoute,
   SettingsPermissionsIndexRoute: SettingsPermissionsIndexRoute,
   SettingsRelationshipKindsIndexRoute: SettingsRelationshipKindsIndexRoute,
@@ -737,11 +819,14 @@ const rootRouteChildren: RootRouteChildren = {
   EmailAccountsAccountIdRoute: EmailAccountsAccountIdRoute,
   EmailAccountsCreateRoute: EmailAccountsCreateRoute,
   EventsCreateRoute: EventsCreateRoute,
+  FlowsFlowIdRoute: FlowsFlowIdRoute,
+  FlowsCreateRoute: FlowsCreateRoute,
   SubjectsSubjectIdRoute: SubjectsSubjectIdRoute,
   VerifySubjectIdRoute: VerifySubjectIdRoute,
   VerifyTenantRoute: VerifyTenantRoute,
   EmailAccountsIndexRoute: EmailAccountsIndexRoute,
   EventsIndexRoute: EventsIndexRoute,
+  FlowsIndexRoute: FlowsIndexRoute,
   SearchIndexRoute: SearchIndexRoute,
   SubjectsIndexRoute: SubjectsIndexRoute,
   EmailAccountsOauthCallbackRoute: EmailAccountsOauthCallbackRoute,

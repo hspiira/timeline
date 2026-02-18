@@ -551,6 +551,97 @@ export const timelineApi = {
       client.GET('/api/v1/workflows/executions/{execution_id}', {
         params: { path: { execution_id: executionId } },
       }),
+    documentRequirements: {
+      list: (workflowId: string) =>
+        client.GET('/api/v1/workflows/{workflow_id}/document-requirements', {
+          params: { path: { workflow_id: workflowId } },
+        }),
+      create: (
+        workflowId: string,
+        data: components['schemas']['DocumentRequirementCreateRequest']
+      ) =>
+        client.POST('/api/v1/workflows/{workflow_id}/document-requirements', {
+          params: { path: { workflow_id: workflowId } },
+          body: data,
+        }),
+      delete: (requirementId: string) =>
+        client.DELETE(
+          '/api/v1/workflows/document-requirements/{requirement_id}',
+          { params: { path: { requirement_id: requirementId } } }
+        ),
+    },
+  },
+
+  flows: {
+    list: (params?: {
+      skip?: number
+      limit?: number
+      workflow_id?: string | null
+    }) =>
+      client.GET('/api/v1/flows', { params: { query: params } }),
+    get: (id: string) =>
+      client.GET('/api/v1/flows/{flow_id}', {
+        params: { path: { flow_id: id } },
+      }),
+    create: (data: components['schemas']['FlowCreateRequest']) =>
+      client.POST('/api/v1/flows', { body: data }),
+    update: (
+      id: string,
+      data: components['schemas']['FlowUpdateRequest']
+    ) =>
+      client.PUT('/api/v1/flows/{flow_id}', {
+        params: { path: { flow_id: id } },
+        body: data,
+      }),
+    listSubjects: (flowId: string) =>
+      client.GET('/api/v1/flows/{flow_id}/subjects', {
+        params: { path: { flow_id: flowId } },
+      }),
+    addSubjects: (
+      flowId: string,
+      data: components['schemas']['FlowAddSubjectsRequest']
+    ) =>
+      client.POST('/api/v1/flows/{flow_id}/subjects', {
+        params: { path: { flow_id: flowId } },
+        body: data,
+      }),
+    removeSubject: (flowId: string, subjectId: string) =>
+      client.DELETE('/api/v1/flows/{flow_id}/subjects/{subject_id}', {
+        params: { path: { flow_id: flowId, subject_id: subjectId } },
+      }),
+    getDocumentCompliance: (flowId: string) =>
+      client.GET('/api/v1/flows/{flow_id}/document-compliance', {
+        params: { path: { flow_id: flowId } },
+      }),
+    listEvents: (flowId: string, params?: { skip?: number; limit?: number }) =>
+      client.GET('/api/v1/flows/{flow_id}/events', {
+        params: { path: { flow_id: flowId }, query: params },
+      }),
+  },
+
+  namingTemplates: {
+    list: (params?: { skip?: number; limit?: number }) =>
+      client.GET('/api/v1/naming-templates', {
+        params: { query: params },
+      }),
+    get: (id: string) =>
+      client.GET('/api/v1/naming-templates/{template_id}', {
+        params: { path: { template_id: id } },
+      }),
+    create: (data: components['schemas']['NamingTemplateCreateRequest']) =>
+      client.POST('/api/v1/naming-templates', { body: data }),
+    update: (
+      id: string,
+      data: components['schemas']['NamingTemplateUpdateRequest']
+    ) =>
+      client.PUT('/api/v1/naming-templates/{template_id}', {
+        params: { path: { template_id: id } },
+        body: data,
+      }),
+    delete: (id: string) =>
+      client.DELETE('/api/v1/naming-templates/{template_id}', {
+        params: { path: { template_id: id } },
+      }),
   },
 
   emailAccounts: {

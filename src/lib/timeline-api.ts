@@ -1516,6 +1516,234 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workflows/{workflow_id}/document-requirements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Workflow Document Requirements
+         * @description List document requirements for a workflow (flow-level only).
+         */
+        get: operations["list_workflow_document_requirements_api_v1_workflows__workflow_id__document_requirements_get"];
+        put?: never;
+        /**
+         * Create Workflow Document Requirement
+         * @description Add a document requirement to a workflow (flow-level).
+         */
+        post: operations["create_workflow_document_requirement_api_v1_workflows__workflow_id__document_requirements_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflows/document-requirements/{requirement_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Document Requirement
+         * @description Delete a document requirement.
+         */
+        delete: operations["delete_document_requirement_api_v1_workflows_document_requirements__requirement_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/flows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Flows
+         * @description List flows for tenant (paginated). Optional filter by workflow_id.
+         */
+        get: operations["list_flows_api_v1_flows_get"];
+        put?: never;
+        /**
+         * Create Flow
+         * @description Create a flow (tenant-scoped). Optionally link subjects. Name validated against naming template if one exists for this workflow.
+         */
+        post: operations["create_flow_api_v1_flows_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/flows/{flow_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Flow
+         * @description Get flow by id (tenant-scoped).
+         */
+        get: operations["get_flow_api_v1_flows__flow_id__get"];
+        /**
+         * Update Flow
+         * @description Update flow name or hierarchy_values (tenant-scoped).
+         */
+        put: operations["update_flow_api_v1_flows__flow_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/flows/{flow_id}/subjects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Flow Subjects
+         * @description List subjects linked to the flow.
+         */
+        get: operations["list_flow_subjects_api_v1_flows__flow_id__subjects_get"];
+        put?: never;
+        /**
+         * Add Subjects To Flow
+         * @description Add subjects to a flow.
+         */
+        post: operations["add_subjects_to_flow_api_v1_flows__flow_id__subjects_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/flows/{flow_id}/subjects/{subject_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Subject From Flow
+         * @description Remove a subject from a flow.
+         */
+        delete: operations["remove_subject_from_flow_api_v1_flows__flow_id__subjects__subject_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/flows/{flow_id}/document-compliance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Flow Document Compliance
+         * @description Return required vs present documents for this flow (flow-level requirements only).
+         */
+        get: operations["get_flow_document_compliance_api_v1_flows__flow_id__document_compliance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/flows/{flow_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Flow Events
+         * @description List events for this flow (events where workflow_instance_id = flow_id).
+         */
+        get: operations["list_flow_events_api_v1_flows__flow_id__events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/naming-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Naming Templates
+         * @description List naming templates for tenant (paginated).
+         */
+        get: operations["list_naming_templates_api_v1_naming_templates_get"];
+        put?: never;
+        /**
+         * Create Naming Template
+         * @description Create a naming template (tenant-scoped). High-rights only.
+         */
+        post: operations["create_naming_template_api_v1_naming_templates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/naming-templates/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Naming Template
+         * @description Get naming template by id (tenant-scoped).
+         */
+        get: operations["get_naming_template_api_v1_naming_templates__template_id__get"];
+        /**
+         * Update Naming Template
+         * @description Update naming template (tenant-scoped).
+         */
+        put: operations["update_naming_template_api_v1_naming_templates__template_id__put"];
+        post?: never;
+        /**
+         * Delete Naming Template
+         * @description Delete naming template (tenant-scoped).
+         */
+        delete: operations["delete_naming_template_api_v1_naming_templates__template_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/oauth-providers": {
         parameters: {
             query?: never;
@@ -1963,6 +2191,26 @@ export interface components {
             is_active?: boolean | null;
         };
         /**
+         * DocumentComplianceItemResponse
+         * @description Required vs present for one document category in a flow.
+         */
+        DocumentComplianceItemResponse: {
+            /** Document Category Id */
+            document_category_id: string;
+            /** Category Name */
+            category_name: string;
+            /** Display Name */
+            display_name: string;
+            /** Required Count */
+            required_count: number;
+            /** Present Count */
+            present_count: number;
+            /** Satisfied */
+            satisfied: boolean;
+            /** Blocked Reason */
+            blocked_reason: string | null;
+        };
+        /**
          * DocumentDownloadUrlResponse
          * @description Response for GET /{document_id}/download-url.
          */
@@ -1987,6 +2235,37 @@ export interface components {
             file_size?: number | null;
             /** Version */
             version?: number | null;
+        };
+        /**
+         * DocumentRequirementCreateRequest
+         * @description Request body for creating a document requirement.
+         */
+        DocumentRequirementCreateRequest: {
+            /** Document Category Id */
+            document_category_id: string;
+            /**
+             * Min Count
+             * @default 1
+             */
+            min_count: number;
+        };
+        /**
+         * DocumentRequirementResponse
+         * @description Document requirement response.
+         */
+        DocumentRequirementResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Workflow Id */
+            workflow_id: string;
+            /** Step Definition Id */
+            step_definition_id: string | null;
+            /** Document Category Id */
+            document_category_id: string;
+            /** Min Count */
+            min_count: number;
         };
         /**
          * DocumentUpdate
@@ -2427,6 +2706,104 @@ export interface components {
             /** Exported At */
             exported_at: string;
         };
+        /**
+         * FlowAddSubjectsRequest
+         * @description Request body for adding subjects to a flow.
+         */
+        FlowAddSubjectsRequest: {
+            /** Subject Ids */
+            subject_ids: string[];
+            /** Roles */
+            roles?: {
+                [key: string]: string;
+            } | null;
+        };
+        /**
+         * FlowCreateRequest
+         * @description Request body for creating a flow.
+         */
+        FlowCreateRequest: {
+            /** Name */
+            name: string;
+            /** Workflow Id */
+            workflow_id?: string | null;
+            /** Hierarchy Values */
+            hierarchy_values?: {
+                [key: string]: string;
+            } | null;
+            /** Subject Ids */
+            subject_ids?: string[] | null;
+            /** Subject Roles */
+            subject_roles?: {
+                [key: string]: string;
+            } | null;
+        };
+        /**
+         * FlowDocumentComplianceResponse
+         * @description Document compliance check result for a flow.
+         */
+        FlowDocumentComplianceResponse: {
+            /** Flow Id */
+            flow_id: string;
+            /** Items */
+            items: components["schemas"]["DocumentComplianceItemResponse"][];
+            /** All Satisfied */
+            all_satisfied: boolean;
+            /** Blocked Reasons */
+            blocked_reasons: string[];
+        };
+        /**
+         * FlowResponse
+         * @description Flow response.
+         */
+        FlowResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Name */
+            name: string;
+            /** Workflow Id */
+            workflow_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Hierarchy Values */
+            hierarchy_values: {
+                [key: string]: string;
+            } | null;
+        };
+        /**
+         * FlowSubjectResponse
+         * @description Flow-subject link response.
+         */
+        FlowSubjectResponse: {
+            /** Flow Id */
+            flow_id: string;
+            /** Subject Id */
+            subject_id: string;
+            /** Role */
+            role: string | null;
+        };
+        /**
+         * FlowUpdateRequest
+         * @description Request body for updating a flow (partial).
+         */
+        FlowUpdateRequest: {
+            /** Name */
+            name?: string | null;
+            /** Hierarchy Values */
+            hierarchy_values?: {
+                [key: string]: string;
+            } | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2461,6 +2838,54 @@ export interface components {
              * @description Password (min 8 characters)
              */
             password: string;
+        };
+        /**
+         * NamingTemplateCreateRequest
+         * @description Request body for creating a naming template.
+         */
+        NamingTemplateCreateRequest: {
+            /** Scope Type */
+            scope_type: string;
+            /** Scope Id */
+            scope_id: string;
+            /** Template String */
+            template_string: string;
+            /** Placeholders */
+            placeholders?: {
+                [key: string]: unknown;
+            }[] | null;
+        };
+        /**
+         * NamingTemplateResponse
+         * @description Naming template response.
+         */
+        NamingTemplateResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Scope Type */
+            scope_type: string;
+            /** Scope Id */
+            scope_id: string;
+            /** Template String */
+            template_string: string;
+            /** Placeholders */
+            placeholders: {
+                [key: string]: unknown;
+            }[] | null;
+        };
+        /**
+         * NamingTemplateUpdateRequest
+         * @description Request body for updating a naming template (partial).
+         */
+        NamingTemplateUpdateRequest: {
+            /** Template String */
+            template_string?: string | null;
+            /** Placeholders */
+            placeholders?: {
+                [key: string]: unknown;
+            }[] | null;
         };
         /**
          * OAuthAuthorizeResponse
@@ -6864,6 +7289,554 @@ export interface operations {
             header?: never;
             path: {
                 workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_workflow_document_requirements_api_v1_workflows__workflow_id__document_requirements_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRequirementResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_workflow_document_requirement_api_v1_workflows__workflow_id__document_requirements_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentRequirementCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRequirementResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_document_requirement_api_v1_workflows_document_requirements__requirement_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requirement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_flows_api_v1_flows_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+                workflow_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_flow_api_v1_flows_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlowCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_flow_api_v1_flows__flow_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                flow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_flow_api_v1_flows__flow_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                flow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlowUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_flow_subjects_api_v1_flows__flow_id__subjects_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                flow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowSubjectResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_subjects_to_flow_api_v1_flows__flow_id__subjects_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                flow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlowAddSubjectsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_subject_from_flow_api_v1_flows__flow_id__subjects__subject_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                flow_id: string;
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_flow_document_compliance_api_v1_flows__flow_id__document_compliance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                flow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowDocumentComplianceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_flow_events_api_v1_flows__flow_id__events_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                flow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_naming_templates_api_v1_naming_templates_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NamingTemplateResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_naming_template_api_v1_naming_templates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NamingTemplateCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NamingTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_naming_template_api_v1_naming_templates__template_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NamingTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_naming_template_api_v1_naming_templates__template_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NamingTemplateUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NamingTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_naming_template_api_v1_naming_templates__template_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
             };
             cookie?: never;
         };

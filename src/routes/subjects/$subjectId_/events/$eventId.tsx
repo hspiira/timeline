@@ -16,7 +16,9 @@ import {
   Network,
   ExternalLink,
   Play,
+  GitBranch,
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { timelineApi } from '@/lib/api-client'
 import { formatFullDateTime } from '@/lib/format-date'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
@@ -35,6 +37,36 @@ export const Route = createFileRoute('/subjects/$subjectId_/events/$eventId')({
   },
   component: EventDetailPage,
 })
+
+/** Link to the flow this event belongs to (when workflow_instance_id is set). */
+function EventFlowLink({ flowId }: { flowId: string }) {
+  const { data: flow } = useQuery({
+    queryKey: ['flow', flowId],
+    queryFn: async () => {
+      const { data, error } = await timelineApi.flows.get(flowId)
+      if (error) return null
+      return data
+    },
+    enabled: !!flowId,
+  })
+
+  return (
+    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-none">
+      <GitBranch className="w-5 h-5 text-muted-foreground" />
+      <div>
+        <p className="text-xs text-muted-foreground">Part of flow</p>
+        <Link
+          to="/flows/$flowId"
+          params={{ flowId }}
+          search={undefined}
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          {flow?.name ?? flowId}
+        </Link>
+      </div>
+    </div>
+  )
+}
 
 /** Section showing workflows that are triggered by this event type. Builds business context on top of the event. */
 function EventTypeWorkflowsSection({ eventType }: { eventType: string }) {
@@ -376,6 +408,10 @@ function EventDetailPage() {
               </div>
             </div>
           </div>
+
+          {event.workflow_instance_id && (
+            <EventFlowLink flowId={event.workflow_instance_id} />
+          )}
 
           {/* Hashes */}
           <div className="space-y-3">

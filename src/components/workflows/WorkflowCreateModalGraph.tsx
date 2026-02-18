@@ -129,7 +129,7 @@ export function WorkflowCreateModalGraph({
       isOpen={true}
       onClose={onClose}
       title={title}
-      maxWidth="max-w-6xl"
+      maxWidth="max-w-[96vw]"
       closeButton={!loading}
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -194,7 +194,7 @@ export function WorkflowCreateModalGraph({
               onWorkflowChange={setWorkflow}
               allowCircular={false}
               topPanel={<NodePaletteRow />}
-              height="420px"
+              height="60vh"
               onSelectionChange={setSelectedNodeId}
             />
           </div>

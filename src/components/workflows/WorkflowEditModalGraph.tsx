@@ -136,7 +136,7 @@ export function WorkflowEditModalGraph({
       isOpen={true}
       onClose={onClose}
       title="Edit workflow"
-      maxWidth="max-w-6xl"
+      maxWidth="max-w-[96vw]"
       closeButton={!loading}
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -213,7 +213,7 @@ export function WorkflowEditModalGraph({
               onWorkflowChange={setWorkflow}
               allowCircular={false}
               topPanel={<NodePaletteRow />}
-              height="420px"
+              height="60vh"
               onSelectionChange={setSelectedNodeId}
             />
           </div>

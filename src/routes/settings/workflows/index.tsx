@@ -5,9 +5,10 @@ import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { timelineApi } from '@/lib/api-client'
-import { Plus, Play, Pause, Trash2, CheckCircle, SquarePen, Network } from 'lucide-react'
+import { Plus, Play, Pause, Trash2, CheckCircle, SquarePen, Network, FileCheck } from 'lucide-react'
 import { WorkflowCreateModalGraph } from '@/components/workflows/WorkflowCreateModalGraph'
 import { WorkflowEditModalGraph } from '@/components/workflows/WorkflowEditModalGraph'
+import { WorkflowDocumentRequirementsModal } from '@/components/workflows/WorkflowDocumentRequirementsModal'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { ErrorModal } from '@/components/ui/ErrorModal'
 import { DataTable } from '@/components/ui/DataTable'
@@ -69,6 +70,7 @@ function WorkflowsPage() {
   const [toggling, setToggling] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState<{ id: string; name: string } | null>(null)
   const [editingWorkflow, setEditingWorkflow] = useState<Workflow | null>(null)
+  const [documentRequirementsWorkflow, setDocumentRequirementsWorkflow] = useState<Workflow | null>(null)
   const [filterEventType, setFilterEventType] = useState<string>('')
 
   const handleCreateWorkflow = async (workflowData: WorkflowCreate): Promise<boolean> => {
@@ -255,6 +257,14 @@ function WorkflowsPage() {
         return (
           <div className="flex items-center justify-end gap-1">
             <button
+              onClick={() => setDocumentRequirementsWorkflow(workflow)}
+              disabled={hasNoAccess}
+              className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={hasNoAccess ? 'No permission' : 'Document requirements'}
+            >
+              <FileCheck className="w-4 h-4" />
+            </button>
+            <button
               onClick={() => setEditingWorkflow(workflow)}
               disabled={hasNoAccess}
               className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -317,6 +327,16 @@ function WorkflowsPage() {
           workflow={editingWorkflow}
           onClose={() => setEditingWorkflow(null)}
           onSave={handleUpdateWorkflow}
+        />
+      )}
+
+      {/* Document requirements modal */}
+      {documentRequirementsWorkflow && (
+        <WorkflowDocumentRequirementsModal
+          workflowId={documentRequirementsWorkflow.id}
+          workflowName={documentRequirementsWorkflow.name}
+          isOpen={true}
+          onClose={() => setDocumentRequirementsWorkflow(null)}
         />
       )}
 

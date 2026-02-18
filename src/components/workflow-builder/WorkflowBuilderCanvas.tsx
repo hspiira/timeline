@@ -9,6 +9,7 @@ import {
   useUpdateNodeInternals,
   addEdge,
   MarkerType,
+  ConnectionLineType,
   type Connection,
   type Node,
   type ReactFlowInstance,
@@ -47,7 +48,7 @@ const defaultEdgeOptions = {
     width: 14,
     height: 14,
   },
-  pathOptions: { borderRadius: 20 },
+  pathOptions: { borderRadius: 28 },
   style: { strokeWidth: 1.5 },
 }
 
@@ -91,8 +92,22 @@ function WorkflowBuilderCanvasInner({
     setNodes(wNodes)
     setEdges(wEdges)
     const ids = wNodes.map((n) => n.id)
-    const t = setTimeout(() => ids.forEach((id) => updateNodeInternals(id)), 0)
-    return () => clearTimeout(t)
+    // Run after layout so node dimensions (e.g. title change) are correct and edges don’t distort
+    let cancelled = false
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cancelled) ids.forEach((id) => updateNodeInternals(id))
+      })
+    })
+    // After reopen, layout may not be final until the modal has opened; run again so edges stay correct
+    const t = setTimeout(() => {
+      if (!cancelled) ids.forEach((id) => updateNodeInternals(id))
+    }, 400)
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(raf)
+      clearTimeout(t)
+    }
   }, [workflow, setNodes, setEdges, updateNodeInternals])
 
   const onConnect = useCallback(
@@ -242,6 +257,7 @@ function WorkflowBuilderCanvasInner({
         onSelectionChange={handleSelectionChange}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
+        connectionLineType={ConnectionLineType.SmoothStep}
         fitView={false}
         className="bg-muted/10"
       >

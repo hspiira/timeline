@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useLocation, useNavigate } from '@tanstack/rea
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useHasAuditAccess } from '@/hooks/useHasAuditAccess'
-import { Shield, Database, Zap, Users, KeyRound, Layers, FolderOpen, ClipboardList, GitBranch, Link2 } from 'lucide-react'
+import { Shield, Database, Zap, Users, KeyRound, Layers, FolderOpen, ClipboardList, GitBranch, Link2, FileText } from 'lucide-react'
 
 export const Route = createFileRoute('/settings')({
   beforeLoad: () => {
@@ -78,6 +78,12 @@ function SettingsLayout() {
       label: 'Workflows',
       icon: Zap,
       description: 'Automation & triggers',
+    },
+    {
+      path: '/settings/naming-templates',
+      label: 'Naming templates',
+      icon: FileText,
+      description: 'Flow, subject & document name templates',
     },
     {
       path: '/settings/audit-log',

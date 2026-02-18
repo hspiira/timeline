@@ -326,17 +326,29 @@ function SingleSelectCombobox({
   error,
   clearable = false,
 }: SingleSelectComboboxProps) {
-  const items = React.useMemo(
-    () => options.map((o) => o.value),
-    [options]
+  const selectedOption = React.useMemo(
+    () => options.find((o) => o.value === value) ?? null,
+    [options, value]
   )
 
   return (
     <div className="w-full">
       <Combobox
-        value={value}
-        onValueChange={(v) => onValueChange(v ?? '')}
-        items={items}
+        value={selectedOption}
+        onValueChange={(v) => {
+          const id =
+            v != null && typeof v === 'object' && 'value' in v
+              ? (v as SingleSelectOption).value
+              : typeof v === 'string'
+                ? v
+                : ''
+          onValueChange(id)
+        }}
+        items={options}
+        isItemEqualToValue={(a, b) =>
+          (a && typeof a === 'object' && 'value' in a ? (a as SingleSelectOption).value : a) ===
+          (b && typeof b === 'object' && 'value' in b ? (b as SingleSelectOption).value : b)
+        }
       >
         <ComboboxInput
           placeholder={placeholder}
@@ -349,14 +361,11 @@ function SingleSelectCombobox({
         <ComboboxContent className="rounded-none">
           <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
           <ComboboxList>
-            {(itemValue: string) => {
-              const opt = options.find((o) => o.value === itemValue)
-              return (
-                <ComboboxItem key={itemValue} value={itemValue}>
-                  {opt?.label ?? itemValue}
-                </ComboboxItem>
-              )
-            }}
+            {(item: SingleSelectOption) => (
+              <ComboboxItem key={item.value} value={item}>
+                {item.label}
+              </ComboboxItem>
+            )}
           </ComboboxList>
         </ComboboxContent>
       </Combobox>

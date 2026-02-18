@@ -36,6 +36,9 @@ export interface WorkflowEdge {
   to: string
   /** For condition nodes: "true" | "false". Omitted for other edges. */
   label?: 'true' | 'false'
+  /** Persisted from flow so edges keep correct attachment on reopen. */
+  sourceHandle?: string
+  targetHandle?: string
 }
 
 export interface Workflow {
