@@ -8,6 +8,9 @@ from app.infrastructure.persistence.repositories.auditable_repo import (
 )
 from app.infrastructure.persistence.repositories.base import BaseRepository
 from app.infrastructure.persistence.repositories.document_repo import DocumentRepository
+from app.infrastructure.persistence.repositories.document_requirement_repo import (
+    DocumentRequirementRepository,
+)
 from app.infrastructure.persistence.repositories.document_category_repo import (
     DocumentCategoryRepository,
 )
@@ -15,6 +18,10 @@ from app.infrastructure.persistence.repositories.email_account_repo import (
     EmailAccountRepository,
 )
 from app.infrastructure.persistence.repositories.event_repo import EventRepository
+from app.infrastructure.persistence.repositories.flow_repo import FlowRepository
+from app.infrastructure.persistence.repositories.naming_template_repo import (
+    NamingTemplateRepository,
+)
 from app.infrastructure.persistence.repositories.event_schema_repo import (
     EventSchemaRepository,
 )
@@ -68,9 +75,12 @@ __all__ = [
     "BaseRepository",
     "DocumentCategoryRepository",
     "DocumentRepository",
+    "DocumentRequirementRepository",
     "EmailAccountRepository",
     "EventRepository",
+    "FlowRepository",
     "EventSchemaRepository",
+    "NamingTemplateRepository",
     "EventTransitionRuleRepository",
     "OAuthProviderConfigRepository",
     "OAuthStateRepository",

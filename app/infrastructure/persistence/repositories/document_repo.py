@@ -179,6 +179,25 @@ class DocumentRepository(AuditableRepository[Document]):
         updated = await super().update(orm, skip_existence_check=True)
         return _document_to_result(updated)
 
+    async def count_by_subjects_and_document_type(
+        self,
+        tenant_id: str,
+        subject_ids: list[str],
+        document_type: str,
+    ) -> int:
+        """Count non-deleted documents for the given subjects and document_type (e.g. category_name)."""
+        if not subject_ids:
+            return 0
+        result = await self.db.execute(
+            select(func.count(Document.id)).where(
+                Document.tenant_id == tenant_id,
+                Document.subject_id.in_(subject_ids),
+                Document.document_type == document_type,
+                Document.deleted_at.is_(None),
+            )
+        )
+        return result.scalar() or 0
+
     async def get_by_subject(
         self,
         subject_id: str,

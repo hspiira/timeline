@@ -203,6 +203,26 @@ class EventRepository(BaseRepository[Event]):
         )
         return [_event_to_result(e) for e in result.scalars().all()]
 
+    async def get_by_workflow_instance_id(
+        self,
+        tenant_id: str,
+        workflow_instance_id: str,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[EventResult]:
+        """Return events for a flow (workflow_instance_id) across all subjects, newest first."""
+        result = await self.db.execute(
+            select(Event)
+            .where(
+                Event.tenant_id == tenant_id,
+                Event.workflow_instance_id == workflow_instance_id,
+            )
+            .order_by(desc(Event.event_time), desc(Event.id))
+            .offset(skip)
+            .limit(limit)
+        )
+        return [_event_to_result(e) for e in result.scalars().all()]
+
     async def create_events_bulk(
         self, tenant_id: str, events: list[EventToPersist]
     ) -> list[EventResult]:

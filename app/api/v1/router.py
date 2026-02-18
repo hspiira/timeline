@@ -16,7 +16,9 @@ from app.api.v1.endpoints import (
     event_schemas,
     event_transition_rules,
     events,
+    flows,
     health,
+    naming_templates,
     oauth_providers,
     permissions,
     relationship_kinds,
@@ -81,6 +83,12 @@ api_router.include_router(
     tags=["event-transition-rules"],
 )
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflows"])
+api_router.include_router(flows.router, prefix="/flows", tags=["flows"])
+api_router.include_router(
+    naming_templates.router,
+    prefix="/naming-templates",
+    tags=["naming-templates"],
+)
 api_router.include_router(
     oauth_providers.router, prefix="/oauth-providers", tags=["oauth-providers"]
 )

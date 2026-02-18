@@ -2,12 +2,17 @@
 
 from app.infrastructure.persistence.models.audit_log import AuditLog
 from app.infrastructure.persistence.models.document import Document
+from app.infrastructure.persistence.models.document_requirement import (
+    DocumentRequirement,
+)
 from app.infrastructure.persistence.models.email_account import EmailAccount
 from app.infrastructure.persistence.models.event import Event
+from app.infrastructure.persistence.models.flow import Flow, FlowSubject
 from app.infrastructure.persistence.models.event_schema import EventSchema
 from app.infrastructure.persistence.models.event_transition_rule import (
     EventTransitionRule,
 )
+from app.infrastructure.persistence.models.naming_template import NamingTemplate
 from app.infrastructure.persistence.models.mixins import (
     AuditedMultiTenantModel,
     CuidMixin,
@@ -54,7 +59,11 @@ __all__ = [
     "SubjectSnapshot",
     "Task",
     "Event",
+    "Flow",
+    "FlowSubject",
+    "NamingTemplate",
     "Document",
+    "DocumentRequirement",
     "EventSchema",
     "EventTransitionRule",
     "Role",

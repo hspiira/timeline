@@ -12,10 +12,18 @@ from typing import TYPE_CHECKING, Any, Protocol
 from app.domain.enums import TenantStatus
 
 if TYPE_CHECKING:
+    from app.application.dtos.audit_log import AuditLogEntryCreate, AuditLogResult
     from app.application.dtos.document import DocumentCreate, DocumentResult
+    from app.application.dtos.document_requirement import (
+        DocumentComplianceItem,
+        DocumentRequirementResult,
+        FlowDocumentComplianceResult,
+    )
     from app.application.dtos.document_category import DocumentCategoryResult
     from app.application.dtos.event import EventCreate, EventResult, EventToPersist
+    from app.application.dtos.flow import FlowResult, FlowSubjectResult
     from app.application.dtos.event_schema import EventSchemaResult
+    from app.application.dtos.naming_template import NamingTemplateResult
     from app.application.dtos.event_transition_rule import EventTransitionRuleResult
     from app.application.dtos.permission import PermissionResult
     from app.application.dtos.role import RoleResult
@@ -90,6 +98,15 @@ class IEventRepository(Protocol):
         self, tenant_id: str, skip: int = 0, limit: int = 100
     ) -> list[EventResult]:
         """Return events for tenant with pagination (for verification)."""
+
+    async def get_by_workflow_instance_id(
+        self,
+        tenant_id: str,
+        workflow_instance_id: str,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[EventResult]:
+        """Return events for a flow (workflow_instance_id) across all subjects, newest first."""
 
 
 # Subject repository interface
@@ -460,6 +477,37 @@ class IDocumentCategoryRepository(Protocol):
         """Delete document category; return True if deleted, False if not found."""
 
 
+# Document requirement repository interface
+class IDocumentRequirementRepository(Protocol):
+    """Protocol for document requirement repository (required docs per workflow/step)."""
+
+    async def get_by_workflow(
+        self,
+        tenant_id: str,
+        workflow_id: str,
+        step_definition_id: str | None = None,
+    ) -> list["DocumentRequirementResult"]:
+        """Return document requirements for workflow (and optional step)."""
+
+    async def get_by_tenant(
+        self, tenant_id: str, skip: int = 0, limit: int = 100
+    ) -> list["DocumentRequirementResult"]:
+        """Return document requirements for tenant."""
+
+    async def create(
+        self,
+        tenant_id: str,
+        workflow_id: str,
+        document_category_id: str,
+        min_count: int = 1,
+        step_definition_id: str | None = None,
+    ) -> "DocumentRequirementResult":
+        """Create a document requirement."""
+
+    async def delete(self, requirement_id: str, tenant_id: str) -> bool:
+        """Delete document requirement; return True if deleted."""
+
+
 # Tenant repository interface
 class ITenantRepository(Protocol):
     """Protocol for tenant repository (DIP). Postgres and Firestore implementations."""
@@ -544,6 +592,14 @@ class IDocumentRepository(Protocol):
     ) -> list[DocumentResult]:
         """List documents for tenant (for retention job and admin)."""
 
+    async def count_by_subjects_and_document_type(
+        self,
+        tenant_id: str,
+        subject_ids: list[str],
+        document_type: str,
+    ) -> int:
+        """Count non-deleted documents for the given subjects and document_type."""
+
     async def get_by_id(self, document_id: str) -> DocumentResult | None:
         """Return document by ID."""
 
@@ -606,13 +662,6 @@ class IRoleRepository(Protocol):
 
 
 # Permission repository interface
-class IPermissionRead(Protocol):
-    """Minimal protocol for permission lookup result (has id for assignment)."""
-
-    id: str
-
-
-# Permission repository interface
 class IPermissionRepository(Protocol):
     """Protocol for permission repository (DIP)."""
 
@@ -642,6 +691,112 @@ class IRolePermissionRepository(Protocol):
         """Assign a permission to a role in the tenant. Raises DuplicateAssignmentException if already assigned."""
 
 
+# Flow repository interface
+class IFlowRepository(Protocol):
+    """Protocol for flow repository (workflow instance grouping)."""
+
+    async def get_by_id(self, flow_id: str, tenant_id: str) -> "FlowResult | None":
+        """Return flow by ID if it belongs to tenant."""
+
+    async def get_entity_by_id_and_tenant(
+        self, flow_id: str, tenant_id: str
+    ) -> object | None:
+        """Return Flow ORM entity for write operations (update, delete)."""
+
+    async def get_by_tenant(
+        self,
+        tenant_id: str,
+        skip: int = 0,
+        limit: int = 100,
+        workflow_id: str | None = None,
+    ) -> list[FlowResult]:
+        """Return flows for tenant with optional workflow filter."""
+
+    async def create_flow(
+        self,
+        tenant_id: str,
+        name: str,
+        *,
+        workflow_id: str | None = None,
+        hierarchy_values: dict[str, str] | None = None,
+        subject_ids: list[str] | None = None,
+        subject_roles: dict[str, str] | None = None,
+    ) -> FlowResult:
+        """Create a flow and optionally link subjects (role by subject_id)."""
+
+    async def update_flow(
+        self,
+        flow_id: str,
+        tenant_id: str,
+        *,
+        name: str | None = None,
+        hierarchy_values: dict[str, str] | None = None,
+    ) -> "FlowResult | None":
+        """Update flow name or hierarchy_values; return updated result or None."""
+
+    async def list_subjects_for_flow(
+        self, flow_id: str, tenant_id: str
+    ) -> list[FlowSubjectResult]:
+        """Return flow-subject links for the flow (tenant-checked)."""
+
+    async def add_subjects_to_flow(
+        self,
+        flow_id: str,
+        tenant_id: str,
+        subject_ids: list[str],
+        roles: dict[str, str] | None = None,
+    ) -> None:
+        """Link subjects to flow (roles optional: subject_id -> role)."""
+
+    async def remove_subject_from_flow(
+        self, flow_id: str, subject_id: str, tenant_id: str
+    ) -> bool:
+        """Remove subject from flow; return True if removed."""
+
+
+# Naming template repository interface
+class INamingTemplateRepository(Protocol):
+    """Protocol for naming template repository (flow/subject/document naming conventions)."""
+
+    async def get_by_id(
+        self, template_id: str, tenant_id: str
+    ) -> "NamingTemplateResult | None":
+        """Return naming template by ID if it belongs to tenant."""
+
+    async def get_for_scope(
+        self, tenant_id: str, scope_type: str, scope_id: str
+    ) -> "NamingTemplateResult | None":
+        """Return naming template for (tenant, scope_type, scope_id), or None."""
+
+    async def get_by_tenant(
+        self, tenant_id: str, skip: int = 0, limit: int = 100
+    ) -> list[NamingTemplateResult]:
+        """Return naming templates for tenant with pagination."""
+
+    async def create(
+        self,
+        tenant_id: str,
+        scope_type: str,
+        scope_id: str,
+        template_string: str,
+        placeholders: list[dict[str, Any]] | None = None,
+    ) -> NamingTemplateResult:
+        """Create a naming template; raise if duplicate (tenant, scope_type, scope_id)."""
+
+    async def update(
+        self,
+        template_id: str,
+        tenant_id: str,
+        *,
+        template_string: str | None = None,
+        placeholders: list[dict[str, Any]] | None = None,
+    ) -> "NamingTemplateResult | None":
+        """Update template; return updated result or None if not found."""
+
+    async def delete(self, template_id: str, tenant_id: str) -> bool:
+        """Delete naming template; return True if deleted."""
+
+
 # Task repository interface (workflow create_task action)
 class ITaskRepository(Protocol):
     """Protocol for task repository (workflow-created tasks)."""
@@ -658,7 +813,7 @@ class ITaskRepository(Protocol):
         due_at: datetime | None = None,
         status: str = "open",
         description: str | None = None,
-    ) -> "TaskResult":
+    ) -> TaskResult:
         """Create a task; return created result. At least one of assigned_to_role_id or assigned_to_user_id recommended."""
 
 
@@ -672,19 +827,15 @@ class ISearchRepository(Protocol):
         q: str,
         scope: str = "all",
         limit: int = 50,
-    ) -> list["SearchResultItem"]:
+    ) -> list[SearchResultItem]:
         """Search within tenant. scope: all | subjects | events | documents. Returns ranked results."""
 
 
 # Audit log repository interface (append-only)
-if TYPE_CHECKING:
-    from app.application.dtos.audit_log import AuditLogEntryCreate, AuditLogResult
-
-
 class IAuditLogRepository(Protocol):
     """Protocol for API audit log repository (DIP). Append-only."""
 
-    async def create(self, entry: "AuditLogEntryCreate") -> "AuditLogResult":
+    async def create(self, entry: AuditLogEntryCreate) -> AuditLogResult:
         """Append one audit log entry; return created record."""
 
     async def list(
@@ -697,7 +848,7 @@ class IAuditLogRepository(Protocol):
         user_id: str | None = None,
         from_timestamp: datetime | None = None,
         to_timestamp: datetime | None = None,
-    ) -> list["AuditLogResult"]:
+    ) -> list[AuditLogResult]:
         """List audit log entries for tenant with optional filters (paginated)."""
 
     async def count(

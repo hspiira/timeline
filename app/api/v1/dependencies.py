@@ -43,6 +43,10 @@ from app.application.use_cases.documents import (
 from app.application.use_cases.analytics import GetDashboardStatsUseCase
 from app.application.use_cases.events import EventService
 from app.application.use_cases.search import SearchService
+from app.application.use_cases.flows import (
+    CreateFlowUseCase,
+    GetFlowDocumentComplianceUseCase,
+)
 from app.application.use_cases.state import (
     CreateSubjectSnapshotUseCase,
     GetSubjectStateUseCase,
@@ -74,10 +78,13 @@ from app.infrastructure.persistence.repositories import (
     AuditLogRepository,
     DocumentCategoryRepository,
     DocumentRepository,
+    DocumentRequirementRepository,
     EmailAccountRepository,
     EventRepository,
     EventSchemaRepository,
     EventTransitionRuleRepository,
+    FlowRepository,
+    NamingTemplateRepository,
     OAuthProviderConfigRepository,
     OAuthStateRepository,
     PasswordSetTokenStore,
@@ -125,7 +132,6 @@ _TENANT_VALIDATION_CACHE_TTL = 60
 _TENANT_CACHE_MISS_MARKER = "__missing__"
 
 
-@dataclass
 class AuthSecurity:
     """Token and password hashing provided via DI (no direct infra imports in routes)."""
 
@@ -765,6 +771,20 @@ async def get_subject_type_repo_for_write(
     return SubjectTypeRepository(db, audit_service=audit_svc)
 
 
+async def get_document_requirement_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> DocumentRequirementRepository:
+    """Document requirement repository for read operations."""
+    return DocumentRequirementRepository(db)
+
+
+async def get_document_requirement_repo_for_write(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> DocumentRequirementRepository:
+    """Document requirement repository for create/delete."""
+    return DocumentRequirementRepository(db)
+
+
 async def get_document_category_repo(
     db: Annotated[AsyncSession, Depends(get_db)],
     tenant_id: Annotated[str, Depends(get_tenant_id)],
@@ -851,6 +871,66 @@ async def get_workflow_execution_repo(
             ),
         )
     return WorkflowExecutionRepository(backend.db)
+
+
+async def get_flow_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> FlowRepository:
+    """Flow repository for read operations. Requires PostgreSQL."""
+    return FlowRepository(db)
+
+
+async def get_flow_repo_for_write(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> FlowRepository:
+    """Flow repository for create/update/delete. Requires PostgreSQL."""
+    return FlowRepository(db)
+
+
+async def get_naming_template_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> NamingTemplateRepository:
+    """Naming template repository for read operations."""
+    return NamingTemplateRepository(db)
+
+
+async def get_naming_template_repo_for_write(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> NamingTemplateRepository:
+    """Naming template repository for create/update/delete."""
+    return NamingTemplateRepository(db)
+
+
+async def get_create_flow_use_case(
+    flow_repo: Annotated[FlowRepository, Depends(get_flow_repo_for_write)],
+    naming_template_repo: Annotated[
+        NamingTemplateRepository, Depends(get_naming_template_repo)
+    ],
+) -> CreateFlowUseCase:
+    """Create flow use case (naming template validation, subject linking)."""
+    return CreateFlowUseCase(
+        flow_repo=flow_repo,
+        naming_template_repo=naming_template_repo,
+    )
+
+
+async def get_flow_document_compliance_use_case(
+    flow_repo: Annotated[FlowRepository, Depends(get_flow_repo)],
+    document_requirement_repo: Annotated[
+        DocumentRequirementRepository, Depends(get_document_requirement_repo)
+    ],
+    document_category_repo: Annotated[
+        DocumentCategoryRepository, Depends(get_document_category_repo)
+    ],
+    document_repo: Annotated[DocumentRepository, Depends(get_document_repo)],
+) -> GetFlowDocumentComplianceUseCase:
+    """Flow document compliance use case (required vs present docs)."""
+    return GetFlowDocumentComplianceUseCase(
+        flow_repo=flow_repo,
+        document_requirement_repo=document_requirement_repo,
+        document_category_repo=document_category_repo,
+        document_repo=document_repo,
+    )
 
 
 async def get_role_repo(
