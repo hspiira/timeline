@@ -55,12 +55,13 @@ class IEventSchemaValidator(Protocol):
         event_type: str,
         schema_version: int,
         payload: dict[str, Any],
+        subject_type: str | None = None,
     ) -> None:
         """Validate payload against tenant schema (version).
 
-        Raises app.domain.exceptions.ValidationException (or another TimelineException
-        subclass) when the schema is not found, inactive, or the payload fails validation,
-        so callers and centralized exception_handlers receive a domain-level 4xx error.
+        When subject_type is provided and schema has allowed_subject_types,
+        subject_type must be in that list. Raises TimelineException subclass
+        when the schema is not found, inactive, or validation fails.
         """
 
 

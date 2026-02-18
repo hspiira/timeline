@@ -7,6 +7,12 @@ from typing import TypedDict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.services.relationship_event_schema import (
+    RELATIONSHIP_ADDED_EVENT_TYPE,
+    RELATIONSHIP_EVENT_SCHEMA_VERSION,
+    RELATIONSHIP_REMOVED_EVENT_TYPE,
+    get_relationship_event_schema_definition,
+)
 from app.application.services.system_audit_schema import (
     SYSTEM_AUDIT_EVENT_TYPE,
     SYSTEM_AUDIT_SCHEMA_VERSION,
@@ -74,6 +80,10 @@ SYSTEM_PERMISSIONS: list[tuple[str, str, str, str]] = [
     ("workflow:update", "workflow", "update", "Update workflows"),
     ("workflow:delete", "workflow", "delete", "Delete workflows"),
     ("audit:read", "audit", "read", "View audit log"),
+    ("relationship_kind:read", "relationship_kind", "read", "View relationship kinds"),
+    ("relationship_kind:create", "relationship_kind", "create", "Create relationship kinds"),
+    ("relationship_kind:update", "relationship_kind", "update", "Update relationship kinds"),
+    ("relationship_kind:delete", "relationship_kind", "delete", "Delete relationship kinds"),
     ("*:*", "*", "*", "Super admin - all permissions"),
 ]
 
@@ -102,6 +112,7 @@ DEFAULT_ROLES: dict[str, RoleData] = {
             "document:*",
             "event_schema:read",
             "workflow:*",
+            "relationship_kind:*",
         ],
         "is_system": True,
     },
@@ -119,6 +130,7 @@ DEFAULT_ROLES: dict[str, RoleData] = {
             "document:create",
             "document:read",
             "event_schema:read",
+            "relationship_kind:read",
         ],
         "is_system": True,
     },
@@ -133,6 +145,7 @@ DEFAULT_ROLES: dict[str, RoleData] = {
             "document:read",
             "event_schema:read",
             "audit:read",
+            "relationship_kind:read",
         ],
         "is_system": True,
     },
@@ -157,8 +170,16 @@ class TenantInitializationService:
 
         audit_schema = self._build_audit_schema(tenant_id, created_by=None)
         audit_subject = self._build_audit_subject(tenant_id)
+        rel_added_schema = self._build_relationship_event_schema(
+            tenant_id, RELATIONSHIP_ADDED_EVENT_TYPE
+        )
+        rel_removed_schema = self._build_relationship_event_schema(
+            tenant_id, RELATIONSHIP_REMOVED_EVENT_TYPE
+        )
         self.db.add(audit_schema)
         self.db.add(audit_subject)
+        self.db.add(rel_added_schema)
+        self.db.add(rel_removed_schema)
         await self.db.flush()
 
         permissions, permission_map = self._build_permissions(tenant_id)
@@ -293,4 +314,19 @@ class TenantInitializationService:
             tenant_id=tenant_id,
             subject_type=SYSTEM_AUDIT_SUBJECT_TYPE,
             external_ref=SYSTEM_AUDIT_SUBJECT_REF,
+        )
+
+    @staticmethod
+    def _build_relationship_event_schema(
+        tenant_id: str, event_type: str
+    ) -> EventSchema:
+        """Build EventSchema for relationship_added or relationship_removed (version 1)."""
+        return EventSchema(
+            id=generate_cuid(),
+            tenant_id=tenant_id,
+            event_type=event_type,
+            schema_definition=get_relationship_event_schema_definition(),
+            version=RELATIONSHIP_EVENT_SCHEMA_VERSION,
+            is_active=True,
+            created_by=None,
         )

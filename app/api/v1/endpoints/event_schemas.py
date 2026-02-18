@@ -1,4 +1,4 @@
-"""Event schema API: thin routes delegating to EventSchemaRepository."""
+"""Event schema API: thin routes delegating to event schema repository."""
 
 from typing import Annotated
 
@@ -11,10 +11,8 @@ from app.api.v1.dependencies import (
     require_permission,
 )
 from app.application.dtos.user import UserResult
+from app.application.interfaces.repositories import IEventSchemaRepository
 from app.core.limiter import limit_writes
-from app.infrastructure.persistence.repositories.event_schema_repo import (
-    EventSchemaRepository,
-)
 from app.schemas.event_schema import (
     EventSchemaCreateRequest,
     EventSchemaListItem,
@@ -32,7 +30,7 @@ async def create_event_schema(
     body: EventSchemaCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     current_user: Annotated[UserResult, Depends(require_permission("event_schema", "create"))],
-    schema_repo: Annotated[EventSchemaRepository, Depends(get_event_schema_repo_for_write)],
+    schema_repo: Annotated[IEventSchemaRepository, Depends(get_event_schema_repo_for_write)],
 ):
     """Create a new event schema version (tenant-scoped). created_by from authenticated user."""
     try:
@@ -41,17 +39,10 @@ async def create_event_schema(
             event_type=body.event_type,
             schema_definition=body.schema_definition,
             is_active=body.is_active,
+            allowed_subject_types=body.allowed_subject_types,
             created_by=current_user.id,
         )
-        return EventSchemaResponse(
-            id=schema.id,
-            tenant_id=schema.tenant_id,
-            event_type=schema.event_type,
-            version=schema.version,
-            is_active=schema.is_active,
-            schema_definition=schema.schema_definition,
-            created_by=schema.created_by,
-        )
+        return EventSchemaResponse.model_validate(schema)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
@@ -59,7 +50,7 @@ async def create_event_schema(
 @router.get("", response_model=list[EventSchemaListItem])
 async def list_all_schemas(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    schema_repo: Annotated[EventSchemaRepository, Depends(get_event_schema_repo)],
+    schema_repo: Annotated[IEventSchemaRepository, Depends(get_event_schema_repo)],
     _: Annotated[object, Depends(require_permission("event_schema", "read"))] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -68,41 +59,21 @@ async def list_all_schemas(
     schemas = await schema_repo.get_all_for_tenant(
         tenant_id=tenant_id, skip=skip, limit=limit
     )
-    return [
-        EventSchemaListItem(
-            id=s.id,
-            tenant_id=s.tenant_id,
-            event_type=s.event_type,
-            version=s.version,
-            is_active=s.is_active,
-            created_by=s.created_by,
-        )
-        for s in schemas
-    ]
+    return [EventSchemaListItem.model_validate(s) for s in schemas]
 
 
 @router.get("/event-type/{event_type}", response_model=list[EventSchemaListItem])
 async def list_schemas_by_event_type(
     event_type: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    schema_repo: Annotated[EventSchemaRepository, Depends(get_event_schema_repo)],
+    schema_repo: Annotated[IEventSchemaRepository, Depends(get_event_schema_repo)],
     _: Annotated[object, Depends(require_permission("event_schema", "read"))] = None,
 ):
     """List event schema versions for event_type (tenant-scoped)."""
     schemas = await schema_repo.get_all_for_event_type(
         tenant_id=tenant_id, event_type=event_type
     )
-    return [
-        EventSchemaListItem(
-            id=s.id,
-            tenant_id=s.tenant_id,
-            event_type=s.event_type,
-            version=s.version,
-            is_active=s.is_active,
-            created_by=s.created_by,
-        )
-        for s in schemas
-    ]
+    return [EventSchemaListItem.model_validate(s) for s in schemas]
 
 
 @router.get(
@@ -112,7 +83,7 @@ async def list_schemas_by_event_type(
 async def get_active_schema_for_event_type(
     event_type: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    schema_repo: Annotated[EventSchemaRepository, Depends(get_event_schema_repo)],
+    schema_repo: Annotated[IEventSchemaRepository, Depends(get_event_schema_repo)],
     _: Annotated[object, Depends(require_permission("event_schema", "read"))] = None,
 ):
     """Get active event schema for event_type (tenant-scoped)."""
@@ -121,15 +92,7 @@ async def get_active_schema_for_event_type(
     )
     if not schema:
         raise HTTPException(status_code=404, detail="Active schema not found")
-    return EventSchemaResponse(
-        id=schema.id,
-        tenant_id=schema.tenant_id,
-        event_type=schema.event_type,
-        version=schema.version,
-        is_active=schema.is_active,
-        schema_definition=schema.schema_definition,
-        created_by=schema.created_by,
-    )
+    return EventSchemaResponse.model_validate(schema)
 
 
 @router.get(
@@ -140,7 +103,7 @@ async def get_schema_by_version(
     event_type: str,
     version: int,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    schema_repo: Annotated[EventSchemaRepository, Depends(get_event_schema_repo)],
+    schema_repo: Annotated[IEventSchemaRepository, Depends(get_event_schema_repo)],
     _: Annotated[object, Depends(require_permission("event_schema", "read"))] = None,
 ):
     """Get event schema by event_type and version (tenant-scoped)."""
@@ -149,37 +112,21 @@ async def get_schema_by_version(
     )
     if not schema:
         raise HTTPException(status_code=404, detail="Event schema not found")
-    return EventSchemaResponse(
-        id=schema.id,
-        tenant_id=schema.tenant_id,
-        event_type=schema.event_type,
-        version=schema.version,
-        is_active=schema.is_active,
-        schema_definition=schema.schema_definition,
-        created_by=schema.created_by,
-    )
+    return EventSchemaResponse.model_validate(schema)
 
 
 @router.get("/{schema_id}", response_model=EventSchemaResponse)
 async def get_event_schema(
     schema_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    schema_repo: Annotated[EventSchemaRepository, Depends(get_event_schema_repo)],
+    schema_repo: Annotated[IEventSchemaRepository, Depends(get_event_schema_repo)],
     _: Annotated[object, Depends(require_permission("event_schema", "read"))] = None,
 ):
     """Get event schema by id (tenant-scoped)."""
     schema = await schema_repo.get_by_id(schema_id)
     if not schema or schema.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Event schema not found")
-    return EventSchemaResponse(
-        id=schema.id,
-        tenant_id=schema.tenant_id,
-        event_type=schema.event_type,
-        version=schema.version,
-        is_active=schema.is_active,
-        schema_definition=schema.schema_definition,
-        created_by=schema.created_by,
-    )
+    return EventSchemaResponse.model_validate(schema)
 
 
 @router.patch("/{schema_id}", response_model=EventSchemaResponse)
@@ -189,10 +136,10 @@ async def update_event_schema(
     schema_id: str,
     body: EventSchemaUpdate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    schema_repo: Annotated[EventSchemaRepository, Depends(get_event_schema_repo_for_write)],
+    schema_repo: Annotated[IEventSchemaRepository, Depends(get_event_schema_repo_for_write)],
     _: Annotated[object, Depends(require_permission("event_schema", "update"))] = None,
 ):
-    """Update event schema (schema_definition and/or is_active). Tenant-scoped."""
+    """Update event schema (schema_definition, is_active, allowed_subject_types). Tenant-scoped."""
     schema = await schema_repo.get_entity_by_id(schema_id)
     if not schema or schema.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Event schema not found")
@@ -200,16 +147,10 @@ async def update_event_schema(
         schema.schema_definition = body.schema_definition
     if body.is_active is not None:
         schema.is_active = body.is_active
+    if body.allowed_subject_types is not None:
+        schema.allowed_subject_types = body.allowed_subject_types
     updated = await schema_repo.update(schema)
-    return EventSchemaResponse(
-        id=updated.id,
-        tenant_id=updated.tenant_id,
-        event_type=updated.event_type,
-        version=updated.version,
-        is_active=updated.is_active,
-        schema_definition=updated.schema_definition,
-        created_by=updated.created_by,
-    )
+    return EventSchemaResponse.model_validate(updated)
 
 
 @router.delete("/{schema_id}", status_code=204)
@@ -218,7 +159,7 @@ async def delete_event_schema(
     request: Request,
     schema_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    schema_repo: Annotated[EventSchemaRepository, Depends(get_event_schema_repo_for_write)],
+    schema_repo: Annotated[IEventSchemaRepository, Depends(get_event_schema_repo_for_write)],
     _: Annotated[object, Depends(require_permission("event_schema", "delete"))] = None,
 ):
     """Delete event schema by id. Tenant-scoped."""

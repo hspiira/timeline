@@ -22,6 +22,7 @@ class EventSchemaValidator:
         event_type: str,
         schema_version: int,
         payload: dict[str, Any],
+        subject_type: str | None = None,
     ) -> None:
         schema = await self._schema_repo.get_by_version(
             tenant_id, event_type, schema_version
@@ -34,6 +35,18 @@ class EventSchemaValidator:
                 schema_type=schema_id,
                 validation_errors=["Schema version is not active"],
             )
+        if (
+            subject_type is not None
+            and schema.allowed_subject_types
+        ):
+            if subject_type not in schema.allowed_subject_types:
+                raise SchemaValidationException(
+                    schema_type=schema_id,
+                    validation_errors=[
+                        f"Event type '{event_type}' is not allowed for subject type '{subject_type}'. "
+                        f"Allowed subject types: {', '.join(sorted(schema.allowed_subject_types))}",
+                    ],
+                )
         try:
             jsonschema.validate(instance=payload, schema=schema.schema_definition)
         except jsonschema.ValidationError as e:

@@ -85,6 +85,7 @@ from app.infrastructure.persistence.repositories import (
     RolePermissionRepository,
     RoleRepository,
     SearchRepository,
+    RelationshipKindRepository,
     SubjectRelationshipRepository,
     SubjectRepository,
     SubjectSnapshotRepository,
@@ -288,6 +289,41 @@ async def get_tenant_id(
     if cache and cache.is_available():
         await cache.set(cache_key, value, ttl=_TENANT_VALIDATION_CACHE_TTL)
     return value
+
+
+def _build_event_service_for_session(
+    db: AsyncSession,
+    tenant_id: str,
+    audit_svc: SystemAuditService,
+) -> EventService:
+    """Build EventService with the given session (no workflow engine).
+
+    For use when creating events in the same transaction (e.g. relationship service).
+    """
+    event_repo = EventRepository(db)
+    hash_service = HashService()
+    subject_repo = SubjectRepository(
+        db, tenant_id=tenant_id, audit_service=audit_svc
+    )
+    schema_repo = EventSchemaRepository(
+        db, cache_service=None, audit_service=audit_svc
+    )
+    schema_validator = EventSchemaValidator(schema_repo)
+    transition_rule_repo = EventTransitionRuleRepository(db)
+    transition_validator = EventTransitionValidator(
+        rule_repo=transition_rule_repo,
+        event_repo=event_repo,
+    )
+    subject_type_repo = SubjectTypeRepository(db, audit_service=audit_svc)
+    return EventService(
+        event_repo=event_repo,
+        hash_service=hash_service,
+        subject_repo=subject_repo,
+        schema_validator=schema_validator,
+        workflow_engine_provider=None,
+        transition_validator=transition_validator,
+        subject_type_repo=subject_type_repo,
+    )
 
 
 async def get_event_service(
@@ -576,16 +612,24 @@ async def get_subject_relationship_service(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> SubjectRelationshipService:
-    """Subject relationship use case (add, remove, list). Tenant-scoped."""
+    """Subject relationship use case (add, remove, list). Tenant-scoped.
+
+    Uses same DB session as event service so relationship + timeline events
+    are in one transaction.
+    """
     relationship_repo = SubjectRelationshipRepository(
         db, tenant_id=tenant_id, audit_service=audit_svc
     )
     subject_repo = SubjectRepository(
         db, tenant_id=tenant_id, audit_service=audit_svc
     )
+    event_service = _build_event_service_for_session(db, tenant_id, audit_svc)
+    relationship_kind_repo = RelationshipKindRepository(db)
     return SubjectRelationshipService(
         relationship_repo=relationship_repo,
         subject_repo=subject_repo,
+        event_service=event_service,
+        relationship_kind_repo=relationship_kind_repo,
     )
 
 
@@ -697,6 +741,20 @@ async def get_subject_type_repo(
 ) -> SubjectTypeRepository:
     """Subject type repository for read operations."""
     return SubjectTypeRepository(db, audit_service=None)
+
+
+async def get_relationship_kind_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> RelationshipKindRepository:
+    """Relationship kind repository for read operations."""
+    return RelationshipKindRepository(db)
+
+
+async def get_relationship_kind_repo_for_write(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> RelationshipKindRepository:
+    """Relationship kind repository for create/update/delete (transactional)."""
+    return RelationshipKindRepository(db)
 
 
 async def get_subject_type_repo_for_write(

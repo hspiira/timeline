@@ -7,7 +7,7 @@ All types reference application DTOs or schemas only; no infrastructure imports.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from app.domain.enums import TenantStatus
 
@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from app.application.dtos.permission import PermissionResult
     from app.application.dtos.role import RoleResult
     from app.application.dtos.search import SearchResultItem
+    from app.application.dtos.relationship_kind import RelationshipKindResult
     from app.application.dtos.subject import SubjectResult
     from app.application.dtos.subject_relationship import SubjectRelationshipResult
     from app.application.dtos.subject_snapshot import SubjectSnapshotResult
@@ -159,6 +160,49 @@ class ISubjectRepository(Protocol):
         """Delete subject; return True if deleted, False if not found in tenant."""
 
 
+# Relationship kind repository interface
+class IRelationshipKindRepository(Protocol):
+    """Protocol for relationship kind repository (DIP)."""
+
+    async def list_by_tenant(
+        self, tenant_id: str
+    ) -> list[RelationshipKindResult]:
+        """Return all configured relationship kinds for the tenant."""
+
+    async def get_by_id(
+        self, kind_id: str
+    ) -> RelationshipKindResult | None:
+        """Return relationship kind by ID."""
+
+    async def get_by_tenant_and_kind(
+        self, tenant_id: str, kind: str
+    ) -> RelationshipKindResult | None:
+        """Return relationship kind by tenant and kind string."""
+
+    async def create(
+        self,
+        tenant_id: str,
+        kind: str,
+        display_name: str,
+        description: str | None = None,
+        payload_schema: dict | None = None,
+    ) -> RelationshipKindResult:
+        """Create a relationship kind; raise if duplicate kind for tenant."""
+
+    async def update(
+        self,
+        kind_id: str,
+        tenant_id: str,
+        display_name: str | None = None,
+        description: str | None = None,
+        payload_schema: dict | None = None,
+    ) -> RelationshipKindResult | None:
+        """Update relationship kind; return None if not found or wrong tenant."""
+
+    async def delete(self, kind_id: str, tenant_id: str) -> bool:
+        """Delete relationship kind; return True if deleted."""
+
+
 # Subject relationship repository interface
 class ISubjectRelationshipRepository(Protocol):
     """Protocol for subject relationship repository (DIP)."""
@@ -221,6 +265,9 @@ class IEventSchemaRepository(Protocol):
     async def get_by_id(self, schema_id: str) -> EventSchemaResult | None:
         """Return schema by ID."""
 
+    async def get_entity_by_id(self, schema_id: str) -> object | None:
+        """Return ORM entity by id for update/delete."""
+
     async def get_by_version(
         self, tenant_id: str, event_type: str, version: int
     ) -> EventSchemaResult | None:
@@ -236,8 +283,32 @@ class IEventSchemaRepository(Protocol):
     ) -> list[EventSchemaResult]:
         """Return all schema versions for event type."""
 
+    async def get_all_for_tenant(
+        self, tenant_id: str, skip: int = 0, limit: int = 100
+    ) -> list[EventSchemaResult]:
+        """Return all event schemas for the tenant (any event type)."""
+
     async def get_next_version(self, tenant_id: str, event_type: str) -> int:
         """Return next version number for event_type."""
+
+    async def create_schema(
+        self,
+        tenant_id: str,
+        event_type: str,
+        schema_definition: dict[str, Any],
+        is_active: bool = True,
+        allowed_subject_types: list[str] | None = None,
+        created_by: str | None = None,
+    ) -> EventSchemaResult:
+        """Create event schema with next version; return created result."""
+
+    async def update(
+        self, obj: object, *, skip_existence_check: bool = False
+    ) -> object:
+        """Update existing schema (ORM); return updated entity."""
+
+    async def delete(self, obj: object) -> None:
+        """Delete schema (ORM)."""
 
 
 # Event transition rule repository interface

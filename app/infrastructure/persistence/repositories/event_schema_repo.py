@@ -32,6 +32,7 @@ def _event_schema_to_result(s: EventSchema) -> EventSchemaResult:
         schema_definition=s.schema_definition,
         version=s.version,
         is_active=s.is_active,
+        allowed_subject_types=s.allowed_subject_types,
         created_by=s.created_by,
     )
 
@@ -98,6 +99,7 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
         event_type: str,
         schema_definition: dict[str, Any],
         is_active: bool = True,
+        allowed_subject_types: list[str] | None = None,
         created_by: str | None = None,
     ) -> EventSchemaResult:
         """Create event schema with next version; return created entity.
@@ -115,6 +117,7 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
                         schema_definition=schema_definition,
                         version=version,
                         is_active=is_active,
+                        allowed_subject_types=allowed_subject_types,
                         created_by=created_by,
                     )
                     created = await self.create(schema)
@@ -153,6 +156,7 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
                 # Parse ISO datetime strings so the model receives datetime objects
                 cached = dict(cached)
                 cached.setdefault("created_by", None)
+                cached.setdefault("allowed_subject_types", None)
                 for key in ("created_at", "updated_at"):
                     if cached.get(key) and isinstance(cached[key], str):
                         cached[key] = datetime.fromisoformat(cached[key])
@@ -181,6 +185,7 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
                 "version": schema.version,
                 "schema_definition": schema.schema_definition,
                 "is_active": schema.is_active,
+                "allowed_subject_types": schema.allowed_subject_types,
                 "created_by": schema.created_by,
                 "created_at": (
                     schema.created_at.isoformat() if schema.created_at else None

@@ -32,6 +32,7 @@ from app.infrastructure.persistence.models.permission import (
 )
 from app.infrastructure.persistence.models.role import Role
 from app.infrastructure.persistence.models.subject import Subject
+from app.infrastructure.persistence.models.relationship_kind import RelationshipKind
 from app.infrastructure.persistence.models.subject_relationship import (
     SubjectRelationship,
 )
@@ -47,6 +48,7 @@ __all__ = [
     "PasswordSetToken",
     "Tenant",
     "User",
+    "RelationshipKind",
     "Subject",
     "SubjectRelationship",
     "SubjectSnapshot",

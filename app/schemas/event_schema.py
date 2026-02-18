@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.domain.value_objects.core import EventType
 
@@ -16,16 +16,20 @@ class EventSchemaCreateRequest(BaseModel):
     event_type: str = Field(..., min_length=1, max_length=128)
     schema_definition: dict[str, Any] = Field(...)
     is_active: bool = True
+    allowed_subject_types: list[str] | None = None
 
 
 class EventSchemaListItem(BaseModel):
     """Event schema list item (no schema_definition)."""
+
+    model_config = ConfigDict(from_attributes=True)
 
     id: str
     tenant_id: str
     event_type: str
     version: int
     is_active: bool
+    allowed_subject_types: list[str] | None = None
     created_by: str | None
 
     @field_validator("event_type", mode="before")
@@ -40,10 +44,13 @@ class EventSchemaUpdate(BaseModel):
 
     schema_definition: dict[str, Any] | None = None
     is_active: bool | None = None
+    allowed_subject_types: list[str] | None = None
 
 
 class EventSchemaResponse(BaseModel):
     """Event schema response."""
+
+    model_config = ConfigDict(from_attributes=True)
 
     id: str
     tenant_id: str
@@ -51,6 +58,7 @@ class EventSchemaResponse(BaseModel):
     version: int
     is_active: bool
     schema_definition: dict[str, Any]
+    allowed_subject_types: list[str] | None = None
     created_by: str | None
 
     @field_validator("event_type", mode="before")

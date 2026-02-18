@@ -16,4 +16,5 @@ class EventSchemaResult:
     schema_definition: dict[str, Any]
     version: int
     is_active: bool
+    allowed_subject_types: list[str] | None
     created_by: str | None

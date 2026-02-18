@@ -106,6 +106,7 @@ class EventService:
                 data.event_type,
                 data.schema_version,
                 data.payload,
+                subject_type=subject.subject_type.value,
             )
 
         if self.transition_validator:
@@ -209,11 +210,13 @@ class EventService:
                     workflow_instance_id=event_data.workflow_instance_id,
                 )
             if not skip_schema_validation and self.schema_validator:
+                subject = subject_by_id[event_data.subject_id]
                 await self.schema_validator.validate_payload(
                     tenant_id,
                     event_data.event_type,
                     event_data.schema_version,
                     event_data.payload,
+                    subject_type=subject.subject_type.value,
                 )
             event_hash = self.hash_service.compute_hash(
                 subject_id=event_data.subject_id,
