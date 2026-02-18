@@ -1,9 +1,27 @@
 /**
- * Shared date/time formatting. UK locale (en-GB): dates as dd/mm/yyyy.
- * Use these instead of inline toLocaleDateString/toLocaleTimeString.
+ * Shared date/time formatting for UI. Backend returns ISO 8601 strings (event_time, created_at, timestamp, etc.).
+ * Use these instead of inline toLocaleDateString/toLocaleTimeString for consistent UK (en-GB) rendering.
  */
 
 const locale = 'en-GB'
+
+/** Parse ISO or return invalid Date; use with format* for display. */
+function parseDate(value: Date | string | null | undefined): Date {
+  if (value instanceof Date) return value
+  if (value == null || String(value).trim() === '') return new Date(NaN)
+  return new Date(value)
+}
+
+/** Format for display, or return fallback for invalid/empty (e.g. "—"). */
+function formatOrFallback(
+  value: Date | string | null | undefined,
+  formatter: (d: Date) => string,
+  fallback = '—'
+): string {
+  const d = parseDate(value)
+  if (Number.isNaN(d.getTime())) return fallback
+  return formatter(d)
+}
 
 /** UK date: dd/mm/yyyy */
 const dateOptions: Intl.DateTimeFormatOptions = {
@@ -68,4 +86,20 @@ export function formatShortDate(date: Date | string): string {
 /** Full UK locale string (dd/mm/yyyy, 24h time) */
 export function formatFullDateTime(date: Date | string): string {
   return new Date(date).toLocaleString(locale, dateTimeOptions)
+}
+
+/** Format datetime for display; returns fallback for invalid/empty. Use in tables and optional fields. */
+export function formatDateTimeSafe(
+  value: Date | string | null | undefined,
+  fallback = '—'
+): string {
+  return formatOrFallback(value, (d) => d.toLocaleString(locale, dateTimeOptions), fallback)
+}
+
+/** Format date only; returns fallback for invalid/empty. */
+export function formatDateSafe(
+  value: Date | string | null | undefined,
+  fallback = '—'
+): string {
+  return formatOrFallback(value, (d) => d.toLocaleDateString(locale, dateOptions), fallback)
 }

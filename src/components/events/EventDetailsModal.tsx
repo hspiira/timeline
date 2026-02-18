@@ -2,7 +2,7 @@ import { CalendarPlus, Clock, Code, Eye, FileText, User, UserPlus, X } from 'luc
 import { useState } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { DocumentList } from '@/components/documents/DocumentList'
-import { formatFullDateTime } from '@/lib/format-date'
+import { formatDateTimeSafe, formatFullDateTime } from '@/lib/format-date'
 import type { EventResponse } from '@/lib/types'
 import { PayloadModernView } from './PayloadModernView'
 
@@ -21,7 +21,6 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
   const [documentCount, setDocumentCount] = useState<number | null>(null)
   const ev = event as EventWithAudit
   const hasCreatedBy = ev.created_by != null && ev.created_by !== ''
-  const hasCreatedAt = ev.created_at != null && ev.created_at !== ''
   return (
     <Modal isOpen={true} onClose={onClose} maxWidth="max-w-3xl" closeButton={false}>
       {/* Custom Header with gradient background */}
@@ -74,17 +73,15 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
               </div>
             )}
 
-            {hasCreatedAt && (
-              <div className="p-3 bg-muted/50 rounded-none border border-border/50">
-                <div className="flex items-center gap-2 mb-1">
-                  <CalendarPlus className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground">Record created</span>
-                </div>
-                <p className="text-sm text-foreground">
-                  {formatFullDateTime(ev.created_at!)}
-                </p>
+            <div className="p-3 bg-muted/50 rounded-none border border-border/50">
+              <div className="flex items-center gap-2 mb-1">
+                <CalendarPlus className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground">Record created</span>
               </div>
-            )}
+              <p className="text-sm text-foreground">
+                {formatDateTimeSafe(ev.created_at)}
+              </p>
+            </div>
           </div>
 
           {/* Payload */}

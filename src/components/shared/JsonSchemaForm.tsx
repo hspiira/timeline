@@ -13,10 +13,17 @@ export interface FieldSchema {
   pattern?: string
 }
 
+/** allOf if/then: when value[field] === const, then.required applies. */
+export interface SchemaConditionalRequired {
+  if?: { properties?: Record<string, { const?: unknown }> }
+  then?: { required?: string[] }
+}
+
 export interface JsonSchema {
   type?: string
   properties?: Record<string, FieldSchema>
   required?: string[]
+  allOf?: SchemaConditionalRequired[]
 }
 
 export interface JsonSchemaFormProps {
@@ -29,6 +36,8 @@ export interface JsonSchemaFormProps {
 function getFieldType(schema: FieldSchema): string {
   if (schema.type === 'string' && schema.format === 'date') return 'date'
   if (schema.type === 'string' && schema.format === 'date-time') return 'datetime-local'
+  if (schema.type === 'string' && schema.format === 'email') return 'email'
+  if (schema.type === 'string' && schema.format === 'uri') return 'url'
   if (schema.type === 'string') return 'text'
   if (schema.type === 'number') return 'number'
   if (schema.type === 'integer') return 'number'
@@ -59,12 +68,56 @@ function toDatetimeLocalInputValue(value: unknown): string {
   return `${y}-${m}-${day}T${h}:${min}`
 }
 
+/** Get conditionally required field names based on current value (allOf if/then with single-property const). */
+function getConditionalRequired(schema: JsonSchema | undefined, value: Record<string, unknown>): string[] {
+  const out: string[] = []
+  const allOf = schema?.allOf
+  if (!Array.isArray(allOf)) return out
+  for (const block of allOf) {
+    const ifProps = block.if?.properties
+    const thenRequired = block.then?.required
+    if (!ifProps || typeof ifProps !== 'object' || !Array.isArray(thenRequired) || thenRequired.length === 0) continue
+    const keys = Object.keys(ifProps)
+    if (keys.length !== 1) continue
+    const triggerKey = keys[0]
+    const constraint = ifProps[triggerKey]
+    const expected = constraint?.const
+    const actual = value[triggerKey]
+    const match = actual === expected || (expected !== undefined && String(actual) === String(expected))
+    if (match) out.push(...thenRequired)
+  }
+  return out
+}
+
+/** Base required + conditionally required from allOf given current value. */
+export function getEffectiveRequiredFields(schema: JsonSchema | undefined, value: Record<string, unknown>): string[] {
+  const base = schema?.required ?? []
+  const conditional = getConditionalRequired(schema, value)
+  return [...new Set([...base, ...conditional])]
+}
+
+/** Validate value against schema (required + conditional required). Returns field name -> error message. */
+export function validateJsonSchema(
+  schema: JsonSchema | undefined,
+  value: Record<string, unknown>,
+): Record<string, string> {
+  const errors: Record<string, string> = {}
+  if (!schema?.properties) return errors
+  const required = getEffectiveRequiredFields(schema, value)
+  for (const fieldName of required) {
+    const v = value[fieldName]
+    const isEmpty = v === undefined || v === null || (typeof v === 'string' && v.trim() === '')
+    if (isEmpty) errors[fieldName] = 'Required'
+  }
+  return errors
+}
+
 function isRequired(
   schema: JsonSchema | undefined,
   fieldName: string,
-  requiredFields?: string[],
+  requiredFields: string[],
 ): boolean {
-  return requiredFields?.includes(fieldName) ?? schema?.required?.includes(fieldName) ?? false
+  return requiredFields.includes(fieldName)
 }
 
 /** Single place for input styling (DRY). */
@@ -91,8 +144,8 @@ export function JsonSchemaForm({
   }, [schema])
 
   const requiredFields = useMemo(() => {
-    return schema?.required ?? []
-  }, [schema])
+    return getEffectiveRequiredFields(schema, value)
+  }, [schema, value])
 
   if (!schema || !Object.keys(properties).length) {
     return (
@@ -120,21 +173,26 @@ export function JsonSchemaForm({
 
         return (
           <div key={fieldName}>
-            <label className="block text-sm font-medium mb-1">
-              {description || fieldName}
-              {isReq && <span className="text-red-500 ml-1">*</span>}
-            </label>
-
             {fieldType === 'checkbox' ? (
-              <div className="flex items-center">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={Boolean(fieldValue)}
                   onChange={(e) => handleChange(fieldName, e.target.checked)}
                   className="w-4 h-4 rounded-none border-input"
                 />
-              </div>
-            ) : fieldSchema.enum ? (
+                <span className="text-sm font-medium">
+                  {description || fieldName}
+                  {isReq && <span className="text-red-500 ml-1">*</span>}
+                </span>
+              </label>
+            ) : (
+              <>
+                <label className="block text-sm font-medium mb-1">
+                  {description || fieldName}
+                  {isReq && <span className="text-red-500 ml-1">*</span>}
+                </label>
+                {fieldSchema.enum ? (
               <SingleSelectCombobox
                 value={toDisplayValue(fieldValue)}
                 onValueChange={(v) => handleChange(fieldName, v)}
@@ -189,15 +247,17 @@ export function JsonSchemaForm({
                 className={inputClassName(Boolean(fieldError))}
                 required={isReq}
               />
-            ) : (
-              <input
-                type={fieldType}
-                value={toDisplayValue(fieldValue)}
-                onChange={(e) => handleChange(fieldName, e.target.value)}
-                placeholder={fieldSchema.default ? `(default: ${fieldSchema.default})` : ''}
-                className={inputClassName(Boolean(fieldError))}
-                required={isReq}
-              />
+                ) : (
+                  <input
+                    type={fieldType}
+                    value={toDisplayValue(fieldValue)}
+                    onChange={(e) => handleChange(fieldName, e.target.value)}
+                    placeholder={fieldSchema.default ? `(default: ${fieldSchema.default})` : ''}
+                    className={inputClassName(Boolean(fieldError))}
+                    required={isReq}
+                  />
+                )}
+              </>
             )}
 
             {fieldError && <p className="text-xs text-red-500 mt-1">{fieldError}</p>}

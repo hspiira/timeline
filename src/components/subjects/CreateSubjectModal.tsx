@@ -4,7 +4,7 @@ import { FormField, FormInput, FormError } from '@/components/ui/FormField'
 import { FormModalActions } from '@/components/ui/FormModalActions'
 import { Modal } from '@/components/ui/Modal'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
-import { JsonSchemaForm } from '@/components/shared/JsonSchemaForm'
+import { JsonSchemaForm, validateJsonSchema } from '@/components/shared/JsonSchemaForm'
 import type { JsonSchema } from '@/components/shared/JsonSchemaForm'
 import { timelineApi } from '@/lib/api-client'
 import type { components } from '@/lib/timeline-api'
@@ -58,6 +58,7 @@ export function CreateSubjectModal({
   const [externalRef, setExternalRef] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [attributes, setAttributes] = useState<Record<string, unknown>>({})
+  const [attributeErrors, setAttributeErrors] = useState<Record<string, string>>({})
   const [attributeSchema, setAttributeSchema] = useState<JsonSchema | null>(null)
   const [schemaLoading, setSchemaLoading] = useState(false)
   const { execute, loading, error, setError } = useFormSubmit()
@@ -114,11 +115,21 @@ export function CreateSubjectModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setAttributeErrors({})
 
     const value = subjectType.trim()
     if (!value) {
       setError('Subject type is required')
       return
+    }
+
+    if (attributeSchema && Object.keys(attributeSchema.properties ?? {}).length > 0) {
+      const errors = validateJsonSchema(attributeSchema, attributes)
+      if (Object.keys(errors).length > 0) {
+        setAttributeErrors(errors)
+        setError('Please fix the highlighted attribute fields.')
+        return
+      }
     }
 
     const success = await execute(() =>
@@ -215,7 +226,11 @@ export function CreateSubjectModal({
               <JsonSchemaForm
                 schema={attributeSchema}
                 value={attributes}
-                onChange={setAttributes}
+                onChange={(v) => {
+                  setAttributes(v)
+                  if (Object.keys(attributeErrors).length) setAttributeErrors({})
+                }}
+                errors={attributeErrors}
               />
             </FormField>
           )}

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useStore } from '@tanstack/react-store'
 import { ArrowLeft, CheckCircle, Copy, KeyRound } from 'lucide-react'
 import { authStore, authActions } from '@/lib/auth-store'
+import { formatFullDateTime } from '@/lib/format-date'
 import { useRedirectIfAuthenticated } from '@/lib/hooks'
 import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
 import { Input } from '@/components/ui/input'
@@ -92,10 +93,7 @@ function RegisterTenantPage() {
   if (createdTenant) {
     const setPasswordUrl = createdTenant.set_password_url ?? ''
     const expiresAt = createdTenant.set_password_expires_at
-      ? new Date(createdTenant.set_password_expires_at).toLocaleString(undefined, {
-          dateStyle: 'medium',
-          timeStyle: 'short',
-        })
+      ? formatFullDateTime(createdTenant.set_password_expires_at)
       : null
 
     return (

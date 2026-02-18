@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { timelineApi } from '@/lib/api-client'
+import { formatDateTimeSafe } from '@/lib/format-date'
 import { ClipboardList, ChevronLeft, ChevronRight, Loader2, AlertCircle } from 'lucide-react'
 import { DataTable } from '@/components/ui/DataTable'
 import { Button } from '@/components/ui/button'
@@ -31,17 +32,6 @@ const RESOURCE_TYPES = [
   'audit',
 ]
 
-function formatTimestamp(ts: string) {
-  try {
-    const d = new Date(ts)
-    return d.toLocaleString(undefined, {
-      dateStyle: 'short',
-      timeStyle: 'medium',
-    })
-  } catch {
-    return ts
-  }
-}
 
 function AuditLogPage() {
   const authState = useRequireAuth()
@@ -123,7 +113,7 @@ function AuditLogPage() {
       header: 'Time',
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground whitespace-nowrap">
-          {formatTimestamp(row.original.timestamp)}
+          {formatDateTimeSafe(row.original.timestamp)}
         </span>
       ),
     },

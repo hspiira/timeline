@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useLocation, useNavigate } from '@tanstack/rea
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useHasAuditAccess } from '@/hooks/useHasAuditAccess'
-import { Shield, Database, Zap, Users, KeyRound, Layers, FolderOpen, ClipboardList, GitBranch } from 'lucide-react'
+import { Shield, Database, Zap, Users, KeyRound, Layers, FolderOpen, ClipboardList, GitBranch, Link2 } from 'lucide-react'
 
 export const Route = createFileRoute('/settings')({
   beforeLoad: () => {
@@ -60,6 +60,12 @@ function SettingsLayout() {
       label: 'Subject Types',
       icon: Layers,
       description: 'Configure subject types and attributes',
+    },
+    {
+      path: '/settings/relationship-kinds',
+      label: 'Relationship kinds',
+      icon: Link2,
+      description: 'Allowed relationship types when linking subjects',
     },
     {
       path: '/settings/document-categories',

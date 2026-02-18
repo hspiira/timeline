@@ -29,6 +29,7 @@ import { Route as SettingsUsersIndexRouteImport } from './routes/settings/users/
 import { Route as SettingsSubjectTypesIndexRouteImport } from './routes/settings/subject-types/index'
 import { Route as SettingsSchemasIndexRouteImport } from './routes/settings/schemas/index'
 import { Route as SettingsRolesIndexRouteImport } from './routes/settings/roles/index'
+import { Route as SettingsRelationshipKindsIndexRouteImport } from './routes/settings/relationship-kinds/index'
 import { Route as SettingsPermissionsIndexRouteImport } from './routes/settings/permissions/index'
 import { Route as SettingsOauthProvidersIndexRouteImport } from './routes/settings/oauth-providers/index'
 import { Route as SettingsEventTransitionRulesIndexRouteImport } from './routes/settings/event-transition-rules/index'
@@ -143,6 +144,12 @@ const SettingsRolesIndexRoute = SettingsRolesIndexRouteImport.update({
   path: '/roles/',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsRelationshipKindsIndexRoute =
+  SettingsRelationshipKindsIndexRouteImport.update({
+    id: '/relationship-kinds/',
+    path: '/relationship-kinds/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
 const SettingsPermissionsIndexRoute =
   SettingsPermissionsIndexRouteImport.update({
     id: '/permissions/',
@@ -238,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/settings/event-transition-rules/': typeof SettingsEventTransitionRulesIndexRoute
   '/settings/oauth-providers/': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions/': typeof SettingsPermissionsIndexRoute
+  '/settings/relationship-kinds/': typeof SettingsRelationshipKindsIndexRoute
   '/settings/roles/': typeof SettingsRolesIndexRoute
   '/settings/schemas/': typeof SettingsSchemasIndexRoute
   '/settings/subject-types/': typeof SettingsSubjectTypesIndexRoute
@@ -272,6 +280,7 @@ export interface FileRoutesByTo {
   '/settings/event-transition-rules': typeof SettingsEventTransitionRulesIndexRoute
   '/settings/oauth-providers': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions': typeof SettingsPermissionsIndexRoute
+  '/settings/relationship-kinds': typeof SettingsRelationshipKindsIndexRoute
   '/settings/roles': typeof SettingsRolesIndexRoute
   '/settings/schemas': typeof SettingsSchemasIndexRoute
   '/settings/subject-types': typeof SettingsSubjectTypesIndexRoute
@@ -307,6 +316,7 @@ export interface FileRoutesById {
   '/settings/event-transition-rules/': typeof SettingsEventTransitionRulesIndexRoute
   '/settings/oauth-providers/': typeof SettingsOauthProvidersIndexRoute
   '/settings/permissions/': typeof SettingsPermissionsIndexRoute
+  '/settings/relationship-kinds/': typeof SettingsRelationshipKindsIndexRoute
   '/settings/roles/': typeof SettingsRolesIndexRoute
   '/settings/schemas/': typeof SettingsSchemasIndexRoute
   '/settings/subject-types/': typeof SettingsSubjectTypesIndexRoute
@@ -343,6 +353,7 @@ export interface FileRouteTypes {
     | '/settings/event-transition-rules/'
     | '/settings/oauth-providers/'
     | '/settings/permissions/'
+    | '/settings/relationship-kinds/'
     | '/settings/roles/'
     | '/settings/schemas/'
     | '/settings/subject-types/'
@@ -377,6 +388,7 @@ export interface FileRouteTypes {
     | '/settings/event-transition-rules'
     | '/settings/oauth-providers'
     | '/settings/permissions'
+    | '/settings/relationship-kinds'
     | '/settings/roles'
     | '/settings/schemas'
     | '/settings/subject-types'
@@ -411,6 +423,7 @@ export interface FileRouteTypes {
     | '/settings/event-transition-rules/'
     | '/settings/oauth-providers/'
     | '/settings/permissions/'
+    | '/settings/relationship-kinds/'
     | '/settings/roles/'
     | '/settings/schemas/'
     | '/settings/subject-types/'
@@ -584,6 +597,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRolesIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/relationship-kinds/': {
+      id: '/settings/relationship-kinds/'
+      path: '/relationship-kinds'
+      fullPath: '/settings/relationship-kinds/'
+      preLoaderRoute: typeof SettingsRelationshipKindsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/permissions/': {
       id: '/settings/permissions/'
       path: '/permissions'
@@ -679,6 +699,7 @@ interface SettingsRouteChildren {
   SettingsEventTransitionRulesIndexRoute: typeof SettingsEventTransitionRulesIndexRoute
   SettingsOauthProvidersIndexRoute: typeof SettingsOauthProvidersIndexRoute
   SettingsPermissionsIndexRoute: typeof SettingsPermissionsIndexRoute
+  SettingsRelationshipKindsIndexRoute: typeof SettingsRelationshipKindsIndexRoute
   SettingsRolesIndexRoute: typeof SettingsRolesIndexRoute
   SettingsSchemasIndexRoute: typeof SettingsSchemasIndexRoute
   SettingsSubjectTypesIndexRoute: typeof SettingsSubjectTypesIndexRoute
@@ -695,6 +716,7 @@ const SettingsRouteChildren: SettingsRouteChildren = {
     SettingsEventTransitionRulesIndexRoute,
   SettingsOauthProvidersIndexRoute: SettingsOauthProvidersIndexRoute,
   SettingsPermissionsIndexRoute: SettingsPermissionsIndexRoute,
+  SettingsRelationshipKindsIndexRoute: SettingsRelationshipKindsIndexRoute,
   SettingsRolesIndexRoute: SettingsRolesIndexRoute,
   SettingsSchemasIndexRoute: SettingsSchemasIndexRoute,
   SettingsSubjectTypesIndexRoute: SettingsSubjectTypesIndexRoute,

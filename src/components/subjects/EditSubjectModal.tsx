@@ -4,7 +4,7 @@ import { useFormSubmit } from '@/hooks/useFormSubmit'
 import { FormField, FormInput, FormError } from '@/components/ui/FormField'
 import { FormModalActions } from '@/components/ui/FormModalActions'
 import { Modal } from '@/components/ui/Modal'
-import { JsonSchemaForm } from '@/components/shared/JsonSchemaForm'
+import { JsonSchemaForm, validateJsonSchema } from '@/components/shared/JsonSchemaForm'
 import type { JsonSchema } from '@/components/shared/JsonSchemaForm'
 import { timelineApi } from '@/lib/api-client'
 import type { components } from '@/lib/timeline-api'
@@ -64,6 +64,7 @@ export function EditSubjectModal({
       ? { ...subject.attributes }
       : {}
   )
+  const [attributeErrors, setAttributeErrors] = useState<Record<string, string>>({})
   const [attributeSchema, setAttributeSchema] = useState<JsonSchema | null>(null)
   const [schemaLoading, setSchemaLoading] = useState(false)
   const { execute, loading, error, setError } = useFormSubmit()
@@ -78,6 +79,7 @@ export function EditSubjectModal({
         ? { ...subject.attributes }
         : {}
     )
+    setAttributeErrors({})
   }, [subject.id, subject.external_ref, subject.display_name, subject.attributes])
 
   // Fetch subject type schema when modal is open and we have subject type
@@ -118,6 +120,17 @@ export function EditSubjectModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setAttributeErrors({})
+
+    if (attributeSchema && Object.keys(attributeSchema.properties ?? {}).length > 0) {
+      const errors = validateJsonSchema(attributeSchema, attributes)
+      if (Object.keys(errors).length > 0) {
+        setAttributeErrors(errors)
+        setError('Please fix the highlighted attribute fields.')
+        toast.error('Validation failed', 'Please fix the highlighted attribute fields.')
+        return
+      }
+    }
 
     const success = await execute(() =>
       onUpdate(
@@ -193,7 +206,11 @@ export function EditSubjectModal({
               <JsonSchemaForm
                 schema={attributeSchema}
                 value={attributes}
-                onChange={setAttributes}
+                onChange={(v) => {
+                  setAttributes(v)
+                  if (Object.keys(attributeErrors).length) setAttributeErrors({})
+                }}
+                errors={attributeErrors}
               />
             </FormField>
           )}

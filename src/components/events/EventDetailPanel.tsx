@@ -12,7 +12,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react'
 import { DocumentList } from '@/components/documents/DocumentList'
-import { formatFullDateTime } from '@/lib/format-date'
+import { formatDateTimeSafe, formatFullDateTime } from '@/lib/format-date'
 import type { EventResponse } from '@/lib/types'
 import { PayloadModernView } from './PayloadModernView'
 import { cn } from '@/lib/utils'
@@ -32,7 +32,6 @@ export function EventDetailPanel({ event, onClose, className }: EventDetailPanel
   const [documentCount, setDocumentCount] = useState<number | null>(null)
   const ev = event as EventWithAudit
   const hasCreatedBy = ev.created_by != null && ev.created_by !== ''
-  const hasCreatedAt = ev.created_at != null && ev.created_at !== ''
 
   return (
     <aside
@@ -99,17 +98,15 @@ export function EventDetailPanel({ event, onClose, className }: EventDetailPanel
               <p className="text-sm text-foreground">{ev.created_by}</p>
             </div>
           )}
-          {hasCreatedAt && (
-            <div className="p-2.5 bg-muted/40 rounded-none border border-border/50">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <CalendarPlus className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                <span className="text-xs font-medium text-muted-foreground">Record created</span>
-              </div>
-              <p className="text-sm text-foreground tabular-nums">
-                {formatFullDateTime(ev.created_at!)}
-              </p>
+          <div className="p-2.5 bg-muted/40 rounded-none border border-border/50">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <CalendarPlus className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span className="text-xs font-medium text-muted-foreground">Record created</span>
             </div>
-          )}
+            <p className="text-sm text-foreground tabular-nums">
+              {formatDateTimeSafe(ev.created_at)}
+            </p>
+          </div>
         </div>
 
         {/* Payload */}

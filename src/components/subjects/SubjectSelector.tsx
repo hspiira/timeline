@@ -6,9 +6,11 @@ import { SingleSelectCombobox } from '@/components/ui/combobox'
 type Props = {
 	value?: string
 	onChange: (v: string) => void
+	/** Exclude this subject id from the list (e.g. when adding a relationship from subject A, exclude A). */
+	excludeSubjectId?: string | null
 }
 
-export default function SubjectSelector({ value = '', onChange }: Props) {
+export default function SubjectSelector({ value = '', onChange, excludeSubjectId }: Props) {
 	const [subjects, setSubjects] = useState<SubjectResponse[]>([])
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -36,9 +38,12 @@ export default function SubjectSelector({ value = '', onChange }: Props) {
 		return () => { mounted = false }
 	}, [])
 
+	const filtered = excludeSubjectId
+		? subjects.filter((s) => s.id !== excludeSubjectId)
+		: subjects
 	const options = [
 		{ value: '', label: 'Select subject' },
-		...subjects.map((s) => ({
+		...filtered.map((s) => ({
 			value: s.id,
 			label: `${s.subject_type} - ${s.external_ref || s.id?.slice(0, 8)}`,
 		})),

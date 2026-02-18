@@ -26,8 +26,14 @@ interface EditingField extends SchemaField {}
 
 interface SchemaFormModalProps {
   onClose: () => void
-  onSubmit: (eventType: string, definition: Record<string, any>) => Promise<boolean>
+  onSubmit: (
+    eventType: string,
+    definition: Record<string, any>,
+    allowedSubjectTypes?: string[] | null
+  ) => Promise<boolean>
   title: string
+  /** Subject types for "Allowed subject types" (optional). When empty, no restriction is sent. */
+  subjectTypes?: { type_name: string; display_name: string }[]
 }
 
 const FIELD_TYPES = [
@@ -51,9 +57,10 @@ const STRING_FORMATS = [
   { value: 'phone', label: 'Phone' },
 ]
 
-export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalProps) {
+export function SchemaFormModal({ onClose, onSubmit, title, subjectTypes = [] }: SchemaFormModalProps) {
   const [eventType, setEventType] = useState('')
   const [fields, setFields] = useState<SchemaField[]>([])
+  const [allowedSubjectTypes, setAllowedSubjectTypes] = useState<string[]>([])
   const { execute, loading, error, setError } = useFormSubmit()
   const [showJsonPreview, setShowJsonPreview] = useState(false)
   const [editingField, setEditingField] = useState<EditingField | null>(null)
@@ -302,7 +309,12 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
       schema = generateJsonSchema()
     }
 
-    const success = await execute(() => onSubmit(eventType.toLowerCase(), schema))
+    const allowed =
+      allowedSubjectTypes.length === 0 ? undefined : allowedSubjectTypes
+
+    const success = await execute(() =>
+      onSubmit(eventType.toLowerCase(), schema, allowed)
+    )
     if (success) {
       onClose()
     } else {
@@ -356,6 +368,40 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
                   disabled={loading}
                 />
               </FormField>
+
+              {subjectTypes.length > 0 && (
+                <FormField
+                  label="Allowed subject types"
+                  hint="Leave empty to allow all. When set, only subjects of these types can emit this event."
+                >
+                  <div className="flex flex-wrap gap-3">
+                    {subjectTypes.map((st) => (
+                      <label
+                        key={st.type_name}
+                        className="flex items-center gap-2 cursor-pointer text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={allowedSubjectTypes.includes(st.type_name)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setAllowedSubjectTypes((prev) => [...prev, st.type_name])
+                            } else {
+                              setAllowedSubjectTypes((prev) =>
+                                prev.filter((t) => t !== st.type_name)
+                              )
+                            }
+                          }}
+                          className="rounded border-input"
+                          disabled={loading}
+                        />
+                        <span className="text-foreground">{st.display_name}</span>
+                        <span className="text-muted-foreground text-xs">({st.type_name})</span>
+                      </label>
+                    ))}
+                  </div>
+                </FormField>
+              )}
 
               {/* Fields Summary */}
               <div>
@@ -509,6 +555,39 @@ export function SchemaFormModal({ onClose, onSubmit, title }: SchemaFormModalPro
                   disabled={loading}
                 />
               </FormField>
+              {subjectTypes.length > 0 && (
+                <FormField
+                  label="Allowed subject types"
+                  hint="Leave empty to allow all. When set, only subjects of these types can emit this event."
+                >
+                  <div className="flex flex-wrap gap-3">
+                    {subjectTypes.map((st) => (
+                      <label
+                        key={st.type_name}
+                        className="flex items-center gap-2 cursor-pointer text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={allowedSubjectTypes.includes(st.type_name)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setAllowedSubjectTypes((prev) => [...prev, st.type_name])
+                            } else {
+                              setAllowedSubjectTypes((prev) =>
+                                prev.filter((t) => t !== st.type_name)
+                              )
+                            }
+                          }}
+                          className="rounded border-input"
+                          disabled={loading}
+                        />
+                        <span className="text-foreground">{st.display_name}</span>
+                        <span className="text-muted-foreground text-xs">({st.type_name})</span>
+                      </label>
+                    ))}
+                  </div>
+                </FormField>
+              )}
             </>
           )}
 

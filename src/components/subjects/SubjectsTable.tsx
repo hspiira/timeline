@@ -3,7 +3,7 @@ import type { SubjectWithMetadata } from '@/hooks/useSubjects'
 import { SquarePen } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 import { useState, useMemo } from 'react'
-import { formatEventDate } from '@/lib/format-date'
+import { formatDateSafe } from '@/lib/format-date'
 import { DataTable } from '@/components/ui/DataTable'
 import { getSubjectTypeThemeFromConfig } from '@/lib/subject-type-theme'
 import type { components } from '@/lib/timeline-api'
@@ -98,14 +98,11 @@ export function SubjectsTable({
     {
       accessorKey: 'lastEventDate',
       header: 'Last Event',
-      cell: ({ row }) => {
-        const d = row.original.lastEventDate
-        return (
-          <span className="text-sm text-muted-foreground tabular-nums">
-            {d ? formatEventDate(d) : '—'}
-          </span>
-        )
-      },
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground tabular-nums">
+          {formatDateSafe(row.original.lastEventDate)}
+        </span>
+      ),
     },
     {
       accessorKey: 'external_ref',

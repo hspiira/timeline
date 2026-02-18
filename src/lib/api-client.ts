@@ -222,7 +222,10 @@ export const timelineApi = {
       client.GET('/api/v1/subjects/{subject_id}', {
         params: { path: { subject_id: id } },
       }),
-    getState: (subjectId: string, params?: { as_of?: string | null }) =>
+    getState: (
+      subjectId: string,
+      params?: { as_of?: string | null; workflow_instance_id?: string | null }
+    ) =>
       client.GET('/api/v1/subjects/{subject_id}/state', {
         params: { path: { subject_id: subjectId }, query: params },
       }),
@@ -248,6 +251,64 @@ export const timelineApi = {
     delete: (id: string) =>
       client.DELETE('/api/v1/subjects/{subject_id}', {
         params: { path: { subject_id: id } },
+      }),
+    /** Batch snapshot job (cron/admin). Optional limit. */
+    runSnapshotJob: (params?: { limit?: number }) =>
+      client.POST('/api/v1/subjects/snapshots/run', {
+        params: { query: params },
+      }),
+    /** On-demand snapshot for one subject. */
+    createSnapshot: (subjectId: string) =>
+      client.POST('/api/v1/subjects/{subject_id}/snapshot', {
+        params: { path: { subject_id: subjectId } },
+      }),
+    listRelationships: (
+      subjectId: string,
+      params?: {
+        as_source?: boolean
+        as_target?: boolean
+        relationship_kind?: string | null
+      }
+    ) =>
+      client.GET('/api/v1/subjects/{subject_id}/relationships', {
+        params: { path: { subject_id: subjectId }, query: params },
+      }),
+    addRelationship: (
+      subjectId: string,
+      body: components['schemas']['SubjectRelationshipCreateRequest']
+    ) =>
+      client.POST('/api/v1/subjects/{subject_id}/relationships', {
+        params: { path: { subject_id: subjectId } },
+        body,
+      }),
+    removeRelationship: (
+      subjectId: string,
+      query: { target_subject_id: string; relationship_kind: string }
+    ) =>
+      client.DELETE('/api/v1/subjects/{subject_id}/relationships', {
+        params: { path: { subject_id: subjectId }, query },
+      }),
+  },
+
+  relationshipKinds: {
+    list: () => client.GET('/api/v1/relationship-kinds'),
+    get: (kindId: string) =>
+      client.GET('/api/v1/relationship-kinds/{kind_id}', {
+        params: { path: { kind_id: kindId } },
+      }),
+    create: (data: components['schemas']['RelationshipKindCreateRequest']) =>
+      client.POST('/api/v1/relationship-kinds', { body: data }),
+    update: (
+      kindId: string,
+      data: components['schemas']['RelationshipKindUpdateRequest']
+    ) =>
+      client.PATCH('/api/v1/relationship-kinds/{kind_id}', {
+        params: { path: { kind_id: kindId } },
+        body: data,
+      }),
+    delete: (kindId: string) =>
+      client.DELETE('/api/v1/relationship-kinds/{kind_id}', {
+        params: { path: { kind_id: kindId } },
       }),
   },
 

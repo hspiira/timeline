@@ -21,7 +21,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
-import { formatEventDateTime } from '@/lib/format-date'
+import { formatDateTimeSafe } from '@/lib/format-date'
 import type { EmailAccountResponse } from '@/lib/types'
 
 export const Route = createFileRoute('/email-accounts/$accountId')({
@@ -272,12 +272,14 @@ function EmailAccountDetailPage() {
             <Clock className="w-4 h-4" />
             <span className="text-sm font-medium">Last Sync</span>
           </div>
-          <p className="text-lg font-bold text-foreground">
-            {account.last_sync_at ? (
-              formatEventDateTime(account.last_sync_at)
-            ) : (
-              <span className="text-muted-foreground">Never</span>
-            )}
+          <p
+            className={
+              account.last_sync_at
+                ? 'text-lg font-bold text-foreground'
+                : 'text-lg font-bold text-muted-foreground'
+            }
+          >
+            {formatDateTimeSafe(account.last_sync_at, 'Never')}
           </p>
         </div>
       </div>

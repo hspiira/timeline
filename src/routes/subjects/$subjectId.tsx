@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { Calendar, Tag, AlertCircle, Boxes, FileText, Shield, ChevronLeft, ChevronRight, Upload, Download, Trash2, Database } from 'lucide-react'
+import { Calendar, Tag, AlertCircle, Boxes, FileText, Shield, ChevronLeft, ChevronRight, Upload, Download, Trash2, Database, Link2 } from 'lucide-react'
 import { useEffect, useState, useCallback } from 'react'
 import { useStore } from '@tanstack/react-store'
 import { timelineApi } from '@/lib/api-client'
@@ -19,10 +19,11 @@ import { Modal, ModalActions } from '@/components/ui/Modal'
 import { getApiErrorDisplay } from '@/lib/api-utils'
 import { useHasSubjectExportAccess } from '@/hooks/useHasSubjectExportAccess'
 import { useHasSubjectErasureAccess } from '@/hooks/useHasSubjectErasureAccess'
+import { SubjectRelationshipsTab } from '@/components/subjects/SubjectRelationshipsTab'
 
 const PAGE_SIZE = 10
 
-type Tab = 'events' | 'documents' | 'state'
+type Tab = 'events' | 'documents' | 'state' | 'relationships'
 
 export const Route = createFileRoute('/subjects/$subjectId')({
   beforeLoad: () => {
@@ -30,7 +31,13 @@ export const Route = createFileRoute('/subjects/$subjectId')({
   },
   component: SubjectDetailPage,
   validateSearch: (search: Record<string, unknown>) => ({
-    tab: (search.tab === 'documents' ? 'documents' : search.tab === 'state' ? 'state' : 'events') as Tab,
+    tab: (search.tab === 'documents'
+      ? 'documents'
+      : search.tab === 'state'
+        ? 'state'
+        : search.tab === 'relationships'
+          ? 'relationships'
+          : 'events') as Tab,
   }),
 })
 
@@ -485,6 +492,17 @@ function SubjectDetailPage() {
           <Database className="w-4 h-4" />
           State
         </button>
+        <button
+          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'relationships' } })}
+          className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-none flex items-center gap-2 ${
+            activeTab === 'relationships'
+              ? 'bg-muted/40 border-primary text-foreground'
+              : 'bg-transparent border-transparent text-foreground/60 hover:bg-muted/20'
+          }`}
+        >
+          <Link2 className="w-4 h-4" />
+          Relationships
+        </button>
       </div>
 
       {/* Content */}
@@ -629,6 +647,16 @@ function SubjectDetailPage() {
               </section>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Relationships tab */}
+      {activeTab === 'relationships' && (
+        <div className="rounded-none animate-in fade-in duration-300">
+          <SubjectRelationshipsTab
+            subjectId={subjectId}
+            subjectDisplayName={subject?.display_name ?? subject?.external_ref}
+          />
         </div>
       )}
 

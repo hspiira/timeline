@@ -28,12 +28,22 @@ function SchemasPage() {
   const [viewingSchema, setViewingSchema] = useState<SchemaFull | null>(null)
   const [loadingSchema, setLoadingSchema] = useState(false)
   const [deletingSchema, setDeletingSchema] = useState<SchemaListItem | null>(null)
+  const [subjectTypes, setSubjectTypes] = useState<{ type_name: string; display_name: string }[]>([])
 
   useEffect(() => {
     if (authState.user) {
       fetchSchemas()
     }
   }, [authState.user])
+
+  useEffect(() => {
+    if (authState.user && showCreateModal) {
+      timelineApi.subjectTypes.list({ limit: 500 }).then(({ data }) => {
+        const list = Array.isArray(data) ? data : []
+        setSubjectTypes(list.map((t) => ({ type_name: t.type_name, display_name: t.display_name ?? t.type_name })))
+      })
+    }
+  }, [authState.user, showCreateModal])
 
   const fetchSchemas = async () => {
     setLoading(true)
@@ -56,12 +66,18 @@ function SchemasPage() {
     }
   }
 
-  const handleCreateSchema = async (eventType: string, definition: Record<string, any>) => {
+  const handleCreateSchema = async (
+    eventType: string,
+    definition: Record<string, any>,
+    allowedSubjectTypes?: string[] | null
+  ) => {
     try {
       const { data, error: apiError } = await timelineApi.eventSchemas.create({
         event_type: eventType,
         schema_definition: definition,
         is_active: true,
+        allowed_subject_types:
+          allowedSubjectTypes?.length ? allowedSubjectTypes : undefined,
       })
 
       if (apiError) {
@@ -203,6 +219,7 @@ function SchemasPage() {
           onClose={() => setShowCreateModal(false)}
           onSubmit={handleCreateSchema}
           title="Create Event Schema"
+          subjectTypes={subjectTypes}
         />
       )}
 

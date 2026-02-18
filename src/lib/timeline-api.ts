@@ -827,6 +827,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/subjects/{subject_id}/relationships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Subject Relationships
+         * @description List relationships for a subject (tenant-scoped).
+         */
+        get: operations["list_subject_relationships_api_v1_subjects__subject_id__relationships_get"];
+        put?: never;
+        /**
+         * Add Subject Relationship
+         * @description Add a relationship from this subject to target (tenant-scoped).
+         */
+        post: operations["add_subject_relationship_api_v1_subjects__subject_id__relationships_post"];
+        /**
+         * Remove Subject Relationship
+         * @description Remove a relationship (tenant-scoped).
+         */
+        delete: operations["remove_subject_relationship_api_v1_subjects__subject_id__relationships_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/subjects/{subject_id}": {
         parameters: {
             query?: never;
@@ -905,6 +933,58 @@ export interface paths {
          * @description Update subject type (partial).
          */
         patch: operations["update_subject_type_api_v1_subject_types__subject_type_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/relationship-kinds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Relationship Kinds
+         * @description List relationship kinds for the tenant.
+         */
+        get: operations["list_relationship_kinds_api_v1_relationship_kinds_get"];
+        put?: never;
+        /**
+         * Create Relationship Kind
+         * @description Create a relationship kind (tenant-scoped).
+         */
+        post: operations["create_relationship_kind_api_v1_relationship_kinds_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/relationship-kinds/{kind_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Relationship Kind
+         * @description Get relationship kind by id (must belong to tenant).
+         */
+        get: operations["get_relationship_kind_api_v1_relationship_kinds__kind_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Relationship Kind
+         * @description Delete relationship kind (tenant-scoped).
+         */
+        delete: operations["delete_relationship_kind_api_v1_relationship_kinds__kind_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Relationship Kind
+         * @description Update relationship kind (partial).
+         */
+        patch: operations["update_relationship_kind_api_v1_relationship_kinds__kind_id__patch"];
         trace?: never;
     };
     "/api/v1/users": {
@@ -1287,7 +1367,7 @@ export interface paths {
         head?: never;
         /**
          * Update Event Schema
-         * @description Update event schema (schema_definition and/or is_active). Tenant-scoped.
+         * @description Update event schema (schema_definition, is_active, allowed_subject_types). Tenant-scoped.
          */
         patch: operations["update_event_schema_api_v1_event_schemas__schema_id__patch"];
         trace?: never;
@@ -2156,6 +2236,8 @@ export interface components {
              * @default true
              */
             is_active: boolean;
+            /** Allowed Subject Types */
+            allowed_subject_types?: string[] | null;
         };
         /**
          * EventSchemaListItem
@@ -2172,6 +2254,8 @@ export interface components {
             version: number;
             /** Is Active */
             is_active: boolean;
+            /** Allowed Subject Types */
+            allowed_subject_types?: string[] | null;
             /** Created By */
             created_by: string | null;
         };
@@ -2194,6 +2278,8 @@ export interface components {
             schema_definition: {
                 [key: string]: unknown;
             };
+            /** Allowed Subject Types */
+            allowed_subject_types?: string[] | null;
             /** Created By */
             created_by: string | null;
         };
@@ -2208,6 +2294,8 @@ export interface components {
             } | null;
             /** Is Active */
             is_active?: boolean | null;
+            /** Allowed Subject Types */
+            allowed_subject_types?: string[] | null;
         };
         /**
          * EventTransitionRuleCreateRequest
@@ -2606,6 +2694,79 @@ export interface components {
             password: string;
         };
         /**
+         * RelationshipKindCreateRequest
+         * @description Request body for creating a relationship kind.
+         */
+        RelationshipKindCreateRequest: {
+            /**
+             * Kind
+             * @description e.g. client_of, parent_of
+             */
+            kind: string;
+            /** Display Name */
+            display_name: string;
+            /** Description */
+            description?: string | null;
+            /** Payload Schema */
+            payload_schema?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * RelationshipKindListItem
+         * @description Relationship kind list item.
+         */
+        RelationshipKindListItem: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Kind */
+            kind: string;
+            /** Display Name */
+            display_name: string;
+            /** Description */
+            description: string | null;
+            /** Payload Schema */
+            payload_schema: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * RelationshipKindResponse
+         * @description Relationship kind response.
+         */
+        RelationshipKindResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Kind */
+            kind: string;
+            /** Display Name */
+            display_name: string;
+            /** Description */
+            description: string | null;
+            /** Payload Schema */
+            payload_schema: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * RelationshipKindUpdateRequest
+         * @description Request body for PATCH (partial update).
+         */
+        RelationshipKindUpdateRequest: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Payload Schema */
+            payload_schema?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
          * RetentionRunResponse
          * @description Response after running document retention for the current tenant.
          */
@@ -2782,6 +2943,76 @@ export interface components {
             strategy: "anonymize" | "delete";
         };
         /**
+         * SubjectRelationshipCreateRequest
+         * @description Request body for creating a subject relationship.
+         */
+        SubjectRelationshipCreateRequest: {
+            /**
+             * Target Subject Id
+             * @description Target subject ID
+             */
+            target_subject_id: string;
+            /**
+             * Relationship Kind
+             * @description e.g. client_of, parent_of
+             */
+            relationship_kind: string;
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * SubjectRelationshipListItem
+         * @description Subject relationship list item (same as response for now).
+         */
+        SubjectRelationshipListItem: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Source Subject Id */
+            source_subject_id: string;
+            /** Target Subject Id */
+            target_subject_id: string;
+            /** Relationship Kind */
+            relationship_kind: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * SubjectRelationshipResponse
+         * @description Subject relationship response.
+         */
+        SubjectRelationshipResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Source Subject Id */
+            source_subject_id: string;
+            /** Target Subject Id */
+            target_subject_id: string;
+            /** Relationship Kind */
+            relationship_kind: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
          * SubjectResponse
          * @description Subject response (minimal).
          */
@@ -2868,6 +3099,8 @@ export interface components {
              * @default true
              */
             allow_documents: boolean;
+            /** Allowed Event Types */
+            allowed_event_types?: string[] | null;
         };
         /**
          * SubjectTypeListItem
@@ -2896,6 +3129,8 @@ export interface components {
             has_timeline: boolean;
             /** Allow Documents */
             allow_documents: boolean;
+            /** Allowed Event Types */
+            allowed_event_types?: string[] | null;
         };
         /**
          * SubjectTypeResponse
@@ -2928,6 +3163,8 @@ export interface components {
             has_timeline: boolean;
             /** Allow Documents */
             allow_documents: boolean;
+            /** Allowed Event Types */
+            allowed_event_types?: string[] | null;
             /** Created By */
             created_by: string | null;
         };
@@ -2954,6 +3191,8 @@ export interface components {
             has_timeline?: boolean | null;
             /** Allow Documents */
             allow_documents?: boolean | null;
+            /** Allowed Event Types */
+            allowed_event_types?: string[] | null;
         };
         /**
          * SubjectUpdate
@@ -4920,6 +5159,113 @@ export interface operations {
             };
         };
     };
+    list_subject_relationships_api_v1_subjects__subject_id__relationships_get: {
+        parameters: {
+            query?: {
+                /** @description Include relationships where subject is source */
+                as_source?: boolean;
+                /** @description Include relationships where subject is target */
+                as_target?: boolean;
+                /** @description Filter by relationship kind */
+                relationship_kind?: string | null;
+            };
+            header?: never;
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectRelationshipListItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_subject_relationship_api_v1_subjects__subject_id__relationships_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubjectRelationshipCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectRelationshipResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_subject_relationship_api_v1_subjects__subject_id__relationships_delete: {
+        parameters: {
+            query: {
+                /** @description Target subject ID */
+                target_subject_id: string;
+                /** @description Relationship kind */
+                relationship_kind: string;
+            };
+            header?: never;
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_subject_api_v1_subjects__subject_id__get: {
         parameters: {
             query?: never;
@@ -5162,6 +5508,154 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubjectTypeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_relationship_kinds_api_v1_relationship_kinds_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelationshipKindListItem"][];
+                };
+            };
+        };
+    };
+    create_relationship_kind_api_v1_relationship_kinds_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RelationshipKindCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelationshipKindResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_relationship_kind_api_v1_relationship_kinds__kind_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelationshipKindResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_relationship_kind_api_v1_relationship_kinds__kind_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_relationship_kind_api_v1_relationship_kinds__kind_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RelationshipKindUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelationshipKindResponse"];
                 };
             };
             /** @description Validation Error */
