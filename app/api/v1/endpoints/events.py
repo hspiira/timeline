@@ -9,6 +9,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_event_repo,
     get_event_service,
     get_tenant_id,
@@ -105,6 +106,7 @@ async def create_event(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     event_svc: Annotated[EventService, Depends(get_event_service)],
     _: Annotated[object, Depends(require_permission("event", "create"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a single event (hash chaining, optional schema validation, workflows)."""
     cmd = EventCreate(

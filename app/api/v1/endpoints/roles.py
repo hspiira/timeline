@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_permission_repo,
     get_role_permission_repo_for_write,
     get_role_repo,
@@ -42,6 +43,7 @@ async def create_role(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     role_service: Annotated[RoleService, Depends(get_role_service)],
     _: Annotated[object, Depends(require_permission("role", "create"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a role (tenant-scoped). Optionally assign permissions by code."""
     try:
@@ -99,6 +101,7 @@ async def update_role(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     role_repo: Annotated[RoleRepository, Depends(get_role_repo_for_write)],
     _: Annotated[object, Depends(require_permission("role", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Update role (name, description, is_active). Tenant-scoped."""
     role = await role_repo.get_entity_by_id_and_tenant(role_id, tenant_id)
@@ -124,6 +127,7 @@ async def delete_role(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     role_repo: Annotated[RoleRepository, Depends(get_role_repo_for_write)],
     _: Annotated[object, Depends(require_permission("role", "delete"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Deactivate role (soft delete). Tenant-scoped."""
     role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
@@ -151,6 +155,7 @@ async def assign_permission_to_role(
         RolePermissionRepository, Depends(get_role_permission_repo_for_write)
     ],
     _: Annotated[object, Depends(require_permission("role", "manage_permissions"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Assign a permission to a role. Tenant-scoped. Permission must belong to the same tenant. Requires role:manage_permissions (admin-only by default)."""
     role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
@@ -187,6 +192,7 @@ async def remove_permission_from_role(
         RolePermissionRepository, Depends(get_role_permission_repo_for_write)
     ],
     _: Annotated[object, Depends(require_permission("role", "manage_permissions"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Remove a permission from a role. Tenant-scoped. Requires role:manage_permissions (admin-only by default)."""
     role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)

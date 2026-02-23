@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_naming_template_repo,
     get_naming_template_repo_for_write,
     get_tenant_id,
@@ -31,6 +32,7 @@ async def create_naming_template(
     _: Annotated[
         object, Depends(require_permission("naming_template", "create"))
     ] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a naming template (tenant-scoped). High-rights only."""
     try:
@@ -93,6 +95,7 @@ async def update_naming_template(
     _: Annotated[
         object, Depends(require_permission("naming_template", "update"))
     ] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Update naming template (tenant-scoped)."""
     template = await repo.update(
@@ -116,6 +119,7 @@ async def delete_naming_template(
     _: Annotated[
         object, Depends(require_permission("naming_template", "delete"))
     ] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Delete naming template (tenant-scoped)."""
     deleted = await repo.delete(template_id=template_id, tenant_id=tenant_id)

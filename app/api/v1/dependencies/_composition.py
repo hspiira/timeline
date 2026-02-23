@@ -4,16 +4,12 @@ Provides FastAPI Depends() for DB sessions and application use cases.
 All use cases are built from infrastructure implementations here;
 routes depend only on these dependencies, not on infra directly.
 
-When database_backend is 'postgres', repositories use SQLAlchemy.
-When database_backend is 'firestore', tenant/user/tenant-creation use Firestore.
-Switch backends via DATABASE_BACKEND in config.
+Repositories use SQLAlchemy and PostgreSQL only.
 """
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
-from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, AsyncIterator
 
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -119,16 +115,14 @@ from app.infrastructure.services import (
     WorkflowEngine,
 )
 from app.infrastructure.services.email_account_service import EmailAccountService
+from app.infrastructure.services.api_audit_log_service import ApiAuditLogService
 from app.infrastructure.services.oauth_config_service import OAuthConfigService
-
-# Firestore-backed repos and services (used when database_backend == "firestore")
-from app.infrastructure.firebase._rest_client import FirestoreRESTClient
-from app.infrastructure.firebase.client import get_firestore_client
-from app.infrastructure.firebase.repositories import (
-    FirestoreTenantRepository,
-    FirestoreUserRepository,
+from app.shared.request_audit import (
+    get_audit_action_from_method,
+    get_audit_request_context,
+    get_audit_resource_from_path,
+    get_tenant_and_user_for_audit,
 )
-from app.infrastructure.firebase.services import FirestoreTenantInitializationService
 
 # Short TTL for tenant-ID validation cache (reduce DB load; avoid long-lived negative cache).
 _TENANT_VALIDATION_CACHE_TTL = 60
@@ -171,47 +165,6 @@ def get_oauth_driver_registry(request: Request) -> OAuthDriverRegistry:
     return OAuthDriverRegistry(http_client=http_client)
 
 
-@dataclass
-class DbOrFirestore:
-    """Either a Postgres session or a Firestore client for swappable backends."""
-
-    db: AsyncSession | None
-    firestore: FirestoreRESTClient | None
-
-
-def _get_firestore_client_or_raise() -> FirestoreRESTClient:
-    """Return Firestore client or raise HTTPException 503 with standard message."""
-    client = get_firestore_client()
-    if not client:
-        raise HTTPException(
-            status_code=503,
-            detail="Firestore not configured (set FIREBASE_SERVICE_ACCOUNT_KEY or PATH)",
-        )
-    return client
-
-
-async def _get_db_or_firestore_read() -> AsyncGenerator[DbOrFirestore, None]:
-    """Yield DB session (read) or Firestore client based on config."""
-    settings = get_settings()
-    if settings.database_backend == "postgres":
-        async for session in get_db():
-            yield DbOrFirestore(db=session, firestore=None)
-    else:
-        client = _get_firestore_client_or_raise()
-        yield DbOrFirestore(db=None, firestore=client)
-
-
-async def _get_db_or_firestore_write() -> AsyncGenerator[DbOrFirestore, None]:
-    """Yield DB session (transactional) or Firestore client based on config."""
-    settings = get_settings()
-    if settings.database_backend == "postgres":
-        async for session in get_db_transactional():
-            yield DbOrFirestore(db=session, firestore=None)
-    else:
-        client = _get_firestore_client_or_raise()
-        yield DbOrFirestore(db=None, firestore=client)
-
-
 async def get_system_audit_service(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
 ) -> SystemAuditService:
@@ -228,36 +181,25 @@ async def get_set_password_deps(
 
 
 async def get_tenant_repo(
-    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_read)],
-) -> TenantRepository | FirestoreTenantRepository:
-    """Tenant repository (Postgres or Firestore from config)."""
-    if backend.db is not None:
-        return TenantRepository(backend.db, cache_service=None, audit_service=None)
-    assert backend.firestore is not None
-    return FirestoreTenantRepository(backend.firestore)
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> TenantRepository:
+    """Tenant repository for read operations."""
+    return TenantRepository(db, cache_service=None, audit_service=None)
 
 
 async def get_tenant_repo_for_write(
-    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_write)],
-) -> TenantRepository | FirestoreTenantRepository:
-    """Tenant repository for writes (Postgres or Firestore from config)."""
-    if backend.db is not None:
-        audit_svc = SystemAuditService(backend.db, HashService())
-        return TenantRepository(
-            backend.db, cache_service=None, audit_service=audit_svc
-        )
-    assert backend.firestore is not None
-    return FirestoreTenantRepository(backend.firestore)
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> TenantRepository:
+    """Tenant repository for writes (transactional)."""
+    audit_svc = SystemAuditService(db, HashService())
+    return TenantRepository(db, cache_service=None, audit_service=audit_svc)
 
 
 async def get_tenant_id(
     request: Request,
-    tenant_repo: Annotated[
-        TenantRepository | FirestoreTenantRepository,
-        Depends(get_tenant_repo),
-    ],
+    tenant_repo: Annotated[TenantRepository, Depends(get_tenant_repo)],
 ) -> str:
-    """Resolve tenant ID from header and validate it exists (Postgres or Firestore).
+    """Resolve tenant ID from header and validate it exists.
 
     Uses app.state.cache (short TTL) when available to avoid hitting the tenant
     repository on every request.
@@ -346,14 +288,10 @@ def _build_event_service_for_session(
 
 
 async def get_event_service(
-    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_write)],
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
     tenant_id: Annotated[str, Depends(get_tenant_id)],
 ) -> EventService:
     """Build EventService with hash chaining, schema validation, and workflow engine.
-
-    Event creation and workflows require PostgreSQL (WorkflowEngine, WorkflowRepository,
-    and event persistence use SQL). When database_backend is not 'postgres', raises 503
-    with a clear message instead of instantiating SQL-only components.
 
     EventService and WorkflowEngine depend on each other (event creation can trigger
     workflows; workflows can create events). We break the cycle by:
@@ -361,15 +299,6 @@ async def get_event_service(
     2. Creating WorkflowEngine with the event service.
     3. Storing the engine in the holder so the provider resolves on first use.
     """
-    if backend.db is None:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Event creation and workflows require PostgreSQL. "
-                "Set DATABASE_BACKEND=postgres and DATABASE_URL to use events and workflows."
-            ),
-        )
-    db = backend.db
     audit_svc = SystemAuditService(db, HashService())
     event_repo = EventRepository(db)
     hash_service = HashService()
@@ -422,10 +351,7 @@ async def get_event_service(
 async def get_document_upload_service(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    tenant_repo: Annotated[
-        TenantRepository | FirestoreTenantRepository,
-        Depends(get_tenant_repo),
-    ],
+    tenant_repo: Annotated[TenantRepository, Depends(get_tenant_repo)],
     audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> DocumentUploadService:
     """Build DocumentUploadService for upload (storage + document/tenant repos + optional category metadata validation).
@@ -496,24 +422,17 @@ async def get_run_document_retention_use_case(
 
 
 async def get_tenant_creation_service(
-    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_write)],
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
 ) -> TenantCreationService:
-    """Build TenantCreationService (Postgres or Firestore from config)."""
-    if backend.db is not None:
-        audit_svc = SystemAuditService(backend.db, HashService())
-        token_store = PasswordSetTokenStore(backend.db)
-        return TenantCreationService(
-            tenant_repo=TenantRepository(backend.db),
-            user_repo=UserRepository(backend.db, audit_service=audit_svc),
-            init_service=TenantInitializationService(backend.db),
-            audit_service=audit_svc,
-            token_store=token_store,
-        )
-    assert backend.firestore is not None
+    """Build TenantCreationService (Postgres)."""
+    audit_svc = SystemAuditService(db, HashService())
+    token_store = PasswordSetTokenStore(db)
     return TenantCreationService(
-        tenant_repo=FirestoreTenantRepository(backend.firestore),
-        user_repo=FirestoreUserRepository(backend.firestore),
-        init_service=FirestoreTenantInitializationService(backend.firestore),
+        tenant_repo=TenantRepository(db),
+        user_repo=UserRepository(db, audit_service=audit_svc),
+        init_service=TenantInitializationService(db),
+        audit_service=audit_svc,
+        token_store=token_store,
     )
 
 
@@ -846,70 +765,40 @@ async def get_document_category_repo_for_write(
 
 
 async def get_user_repo(
-    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_read)],
-) -> UserRepository | FirestoreUserRepository:
-    """User repository (Postgres or Firestore from config)."""
-    if backend.db is not None:
-        return UserRepository(backend.db, audit_service=None)
-    assert backend.firestore is not None
-    return FirestoreUserRepository(backend.firestore)
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserRepository:
+    """User repository for read operations."""
+    return UserRepository(db, audit_service=None)
 
 
 async def get_user_repo_for_write(
-    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_write)],
-) -> UserRepository | FirestoreUserRepository:
-    """User repository for writes (Postgres or Firestore from config)."""
-    if backend.db is not None:
-        audit_svc = SystemAuditService(backend.db, HashService())
-        return UserRepository(backend.db, audit_service=audit_svc)
-    assert backend.firestore is not None
-    return FirestoreUserRepository(backend.firestore)
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> UserRepository:
+    """User repository for writes (transactional)."""
+    audit_svc = SystemAuditService(db, HashService())
+    return UserRepository(db, audit_service=audit_svc)
 
 
 async def get_workflow_repo(
-    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_read)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> WorkflowRepository:
-    """Workflow repository for read operations (list, get by id). Requires PostgreSQL."""
-    if backend.db is None:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Workflows require PostgreSQL. "
-                "Set DATABASE_BACKEND=postgres and DATABASE_URL to use workflows."
-            ),
-        )
-    return WorkflowRepository(backend.db, audit_service=None)
+    """Workflow repository for read operations (list, get by id)."""
+    return WorkflowRepository(db, audit_service=None)
 
 
 async def get_workflow_repo_for_write(
-    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_write)],
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
 ) -> WorkflowRepository:
-    """Workflow repository for create/update/delete (transactional). Requires PostgreSQL."""
-    if backend.db is None:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Workflows require PostgreSQL. "
-                "Set DATABASE_BACKEND=postgres and DATABASE_URL to use workflows."
-            ),
-        )
-    audit_svc = SystemAuditService(backend.db, HashService())
-    return WorkflowRepository(backend.db, audit_service=audit_svc)
+    """Workflow repository for create/update/delete (transactional)."""
+    audit_svc = SystemAuditService(db, HashService())
+    return WorkflowRepository(db, audit_service=audit_svc)
 
 
 async def get_workflow_execution_repo(
-    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_read)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> WorkflowExecutionRepository:
-    """Workflow execution repository for read (list by workflow, get by id). Requires PostgreSQL."""
-    if backend.db is None:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Workflows require PostgreSQL. "
-                "Set DATABASE_BACKEND=postgres and DATABASE_URL to use workflows."
-            ),
-        )
-    return WorkflowExecutionRepository(backend.db)
+    """Workflow execution repository for read (list by workflow, get by id)."""
+    return WorkflowExecutionRepository(db)
 
 
 async def get_flow_repo(
@@ -1035,8 +924,49 @@ async def get_user_role_repo_for_write(
 async def get_audit_log_repo(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> AuditLogRepository:
-    """Audit log repository for read (list). Writes are via ApiAuditLogService in middleware."""
+    """Audit log repository for read (list). Writes are via ensure_audit_logged (same transaction)."""
     return AuditLogRepository(db)
+
+
+async def ensure_audit_logged(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> AsyncIterator[None]:
+    """Dependency that writes API audit log in the same transaction when the route returns normally.
+
+    Add to write endpoints (POST/PUT/PATCH/DELETE) so the audit row is committed
+    in the same transaction as the mutation. If the route raises, the transaction
+    rolls back and no audit row is written.
+    """
+    yield
+    # After route returned normally: write audit in same transaction before commit.
+    tenant_id, user_id = get_tenant_and_user_for_audit(request)
+    if not tenant_id:
+        return
+    resource_type, resource_id = get_audit_resource_from_path(request.url.path)
+    if not resource_type:
+        return
+    request_id, ip_address, user_agent = get_audit_request_context(request)
+    action = get_audit_action_from_method(request.method)
+    try:
+        svc = ApiAuditLogService(db)
+        await svc.log_action(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            action=action,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            old_values=None,
+            new_values=None,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            request_id=request_id,
+            success=True,
+            error_message=None,
+        )
+    except Exception:
+        # Let the transaction roll back by re-raising; dependency cleanup will see it.
+        raise
 
 
 async def get_oauth_provider_config_repo(

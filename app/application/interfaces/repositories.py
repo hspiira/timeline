@@ -72,6 +72,11 @@ class IEventRepository(Protocol):
     async def get_by_id(self, event_id: str) -> EventResult | None:
         """Return event by ID."""
 
+    async def get_by_id_and_tenant(
+        self, event_id: str, tenant_id: str
+    ) -> EventResult | None:
+        """Return event by ID if it belongs to tenant."""
+
     async def get_by_subject(
         self, subject_id: str, tenant_id: str, skip: int = 0, limit: int = 100
     ) -> list[EventResult]:
@@ -191,6 +196,11 @@ class IRelationshipKindRepository(Protocol):
     ) -> RelationshipKindResult | None:
         """Return relationship kind by ID."""
 
+    async def get_by_id_and_tenant(
+        self, kind_id: str, tenant_id: str
+    ) -> RelationshipKindResult | None:
+        """Return relationship kind by ID and tenant (tenant-scoped)."""
+
     async def get_by_tenant_and_kind(
         self, tenant_id: str, kind: str
     ) -> RelationshipKindResult | None:
@@ -282,8 +292,18 @@ class IEventSchemaRepository(Protocol):
     async def get_by_id(self, schema_id: str) -> EventSchemaResult | None:
         """Return schema by ID."""
 
+    async def get_by_id_and_tenant(
+        self, schema_id: str, tenant_id: str
+    ) -> EventSchemaResult | None:
+        """Return schema by ID and tenant (tenant-scoped)."""
+
     async def get_entity_by_id(self, schema_id: str) -> object | None:
         """Return ORM entity by id for update/delete."""
+
+    async def get_entity_by_id_and_tenant(
+        self, schema_id: str, tenant_id: str
+    ) -> object | None:
+        """Return ORM entity by id and tenant for update/delete (tenant-scoped)."""
 
     async def get_by_version(
         self, tenant_id: str, event_type: str, version: int
@@ -502,7 +522,7 @@ class IDocumentRequirementRepository(Protocol):
 
 # Tenant repository interface
 class ITenantRepository(Protocol):
-    """Protocol for tenant repository (DIP). Postgres and Firestore implementations."""
+    """Protocol for tenant repository (DIP)."""
 
     async def get_by_id(self, tenant_id: str) -> TenantResult | None:
         """Return tenant by ID."""
@@ -531,7 +551,7 @@ class ITenantRepository(Protocol):
 
 # User repository interface
 class IUserRepository(Protocol):
-    """Protocol for user repository (DIP). Postgres and Firestore implementations."""
+    """Protocol for user repository (DIP)."""
 
     async def get_by_id(self, user_id: str) -> UserResult | None:
         """Return user by ID."""

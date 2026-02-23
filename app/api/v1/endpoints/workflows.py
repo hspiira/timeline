@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_document_requirement_repo,
     get_document_requirement_repo_for_write,
     get_tenant_id,
@@ -42,6 +43,7 @@ async def create_workflow(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     workflow_repo: WorkflowRepository = Depends(get_workflow_repo_for_write),
     _: Annotated[object, Depends(require_permission("workflow", "create"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a workflow (tenant-scoped)."""
     try:
@@ -131,6 +133,7 @@ async def update_workflow(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     workflow_repo: WorkflowRepository = Depends(get_workflow_repo_for_write),
     _: Annotated[object, Depends(require_permission("workflow", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Update workflow (tenant-scoped)."""
     workflow = await workflow_repo.get_by_id_and_tenant(workflow_id, tenant_id)
@@ -160,6 +163,7 @@ async def delete_workflow(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     workflow_repo: WorkflowRepository = Depends(get_workflow_repo_for_write),
     _: Annotated[object, Depends(require_permission("workflow", "delete"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Soft-delete workflow. Tenant-scoped."""
     result = await workflow_repo.soft_delete(workflow_id, tenant_id)
@@ -228,6 +232,7 @@ async def create_workflow_document_requirement(
     ],
     workflow_repo: WorkflowRepository = Depends(get_workflow_repo),
     _: Annotated[object, Depends(require_permission("workflow", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Add a document requirement to a workflow (flow-level)."""
     workflow = await workflow_repo.get_by_id_and_tenant(workflow_id, tenant_id)
@@ -254,6 +259,7 @@ async def delete_document_requirement(
         Depends(get_document_requirement_repo_for_write),
     ],
     _: Annotated[object, Depends(require_permission("workflow", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Delete a document requirement."""
     deleted = await document_requirement_repo.delete(

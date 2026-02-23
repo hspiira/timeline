@@ -61,8 +61,8 @@ class EmailAccountService:
     async def run_sync_now(self, account_id: str, tenant_id: str) -> None:
         """Run sync for the account (mark pending and execute sync). Use for in-process or background task.
 
-        Currently marks the account pending; full sync execution (fetch/process/save) can be
-        wired here or delegated to a dedicated sync runner.
+        Currently marks the account pending. Full sync (fetch messages, create events,
+        update completion state) is planned for Phase 7; see docs/PROJECT_OVERVIEW.md.
         """
         await self.mark_sync_pending(account_id, tenant_id)
-        # TODO: run actual sync (fetch messages, create events, update completion state)
+        # Phase 7: run actual sync (fetch messages, create events, update completion state)

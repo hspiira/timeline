@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_create_flow_use_case,
     get_event_repo,
     get_flow_document_compliance_use_case,
@@ -44,6 +45,7 @@ async def create_flow(
         CreateFlowUseCase, Depends(get_create_flow_use_case)
     ],
     _: Annotated[object, Depends(require_permission("flow", "create"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a flow (tenant-scoped). Optionally link subjects. Name validated against naming template if one exists for this workflow."""
     flow = await create_flow_uc.execute(
@@ -97,6 +99,7 @@ async def update_flow(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     flow_repo: Annotated[IFlowRepository, Depends(get_flow_repo_for_write)],
     _: Annotated[object, Depends(require_permission("flow", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Update flow name or hierarchy_values (tenant-scoped)."""
     flow = await flow_repo.update_flow(
@@ -132,6 +135,7 @@ async def add_subjects_to_flow(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     flow_repo: Annotated[IFlowRepository, Depends(get_flow_repo_for_write)],
     _: Annotated[object, Depends(require_permission("flow", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Add subjects to a flow."""
     await flow_repo.add_subjects_to_flow(
@@ -149,6 +153,7 @@ async def remove_subject_from_flow(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     flow_repo: Annotated[IFlowRepository, Depends(get_flow_repo_for_write)],
     _: Annotated[object, Depends(require_permission("flow", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Remove a subject from a flow."""
     removed = await flow_repo.remove_subject_from_flow(

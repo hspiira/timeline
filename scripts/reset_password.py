@@ -9,7 +9,7 @@ import asyncio
 import sys
 
 from app.core.config import get_settings
-from app.infrastructure.persistence.database import AsyncSessionLocal
+from app.infrastructure.persistence.database import AsyncSessionLocal, _ensure_engine
 from app.infrastructure.persistence.repositories import UserRepository
 
 
@@ -24,10 +24,8 @@ async def main() -> None:
     user_id = sys.argv[1]
     new_password = sys.argv[2]
 
-    settings = get_settings()
-    if settings.database_backend != "postgres":
-        print("This script requires DATABASE_BACKEND=postgres", file=sys.stderr)
-        sys.exit(1)
+    get_settings()
+    _ensure_engine()
     if AsyncSessionLocal is None:
         print("AsyncSessionLocal not configured", file=sys.stderr)
         sys.exit(1)

@@ -24,8 +24,7 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
     debug: bool = False
 
-    # Database: "postgres" (SQLAlchemy + Alembic) or "firestore" (Firestore only)
-    database_backend: str = "firestore"
+    # Database: PostgreSQL only (SQLAlchemy + Alembic)
     database_url: str = ""
     database_echo: bool = False
     # Optional pool/driver overrides (None = use defaults in database.py)
@@ -94,9 +93,12 @@ class Settings(BaseSettings):
     verification_max_events: int = 100_000
     verification_timeout_seconds: int = 55
 
-    # Firebase / Firestore: use key (env) or path (file). For Vercel, use key.
-    firebase_service_account_key: SecretStr | None = None
-    firebase_service_account_path: str | None = None  # Path to JSON file
+    # RLS readiness: when True, GET /api/v1/health/ready runs RLS checks.
+    rls_readiness_check: bool = False
+    # App role for RLS check (default: user from DATABASE_URL). Set RLS_CHECK_APP_ROLE to override.
+    rls_check_app_role: str | None = None
+    # When True, readiness also requires at least one tenant_isolation policy to exist.
+    rls_check_policies: bool = False
 
     # Redis Cache
     redis_enabled: bool = True
@@ -128,28 +130,12 @@ class Settings(BaseSettings):
     def validate_required_and_storage(self) -> "Settings":
         """Validate required env and storage backend.
 
-        - Postgres: DATABASE_URL required.
-        - Firestore: FIREBASE_SERVICE_ACCOUNT_KEY or FIREBASE_SERVICE_ACCOUNT_PATH required; Alembic not used.
+        DATABASE_URL is required (PostgreSQL). Storage backend validated below.
         """
-        if self.database_backend == "postgres":
-            if not self.database_url:
-                raise ValueError(
-                    "DATABASE_URL is required when database_backend is 'postgres'. "
-                    "Set in environment or .env file."
-                )
-        elif self.database_backend == "firestore":
-            has_key = (
-                self.firebase_service_account_key
-                and self.firebase_service_account_key.get_secret_value()
-            )
-            if not has_key and not self.firebase_service_account_path:
-                raise ValueError(
-                    "When database_backend is 'firestore', set FIREBASE_SERVICE_ACCOUNT_KEY (full JSON string) "
-                    "or FIREBASE_SERVICE_ACCOUNT_PATH (path to JSON file)."
-                )
-        else:
+        if not self.database_url:
             raise ValueError(
-                f"database_backend must be 'postgres' or 'firestore', got: {self.database_backend!r}"
+                "DATABASE_URL is required. Set in environment or .env file "
+                "(e.g. postgresql+asyncpg://user:pass@localhost:5432/dbname)."
             )
         if not self.secret_key.get_secret_value():
             raise ValueError(

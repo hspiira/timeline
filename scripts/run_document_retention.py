@@ -23,9 +23,6 @@ async def main() -> None:
     if database.AsyncSessionLocal is None:
         print("AsyncSessionLocal not configured", file=sys.stderr)
         sys.exit(1)
-    if settings.database_backend != "postgres":
-        print("This script requires DATABASE_BACKEND=postgres", file=sys.stderr)
-        sys.exit(1)
     retention_days = get_settings().default_document_retention_days
     if retention_days is None or retention_days < 1:
         print(

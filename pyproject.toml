@@ -20,7 +20,7 @@ dependencies = [
     "cryptography>=46.0.3",
     "nh3>=0.2.0",
     "pyjwt>=2.10.0",
-    # Firebase / Firestore (REST + google-auth)
+    # OAuth / Google APIs (e.g. Gmail in email extra)
     "google-auth>=2.45.0",
     # Utilities & storage (local backend used by document upload)
     "aiofiles>=25.1.0",
@@ -69,7 +69,7 @@ dev = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
-    "requires_db: mark test as requiring PostgreSQL (skip when DATABASE_BACKEND != postgres or DATABASE_URL unset)",
+    "requires_db: mark test as requiring PostgreSQL (skip when DATABASE_URL unset)",
 ]
 
 [tool.mypy]

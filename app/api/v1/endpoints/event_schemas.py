@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_event_schema_repo,
     get_event_schema_repo_for_write,
     get_tenant_id,
@@ -31,6 +32,7 @@ async def create_event_schema(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     current_user: Annotated[UserResult, Depends(require_permission("event_schema", "create"))],
     schema_repo: Annotated[IEventSchemaRepository, Depends(get_event_schema_repo_for_write)],
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a new event schema version (tenant-scoped). created_by from authenticated user."""
     try:
@@ -123,8 +125,8 @@ async def get_event_schema(
     _: Annotated[object, Depends(require_permission("event_schema", "read"))] = None,
 ):
     """Get event schema by id (tenant-scoped)."""
-    schema = await schema_repo.get_by_id(schema_id)
-    if not schema or schema.tenant_id != tenant_id:
+    schema = await schema_repo.get_by_id_and_tenant(schema_id, tenant_id)
+    if not schema:
         raise HTTPException(status_code=404, detail="Event schema not found")
     return EventSchemaResponse.model_validate(schema)
 
@@ -138,10 +140,11 @@ async def update_event_schema(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     schema_repo: Annotated[IEventSchemaRepository, Depends(get_event_schema_repo_for_write)],
     _: Annotated[object, Depends(require_permission("event_schema", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Update event schema (schema_definition, is_active, allowed_subject_types). Tenant-scoped."""
-    schema = await schema_repo.get_entity_by_id(schema_id)
-    if not schema or schema.tenant_id != tenant_id:
+    schema = await schema_repo.get_entity_by_id_and_tenant(schema_id, tenant_id)
+    if not schema:
         raise HTTPException(status_code=404, detail="Event schema not found")
     if body.schema_definition is not None:
         schema.schema_definition = body.schema_definition
@@ -161,9 +164,10 @@ async def delete_event_schema(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     schema_repo: Annotated[IEventSchemaRepository, Depends(get_event_schema_repo_for_write)],
     _: Annotated[object, Depends(require_permission("event_schema", "delete"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Delete event schema by id. Tenant-scoped."""
-    schema = await schema_repo.get_entity_by_id(schema_id)
-    if not schema or schema.tenant_id != tenant_id:
+    schema = await schema_repo.get_entity_by_id_and_tenant(schema_id, tenant_id)
+    if not schema:
         raise HTTPException(status_code=404, detail="Event schema not found")
     await schema_repo.delete(schema)

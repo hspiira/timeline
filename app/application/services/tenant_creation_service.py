@@ -52,14 +52,9 @@ class TenantCreationService:
         dependency) so that tenant creation, RBAC init, user creation and role
         assignment are atomic.
 
-        Timeout / cancellation:
-        - Postgres: the whole flow runs in one transaction; on request timeout
-          (e.g. 504) the transaction is rolled back and no partial tenant is left.
-        - Firestore: each write commits immediately. If the request times out
-          mid-flow, you can get partial state (e.g. tenant + some permissions
-          but no admin user). Retrying with the same code will then fail with
-          "tenant already exists". Consider increasing timeout for this
-          endpoint or cleaning up orphaned tenant docs if needed.
+        Timeout / cancellation: the whole flow runs in one transaction; on
+        request timeout (e.g. 504) the transaction is rolled back and no
+        partial tenant is left.
         """
         existing = await self.tenant_repo.get_by_code(code)
         if existing:

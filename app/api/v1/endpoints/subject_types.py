@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.exc import IntegrityError
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_subject_type_repo,
     get_subject_type_repo_for_write,
     get_tenant_id,
@@ -32,6 +33,7 @@ async def create_subject_type(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     current_user: Annotated[UserResult, Depends(require_permission("subject_type", "create"))],
     repo: Annotated[ISubjectTypeRepository, Depends(get_subject_type_repo_for_write)],
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a subject type (tenant-scoped). created_by from authenticated user."""
     try:
@@ -93,6 +95,7 @@ async def update_subject_type(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     repo: Annotated[ISubjectTypeRepository, Depends(get_subject_type_repo_for_write)],
     _: Annotated[object, Depends(require_permission("subject_type", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Update subject type (partial). Only provided fields are updated; explicit null clears optional fields."""
     item = await repo.get_by_id(subject_type_id)
@@ -132,6 +135,7 @@ async def delete_subject_type(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     repo: Annotated[ISubjectTypeRepository, Depends(get_subject_type_repo_for_write)],
     _: Annotated[object, Depends(require_permission("subject_type", "delete"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Delete subject type (tenant-scoped)."""
     deleted = await repo.delete_subject_type(subject_type_id, tenant_id)
