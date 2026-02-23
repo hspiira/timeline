@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_tenant_id,
     get_user_repo,
     get_user_repo_for_write,
@@ -25,6 +26,7 @@ async def create_user(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     user_repo: UserRepository = Depends(get_user_repo_for_write),
     _: Annotated[object, Depends(require_permission("user", "create"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a user (tenant-scoped)."""
     try:

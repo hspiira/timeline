@@ -50,6 +50,19 @@ class RelationshipKindRepository:
         row = result.scalar_one_or_none()
         return _to_result(row) if row else None
 
+    async def get_by_id_and_tenant(
+        self, kind_id: str, tenant_id: str
+    ) -> RelationshipKindResult | None:
+        """Return relationship kind by ID and tenant (tenant-scoped; safe when RLS is off)."""
+        result = await self.db.execute(
+            select(RelationshipKind).where(
+                RelationshipKind.id == kind_id,
+                RelationshipKind.tenant_id == tenant_id,
+            )
+        )
+        row = result.scalar_one_or_none()
+        return _to_result(row) if row else None
+
     async def get_by_tenant_and_kind(
         self, tenant_id: str, kind: str
     ) -> RelationshipKindResult | None:

@@ -88,6 +88,31 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
         """Get schema ORM by id for update/delete."""
         return await super().get_by_id(schema_id)
 
+    async def get_by_id_and_tenant(
+        self, schema_id: str, tenant_id: str
+    ) -> EventSchemaResult | None:
+        """Return schema by ID and tenant (tenant-scoped; safe when RLS is off)."""
+        result = await self.db.execute(
+            select(EventSchema).where(
+                EventSchema.id == schema_id,
+                EventSchema.tenant_id == tenant_id,
+            )
+        )
+        row = result.scalar_one_or_none()
+        return _event_schema_to_result(row) if row else None
+
+    async def get_entity_by_id_and_tenant(
+        self, schema_id: str, tenant_id: str
+    ) -> EventSchema | None:
+        """Get schema ORM by id and tenant for update/delete (tenant-scoped)."""
+        result = await self.db.execute(
+            select(EventSchema).where(
+                EventSchema.id == schema_id,
+                EventSchema.tenant_id == tenant_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def get_by_id(self, schema_id: str) -> EventSchemaResult | None:
         result = await self.db.execute(select(EventSchema).where(EventSchema.id == schema_id))
         row = result.scalar_one_or_none()

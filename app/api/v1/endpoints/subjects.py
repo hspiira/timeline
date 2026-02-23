@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_create_subject_snapshot_use_case,
     get_get_subject_state_use_case,
     get_run_snapshot_job_use_case,
@@ -60,6 +61,7 @@ async def create_subject(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_svc: Annotated[SubjectService, Depends(get_subject_service)],
     _: Annotated[object, Depends(require_permission("subject", "create"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a subject (tenant-scoped)."""
     created = await subject_svc.create_subject(
@@ -89,6 +91,7 @@ async def run_snapshot_job(
         ),
     ] = SNAPSHOT_JOB_DEFAULT_LIMIT,
     _: Annotated[object, Depends(require_permission("subject", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Run batch snapshot creation for the current tenant. Call from cron or scripts."""
     result = await job_use_case.run(tenant_id=tenant_id, limit=limit)
@@ -112,6 +115,7 @@ async def export_subject_data(
         SubjectExportService, Depends(get_subject_export_service)
     ],
     _: Annotated[object, Depends(require_permission("subject", "export"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Export all data for the subject (GDPR): subject, events, document refs (no binary)."""
     try:
@@ -140,6 +144,7 @@ async def erase_subject_data(
         SubjectErasureService, Depends(get_subject_erasure_service)
     ],
     _: Annotated[object, Depends(require_permission("subject", "erasure"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Erase or anonymize subject data (GDPR). Body: {"strategy": "anonymize"|"delete"}."""
     try:
@@ -173,6 +178,7 @@ async def create_subject_snapshot(
         CreateSubjectSnapshotUseCase, Depends(get_create_subject_snapshot_use_case)
     ],
     _: Annotated[object, Depends(require_permission("subject", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create or replace the subject snapshot (on-demand state checkpoint). Fails if subject has no events."""
     try:
@@ -285,6 +291,7 @@ async def add_subject_relationship(
         SubjectRelationshipService, Depends(get_subject_relationship_service)
     ],
     _: Annotated[object, Depends(require_permission("subject", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Add a relationship from this subject to target (tenant-scoped)."""
     try:
@@ -320,6 +327,7 @@ async def remove_subject_relationship(
         SubjectRelationshipService, Depends(get_subject_relationship_service)
     ],
     _: Annotated[object, Depends(require_permission("subject", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
     target_subject_id: str = Query(..., description="Target subject ID"),
     relationship_kind: str = Query(..., description="Relationship kind"),
 ):
@@ -383,6 +391,7 @@ async def update_subject(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_svc: Annotated[SubjectService, Depends(get_subject_service)],
     _: Annotated[object, Depends(require_permission("subject", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Partial update (patch) of subject (e.g. external_ref, display_name, attributes). Tenant-scoped."""
     try:
@@ -406,6 +415,7 @@ async def delete_subject(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_svc: Annotated[SubjectService, Depends(get_subject_service)],
     _: Annotated[object, Depends(require_permission("subject", "delete"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Delete subject. Tenant-scoped."""
     try:

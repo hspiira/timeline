@@ -17,7 +17,7 @@ class RecentEventItem(BaseModel):
 
 
 class DashboardStatsResponse(BaseModel):
-    """Dashboard stats: counts by type and last N events."""
+    """Dashboard stats: counts by type, last N events, and timeline-integrity guidance."""
 
     total_subjects: int
     subjects_by_type: dict[str, int] = Field(default_factory=dict)
@@ -25,3 +25,7 @@ class DashboardStatsResponse(BaseModel):
     events_by_type: dict[str, int] = Field(default_factory=dict)
     total_documents: int
     recent_events: list[RecentEventItem] = Field(default_factory=list)
+    chain_verification_info: str | None = Field(
+        default=None,
+        description="Guidance for running event chain verification (timeline integrity).",
+    )

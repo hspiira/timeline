@@ -9,6 +9,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_event_repo,
     get_event_service,
     get_tenant_id,
@@ -35,8 +36,6 @@ from app.schemas.event import (
     VerificationJobStartedResponse,
     VerificationJobStatusResponse,
 )
-from app.shared.utils.datetime import utc_now
-
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -47,25 +46,24 @@ async def _run_verification_job(
     job_id: str,
     run_verification: Callable[[str], Awaitable[ChainVerificationResult]],
 ) -> None:
-    """Background task: run tenant verification and store result in app.state.verification_jobs."""
-    jobs = getattr(app, "state", None) and getattr(app.state, "verification_jobs", None)
-    if not jobs or job_id not in jobs:
+    """Background task: run tenant verification and store result in verification_job_store."""
+    store = getattr(app.state, "verification_job_store", None)
+    if not store:
         return
-    job = jobs[job_id]
+    job = store.get(job_id)
+    if not job:
+        return
     tenant_id = job.get("tenant_id")
     if not tenant_id:
-        job["status"] = "failed"
-        job["error"] = "Missing tenant_id"
+        store.update(job_id, "failed", error="Missing tenant_id")
         return
-    job["status"] = "running"
+    store.update(job_id, "running")
     try:
         result = await run_verification(tenant_id)
-        job["status"] = "completed"
-        job["result"] = result
+        store.update(job_id, "completed", result=result)
     except Exception as e:
         logger.exception("Verification job %s failed", job_id)
-        job["status"] = "failed"
-        job["error"] = str(e)
+        store.update(job_id, "failed", error=str(e))
 
 
 def _to_verification_response(
@@ -105,6 +103,7 @@ async def create_event(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     event_svc: Annotated[EventService, Depends(get_event_service)],
     _: Annotated[object, Depends(require_permission("event", "create"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a single event (hash chaining, optional schema validation, workflows)."""
     cmd = EventCreate(
@@ -213,18 +212,10 @@ async def start_verification_job(
     _: Annotated[object, Depends(require_permission("event", "read"))] = None,
 ):
     """Start a background verification job for all tenant event chains (for large tenants). Poll GET /events/verify/tenant/jobs/{job_id} for status."""
-    app = request.app
-    if not hasattr(app.state, "verification_jobs"):
-        app.state.verification_jobs = {}
+    store = request.app.state.verification_job_store
     job_id = str(uuid.uuid4())
-    app.state.verification_jobs[job_id] = {
-        "tenant_id": tenant_id,
-        "status": "pending",
-        "result": None,
-        "error": None,
-        "created_at": utc_now(),
-    }
-    asyncio.create_task(_run_verification_job(app, job_id, run_verification))
+    store.set(job_id, tenant_id)
+    asyncio.create_task(_run_verification_job(request.app, job_id, run_verification))
     return VerificationJobStartedResponse(job_id=job_id)
 
 
@@ -239,11 +230,11 @@ async def get_verification_job_status(
     _: Annotated[object, Depends(require_permission("event", "read"))] = None,
 ):
     """Get status and result of a background verification job (tenant-scoped: only own tenant's jobs)."""
-    jobs = getattr(request.app.state, "verification_jobs", None) or {}
-    if job_id not in jobs:
+    store = getattr(request.app.state, "verification_job_store", None)
+    if not store:
         raise HTTPException(status_code=404, detail="Job not found")
-    job = jobs[job_id]
-    if job.get("tenant_id") != tenant_id:
+    job = store.get(job_id)
+    if not job or job.get("tenant_id") != tenant_id:
         raise HTTPException(status_code=404, detail="Job not found")
     status = job["status"]
     result = job.get("result")

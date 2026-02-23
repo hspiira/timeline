@@ -158,8 +158,8 @@ def render_root_page(app_name: str) -> str:
             <div class="code" id="api-base">—</div>
             <p>Run locally with:</p>
             <div class="code">uv run uvicorn app.main:app <span class="muted">--reload</span></div>
-            <p>Copy <code>.env.example</code> to <code>.env</code> and set your database
-            (Firestore or Postgres) and secrets before starting.</p>
+            <p>Copy <code>.env.example</code> to <code>.env</code> and set
+            <code>DATABASE_URL</code> (Postgres) and secrets before starting.</p>
             <div class="links">
                 <a href="/docs" class="btn primary">Open API docs (Swagger)</a>
                 <a href="/redoc" class="btn">ReDoc</a>

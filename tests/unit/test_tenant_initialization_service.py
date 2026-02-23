@@ -58,6 +58,16 @@ def test_manager_role_does_not_include_gdpr_permissions_in_default_config() -> N
         assert gdpr not in manager_permissions
 
 
+def test_only_admin_role_has_star_star_in_default_roles() -> None:
+    """Compliance: only a single (admin) role must have *:* in default seed."""
+    roles_with_star_star = [
+        code for code, data in DEFAULT_ROLES.items() if "*:*" in data["permissions"]
+    ]
+    assert roles_with_star_star == ["admin"], (
+        f"Only admin should have *:*; found: {roles_with_star_star}"
+    )
+
+
 @pytest.mark.asyncio
 async def test_assign_admin_role_raises_resource_not_found_when_admin_role_missing() -> None:
     """assign_admin_role raises ResourceNotFoundException when admin role is not found."""

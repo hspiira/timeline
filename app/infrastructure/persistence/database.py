@@ -1,8 +1,6 @@
 """Persistence: async engine, session factory, and Base for SQLAlchemy ORM.
 
-When database_backend is 'postgres', schema is managed by Alembic migrations.
-When database_backend is 'firestore', the SQL engine is not created; use
-get_firestore_client() from app.infrastructure.firebase.client instead.
+The application uses PostgreSQL only. Schema is managed by Alembic migrations.
 
 Engine and session factory are created lazily on first use (get_db /
 get_db_transactional) so import does not trigger Settings validation.
@@ -32,13 +30,11 @@ AsyncSessionLocal: async_sessionmaker[AsyncSession] | None = None
 
 
 def _ensure_engine() -> None:
-    """Create engine and AsyncSessionLocal on first use (postgres only)."""
+    """Create engine and AsyncSessionLocal on first use."""
     global engine, AsyncSessionLocal
     if AsyncSessionLocal is not None:
         return
     settings = get_settings()
-    if settings.database_backend != "postgres":
-        return
     pool_size = settings.db_pool_size if settings.db_pool_size is not None else 20
     max_overflow = (
         settings.db_max_overflow if settings.db_max_overflow is not None else 30
@@ -117,12 +113,12 @@ async def get_db():
     Does not commit; use get_db_transactional for writes.
     When tenant context is set (middleware), runs SET LOCAL app.current_tenant_id for RLS.
     Yields a session and closes it on exit.
-    Raises SqlNotConfiguredException when database_backend is not 'postgres'.
+    Raises SqlNotConfiguredException when DATABASE_URL is not set or engine creation fails.
     """
     _ensure_engine()
     if AsyncSessionLocal is None:
         logger.error(
-            "SQL database not configured: set DATABASE_BACKEND=postgres and DATABASE_URL "
+            "SQL database not configured: set DATABASE_URL "
             "(e.g. postgresql+asyncpg://user:pass@localhost:5432/dbname), then run: uv run alembic upgrade head"
         )
         raise SqlNotConfiguredException()
@@ -137,12 +133,12 @@ async def get_db_transactional():
     Begins a transaction, commits on success, rolls back on exception.
     When tenant context is set (middleware), runs SET LOCAL app.current_tenant_id for RLS.
     Use for POST, PUT, PATCH, DELETE endpoints.
-    Raises SqlNotConfiguredException when database_backend is not 'postgres'.
+    Raises SqlNotConfiguredException when DATABASE_URL is not set or engine creation fails.
     """
     _ensure_engine()
     if AsyncSessionLocal is None:
         logger.error(
-            "SQL database not configured: set DATABASE_BACKEND=postgres and DATABASE_URL "
+            "SQL database not configured: set DATABASE_URL "
             "(e.g. postgresql+asyncpg://user:pass@localhost:5432/dbname), then run: uv run alembic upgrade head"
         )
         raise SqlNotConfiguredException()

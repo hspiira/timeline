@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.exc import IntegrityError
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_document_category_repo,
     get_document_category_repo_for_write,
     get_tenant_id,
@@ -36,6 +37,7 @@ async def create_document_category(
     repo: Annotated[
         IDocumentCategoryRepository, Depends(get_document_category_repo_for_write)
     ],
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a document category (tenant-scoped). created_by from authenticated user."""
     try:
@@ -101,6 +103,7 @@ async def update_document_category(
     _: Annotated[
         object, Depends(require_permission("document_category", "update"))
     ] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Update document category (partial, tenant-scoped)."""
     item = await repo.get_by_id(category_id)
@@ -131,6 +134,7 @@ async def delete_document_category(
     _: Annotated[
         object, Depends(require_permission("document_category", "delete"))
     ] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Delete document category (tenant-scoped)."""
     deleted = await repo.delete_document_category(category_id, tenant_id)

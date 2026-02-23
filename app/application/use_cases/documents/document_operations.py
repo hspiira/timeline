@@ -41,12 +41,26 @@ def _rewind_if_seekable(file_data: BinaryIO) -> None:
         file_data.seek(0)
 
 
+# Reserved names on Windows (and some other OSes); reject to avoid storage issues.
+_RESERVED_FILENAMES = frozenset(
+    {"con", "prn", "aux", "nul"}
+    | {f"com{i}" for i in range(1, 10)}
+    | {f"lpt{i}" for i in range(1, 10)}
+)
+
+
 def _sanitize_filename(filename: str) -> str:
-    """Strip path separators and dangerous characters from filename."""
+    """Strip path separators and dangerous characters from filename.
+
+    Rejects reserved names (e.g. CON, NUL on Windows) to avoid storage issues
+    when using local or Windows-accessible storage.
+    """
     name = os.path.basename(filename)
     name = name.replace("\x00", "").strip(". ")
     if not name:
         raise ValueError("Filename is empty or invalid after sanitization")
+    if name.lower() in _RESERVED_FILENAMES:
+        raise ValueError(f"Reserved filename not allowed: {name!r}")
     return name
 
 

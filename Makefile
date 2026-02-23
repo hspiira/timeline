@@ -11,6 +11,6 @@ audit-deps:
 test:
 	uv run pytest -m "not requires_db" -v
 
-# Run all tests (requires Postgres: DATABASE_BACKEND=postgres, DATABASE_URL set).
+# Run all tests (requires Postgres: DATABASE_URL set).
 test-all:
 	uv run pytest -v

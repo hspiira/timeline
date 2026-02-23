@@ -41,4 +41,5 @@ async def get_dashboard(
             )
             for e in stats.recent_events
         ],
+        chain_verification_info=stats.chain_verification_info,
     )

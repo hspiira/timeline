@@ -137,10 +137,10 @@ class EventRepository(BaseRepository[Event]):
         if as_of is not None:
             q = q.where(Event.event_time <= as_of)
         if after_event_id is not None:
-            after_event = await self.get_by_id(after_event_id)
+            after_event = await self.get_by_id_and_tenant(after_event_id, tenant_id)
             if not after_event:
                 return []
-            if after_event.subject_id != subject_id or after_event.tenant_id != tenant_id:
+            if after_event.subject_id != subject_id:
                 raise ValueError(
                     f"after_event_id {after_event_id!r} does not belong to subject_id={subject_id!r}, tenant_id={tenant_id!r}"
                 )

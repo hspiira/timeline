@@ -4,7 +4,7 @@ Multi-tenant event sourcing API with FastAPI.
 
 ## Install
 
-Base install (API, auth, DB, cache, Firestore, observability):
+Base install (API, auth, DB, cache, observability):
 
 ```bash
 uv sync
@@ -33,18 +33,16 @@ Copy `.env.example` to `.env` and set:
 |----------|----------|-------------|
 | `SECRET_KEY` | Yes | Min 32 chars; e.g. `openssl rand -hex 32` |
 | `ENCRYPTION_SALT` | Yes | e.g. `openssl rand -hex 16` |
-| `DATABASE_BACKEND` | Yes | `firestore` or `postgres` |
-| Firestore | If firestore | `FIREBASE_SERVICE_ACCOUNT_KEY` (JSON string) or `FIREBASE_SERVICE_ACCOUNT_PATH` (file path) |
-| Postgres | If postgres | `DATABASE_URL` (e.g. `postgresql+asyncpg://user:pass@host:5432/db`) |
+| `DATABASE_URL` | Yes | PostgreSQL connection URL (e.g. `postgresql+asyncpg://user:pass@host:5432/db`) |
+
+Then run `uv run alembic upgrade head` to apply migrations.
 
 Optional: `REDIS_*` (cache), `ALLOWED_ORIGINS`, `REQUEST_TIMEOUT_SECONDS`, storage and telemetry settings. See `.env.example` and `app.core.config`.
 
 ## Secrets and keys (do not commit)
 
 - **Never commit** `.env`, `.env.local`, `.env.development`, `.env.production`, or any file under `secrets/`.
-- For Firestore, use **`FIREBASE_SERVICE_ACCOUNT_KEY`** (full JSON in env) or **`FIREBASE_SERVICE_ACCOUNT_PATH`** pointing to a file **outside the repo** (e.g. `~/.config` or CI secret mount).
-- The repo’s `.gitignore` ignores `secrets/`, `*-firebase-adminsdk-*.json`, `serviceAccountKey*.json`, and common GCP key filenames. Only `.env.example` is tracked.
-- **If a key was ever pushed to GitHub:** revoke/rotate it in Google Cloud Console immediately and use a new key.
+- The repo’s `.gitignore` ignores `secrets/`. Only `.env.example` is tracked.
 
 ## Run
 
@@ -113,11 +111,13 @@ This deploys a preview and will fail at build time if the bundle is too large or
 ## Development
 
 - **Guidelines for contributors and agents:** [docs/AGENT_GUIDELINES.md](docs/AGENT_GUIDELINES.md)
+- **Architecture and operations:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SECURITY_AND_COMPLIANCE.md](docs/SECURITY_AND_COMPLIANCE.md)
 - **Run:** `uv run uvicorn app.main:app --reload`
 - **Tests:** `uv run pytest tests/ -v` (requires `uv sync --all-extras` or `--extra dev` for pytest, httpx, pytest-asyncio)
-- **Scripts:** `uv run python -m scripts.create_test_user <tenant_code> <username> [password]`, `scripts.seed_rbac <tenant_id_or_code>`, `scripts.reset_password <user_id> <new_password>`. Scripts require Postgres (`DATABASE_BACKEND=postgres`).
+- **Scripts:** `uv run python -m scripts.create_test_user <tenant_code> <username> [password]`, `scripts.seed_rbac <tenant_id_or_code>`, `scripts.reset_password <user_id> <new_password>`. Scripts require Postgres (`DATABASE_URL`).
 - **Lint/format:** `uv run black app tests scripts`, `uv run isort app tests scripts`, `uv run flake8 app tests scripts` (or ruff).
 
-## Firestore (no migrations)
+## Database (PostgreSQL)
 
-When using Firestore, there are no database “tables” or migrations. Firestore uses **collections** (like tables), which are **created automatically** when you first write a document to that collection. Use the collection names in `app.infrastructure.firebase.collections` so the “schema” stays in one place. For complex queries you may need [composite indexes](https://firebase.google.com/docs/firestore/query-data/indexing); define them in `firestore.indexes.json` and deploy with `firebase deploy --only firestore:indexes` if you use the Firebase CLI.
+Schema is managed by Alembic migrations. After setting `DATABASE_URL`, run `uv run alembic upgrade head` to create or update tables.
+

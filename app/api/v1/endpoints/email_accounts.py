@@ -11,6 +11,7 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_email_account_repo,
     get_email_account_repo_for_write,
     get_email_account_service,
@@ -80,6 +81,7 @@ async def create_email_account(
         EmailAccountService, Depends(get_email_account_service)
     ],
     _: Annotated[object, Depends(require_permission("email_account", "create"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create email account (credentials encrypted at rest)."""
     account = await email_account_service.create_email_account(
@@ -105,6 +107,7 @@ async def update_email_account(
         EmailAccountRepository, Depends(get_email_account_repo_for_write)
     ],
     _: Annotated[object, Depends(require_permission("email_account", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Partially update email account."""
     account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
@@ -132,6 +135,7 @@ async def delete_email_account(
         EmailAccountRepository, Depends(get_email_account_repo_for_write)
     ],
     _: Annotated[object, Depends(require_permission("email_account", "delete"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Delete email account (hard delete)."""
     account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
@@ -183,6 +187,7 @@ async def trigger_email_sync(
         EmailAccountService, Depends(get_email_account_service)
     ],
     _: Annotated[object, Depends(require_permission("email_account", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Trigger sync for the email account (in-process). Runs sync before returning 202."""
     await email_account_service.run_sync_now(account_id, tenant_id)
@@ -204,6 +209,7 @@ async def trigger_email_sync_background(
         EmailAccountService, Depends(get_email_account_service)
     ],
     _: Annotated[object, Depends(require_permission("email_account", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Enqueue sync for the email account. Returns 202 immediately; sync runs after response."""
     background_tasks.add_task(
@@ -237,6 +243,7 @@ async def email_account_webhook(
     email_account_repo: Annotated[
         EmailAccountRepository, Depends(get_email_account_repo)
     ],
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Provider callback (e.g. Gmail push).
 

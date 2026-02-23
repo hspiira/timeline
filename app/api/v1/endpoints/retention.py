@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_run_document_retention_use_case,
     get_tenant_id,
     require_permission,
@@ -25,6 +26,7 @@ async def run_retention(
         RunDocumentRetentionUseCase, Depends(get_run_document_retention_use_case)
     ],
     _: Annotated[object, Depends(require_permission("document", "delete"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Run document retention for the current tenant.
 

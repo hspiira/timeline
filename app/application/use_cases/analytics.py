@@ -37,6 +37,9 @@ class GetDashboardStatsUseCase:
         recent_events = await self.event_repo.get_by_tenant(
             tenant_id, skip=0, limit=10
         )
+        chain_verification_info = (
+            "Run verification per subject or tenant via POST /api/v1/events/verify-chain."
+        )
         return DashboardStats(
             total_subjects=total_subjects,
             subjects_by_type=subjects_by_type,
@@ -44,4 +47,5 @@ class GetDashboardStatsUseCase:
             events_by_type=events_by_type,
             total_documents=total_documents,
             recent_events=recent_events,
+            chain_verification_info=chain_verification_info,
         )

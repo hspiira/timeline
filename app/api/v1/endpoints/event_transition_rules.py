@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_event_transition_rule_repo,
     get_event_transition_rule_repo_for_write,
     get_tenant_id,
@@ -51,6 +52,7 @@ async def create_event_transition_rule(
         EventTransitionRuleRepository, Depends(get_event_transition_rule_repo_for_write)
     ],
     _: Annotated[object, Depends(require_permission("event_schema", "create"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create an event transition rule (tenant-scoped). One rule per event_type."""
     try:
@@ -110,6 +112,7 @@ async def update_event_transition_rule(
         EventTransitionRuleRepository, Depends(get_event_transition_rule_repo_for_write)
     ],
     _: Annotated[object, Depends(require_permission("event_schema", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Update event transition rule (partial). Tenant-scoped."""
     entity = await rule_repo.get_entity_by_id(rule_id)
@@ -133,6 +136,7 @@ async def delete_event_transition_rule(
         EventTransitionRuleRepository, Depends(get_event_transition_rule_repo_for_write)
     ],
     _: Annotated[object, Depends(require_permission("event_schema", "delete"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Delete event transition rule by id. Tenant-scoped."""
     entity = await rule_repo.get_entity_by_id(rule_id)

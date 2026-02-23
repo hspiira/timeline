@@ -1,7 +1,7 @@
 """Application lifespan: startup and shutdown.
 
 Single place for all startup/shutdown logic (SRP). Used by main.py;
-no business logic here, only wiring of infrastructure (Firebase, cache,
+no business logic here, only wiring of infrastructure (cache,
 WebSocket manager, telemetry, DB engine dispose).
 """
 
@@ -14,6 +14,7 @@ import httpx
 from fastapi import FastAPI
 
 from app.core.config import get_settings
+from app.core.verification_job_store import VerificationJobStore
 
 logger = logging.getLogger(__name__)
 
@@ -22,25 +23,20 @@ logger = logging.getLogger(__name__)
 async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Run startup then yield; on exit run shutdown.
 
-    Startup order: Firebase, WebSocket manager, Redis cache (if enabled),
-    telemetry (if enabled). Shutdown order: Firebase close, shared HTTP client
-    close, cache disconnect, telemetry shutdown, SQL engine dispose (if postgres).
+    Startup order: WebSocket manager, Redis cache (if enabled),
+    telemetry (if enabled). Shutdown order: shared HTTP client close,
+    cache disconnect, telemetry shutdown, SQL engine dispose.
     """
     settings = get_settings()
 
     # ---- Startup ----
-    # Shared HTTP client for OAuth, Firebase, and other outbound calls (connection reuse).
+    # Shared HTTP client for OAuth and other outbound calls (connection reuse).
     app.state.oauth_http_client = httpx.AsyncClient(timeout=30.0)
-
-    from app.infrastructure.firebase import init_firebase
-
-    fb_initialized = init_firebase(http_client=app.state.oauth_http_client)
-    logger.info("Firebase initialized: %s", fb_initialized)
 
     from app.api.websocket import ConnectionManager
 
     app.state.ws_manager = ConnectionManager()
-    app.state.verification_jobs = {}
+    app.state.verification_job_store = VerificationJobStore()
 
     if settings.redis_enabled:
         from app.infrastructure.cache.redis_cache import CacheService
@@ -77,10 +73,6 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
     # ---- Shutdown ----
-    from app.infrastructure.firebase import close_firebase
-
-    await close_firebase()
-
     if getattr(app.state, "oauth_http_client", None) is not None:
         await app.state.oauth_http_client.aclose()
         app.state.oauth_http_client = None

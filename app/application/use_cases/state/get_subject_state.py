@@ -68,18 +68,18 @@ class GetSubjectStateUseCase:
                 tenant_id=tenant_id,
             )
 
-        # If we have a snapshot, try snapshot + tail. snapshot_event from get_by_id may be
-        # None (e.g. referenced event was deleted); or use_snapshot may be False for as_of.
+        # If we have a snapshot, try snapshot + tail. snapshot_event from get_by_id_and_tenant may be
+        # None (e.g. referenced event was deleted or wrong tenant); or use_snapshot may be False for as_of.
         # In those cases the condition below fails and we fall through to full replay.
         if snapshot:
-            snapshot_event = await self._event_repo.get_by_id(
-                snapshot.snapshot_at_event_id
+            snapshot_event = await self._event_repo.get_by_id_and_tenant(
+                snapshot.snapshot_at_event_id, tenant_id
             )
             use_snapshot = True
             if as_of_dt is not None and snapshot_event:
                 if snapshot_event.event_time > as_of_dt:
                     use_snapshot = False
-            if use_snapshot and snapshot_event and snapshot_event.tenant_id == tenant_id:
+            if use_snapshot and snapshot_event:
                 state = deepcopy(snapshot.state_json)
                 tail = await self._event_repo.get_events_chronological(
                     subject_id=subject_id,
