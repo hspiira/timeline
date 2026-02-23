@@ -142,6 +142,7 @@ async def get_tenant(
 @router.put("/{tenant_id}", response_model=TenantResponse)
 @limit_writes
 async def update_tenant(
+    request: Request,
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
     body: TenantUpdate,
     tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo_for_write)],
@@ -164,6 +165,7 @@ async def update_tenant(
 @router.patch("/{tenant_id}/status", response_model=TenantResponse)
 @limit_writes
 async def update_tenant_status(
+    request: Request,
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
     body: TenantStatusUpdate,
     tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo_for_write)],

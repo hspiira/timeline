@@ -73,6 +73,7 @@ async def get_email_account(
 @router.post("", response_model=EmailAccountResponse, status_code=201)
 @limit_writes
 async def create_email_account(
+    request: Request,
     body: EmailAccountCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     email_account_service: Annotated[

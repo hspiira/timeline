@@ -26,6 +26,15 @@ class ConnectionManager:
         self._websocket_to_tenant: dict[WebSocket, str] = {}
         self._lock = asyncio.Lock()
 
+    def _remove_connection_locked(self, ws: WebSocket) -> None:
+        """Remove a single connection from internal structures. Caller must hold self._lock."""
+        tid = self._websocket_to_tenant.pop(ws, None)
+        if tid and tid in self._connections_by_tenant:
+            conns = self._connections_by_tenant[tid]
+            conns.discard(ws)
+            if not conns:
+                del self._connections_by_tenant[tid]
+
     async def connect(self, websocket: WebSocket, tenant_id: str) -> None:
         """Accept and register a new connection for the given tenant.
 
@@ -47,13 +56,7 @@ class ConnectionManager:
             websocket: The WebSocket instance to remove.
         """
         async with self._lock:
-            tenant_id = self._websocket_to_tenant.pop(websocket, None)
-            if tenant_id and tenant_id in self._connections_by_tenant:
-                conns = self._connections_by_tenant[tenant_id]
-                if websocket in conns:
-                    conns.remove(websocket)
-                if not conns:
-                    del self._connections_by_tenant[tenant_id]
+            self._remove_connection_locked(websocket)
 
     async def broadcast_to_tenant(
         self, tenant_id: str, message: str | dict[str, Any]
@@ -77,11 +80,11 @@ class ConnectionManager:
             message: String or JSON-serializable dict to send.
         """
         async with self._lock:
-            snapshot = list(
+            snapshot = [
                 ws
                 for conns in self._connections_by_tenant.values()
                 for ws in conns
-            )
+            ]
         await self._send_to_list(snapshot, message)
 
     async def _send_to_list(
@@ -102,13 +105,7 @@ class ConnectionManager:
         if dead:
             async with self._lock:
                 for ws in dead:
-                    tid = self._websocket_to_tenant.pop(ws, None)
-                    if tid and tid in self._connections_by_tenant:
-                        conns = self._connections_by_tenant[tid]
-                        if ws in conns:
-                            conns.remove(ws)
-                        if not conns:
-                            del self._connections_by_tenant[tid]
+                    self._remove_connection_locked(ws)
 
     async def get_connection_count(self) -> int:
         """Return the total number of active connections (lock-safe)."""

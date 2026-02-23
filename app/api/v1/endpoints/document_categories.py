@@ -27,6 +27,7 @@ router = APIRouter()
 @router.post("", response_model=DocumentCategoryResponse, status_code=201)
 @limit_writes
 async def create_document_category(
+    request: Request,
     body: DocumentCategoryCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     current_user: Annotated[

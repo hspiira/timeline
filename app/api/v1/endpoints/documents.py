@@ -214,6 +214,7 @@ async def get_document(
 @router.put("/{document_id}", response_model=DocumentVersionItem)
 @limit_writes
 async def update_document(
+    request: Request,
     document_id: str,
     body: DocumentUpdate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
@@ -237,6 +238,7 @@ async def update_document(
 @router.delete("/{document_id}", status_code=204)
 @limit_writes
 async def delete_document(
+    request: Request,
     document_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     document_repo: Annotated[

@@ -127,7 +127,6 @@ class SubjectTypeRepository(AuditableRepository[SubjectType]):
     async def update_subject_type(
         self,
         subject_type_id: str,
-        *,
         **updates: Any,
     ) -> SubjectTypeResult | None:
         """Update subject type; only provided keys are applied (None clears optional fields)."""
@@ -148,6 +147,7 @@ class SubjectTypeRepository(AuditableRepository[SubjectType]):
         for key in allowed:
             if key in updates:
                 setattr(entity, key, updates[key])
+        entity.version = (entity.version or 0) + 1
         updated = await self.update(entity, skip_existence_check=True)
         return _to_result(updated)
 

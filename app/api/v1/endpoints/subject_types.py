@@ -87,6 +87,7 @@ async def get_subject_type(
 @router.patch("/{subject_type_id}", response_model=SubjectTypeResponse)
 @limit_writes
 async def update_subject_type(
+    request: Request,
     subject_type_id: str,
     body: SubjectTypeUpdateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
@@ -126,6 +127,7 @@ async def update_subject_type(
 @router.delete("/{subject_type_id}", status_code=204)
 @limit_writes
 async def delete_subject_type(
+    request: Request,
     subject_type_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     repo: Annotated[ISubjectTypeRepository, Depends(get_subject_type_repo_for_write)],
