@@ -92,6 +92,44 @@ class AuditLogRepository:
         result = await self.db.execute(stmt)
         return [_orm_to_result(r) for r in result.scalars().all()]
 
+    async def list_with_count(
+        self,
+        tenant_id: str,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        resource_type: str | None = None,
+        user_id: str | None = None,
+        from_timestamp: datetime | None = None,
+        to_timestamp: datetime | None = None,
+    ) -> tuple[list[AuditLogResult], int]:
+        """List audit log entries and total count in one query (window count)."""
+        conditions = [AuditLog.tenant_id == tenant_id]
+        if resource_type is not None:
+            conditions.append(AuditLog.resource_type == resource_type)
+        if user_id is not None:
+            conditions.append(AuditLog.user_id == user_id)
+        if from_timestamp is not None:
+            conditions.append(AuditLog.timestamp >= from_timestamp)
+        if to_timestamp is not None:
+            conditions.append(AuditLog.timestamp <= to_timestamp)
+
+        stmt = (
+            select(
+                AuditLog,
+                func.count(AuditLog.id).over().label("total"),
+            )
+            .where(and_(*conditions))
+            .order_by(AuditLog.timestamp.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        result = await self.db.execute(stmt)
+        rows = result.all()
+        items = [_orm_to_result(r[0]) for r in rows]
+        total = int(rows[0][1]) if rows else 0
+        return (items, total)
+
     async def count(
         self,
         tenant_id: str,

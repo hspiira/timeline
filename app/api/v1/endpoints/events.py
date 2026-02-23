@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import uuid
+from collections.abc import Awaitable, Callable
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -12,6 +13,7 @@ from app.api.v1.dependencies import (
     get_event_service,
     get_tenant_id,
     get_verification_service,
+    get_verification_runner,
     require_permission,
 )
 from app.application.dtos.event import EventCreate
@@ -22,9 +24,7 @@ from app.application.services.verification_service import (
 from app.application.use_cases.events import EventService
 from app.core.limiter import limit_writes
 from app.domain.exceptions import VerificationLimitExceededException
-from app.infrastructure.persistence.database import get_db
 from app.infrastructure.persistence.repositories.event_repo import EventRepository
-from app.application.services.hash_service import HashService
 from app.schemas.event import (
     ChainVerificationResponse,
     EventCountResponse,
@@ -42,7 +42,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-async def _run_verification_job(app, job_id: str) -> None:
+async def _run_verification_job(
+    app,
+    job_id: str,
+    run_verification: Callable[[str], Awaitable[ChainVerificationResult]],
+) -> None:
     """Background task: run tenant verification and store result in app.state.verification_jobs."""
     jobs = getattr(app, "state", None) and getattr(app.state, "verification_jobs", None)
     if not jobs or job_id not in jobs:
@@ -54,31 +58,14 @@ async def _run_verification_job(app, job_id: str) -> None:
         job["error"] = "Missing tenant_id"
         return
     job["status"] = "running"
-    session_gen = get_db()
     try:
-        session = await session_gen.__anext__()
-    except StopAsyncIteration:
-        await session_gen.aclose()
-        job["status"] = "failed"
-        job["error"] = "Failed to obtain database session"
-        return
-    try:
-        event_repo = EventRepository(session)
-        svc = VerificationService(
-            event_repo=event_repo,
-            hash_service=HashService(),
-            max_events=None,
-            timeout_seconds=None,
-        )
-        result = await svc.verify_tenant_chains(tenant_id=tenant_id)
+        result = await run_verification(tenant_id)
         job["status"] = "completed"
         job["result"] = result
     except Exception as e:
-        logger.exception("Verification job %s failed: %s", job_id, e)
+        logger.exception("Verification job %s failed", job_id)
         job["status"] = "failed"
         job["error"] = str(e)
-    finally:
-        await session_gen.aclose()
 
 
 def _to_verification_response(
@@ -204,7 +191,7 @@ async def verify_tenant_chains(
             status_code=400,
             detail=f"{e.message} Use POST /events/verify/tenant/all/start to run verification in the background.",
         ) from e
-    except asyncio.TimeoutError:
+    except TimeoutError:
         raise HTTPException(
             status_code=408,
             detail="Verification timed out. Use POST /events/verify/tenant/all/start to run verification in the background.",
@@ -219,6 +206,10 @@ async def verify_tenant_chains(
 async def start_verification_job(
     request: Request,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
+    run_verification: Annotated[
+        Callable[[str], Awaitable[ChainVerificationResult]],
+        Depends(get_verification_runner),
+    ],
     _: Annotated[object, Depends(require_permission("event", "read"))] = None,
 ):
     """Start a background verification job for all tenant event chains (for large tenants). Poll GET /events/verify/tenant/jobs/{job_id} for status."""
@@ -233,7 +224,7 @@ async def start_verification_job(
         "error": None,
         "created_at": utc_now(),
     }
-    asyncio.create_task(_run_verification_job(app, job_id))
+    asyncio.create_task(_run_verification_job(app, job_id, run_verification))
     return VerificationJobStartedResponse(job_id=job_id)
 
 
@@ -278,10 +269,21 @@ async def verify_subject_chain(
     _: Annotated[object, Depends(require_permission("event", "read"))] = None,
 ):
     """Verify cryptographic integrity of event chain for a subject."""
-    result = await verification_svc.verify_subject_chain(
-        subject_id=subject_id, tenant_id=tenant_id
-    )
-    return _to_verification_response(result)
+    try:
+        result = await verification_svc.verify_subject_chain(
+            subject_id=subject_id, tenant_id=tenant_id
+        )
+        return _to_verification_response(result)
+    except VerificationLimitExceededException as e:
+        raise HTTPException(
+            status_code=429,
+            detail=e.message,
+        ) from e
+    except TimeoutError:
+        raise HTTPException(
+            status_code=504,
+            detail="Verification timed out.",
+        ) from None
 
 
 @router.get("/{event_id}", response_model=EventResponse)

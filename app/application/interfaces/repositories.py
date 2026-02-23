@@ -410,18 +410,9 @@ class ISubjectTypeRepository(Protocol):
     async def update_subject_type(
         self,
         subject_type_id: str,
-        *,
-        display_name: str | None = None,
-        description: str | None = None,
-        schema: dict | None = None,
-        is_active: bool | None = None,
-        icon: str | None = None,
-        color: str | None = None,
-        has_timeline: bool | None = None,
-        allow_documents: bool | None = None,
-        allowed_event_types: list[str] | None = None,
+        **updates: Any,
     ) -> SubjectTypeResult | None:
-        """Update subject type; return updated result or None if not found."""
+        """Update subject type; only provided keys are applied (None clears optional fields). Return updated result or None if not found."""
 
     async def delete_subject_type(
         self, subject_type_id: str, tenant_id: str
@@ -456,6 +447,7 @@ class IDocumentCategoryRepository(Protocol):
         metadata_schema: dict | None = None,
         default_retention_days: int | None = None,
         is_active: bool = True,
+        created_by: str | None = None,
     ) -> DocumentCategoryResult:
         """Create a document category; return created entity."""
 
@@ -616,6 +608,16 @@ class IDocumentRepository(Protocol):
         include_deleted: bool = False,
     ) -> list[DocumentResult]:
         """Return documents for subject in tenant."""
+
+    async def get_by_event(
+        self, event_id: str, tenant_id: str
+    ) -> list[DocumentResult]:
+        """Return documents linked to an event (tenant-scoped, exclude deleted)."""
+
+    async def get_versions(
+        self, document_id: str, tenant_id: str
+    ) -> list[DocumentResult]:
+        """Return this document plus all descendants in the version chain, ordered by version."""
 
     async def get_by_checksum(
         self, tenant_id: str, checksum: str
@@ -850,6 +852,19 @@ class IAuditLogRepository(Protocol):
         to_timestamp: datetime | None = None,
     ) -> list[AuditLogResult]:
         """List audit log entries for tenant with optional filters (paginated)."""
+
+    async def list_with_count(
+        self,
+        tenant_id: str,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        resource_type: str | None = None,
+        user_id: str | None = None,
+        from_timestamp: datetime | None = None,
+        to_timestamp: datetime | None = None,
+    ) -> tuple[list[AuditLogResult], int]:
+        """List audit log entries and total count in one call (same filters). Returns (items, total)."""
 
     async def count(
         self,

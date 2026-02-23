@@ -1,4 +1,4 @@
-"""Document API: thin routes delegating to DocumentUploadService, DocumentQueryService, and DocumentRepository."""
+"""Document API: thin routes delegating to DocumentUploadService, DocumentQueryService, and document repo (IDocumentRepository)."""
 
 import dataclasses
 import json
@@ -9,12 +9,12 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Reques
 
 from app.api.v1.dependencies import (
     get_document_query_service,
-    get_document_repo,
     get_document_repo_for_write,
     get_document_upload_service,
     get_tenant_id,
     require_permission,
 )
+from app.application.interfaces.repositories import IDocumentRepository
 from app.application.use_cases.documents import (
     DocumentQueryService,
     DocumentUploadService,
@@ -23,9 +23,6 @@ from app.core.limiter import limit_upload, limit_writes
 from app.domain.exceptions import (
     ResourceNotFoundException,
     SchemaValidationException,
-)
-from app.infrastructure.persistence.repositories.document_repo import (
-    DocumentRepository,
 )
 from app.schemas.document import (
     DocumentDownloadUrlResponse,
@@ -39,14 +36,20 @@ router = APIRouter()
 
 
 def _parse_metadata_form(value: str | None) -> dict | None:
-    """Parse optional metadata form field (JSON string). Returns None if empty/invalid."""
+    """Parse optional metadata form field (JSON string). Returns None if empty."""
     if not value or not value.strip():
         return None
     try:
         parsed = json.loads(value)
-        return parsed if isinstance(parsed, dict) else None
+        if not isinstance(parsed, dict):
+            raise HTTPException(
+                status_code=400, detail="metadata must be a JSON object"
+            )
+        return parsed
     except json.JSONDecodeError:
-        return None
+        raise HTTPException(
+            status_code=400, detail="metadata is not valid JSON"
+        )
 
 
 @router.post(
@@ -127,12 +130,16 @@ async def list_documents(
 async def list_documents_by_event(
     event_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    document_repo: Annotated[DocumentRepository, Depends(get_document_repo)],
+    query_svc: Annotated[
+        DocumentQueryService, Depends(get_document_query_service)
+    ],
     _: Annotated[object, Depends(require_permission("document", "read"))] = None,
 ):
     """List documents linked to an event (tenant-scoped)."""
-    docs = await document_repo.get_by_event(event_id=event_id, tenant_id=tenant_id)
-    return [DocumentListItem.model_validate(d) for d in docs]
+    items = await query_svc.list_documents_by_event(
+        event_id=event_id, tenant_id=tenant_id
+    )
+    return [DocumentListItem.model_validate(i) for i in items]
 
 
 @router.get(
@@ -142,15 +149,19 @@ async def list_documents_by_event(
 async def get_document_versions(
     document_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    document_repo: Annotated[DocumentRepository, Depends(get_document_repo)],
+    query_svc: Annotated[
+        DocumentQueryService, Depends(get_document_query_service)
+    ],
     _: Annotated[object, Depends(require_permission("document", "read"))] = None,
 ):
     """Get this document and its version chain (tenant-scoped)."""
-    doc = await document_repo.get_by_id_and_tenant(document_id, tenant_id)
-    if not doc:
+    try:
+        versions = await query_svc.get_document_versions(
+            document_id=document_id, tenant_id=tenant_id
+        )
+        return [DocumentVersionItem.model_validate(d) for d in versions]
+    except ResourceNotFoundException:
         raise HTTPException(status_code=404, detail="Document not found")
-    versions = await document_repo.get_versions(document_id, tenant_id)
-    return [DocumentVersionItem.model_validate(d) for d in versions]
 
 
 @router.get(
@@ -203,12 +214,11 @@ async def get_document(
 @router.put("/{document_id}", response_model=DocumentVersionItem)
 @limit_writes
 async def update_document(
-    request: Request,
     document_id: str,
     body: DocumentUpdate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     document_repo: Annotated[
-        DocumentRepository, Depends(get_document_repo_for_write)
+        IDocumentRepository, Depends(get_document_repo_for_write)
     ],
     _: Annotated[object, Depends(require_permission("document", "update"))] = None,
 ):
@@ -227,15 +237,16 @@ async def update_document(
 @router.delete("/{document_id}", status_code=204)
 @limit_writes
 async def delete_document(
-    request: Request,
     document_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     document_repo: Annotated[
-        DocumentRepository, Depends(get_document_repo_for_write)
+        IDocumentRepository, Depends(get_document_repo_for_write)
     ],
     _: Annotated[object, Depends(require_permission("document", "delete"))] = None,
 ):
     """Soft-delete document. Tenant-scoped."""
+    # Fetch first to distinguish 404 (not found) vs 410 (already deleted); soft_delete
+    # will query again internally (_get_orm_by_id_and_tenant) — acceptable trade-off.
     doc = await document_repo.get_by_id_and_tenant(document_id, tenant_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")

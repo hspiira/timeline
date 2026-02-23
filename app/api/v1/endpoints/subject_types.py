@@ -3,6 +3,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy.exc import IntegrityError
 
 from app.api.v1.dependencies import (
     get_subject_type_repo,
@@ -48,29 +49,12 @@ async def create_subject_type(
             allowed_event_types=body.allowed_event_types,
             created_by=current_user.id,
         )
-        return SubjectTypeResponse(
-            id=created.id,
-            tenant_id=created.tenant_id,
-            type_name=created.type_name,
-            display_name=created.display_name,
-            description=created.description,
-            schema_definition=created.schema,
-            version=created.version,
-            is_active=created.is_active,
-            icon=created.icon,
-            color=created.color,
-            has_timeline=created.has_timeline,
-            allow_documents=created.allow_documents,
-            allowed_event_types=created.allowed_event_types,
-            created_by=created.created_by,
-        )
-    except Exception as e:
-        if "uq_subject_type_tenant_type" in str(e) or "UniqueViolation" in str(e):
-            raise HTTPException(
-                status_code=409,
-                detail="Subject type with this type_name already exists for this tenant",
-            ) from e
-        raise
+        return SubjectTypeResponse.model_validate(created)
+    except IntegrityError as e:
+        raise HTTPException(
+            status_code=409,
+            detail="Subject type with this type_name already exists for this tenant",
+        ) from e
 
 
 @router.get("", response_model=list[SubjectTypeListItem])
@@ -83,23 +67,7 @@ async def list_subject_types(
 ):
     """List subject types for the tenant."""
     items = await repo.get_by_tenant(tenant_id=tenant_id, skip=skip, limit=limit)
-    return [
-        SubjectTypeListItem(
-            id=s.id,
-            tenant_id=s.tenant_id,
-            type_name=s.type_name,
-            display_name=s.display_name,
-            description=s.description,
-            version=s.version,
-            is_active=s.is_active,
-            icon=s.icon,
-            color=s.color,
-            has_timeline=s.has_timeline,
-            allow_documents=s.allow_documents,
-            allowed_event_types=s.allowed_event_types,
-        )
-        for s in items
-    ]
+    return [SubjectTypeListItem.model_validate(s) for s in items]
 
 
 @router.get("/{subject_type_id}", response_model=SubjectTypeResponse)
@@ -113,74 +81,51 @@ async def get_subject_type(
     item = await repo.get_by_id(subject_type_id)
     if not item or item.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Subject type not found")
-    return SubjectTypeResponse(
-        id=item.id,
-        tenant_id=item.tenant_id,
-        type_name=item.type_name,
-        display_name=item.display_name,
-        description=item.description,
-        schema_definition=item.schema,
-        version=item.version,
-        is_active=item.is_active,
-        icon=item.icon,
-        color=item.color,
-        has_timeline=item.has_timeline,
-        allow_documents=item.allow_documents,
-        allowed_event_types=item.allowed_event_types,
-        created_by=item.created_by,
-    )
+    return SubjectTypeResponse.model_validate(item)
 
 
 @router.patch("/{subject_type_id}", response_model=SubjectTypeResponse)
 @limit_writes
 async def update_subject_type(
-    request: Request,
     subject_type_id: str,
     body: SubjectTypeUpdateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     repo: Annotated[ISubjectTypeRepository, Depends(get_subject_type_repo_for_write)],
     _: Annotated[object, Depends(require_permission("subject_type", "update"))] = None,
 ):
-    """Update subject type (partial)."""
+    """Update subject type (partial). Only provided fields are updated; explicit null clears optional fields."""
     item = await repo.get_by_id(subject_type_id)
     if not item or item.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Subject type not found")
-    updated = await repo.update_subject_type(
-        subject_type_id,
-        display_name=body.display_name,
-        description=body.description,
-        schema=body.schema_definition,
-        is_active=body.is_active,
-        icon=body.icon,
-        color=body.color,
-        has_timeline=body.has_timeline,
-        allow_documents=body.allow_documents,
-        allowed_event_types=body.allowed_event_types,
-    )
+    # Build kwargs only for fields present in the request (model_fields_set); allows clearing with null.
+    updates: dict[str, object] = {}
+    if "display_name" in body.model_fields_set:
+        updates["display_name"] = body.display_name
+    if "description" in body.model_fields_set:
+        updates["description"] = body.description
+    if "schema_definition" in body.model_fields_set:
+        updates["schema"] = body.schema_definition
+    if "is_active" in body.model_fields_set:
+        updates["is_active"] = body.is_active
+    if "icon" in body.model_fields_set:
+        updates["icon"] = body.icon
+    if "color" in body.model_fields_set:
+        updates["color"] = body.color
+    if "has_timeline" in body.model_fields_set:
+        updates["has_timeline"] = body.has_timeline
+    if "allow_documents" in body.model_fields_set:
+        updates["allow_documents"] = body.allow_documents
+    if "allowed_event_types" in body.model_fields_set:
+        updates["allowed_event_types"] = body.allowed_event_types
+    updated = await repo.update_subject_type(subject_type_id, **updates)
     if not updated:
         raise HTTPException(status_code=404, detail="Subject type not found")
-    return SubjectTypeResponse(
-        id=updated.id,
-        tenant_id=updated.tenant_id,
-        type_name=updated.type_name,
-        display_name=updated.display_name,
-        description=updated.description,
-        schema_definition=updated.schema,
-        version=updated.version,
-        is_active=updated.is_active,
-        icon=updated.icon,
-        color=updated.color,
-        has_timeline=updated.has_timeline,
-        allow_documents=updated.allow_documents,
-        allowed_event_types=updated.allowed_event_types,
-        created_by=updated.created_by,
-    )
+    return SubjectTypeResponse.model_validate(updated)
 
 
 @router.delete("/{subject_type_id}", status_code=204)
 @limit_writes
 async def delete_subject_type(
-    request: Request,
     subject_type_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     repo: Annotated[ISubjectTypeRepository, Depends(get_subject_type_repo_for_write)],

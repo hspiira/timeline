@@ -16,3 +16,4 @@ class DocumentCategoryResult:
     metadata_schema: dict[str, Any] | None
     default_retention_days: int | None
     is_active: bool
+    created_by: str | None

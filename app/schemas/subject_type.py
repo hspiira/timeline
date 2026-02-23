@@ -41,6 +41,8 @@ class SubjectTypeUpdateRequest(BaseModel):
 class SubjectTypeListItem(BaseModel):
     """Subject type list item."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     tenant_id: str
     type_name: str
@@ -58,7 +60,10 @@ class SubjectTypeListItem(BaseModel):
 class SubjectTypeResponse(BaseModel):
     """Subject type full response. Serializes as 'schema' in JSON."""
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True,
+    )
 
     id: str
     tenant_id: str
@@ -66,7 +71,10 @@ class SubjectTypeResponse(BaseModel):
     display_name: str
     description: str | None
     schema_definition: dict[str, Any] | None = Field(
-        default=None, alias="schema", serialization_alias="schema"
+        default=None,
+        alias="schema",
+        validation_alias="schema",
+        serialization_alias="schema",
     )
     version: int
     is_active: bool

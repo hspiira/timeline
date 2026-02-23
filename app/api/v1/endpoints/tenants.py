@@ -1,23 +1,25 @@
 """Tenant API: thin routes delegating to TenantCreationService and tenant repo (Postgres or Firestore)."""
 
-import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import (
+    DbOrFirestore,
     get_tenant_creation_service,
     get_tenant_id,
     get_tenant_repo,
     get_tenant_repo_for_write,
+    get_verified_tenant_id,
     require_permission,
+    _get_db_or_firestore_write,
 )
+from app.application.dtos.user import UserResult
 from app.application.interfaces.repositories import ITenantRepository
 from app.application.services.tenant_creation_service import TenantCreationService
 from app.core.config import get_settings
 from app.core.limiter import limit_create_tenant, limit_writes
 from app.domain.enums import TenantStatus
-from app.infrastructure.persistence import database
 from app.infrastructure.services.api_audit_log_service import ApiAuditLogService
 from app.schemas.tenant import (
     TenantCreateRequest,
@@ -27,8 +29,6 @@ from app.schemas.tenant import (
     TenantUpdate,
 )
 
-logger = logging.getLogger(__name__)
-
 router = APIRouter()
 
 
@@ -37,6 +37,7 @@ router = APIRouter()
 async def create_tenant(
     request: Request,
     body: TenantCreateRequest,
+    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_write)],
     tenant_svc: TenantCreationService = Depends(get_tenant_creation_service),
 ):
     """Create a new tenant with admin user and RBAC.
@@ -68,35 +69,29 @@ async def create_tenant(
             name=body.name,
             admin_initial_password=admin_password,
         )
-        # API audit log: tenant creation has no JWT/tenant header; log explicitly (Postgres only).
+        # API audit log: tenant creation has no JWT/tenant header; log in same transaction (Postgres only).
         settings = get_settings()
-        if settings.database_backend == "postgres" and database.AsyncSessionLocal is not None:
-            database._ensure_engine()
+        if settings.database_backend == "postgres" and backend.db is not None:
             request_id = getattr(request.state, "request_id", None)
             client_host = request.client.host if request.client else None
             forwarded = request.headers.get("X-Forwarded-For")
             ip_address = (forwarded.split(",")[0].strip() if forwarded else None) or client_host
             user_agent = request.headers.get("User-Agent")
-            try:
-                async with database.AsyncSessionLocal() as session:
-                    async with session.begin():
-                        svc = ApiAuditLogService(session)
-                        await svc.log_action(
-                            tenant_id=result.tenant_id,
-                            user_id=None,
-                            action="create",
-                            resource_type="tenants",
-                            resource_id=result.tenant_id,
-                            old_values=None,
-                            new_values=None,
-                            ip_address=ip_address,
-                            user_agent=user_agent,
-                            request_id=request_id,
-                            success=True,
-                            error_message=None,
-                        )
-            except Exception as e:
-                logger.warning("Failed to write audit log for tenant creation: %s", e, exc_info=True)
+            svc = ApiAuditLogService(backend.db)
+            await svc.log_action(
+                tenant_id=result.tenant_id,
+                user_id=None,
+                action="create",
+                resource_type="tenants",
+                resource_id=result.tenant_id,
+                old_values=None,
+                new_values=None,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                request_id=request_id,
+                success=True,
+                error_message=None,
+            )
         set_password_url = None
         if result.set_password_token and settings.set_password_base_url:
             base = settings.set_password_base_url.rstrip("/")
@@ -131,14 +126,11 @@ async def list_tenants(
 
 @router.get("/{tenant_id}", response_model=TenantResponse)
 async def get_tenant(
-    tenant_id: str,
-    tenant_id_header: Annotated[str, Depends(get_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
     tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo)],
     _: Annotated[object, Depends(require_permission("tenant", "read"))] = None,
 ):
     """Get tenant by id. Path tenant_id must match X-Tenant-ID header."""
-    if tenant_id != tenant_id_header:
-        raise HTTPException(status_code=403, detail="Forbidden")
     tenant = await tenant_repo.get_by_id(tenant_id)
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
@@ -150,16 +142,12 @@ async def get_tenant(
 @router.put("/{tenant_id}", response_model=TenantResponse)
 @limit_writes
 async def update_tenant(
-    request: Request,
-    tenant_id: str,
-    tenant_id_header: Annotated[str, Depends(get_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
     body: TenantUpdate,
     tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo_for_write)],
     _: Annotated[object, Depends(require_permission("tenant", "update"))] = None,
 ):
     """Update tenant name and/or status. Path tenant_id must match X-Tenant-ID header."""
-    if tenant_id != tenant_id_header:
-        raise HTTPException(status_code=403, detail="Forbidden")
     updated = await tenant_repo.update_tenant(
         tenant_id, name=body.name, status=body.status
     )
@@ -176,16 +164,12 @@ async def update_tenant(
 @router.patch("/{tenant_id}/status", response_model=TenantResponse)
 @limit_writes
 async def update_tenant_status(
-    request: Request,
-    tenant_id: str,
-    tenant_id_header: Annotated[str, Depends(get_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
     body: TenantStatusUpdate,
     tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo_for_write)],
     _: Annotated[object, Depends(require_permission("tenant", "update"))] = None,
 ):
     """Update tenant status. Path tenant_id must match X-Tenant-ID header."""
-    if tenant_id != tenant_id_header:
-        raise HTTPException(status_code=403, detail="Forbidden")
     updated = await tenant_repo.update_tenant(tenant_id, status=body.new_status)
     if not updated:
         raise HTTPException(status_code=404, detail="Tenant not found")
@@ -201,15 +185,35 @@ async def update_tenant_status(
 @limit_writes
 async def delete_tenant(
     request: Request,
-    tenant_id: str,
-    tenant_id_header: Annotated[str, Depends(get_tenant_id)],
+    tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
+    backend: Annotated[DbOrFirestore, Depends(_get_db_or_firestore_write)],
     tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo_for_write)],
-    _: Annotated[object, Depends(require_permission("tenant", "delete"))] = None,
+    current_user: Annotated[UserResult, Depends(require_permission("tenant", "delete"))],
 ):
-    """Soft-delete tenant. Path tenant_id must match X-Tenant-ID header."""
-    if tenant_id != tenant_id_header:
-        raise HTTPException(status_code=403, detail="Forbidden")
+    """Soft-delete tenant. Path tenant_id must match X-Tenant-ID header. Logs delete action for audit."""
     updated = await tenant_repo.update_tenant(tenant_id, status=TenantStatus.ARCHIVED)
     if not updated:
         raise HTTPException(status_code=404, detail="Tenant not found")
+    settings = get_settings()
+    if settings.database_backend == "postgres" and backend.db is not None:
+        request_id = getattr(request.state, "request_id", None)
+        client_host = request.client.host if request.client else None
+        forwarded = request.headers.get("X-Forwarded-For")
+        ip_address = (forwarded.split(",")[0].strip() if forwarded else None) or client_host
+        user_agent = request.headers.get("User-Agent")
+        svc = ApiAuditLogService(backend.db)
+        await svc.log_action(
+            tenant_id=tenant_id,
+            user_id=current_user.id,
+            action="delete",
+            resource_type="tenants",
+            resource_id=tenant_id,
+            old_values=None,
+            new_values={"status": TenantStatus.ARCHIVED.value},
+            ip_address=ip_address,
+            user_agent=user_agent,
+            request_id=request_id,
+            success=True,
+            error_message=None,
+        )
     return None

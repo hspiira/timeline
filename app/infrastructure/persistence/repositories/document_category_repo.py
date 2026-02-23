@@ -29,6 +29,7 @@ def _to_result(c: DocumentCategory) -> DocumentCategoryResult:
         metadata_schema=c.metadata_schema,
         default_retention_days=c.default_retention_days,
         is_active=c.is_active,
+        created_by=c.created_by,
     )
 
 
@@ -101,6 +102,7 @@ class DocumentCategoryRepository(TenantScopedRepository[DocumentCategory]):
         metadata_schema: dict | None = None,
         default_retention_days: int | None = None,
         is_active: bool = True,
+        created_by: str | None = None,
     ) -> DocumentCategoryResult:
         if tenant_id != self._tenant_id:
             raise ValidationException(
@@ -115,6 +117,7 @@ class DocumentCategoryRepository(TenantScopedRepository[DocumentCategory]):
             metadata_schema=metadata_schema,
             default_retention_days=default_retention_days,
             is_active=is_active,
+            created_by=created_by,
         )
         created = await self.create(entity)
         return _to_result(created)

@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.persistence.database import Base
@@ -20,6 +20,12 @@ class DocumentCategory(MultiTenantModel, Base):
     metadata_schema: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     default_retention_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_by: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey("app_user.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     __table_args__ = (
         UniqueConstraint(

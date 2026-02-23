@@ -73,10 +73,11 @@ async def get_email_account(
 @router.post("", response_model=EmailAccountResponse, status_code=201)
 @limit_writes
 async def create_email_account(
-    request: Request,
     body: EmailAccountCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    email_account_service: EmailAccountService = Depends(get_email_account_service),
+    email_account_service: Annotated[
+        EmailAccountService, Depends(get_email_account_service)
+    ],
     _: Annotated[object, Depends(require_permission("email_account", "create"))] = None,
 ):
     """Create email account (credentials encrypted at rest)."""

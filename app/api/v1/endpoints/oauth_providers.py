@@ -73,13 +73,10 @@ async def oauth_authorize(
     return_url: str | None = None,
 ):
     """Build OAuth authorization URL and return it; frontend redirects user there."""
-    user_id = getattr(current_user, "id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User id required")
     url = await oauth_service.build_authorize_url(
         tenant_id=tenant_id,
         provider_type=provider,
-        user_id=user_id,
+        user_id=current_user.id,
         return_url=return_url,
     )
     return OAuthAuthorizeResponse(authorization_url=url)
@@ -191,7 +188,7 @@ async def create_oauth_config(
         client_secret=body.client_secret,
         redirect_uri=body.redirect_uri,
         scopes=body.scopes or [],
-        created_by=getattr(current_user, "id", None),
+        created_by=current_user.id,
     )
     return OAuthConfigResponse.model_validate(config)
 
@@ -259,7 +256,7 @@ async def rotate_oauth_config(
         client_secret=body.client_secret,
         redirect_uri=body.redirect_uri,
         scopes=body.scopes,
-        updated_by=getattr(current_user, "id", None),
+        updated_by=current_user.id,
     )
     return OAuthConfigResponse.model_validate(new_config)
 

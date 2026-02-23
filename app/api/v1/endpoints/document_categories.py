@@ -3,6 +3,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy.exc import IntegrityError
 
 from app.api.v1.dependencies import (
     get_document_category_repo,
@@ -10,6 +11,7 @@ from app.api.v1.dependencies import (
     get_tenant_id,
     require_permission,
 )
+from app.application.dtos.user import UserResult
 from app.application.interfaces.repositories import IDocumentCategoryRepository
 from app.core.limiter import limit_writes
 from app.schemas.document_category import (
@@ -25,17 +27,16 @@ router = APIRouter()
 @router.post("", response_model=DocumentCategoryResponse, status_code=201)
 @limit_writes
 async def create_document_category(
-    request: Request,
     body: DocumentCategoryCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
+    current_user: Annotated[
+        UserResult, Depends(require_permission("document_category", "create"))
+    ],
     repo: Annotated[
         IDocumentCategoryRepository, Depends(get_document_category_repo_for_write)
     ],
-    _: Annotated[
-        object, Depends(require_permission("document_category", "create"))
-    ] = None,
 ):
-    """Create a document category (tenant-scoped)."""
+    """Create a document category (tenant-scoped). created_by from authenticated user."""
     try:
         created = await repo.create_document_category(
             tenant_id=tenant_id,
@@ -45,15 +46,14 @@ async def create_document_category(
             metadata_schema=body.metadata_schema,
             default_retention_days=body.default_retention_days,
             is_active=body.is_active,
+            created_by=current_user.id,
         )
         return DocumentCategoryResponse.model_validate(created)
-    except Exception as e:
-        if "uq_document_category_tenant_name" in str(e) or "UniqueViolation" in str(e):
-            raise HTTPException(
-                status_code=409,
-                detail="Document category with this category_name already exists for this tenant",
-            ) from e
-        raise
+    except IntegrityError as e:
+        raise HTTPException(
+            status_code=409,
+            detail="Document category with this category_name already exists for this tenant",
+        ) from e
 
 
 @router.get("", response_model=list[DocumentCategoryListItem])
@@ -68,18 +68,7 @@ async def list_document_categories(
 ):
     """List document categories for the tenant."""
     items = await repo.get_by_tenant(tenant_id=tenant_id, skip=skip, limit=limit)
-    return [
-        DocumentCategoryListItem(
-            id=c.id,
-            tenant_id=c.tenant_id,
-            category_name=c.category_name,
-            display_name=c.display_name,
-            description=c.description,
-            default_retention_days=c.default_retention_days,
-            is_active=c.is_active,
-        )
-        for c in items
-    ]
+    return [DocumentCategoryListItem.model_validate(c) for c in items] 
 
 
 @router.get("/{category_id}", response_model=DocumentCategoryResponse)
@@ -93,7 +82,7 @@ async def get_document_category(
 ):
     """Get document category by id (tenant-scoped)."""
     item = await repo.get_by_id(category_id)
-    if not item:
+    if not item or item.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Document category not found")
     return DocumentCategoryResponse.model_validate(item)
 
@@ -114,7 +103,7 @@ async def update_document_category(
 ):
     """Update document category (partial, tenant-scoped)."""
     item = await repo.get_by_id(category_id)
-    if not item:
+    if not item or item.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Document category not found")
     updated = await repo.update_document_category(
         category_id,

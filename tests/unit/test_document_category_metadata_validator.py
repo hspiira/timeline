@@ -25,6 +25,7 @@ def _category(
         or {"type": "object", "properties": {"invoice_number": {"type": "string"}}},
         default_retention_days=None,
         is_active=True,
+        created_by=None,
     )
 
 

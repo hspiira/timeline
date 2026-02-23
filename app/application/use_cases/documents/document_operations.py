@@ -254,3 +254,32 @@ class DocumentQueryService:
             )
             for d in docs
         ]
+
+    async def list_documents_by_event(
+        self, event_id: str, tenant_id: str
+    ) -> list[DocumentListItem]:
+        """Return documents linked to an event (tenant-scoped)."""
+        docs = await self.document_repo.get_by_event(
+            event_id=event_id, tenant_id=tenant_id
+        )
+        return [
+            DocumentListItem(
+                id=d.id,
+                filename=d.filename,
+                mime_type=d.mime_type,
+                file_size=d.file_size,
+                version=d.version,
+            )
+            for d in docs
+        ]
+
+    async def get_document_versions(
+        self, document_id: str, tenant_id: str
+    ) -> list[DocumentResult]:
+        """Return this document and its version chain (tenant-scoped). Raises ResourceNotFoundException if document not found."""
+        doc = await self.document_repo.get_by_id_and_tenant(
+            document_id, tenant_id
+        )
+        if not doc:
+            raise ResourceNotFoundException("document", document_id)
+        return await self.document_repo.get_versions(document_id, tenant_id)

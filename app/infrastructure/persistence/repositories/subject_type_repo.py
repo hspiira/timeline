@@ -128,37 +128,26 @@ class SubjectTypeRepository(AuditableRepository[SubjectType]):
         self,
         subject_type_id: str,
         *,
-        display_name: str | None = None,
-        description: str | None = None,
-        schema: dict | None = None,
-        is_active: bool | None = None,
-        icon: str | None = None,
-        color: str | None = None,
-        has_timeline: bool | None = None,
-        allow_documents: bool | None = None,
-        allowed_event_types: list[str] | None = None,
+        **updates: Any,
     ) -> SubjectTypeResult | None:
+        """Update subject type; only provided keys are applied (None clears optional fields)."""
         entity = await super().get_by_id(subject_type_id)
         if not entity:
             return None
-        if display_name is not None:
-            entity.display_name = display_name
-        if description is not None:
-            entity.description = description
-        if schema is not None:
-            entity.schema = schema
-        if is_active is not None:
-            entity.is_active = is_active
-        if icon is not None:
-            entity.icon = icon
-        if color is not None:
-            entity.color = color
-        if has_timeline is not None:
-            entity.has_timeline = has_timeline
-        if allow_documents is not None:
-            entity.allow_documents = allow_documents
-        if allowed_event_types is not None:
-            entity.allowed_event_types = allowed_event_types
+        allowed = {
+            "display_name",
+            "description",
+            "schema",
+            "is_active",
+            "icon",
+            "color",
+            "has_timeline",
+            "allow_documents",
+            "allowed_event_types",
+        }
+        for key in allowed:
+            if key in updates:
+                setattr(entity, key, updates[key])
         updated = await self.update(entity, skip_existence_check=True)
         return _to_result(updated)
 

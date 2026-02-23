@@ -34,7 +34,10 @@ from app.application.services.permission_service import PermissionService
 from app.application.services.role_service import RoleService
 from app.application.services.tenant_creation_service import TenantCreationService
 from app.application.services.user_service import UserService
-from app.application.services.verification_service import VerificationService
+from app.application.services.verification_service import (
+    ChainVerificationResult,
+    VerificationService,
+)
 from app.application.use_cases.documents import (
     DocumentQueryService,
     DocumentUploadService,
@@ -295,6 +298,16 @@ async def get_tenant_id(
     if cache and cache.is_available():
         await cache.set(cache_key, value, ttl=_TENANT_VALIDATION_CACHE_TTL)
     return value
+
+
+def get_verified_tenant_id(
+    tenant_id: str,
+    tenant_id_header: Annotated[str, Depends(get_tenant_id)],
+) -> str:
+    """Ensure path tenant_id matches X-Tenant-ID header; return tenant_id or raise 403."""
+    if tenant_id != tenant_id_header:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return tenant_id
 
 
 def _build_event_service_for_session(
@@ -558,6 +571,32 @@ async def get_verification_service(
         max_events=settings.verification_max_events,
         timeout_seconds=settings.verification_timeout_seconds,
     )
+
+
+def get_verification_runner():
+    """Return a callable that runs tenant verification with a fresh session and configured limits (for background jobs)."""
+
+    async def run_verification_for_tenant(tenant_id: str) -> ChainVerificationResult:
+        gen = get_db()
+        try:
+            session = await gen.__anext__()
+        except StopAsyncIteration:
+            await gen.aclose()
+            raise RuntimeError("Failed to obtain database session")
+        try:
+            event_repo = EventRepository(session)
+            settings = get_settings()
+            svc = VerificationService(
+                event_repo=event_repo,
+                hash_service=HashService(),
+                max_events=settings.verification_max_events,
+                timeout_seconds=settings.verification_timeout_seconds,
+            )
+            return await svc.verify_tenant_chains(tenant_id=tenant_id)
+        finally:
+            await gen.aclose()
+
+    return run_verification_for_tenant
 
 
 async def get_subject_service(
