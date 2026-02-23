@@ -7,8 +7,11 @@ whether to fail startup, return 503, or exit with code 1.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from urllib.parse import urlparse
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -59,8 +62,9 @@ async def run_rls_check(
 
     try:
         conn = await asyncpg.connect(conn_url)
-    except Exception as e:
-        return RLSCheckResult(ok=False, message=f"Failed to connect: {e}")
+    except Exception:
+        logger.exception("RLS check failed to connect to database")
+        return RLSCheckResult(ok=False, message="Failed to connect to database.")
 
     try:
         row = await conn.fetchrow(

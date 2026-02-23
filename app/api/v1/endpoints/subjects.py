@@ -11,6 +11,7 @@ from app.api.v1.dependencies import (
     get_run_snapshot_job_use_case,
     get_subject_erasure_service,
     get_subject_export_service,
+    get_subject_read_service,
     get_subject_relationship_service,
     get_subject_service,
     get_tenant_id,
@@ -349,7 +350,7 @@ async def remove_subject_relationship(
 async def get_subject(
     subject_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    subject_svc: Annotated[SubjectService, Depends(get_subject_service)],
+    subject_svc: Annotated[SubjectService, Depends(get_subject_read_service)],
     _: Annotated[object, Depends(require_permission("subject", "read"))] = None,
 ):
     """Get subject by id (tenant-scoped)."""
@@ -366,7 +367,7 @@ async def get_subject(
 @router.get("", response_model=list[SubjectResponse])
 async def list_subjects(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    subject_svc: Annotated[SubjectService, Depends(get_subject_service)],
+    subject_svc: Annotated[SubjectService, Depends(get_subject_read_service)],
     _: Annotated[object, Depends(require_permission("subject", "read"))] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),

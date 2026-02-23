@@ -23,9 +23,10 @@ logger = logging.getLogger(__name__)
 async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Run startup then yield; on exit run shutdown.
 
-    Startup order: WebSocket manager, Redis cache (if enabled),
-    telemetry (if enabled). Shutdown order: shared HTTP client close,
-    cache disconnect, telemetry shutdown, SQL engine dispose.
+    Startup order: shared HTTP client, WebSocket manager, Redis cache
+    (if enabled), telemetry (if enabled). Shutdown order: shared HTTP
+    client close, sync broadcast task cancel, cache disconnect,
+    telemetry shutdown, SQL engine dispose.
     """
     settings = get_settings()
 

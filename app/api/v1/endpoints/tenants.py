@@ -143,7 +143,7 @@ async def update_tenant(
     body: TenantUpdate,
     tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo_for_write)],
     _: Annotated[object, Depends(require_permission("tenant", "update"))] = None,
-    __: Annotated[object, Depends(ensure_audit_logged)] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Update tenant name and/or status. Path tenant_id must match X-Tenant-ID header."""
     updated = await tenant_repo.update_tenant(
@@ -167,7 +167,7 @@ async def update_tenant_status(
     body: TenantStatusUpdate,
     tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo_for_write)],
     _: Annotated[object, Depends(require_permission("tenant", "update"))] = None,
-    __: Annotated[object, Depends(ensure_audit_logged)] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Update tenant status. Path tenant_id must match X-Tenant-ID header."""
     updated = await tenant_repo.update_tenant(tenant_id, status=body.new_status)

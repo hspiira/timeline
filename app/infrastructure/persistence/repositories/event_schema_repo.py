@@ -14,13 +14,13 @@ from app.domain.value_objects.core import EventType
 from app.infrastructure.cache.cache_protocol import CacheProtocol
 from app.infrastructure.cache.keys import schema_active_key
 from app.infrastructure.persistence.models.event_schema import EventSchema
-from app.infrastructure.persistence.repositories.auditable_repo import (
-    AuditableRepository,
-)
+from app.infrastructure.persistence.repositories.auditable_repo import \
+    AuditableRepository
 from app.shared.enums import AuditAction
 
 if TYPE_CHECKING:
-    from app.infrastructure.services.system_audit_service import SystemAuditService
+    from app.infrastructure.services.system_audit_service import \
+        SystemAuditService
 
 
 def _event_schema_to_result(s: EventSchema) -> EventSchemaResult:
@@ -91,7 +91,15 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
     async def get_by_id_and_tenant(
         self, schema_id: str, tenant_id: str
     ) -> EventSchemaResult | None:
-        """Return schema by ID and tenant (tenant-scoped; safe when RLS is off)."""
+        """Return schema by ID and tenant.
+
+        Args:
+            schema_id: Schema identifier.
+            tenant_id: Tenant identifier.
+
+        Returns:
+            EventSchemaResult if found; otherwise None.
+        """
         result = await self.db.execute(
             select(EventSchema).where(
                 EventSchema.id == schema_id,
@@ -104,7 +112,15 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
     async def get_entity_by_id_and_tenant(
         self, schema_id: str, tenant_id: str
     ) -> EventSchema | None:
-        """Get schema ORM by id and tenant for update/delete (tenant-scoped)."""
+        """Get schema ORM by ID and tenant for update/delete operations.
+
+        Args:
+            schema_id: Schema identifier.
+            tenant_id: Tenant identifier.
+
+        Returns:
+            EventSchema entity if found; otherwise None.
+        """
         result = await self.db.execute(
             select(EventSchema).where(
                 EventSchema.id == schema_id,
@@ -114,7 +130,9 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
         return result.scalar_one_or_none()
 
     async def get_by_id(self, schema_id: str) -> EventSchemaResult | None:
-        result = await self.db.execute(select(EventSchema).where(EventSchema.id == schema_id))
+        result = await self.db.execute(
+            select(EventSchema).where(EventSchema.id == schema_id)
+        )
         row = result.scalar_one_or_none()
         return _event_schema_to_result(row) if row else None
 
@@ -161,7 +179,9 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
                         for other_schema in other.scalars().all():
                             other_schema.is_active = False
                             await self.update(other_schema)
-                            await self.emit_custom_audit(other_schema, AuditAction.DEACTIVATED)
+                            await self.emit_custom_audit(
+                                other_schema, AuditAction.DEACTIVATED
+                            )
                         await _invalidate_schema_cache(
                             self.cache, tenant_id, event_type
                         )

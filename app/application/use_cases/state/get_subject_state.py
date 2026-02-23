@@ -73,7 +73,8 @@ class GetSubjectStateUseCase:
         # In those cases the condition below fails and we fall through to full replay.
         if snapshot:
             snapshot_event = await self._event_repo.get_by_id_and_tenant(
-                snapshot.snapshot_at_event_id, tenant_id
+                event_id=snapshot.snapshot_at_event_id,
+                tenant_id=tenant_id,
             )
             use_snapshot = True
             if as_of_dt is not None and snapshot_event:

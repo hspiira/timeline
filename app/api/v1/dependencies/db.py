@@ -25,7 +25,7 @@ async def get_system_audit_service(
 
 async def get_set_password_deps(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
+    audit_svc: Annotated[SystemAuditService, Depends(get_system_audit_service)],
 ) -> tuple[PasswordSetTokenStore, UserRepository]:
     """Token store and user repo for POST /auth/set-initial-password (same transaction)."""
-    audit_svc = SystemAuditService(db, HashService())
     return (PasswordSetTokenStore(db), UserRepository(db, audit_service=audit_svc))

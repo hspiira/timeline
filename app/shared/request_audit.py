@@ -8,25 +8,39 @@ from starlette.requests import Request
 _API_PREFIX = "/api/v1"
 
 
-def get_audit_request_context(request: Request) -> tuple[str | None, str | None, str | None]:
-    """Return (request_id, ip_address, user_agent) for audit log entries.
+def get_audit_request_context(
+    request: Request,
+) -> tuple[str | None, str | None, str | None]:
+    """Return request metadata for audit log entries.
 
-    Single source of truth for deriving client identity from the request:
-    request_id from request state, IP from X-Forwarded-For (first hop) or
-    request.client.host, user_agent from header.
+    Single source of truth: request_id from request state, IP from
+    X-Forwarded-For (first hop) or request.client.host, user_agent from header.
+
+    Args:
+        request: Incoming Starlette request.
+
+    Returns:
+        Tuple of (request_id, ip_address, user_agent). Any element may be None
+        if not set (e.g. missing header or client).
     """
     request_id = getattr(request.state, "request_id", None)
     client_host = request.client.host if request.client else None
     forwarded = request.headers.get("X-Forwarded-For")
-    ip_address = (
-        (forwarded.split(",")[0].strip() if forwarded else None) or client_host
-    )
+    ip_address = (forwarded.split(",")[0].strip() if forwarded else None) or client_host
     user_agent = request.headers.get("User-Agent")
     return (request_id, ip_address, user_agent)
 
 
 def get_tenant_and_user_for_audit(request: Request) -> tuple[str | None, str | None]:
-    """Return (tenant_id, user_id) from header and JWT for audit. None if missing."""
+    """Return tenant and user identifiers for audit from header and JWT.
+
+    Args:
+        request: Incoming request; tenant header and Authorization Bearer used.
+
+    Returns:
+        Tuple of (tenant_id, user_id). Either or both may be None if header
+        or JWT is missing or invalid.
+    """
     from app.core.config import get_settings
     from app.infrastructure.security.jwt import verify_token
 
@@ -46,7 +60,15 @@ def get_tenant_and_user_for_audit(request: Request) -> tuple[str | None, str | N
 
 
 def get_audit_resource_from_path(path: str) -> tuple[str, str | None]:
-    """Infer (resource_type, resource_id) from path. E.g. /api/v1/subjects/abc -> (subjects, abc)."""
+    """Infer resource type and ID from API path.
+
+    Args:
+        path: Request path (e.g. /api/v1/subjects/abc).
+
+    Returns:
+        Tuple of (resource_type, resource_id). resource_type is empty string
+        for non-API paths; resource_id is None when path has no ID segment.
+    """
     if not path.startswith(_API_PREFIX + "/"):
         return ("", None)
     rest = path[len(_API_PREFIX) :].strip("/")
@@ -59,7 +81,14 @@ def get_audit_resource_from_path(path: str) -> tuple[str, str | None]:
 
 
 def get_audit_action_from_method(method: str) -> str:
-    """Map HTTP method to audit action."""
+    """Map HTTP method to audit action name.
+
+    Args:
+        method: HTTP method (e.g. POST, PATCH).
+
+    Returns:
+        Audit action string: create, update, delete, or method lowercased.
+    """
     return {
         "POST": "create",
         "PUT": "update",

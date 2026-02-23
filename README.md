@@ -35,7 +35,7 @@ Copy `.env.example` to `.env` and set:
 | `ENCRYPTION_SALT` | Yes | e.g. `openssl rand -hex 16` |
 | `DATABASE_URL` | Yes | PostgreSQL connection URL (e.g. `postgresql+asyncpg://user:pass@host:5432/db`) |
 
-Then run `uv run alembic upgrade head` to apply migrations.
+For database schema setup and migration commands, see [docs/MIGRATIONS.md](docs/MIGRATIONS.md).
 
 Optional: `REDIS_*` (cache), `ALLOWED_ORIGINS`, `REQUEST_TIMEOUT_SECONDS`, storage and telemetry settings. See `.env.example` and `app.core.config`.
 
@@ -119,5 +119,5 @@ This deploys a preview and will fail at build time if the bundle is too large or
 
 ## Database (PostgreSQL)
 
-Schema is managed by Alembic migrations. After setting `DATABASE_URL`, run `uv run alembic upgrade head` to create or update tables.
+The app uses PostgreSQL; schema is managed by Alembic. For migration procedures and commands, see [docs/MIGRATIONS.md](docs/MIGRATIONS.md).
 

@@ -49,7 +49,14 @@ def _to_user_result(user: User | UserResult) -> UserResult:
 async def get_user_repo(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> UserRepository:
-    """User repository for read operations."""
+    """User repository for read operations (list, get by id, lookup by username).
+
+    Args:
+        db: Async session from Depends(get_db). Audit logging disabled for reads.
+
+    Returns:
+        UserRepository instance with audit_service=None for read-only use.
+    """
     return UserRepository(db, audit_service=None)
 
 
@@ -57,7 +64,15 @@ async def get_user_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
     audit_svc: Annotated[SystemAuditService, Depends(db_deps.get_system_audit_service)],
 ) -> UserRepository:
-    """User repository for writes (transactional)."""
+    """User repository for create/update/delete (transactional, with audit).
+
+    Args:
+        db: Async session from Depends(get_db_transactional).
+        audit_svc: Injected system audit service for write logging.
+
+    Returns:
+        UserRepository instance wired for transactional writes and audit.
+    """
     return UserRepository(db, audit_service=audit_svc)
 
 
@@ -69,6 +84,13 @@ async def get_authorization_service(
 
     Cache is set in app lifespan (app.state.cache) when Redis is enabled;
     otherwise cache is None and permission checks hit the DB only.
+
+    Args:
+        request: Incoming request; app.state.cache used when present.
+        db: Async session from Depends(get_db) for permission resolver.
+
+    Returns:
+        AuthorizationService wired with PermissionResolver and optional cache.
     """
     from app.infrastructure.services import PermissionResolver
 
@@ -85,7 +107,14 @@ async def get_authorization_service(
 async def get_role_repo(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> RoleRepository:
-    """Role repository for read operations (list, get by id)."""
+    """Role repository for read operations (list, get by id).
+
+    Args:
+        db: Async session from Depends(get_db). Audit logging disabled for reads.
+
+    Returns:
+        RoleRepository instance with audit_service=None for read-only use.
+    """
     return RoleRepository(db, audit_service=None)
 
 
@@ -93,14 +122,29 @@ async def get_role_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
     audit_svc: Annotated[SystemAuditService, Depends(db_deps.get_system_audit_service)],
 ) -> RoleRepository:
-    """Role repository for create/update/delete."""
+    """Role repository for create/update/delete (transactional, with audit).
+
+    Args:
+        db: Async session from Depends(get_db_transactional).
+        audit_svc: Injected system audit service for write logging.
+
+    Returns:
+        RoleRepository instance wired for transactional writes and audit.
+    """
     return RoleRepository(db, audit_service=audit_svc)
 
 
 async def get_permission_repo(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> PermissionRepository:
-    """Permission repository for read operations and user/role assignment."""
+    """Permission repository for read operations and user/role assignment.
+
+    Args:
+        db: Async session from Depends(get_db). Audit logging disabled for reads.
+
+    Returns:
+        PermissionRepository instance with audit_service=None for read-only use.
+    """
     return PermissionRepository(db, audit_service=None)
 
 
@@ -108,14 +152,29 @@ async def get_permission_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
     audit_svc: Annotated[SystemAuditService, Depends(db_deps.get_system_audit_service)],
 ) -> PermissionRepository:
-    """Permission repository for create/update/delete (transactional)."""
+    """Permission repository for create/update/delete (transactional, with audit).
+
+    Args:
+        db: Async session from Depends(get_db_transactional).
+        audit_svc: Injected system audit service for write logging.
+
+    Returns:
+        PermissionRepository instance wired for transactional writes and audit.
+    """
     return PermissionRepository(db, audit_service=audit_svc)
 
 
 async def get_role_permission_repo(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> RolePermissionRepository:
-    """Role-permission repository for read (e.g. get_permissions_for_role)."""
+    """Role-permission repository for read (e.g. get_permissions_for_role).
+
+    Args:
+        db: Async session from Depends(get_db). Audit logging disabled for reads.
+
+    Returns:
+        RolePermissionRepository instance with audit_service=None for read-only use.
+    """
     return RolePermissionRepository(db, audit_service=None)
 
 
@@ -123,14 +182,29 @@ async def get_role_permission_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
     audit_svc: Annotated[SystemAuditService, Depends(db_deps.get_system_audit_service)],
 ) -> RolePermissionRepository:
-    """Role-permission repository for assign/remove (transactional)."""
+    """Role-permission repository for assign/remove (transactional, with audit).
+
+    Args:
+        db: Async session from Depends(get_db_transactional).
+        audit_svc: Injected system audit service for write logging.
+
+    Returns:
+        RolePermissionRepository instance wired for transactional writes and audit.
+    """
     return RolePermissionRepository(db, audit_service=audit_svc)
 
 
 async def get_user_role_repo(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> UserRoleRepository:
-    """User-role repository for read (e.g. get_user_roles)."""
+    """User-role repository for read (e.g. get_user_roles).
+
+    Args:
+        db: Async session from Depends(get_db). Audit logging disabled for reads.
+
+    Returns:
+        UserRoleRepository instance with audit_service=None for read-only use.
+    """
     return UserRoleRepository(db, audit_service=None)
 
 
@@ -138,7 +212,15 @@ async def get_user_role_repo_for_write(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
     audit_svc: Annotated[SystemAuditService, Depends(db_deps.get_system_audit_service)],
 ) -> UserRoleRepository:
-    """User-role repository for assign/remove (transactional)."""
+    """User-role repository for assign/remove (transactional, with audit).
+
+    Args:
+        db: Async session from Depends(get_db_transactional).
+        audit_svc: Injected system audit service for write logging.
+
+    Returns:
+        UserRoleRepository instance wired for transactional writes and audit.
+    """
     return UserRoleRepository(db, audit_service=audit_svc)
 
 
@@ -149,7 +231,16 @@ def get_role_service(
         RolePermissionRepository, Depends(get_role_permission_repo_for_write)
     ],
 ) -> RoleService:
-    """Role service for create-with-permissions (composition root)."""
+    """Role service for create-with-permissions (composition root).
+
+    Args:
+        role_repo: Role repository for writes (transactional).
+        permission_repo: Permission repository for read/resolve.
+        role_permission_repo: Role-permission repository for assign/remove.
+
+    Returns:
+        RoleService instance for role CRUD and permission assignment.
+    """
     return RoleService(
         role_repo=role_repo,
         permission_repo=permission_repo,
@@ -162,15 +253,30 @@ def get_permission_service(
         PermissionRepository, Depends(get_permission_repo_for_write)
     ],
 ) -> PermissionService:
-    """Permission service (composition root)."""
+    """Permission service for permission CRUD (composition root).
+
+    Args:
+        permission_repo: Permission repository for writes (transactional).
+
+    Returns:
+        PermissionService instance for permission management.
+    """
     return PermissionService(permission_repo=permission_repo)
 
 
 def get_user_service(
     user_repo: Annotated[UserRepository, Depends(get_user_repo_for_write)],
-    auth_security: auth.AuthSecurity = Depends(auth.get_auth_security),
+    auth_security: Annotated[auth.AuthSecurity, Depends(auth.get_auth_security)],
 ) -> UserService:
-    """User service for update-me (composition root)."""
+    """User service for update-me and password change (composition root).
+
+    Args:
+        user_repo: User repository for writes (transactional).
+        auth_security: Auth token and password hashing dependency.
+
+    Returns:
+        UserService instance for user self-service operations.
+    """
     return UserService(user_repo=user_repo, auth_security=auth_security)
 
 
@@ -178,7 +284,17 @@ async def get_current_user_optional(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_http_bearer)],
     user_repo: Annotated[UserRepository, Depends(get_user_repo)],
 ) -> UserResult | None:
-    """Return current user from JWT if present; else None. Use for optional auth routes."""
+    """Return current user from JWT if present; else None.
+
+    Use for optional-auth routes. Does not raise on missing or invalid token.
+
+    Args:
+        credentials: Bearer token from request; None if absent.
+        user_repo: User repository to load user by id and tenant.
+
+    Returns:
+        UserResult if valid JWT and active user, else None.
+    """
     if not credentials:
         return None
     try:
@@ -200,7 +316,17 @@ async def get_current_user_optional(
 async def get_current_user(
     current_user: Annotated[UserResult | None, Depends(get_current_user_optional)],
 ) -> UserResult:
-    """Return current user from JWT; raise 401 if missing or invalid."""
+    """Return current user from JWT; raise 401 if missing or invalid.
+
+    Args:
+        current_user: Result of get_current_user_optional (None if not authenticated).
+
+    Returns:
+        UserResult for the authenticated user.
+
+    Raises:
+        HTTPException: 401 if current_user is None.
+    """
     if current_user is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return current_user

@@ -44,11 +44,28 @@ async def get_subject_service(
     tenant_id: Annotated[str, Depends(tenant.get_tenant_id)],
     audit_svc: Annotated[SystemAuditService, Depends(db_deps.get_system_audit_service)],
 ) -> SubjectService:
-    """Subject service for create/get/list (transactional, tenant-scoped)."""
+    """Subject service for create/update/delete (transactional, tenant-scoped)."""
     subject_repo = SubjectRepository(
         db, tenant_id=tenant_id, audit_service=audit_svc
     )
     subject_type_repo = SubjectTypeRepository(db, audit_service=audit_svc)
+    schema_validator = SubjectTypeSchemaValidator(subject_type_repo)
+    return SubjectService(
+        subject_repo,
+        subject_type_repo=subject_type_repo,
+        schema_validator=schema_validator,
+    )
+
+
+async def get_subject_read_service(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    tenant_id: Annotated[str, Depends(tenant.get_tenant_id)],
+) -> SubjectService:
+    """Subject service for get/list (read-only, non-transactional, tenant-scoped)."""
+    subject_repo = SubjectRepository(
+        db, tenant_id=tenant_id, audit_service=None
+    )
+    subject_type_repo = SubjectTypeRepository(db, audit_service=None)
     schema_validator = SubjectTypeSchemaValidator(subject_type_repo)
     return SubjectService(
         subject_repo,
@@ -110,7 +127,7 @@ async def get_subject_relationship_service(
     subject_repo = SubjectRepository(
         db, tenant_id=tenant_id, audit_service=audit_svc
     )
-    event_service = event._build_event_service_for_session(db, tenant_id, audit_svc)
+    event_service = event.build_event_service_for_session(db, tenant_id, audit_svc)
     relationship_kind_repo = RelationshipKindRepository(db)
     return SubjectRelationshipService(
         relationship_repo=relationship_repo,

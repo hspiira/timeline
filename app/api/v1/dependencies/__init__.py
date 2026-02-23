@@ -36,6 +36,7 @@ from app.api.v1.dependencies.document import (
 )
 from app.api.v1.dependencies.event import (
     ChainVerificationResult,
+    build_event_service_for_session,
     get_event_repo,
     get_event_schema_repo,
     get_event_schema_repo_for_write,
@@ -51,6 +52,7 @@ from app.api.v1.dependencies.flow import (
     get_flow_repo,
     get_flow_repo_for_write,
 )
+from app.api.v1.dependencies.health import get_rls_readiness_result
 from app.api.v1.dependencies.naming import (
     get_naming_template_repo,
     get_naming_template_repo_for_write,
@@ -77,6 +79,7 @@ from app.api.v1.dependencies.subject import (
     get_run_snapshot_job_use_case,
     get_subject_erasure_service,
     get_subject_export_service,
+    get_subject_read_service,
     get_subject_relationship_service,
     get_subject_repo,
     get_subject_repo_for_write,
@@ -118,14 +121,18 @@ from app.api.v1.dependencies.workflow import (
 
 __all__ = [
     "AuthSecurity",
+    "build_event_service_for_session",
     "ChainVerificationResult",
     "OAuthDriverRegistry",
+    "ensure_audit_logged",
     "get_audit_log_repo",
     "get_auth_security",
     "get_authorization_service",
     "get_create_flow_use_case",
     "get_create_subject_snapshot_use_case",
     "get_credential_encryptor",
+    "get_current_user",
+    "get_current_user_optional",
     "get_dashboard_stats_use_case",
     "get_document_category_repo",
     "get_document_category_repo_for_write",
@@ -162,6 +169,7 @@ __all__ = [
     "get_permission_service",
     "get_relationship_kind_repo",
     "get_relationship_kind_repo_for_write",
+    "get_rls_readiness_result",
     "get_role_permission_repo",
     "get_role_permission_repo_for_write",
     "get_role_repo",
@@ -174,6 +182,7 @@ __all__ = [
     "get_set_password_deps",
     "get_subject_erasure_service",
     "get_subject_export_service",
+    "get_subject_read_service",
     "get_subject_relationship_service",
     "get_subject_repo",
     "get_subject_repo_for_write",
@@ -196,8 +205,5 @@ __all__ = [
     "get_workflow_execution_repo",
     "get_workflow_repo",
     "get_workflow_repo_for_write",
-    "get_current_user",
-    "get_current_user_optional",
-    "ensure_audit_logged",
     "require_permission",
 ]

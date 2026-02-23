@@ -31,7 +31,7 @@ async def _main() -> int:
             from app.core.config import get_settings
 
             database_url = get_settings().database_url
-        except Exception as e:
+        except (ImportError, ModuleNotFoundError, AttributeError) as e:
             print(f"Could not get DATABASE_URL or settings: {e}", file=sys.stderr)
             return 1
 

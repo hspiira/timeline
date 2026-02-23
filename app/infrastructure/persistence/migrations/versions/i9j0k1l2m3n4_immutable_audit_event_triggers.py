@@ -51,6 +51,17 @@ def _trigger_function_audit_log() -> str:
 
 
 def upgrade() -> None:
+    """Apply immutability triggers for event and audit_log tables.
+
+    Registers trigger functions and BEFORE UPDATE OR DELETE triggers so
+    event and audit_log rows cannot be updated or deleted at the DB level.
+
+    Args:
+        None.
+
+    Returns:
+        None.
+    """
     # Event: BEFORE UPDATE OR DELETE raise
     op.execute(_trigger_function_event())
     op.execute(
@@ -68,6 +79,17 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Remove immutability triggers for event and audit_log tables.
+
+    Drops the triggers and trigger functions created in upgrade so
+    event and audit_log can be modified again at the DB level.
+
+    Args:
+        None.
+
+    Returns:
+        None.
+    """
     op.execute("DROP TRIGGER IF EXISTS prevent_audit_log_update_delete ON audit_log")
     op.execute("DROP FUNCTION IF EXISTS prevent_audit_log_mutation()")
     op.execute("DROP TRIGGER IF EXISTS prevent_event_update_delete ON event")

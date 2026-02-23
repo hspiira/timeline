@@ -7,25 +7,32 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.application.use_cases.documents import (
-    DocumentQueryService,
-    DocumentUploadService,
-    RunDocumentRetentionUseCase,
-)
-from app.application.services.document_category_metadata_validator import (
-    DocumentCategoryMetadataValidator,
-)
+from app.application.services.document_category_metadata_validator import \
+    DocumentCategoryMetadataValidator
+from app.application.use_cases.documents import (DocumentQueryService,
+                                                 DocumentUploadService,
+                                                 RunDocumentRetentionUseCase)
 from app.infrastructure.external.storage.factory import StorageFactory
-from app.infrastructure.persistence.database import get_db, get_db_transactional
+from app.infrastructure.external.storage.protocol import StorageProtocol
+from app.infrastructure.persistence.database import (get_db,
+                                                     get_db_transactional)
 from app.infrastructure.persistence.repositories import (
-    DocumentCategoryRepository,
-    DocumentRepository,
-    DocumentRequirementRepository,
-    TenantRepository,
-)
+    DocumentCategoryRepository, DocumentRepository,
+    DocumentRequirementRepository, TenantRepository)
 from app.infrastructure.services import SystemAuditService
-from . import tenant
+
 from . import db as db_deps
+from . import tenant
+
+_cached_storage: StorageProtocol | None = None
+
+
+def _get_storage_service() -> StorageProtocol:
+    """Return a single cached storage service instance (lazy init)."""
+    global _cached_storage
+    if _cached_storage is None:
+        _cached_storage = StorageFactory.create_storage_service()
+    return _cached_storage
 
 
 async def get_document_upload_service(
@@ -37,7 +44,7 @@ async def get_document_upload_service(
     """Build DocumentUploadService for upload (storage + document/tenant repos + optional category metadata validation)."""
     from app.infrastructure.persistence.repositories import SubjectRepository
 
-    storage = StorageFactory.create_storage_service()
+    storage = _get_storage_service()
     document_repo = DocumentRepository(db, audit_service=audit_svc)
     subject_repo = SubjectRepository(
         db, tenant_id=tenant_id, audit_service=audit_svc
@@ -60,8 +67,8 @@ async def get_document_query_service(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> DocumentQueryService:
     """Build DocumentQueryService for metadata, download URL, and listing."""
-    storage = StorageFactory.create_storage_service()
-    document_repo = DocumentRepository(db)
+    storage = _get_storage_service()
+    document_repo = DocumentRepository(db, audit_service=None)
     return DocumentQueryService(
         storage_service=storage,
         document_repo=document_repo,

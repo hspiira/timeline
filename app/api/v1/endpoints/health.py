@@ -1,9 +1,12 @@
-"""Health check endpoint. No dependencies; used for liveness and readiness probes."""
+"""Health check endpoint. Liveness has no deps; readiness uses Depends(get_rls_readiness_result)."""
 
-from fastapi import APIRouter
+from typing import Annotated
+
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
-from app.core.config import get_settings
+from app.api.v1.dependencies import get_rls_readiness_result
+from app.infrastructure.persistence.rls_check import RLSCheckResult
 from app.schemas.health import (
     HealthResponse,
     ReadinessErrorResponse,
@@ -24,33 +27,15 @@ def health_check() -> HealthResponse:
     response_model=ReadinessResponse,
     responses={503: {"description": "Not ready (e.g. RLS check failed)", "model": ReadinessErrorResponse}},
 )
-async def readiness_check() -> ReadinessResponse | JSONResponse:
+async def readiness_check(
+    result: Annotated[RLSCheckResult, Depends(get_rls_readiness_result)],
+) -> ReadinessResponse | JSONResponse:
     """Return 200 if ready; 503 if RLS readiness check is enabled and fails.
 
-    When RLS_READINESS_CHECK is True, runs RLS checks (app role must not have
-    BYPASSRLS; optionally policies exist). Use for Kubernetes/orchestrator
-    readiness probes in production.
+    When RLS_READINESS_CHECK is True, RLS checks run via get_rls_readiness_result
+    (app role must not have BYPASSRLS; optionally policies exist). Use for
+    Kubernetes/orchestrator readiness probes in production.
     """
-    settings = get_settings()
-    if not settings.rls_readiness_check:
-        return ReadinessResponse()
-
-    from urllib.parse import urlparse
-
-    from app.infrastructure.persistence.rls_check import run_rls_check
-
-    app_role = settings.rls_check_app_role
-    if not app_role and settings.database_url:
-        parsed = urlparse(settings.database_url)
-        app_role = parsed.username
-
-    result = await run_rls_check(
-        database_url=settings.database_url,
-        app_role=app_role,
-        migrator_role=None,
-        check_policies=settings.rls_check_policies,
-    )
-
     if result.ok:
         return ReadinessResponse()
     return JSONResponse(

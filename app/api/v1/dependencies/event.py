@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import aclosing
 from typing import Annotated
 
 from fastapi import Depends
@@ -21,34 +22,33 @@ from app.infrastructure.persistence.repositories import (
     EventRepository,
     EventSchemaRepository,
     EventTransitionRuleRepository,
-)
-from app.infrastructure.services import SystemAuditService
-from app.infrastructure.services.workflow_notification_service import (
-    LogOnlyNotificationService,
-    WorkflowRecipientResolver,
-)
-from app.infrastructure.services.workflow_template_renderer import WorkflowTemplateRenderer
-from app.infrastructure.persistence.repositories import (
     RoleRepository,
     SubjectRepository,
     SubjectTypeRepository,
     TaskRepository,
     WorkflowRepository,
 )
-from app.infrastructure.services import WorkflowEngine
+from app.infrastructure.services import SystemAuditService, WorkflowEngine
+from app.infrastructure.services.workflow_notification_service import (
+    LogOnlyNotificationService,
+    WorkflowRecipientResolver,
+)
+from app.infrastructure.services.workflow_template_renderer import WorkflowTemplateRenderer
 
 from . import tenant
 from . import db as db_deps
 
 
-def _build_event_service_for_session(
+def build_event_service_for_session(
     db: AsyncSession,
     tenant_id: str,
     audit_svc: SystemAuditService,
 ) -> EventService:
     """Build EventService with the given session (no workflow engine).
 
-    For use when creating events in the same transaction (e.g. relationship service).
+    Package-level helper for use when creating events in the same transaction
+    (e.g. from subject relationship service). Call from other deps via
+    event.build_event_service_for_session(...).
     """
     event_repo = EventRepository(db)
     hash_service = HashService()
@@ -79,9 +79,9 @@ def _build_event_service_for_session(
 async def get_event_service(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
     tenant_id: Annotated[str, Depends(tenant.get_tenant_id)],
+    audit_svc: Annotated[SystemAuditService, Depends(db_deps.get_system_audit_service)],
 ) -> EventService:
     """Build EventService with hash chaining, schema validation, and workflow engine."""
-    audit_svc = SystemAuditService(db, HashService())
     event_repo = EventRepository(db)
     hash_service = HashService()
     subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=audit_svc)
@@ -153,13 +153,11 @@ async def get_verification_service(
 def get_verification_runner():
     """Return a callable that runs tenant verification with a fresh session and configured limits (for background jobs)."""
     async def run_verification_for_tenant(tenant_id: str) -> ChainVerificationResult:
-        gen = get_db()
-        try:
-            session = await gen.__anext__()
-        except StopAsyncIteration:
-            await gen.aclose()
-            raise RuntimeError("Failed to obtain database session")
-        try:
+        async with aclosing(get_db()) as gen:
+            try:
+                session = await gen.__anext__()
+            except Exception as e:
+                raise RuntimeError("Failed to obtain database session") from e
             event_repo = EventRepository(session)
             settings = get_settings()
             svc = VerificationService(
@@ -169,8 +167,6 @@ def get_verification_runner():
                 timeout_seconds=settings.verification_timeout_seconds,
             )
             return await svc.verify_tenant_chains(tenant_id=tenant_id)
-        finally:
-            await gen.aclose()
 
     return run_verification_for_tenant
 

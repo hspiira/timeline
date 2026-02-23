@@ -44,7 +44,7 @@ async def get_oauth_provider_config_repo_for_write(
 
 async def get_oauth_state_repo(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
-    state_manager: OAuthStateManager = Depends(auth.get_oauth_state_manager),
+    state_manager: Annotated[OAuthStateManager, Depends(auth.get_oauth_state_manager)],
 ) -> OAuthStateRepository:
     """OAuth state repository for authorize/callback (transactional)."""
     return OAuthStateRepository(db, state_manager=state_manager)
@@ -85,11 +85,13 @@ async def get_oauth_config_service(
     )
 
 
-def get_email_account_service(
+async def get_email_account_service(
     email_account_repo: Annotated[
         EmailAccountRepository, Depends(get_email_account_repo_for_write)
     ],
-    credential_encryptor: CredentialEncryptor = Depends(auth.get_credential_encryptor),
+    credential_encryptor: Annotated[
+        CredentialEncryptor, Depends(auth.get_credential_encryptor)
+    ],
 ) -> EmailAccountService:
     """Email account service (composition root)."""
     return EmailAccountService(

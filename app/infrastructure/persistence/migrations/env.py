@@ -23,7 +23,13 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", settings.database_url)
+db_url = settings.database_url
+if not db_url or not db_url.strip().lower().startswith("postgres"):
+    raise RuntimeError(
+        "DATABASE_URL must be set and point to PostgreSQL for migrations "
+        "(e.g. postgresql:// or postgresql+asyncpg://)."
+    )
+config.set_main_option("sqlalchemy.url", db_url)
 target_metadata = Base.metadata
 
 
