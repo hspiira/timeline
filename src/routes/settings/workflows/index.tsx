@@ -207,7 +207,7 @@ function WorkflowsPage() {
       id: 'trigger_event',
       header: 'Trigger Event',
       cell: ({ row }) => {
-        const triggerEventType = (row.original as any).trigger?.event_type || 'N/A'
+        const triggerEventType = row.original.trigger_event_type || 'N/A'
         return (
           <span className="text-xs px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-none font-mono">
             {triggerEventType}

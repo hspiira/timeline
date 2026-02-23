@@ -207,14 +207,17 @@ function CreateFlowPage() {
     }
     setSubmitting(true)
     try {
-      const { data, error } = await timelineApi.flows.create({
+      const { data, error, response } = await timelineApi.flows.create({
         name: nameToSubmit,
         workflow_id: workflowId || undefined,
         subject_ids: subjectId ? [subjectId] : undefined,
       })
       if (error) {
-        const { title, message } = getApiErrorDisplay(error)
-        setSubmitError(message || title)
+        const { message } = getApiErrorDisplay(
+          { error, status: response?.status },
+          'Failed to create flow'
+        )
+        setSubmitError(message)
         setSubmitting(false)
         return
       }

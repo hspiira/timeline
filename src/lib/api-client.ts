@@ -1,8 +1,10 @@
 import createClient from 'openapi-fetch'
 import type { paths, components } from './timeline-api'
 
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
 const client = createClient<paths>({
-  baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseUrl: BASE_URL,
 })
 
 let authToken: string | null = null

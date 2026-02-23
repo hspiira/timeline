@@ -4,11 +4,19 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useStore } from '@tanstack/react-store'
 import { authStore } from '@/lib/auth-store'
 import { LandingPage } from '@/components/landing/LandingPage'
+import { WeekDataCard } from '@/components/dashboard/WeekDataCard'
+import { TodayTodosCard } from '@/components/dashboard/TodayTodosCard'
+import { HelpCenterCard } from '@/components/dashboard/HelpCenterCard'
+import { CommonAppsCard } from '@/components/dashboard/CommonAppsCard'
+import { EmployeeDataCard } from '@/components/dashboard/EmployeeDataCard'
+import { UrgentTasksCard } from '@/components/dashboard/UrgentTasksCard'
+import { AnnouncementsCard } from '@/components/dashboard/AnnouncementsCard'
+import { TurnoverChartCard } from '@/components/dashboard/TurnoverChartCard'
+import { LatestTurnoverCard } from '@/components/dashboard/LatestTurnoverCard'
 import { MinimalActivityFeed } from '@/components/dashboard/MinimalActivityFeed'
-import { StatsGrid } from '@/components/dashboard/StatsGrid'
+import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import { timelineApi } from '@/lib/api-client'
 import { getApiErrorDisplay } from '@/lib/api-utils'
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import type { components } from '@/lib/timeline-api'
 import type { WorkflowResponse } from '@/lib/types'
 
@@ -145,12 +153,27 @@ function HomePage() {
 
   const hasErrors = errors.length > 0
   const username = authState.user.username ?? 'there'
-
   const totalEvents = data.stats?.total_events ?? 0
+
+  const greeting = useMemo(() => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Good morning'
+    if (h < 18) return 'Good afternoon'
+    return 'Good evening'
+  }, [])
+
+  const todayEvents = useMemo(() => {
+    const recent = data.stats?.recent_events ?? []
+    const today = new Date().toDateString()
+    return recent
+      .filter((e) => new Date(e.event_time).toDateString() === today)
+      .map((e) => ({ id: e.id, event_time: e.event_time, event_type: e.event_type, subject_id: e.subject_id }))
+  }, [data.stats?.recent_events])
+
+  const loading = data.stats === null && errors.length === 0
 
   return (
     <div className="dashboard-page min-h-[calc(100vh-4rem)]">
-      {/* Subtle grid background */}
       <div
         className="pointer-events-none fixed inset-0 opacity-[0.02] dark:opacity-[0.04]"
         style={{
@@ -163,44 +186,37 @@ function HomePage() {
         aria-hidden
       />
 
-      <div className="relative flex flex-col">
-        {/* Hero strip: welcome + primary metric */}
+      {/* Gaps are layout-only; card content grows inside each card when data is added */}
+      <div className="relative flex flex-col gap-4 md:gap-6">
         <header
           className="border-b border-border/60 bg-muted/20 animate-in fade-in slide-in-from-bottom-2 duration-500"
           style={{ borderLeftWidth: '4px', borderLeftColor: 'var(--dashboard-accent)' }}
         >
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 py-5">
             <div>
-              <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground tracking-tight">
-                Dashboard
+              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+                {greeting}, {username}
               </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Welcome back, {username}. Here’s your timeline at a glance.
-              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">Here’s your timeline at a glance.</p>
             </div>
-            <div className="flex items-baseline gap-3 flex-shrink-0">
-              <span className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-foreground tabular-nums">
+            <div className="flex items-baseline gap-2 flex-shrink-0">
+              <span className="font-display text-3xl sm:text-4xl font-bold text-foreground tabular-nums">
                 {totalEvents.toLocaleString()}
               </span>
-              <span className="text-sm text-muted-foreground whitespace-nowrap">
-                events · +{eventsToday} today
-              </span>
+              <span className="text-sm text-muted-foreground whitespace-nowrap">events</span>
             </div>
           </div>
         </header>
 
-        {/* Error messages */}
         {hasErrors && (
           <div
-            className="mt-4 mx-4 md:mx-0 p-4 border rounded-none border-destructive/30 bg-destructive/5 animate-in fade-in slide-in-from-bottom-2 duration-300"
+            className="p-4 border rounded-none border-destructive/30 bg-destructive/5 animate-in fade-in slide-in-from-bottom-2 duration-300"
             role="alert"
           >
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-foreground text-sm mb-1">
-                  Some data couldn’t be loaded
-                </h3>
+                <h3 className="font-semibold text-foreground text-sm mb-1">Some data couldn’t be loaded</h3>
                 <ul className="space-y-0.5 text-xs text-muted-foreground mb-3">
                   {errors.map((error) => (
                     <li key={error.field}>
@@ -220,38 +236,60 @@ function HomePage() {
           </div>
         )}
 
-        {/* Main content: stats sidebar + activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 py-6 md:py-8">
-          <aside
-            className="lg:col-span-4 xl:col-span-3 animate-in fade-in slide-in-from-bottom-4 duration-500"
-            style={{ animationDelay: '60ms' }}
-          >
-            <h2 className="font-display text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-              Overview
-            </h2>
-            <StatsGrid
-              totalSubjects={data.stats?.total_subjects ?? 0}
-              totalEvents={totalEvents}
-              totalDocuments={data.stats?.total_documents ?? 0}
-              eventsToday={eventsToday}
-              activeWorkflows={activeWorkflowsCount}
-              subjectsByType={data.stats?.subjects_by_type}
-              eventsByType={data.stats?.events_by_type}
-              sidebar
-            />
-          </aside>
+        {/* Top row: This week's data | Today's to-dos | Help center */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <WeekDataCard
+            totalEvents={totalEvents}
+            eventsByType={data.stats?.events_by_type}
+            eventsToday={eventsToday}
+            comparison={null}
+            loading={loading}
+          />
+          <TodayTodosCard todayEvents={todayEvents} loading={loading} />
+          <HelpCenterCard />
+        </div>
 
-          <section
-            className="lg:col-span-8 xl:col-span-9 animate-in fade-in slide-in-from-bottom-4 duration-500"
-            style={{ animationDelay: '120ms' }}
-          >
-            <h2 className="font-display text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-              Recent activity
-            </h2>
-            <div className="rounded-none border border-border/60 bg-card/80 backdrop-blur-sm overflow-hidden min-h-[280px]">
-              <MinimalActivityFeed limit={10} recentEvents={data.stats?.recent_events} />
+        {/* Middle row: Common apps | Employee (subjects) data | Urgent | Announcements */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5">
+          <div className="md:col-span-4 space-y-6">
+            <CommonAppsCard />
+            <EmployeeDataCard
+              totalSubjects={data.stats?.total_subjects ?? 0}
+              subjectsByType={data.stats?.subjects_by_type}
+              onRefresh={fetchDashboard}
+              loading={loading}
+            />
+          </div>
+          <div className="md:col-span-4">
+            <UrgentTasksCard count={0} onRefresh={fetchDashboard} loading={loading} />
+          </div>
+          <div className="md:col-span-4">
+            <AnnouncementsCard />
+          </div>
+        </div>
+
+        {/* Bottom row: Activity trend (large chart) | Latest changes + Recent activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5">
+          <div className="lg:col-span-7">
+            <TurnoverChartCard
+              startCount={0}
+              endCount={totalEvents}
+              added={eventsToday}
+              removed={0}
+              loading={loading}
+            />
+          </div>
+          <div className="lg:col-span-5 space-y-6">
+            <LatestTurnoverCard />
+            <div>
+              <h2 className="font-display text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                Recent activity
+              </h2>
+              <div className="rounded-none border border-border/60 bg-card/80 backdrop-blur-sm overflow-hidden">
+                <MinimalActivityFeed limit={8} recentEvents={data.stats?.recent_events} />
+              </div>
             </div>
-          </section>
+          </div>
         </div>
       </div>
     </div>
