@@ -12,12 +12,12 @@ class TimelineException(Exception):
     """Base exception for all Timeline application errors.
 
     All custom exceptions should inherit from this class to allow
-    consistent error handling and logging. Handlers can use to_dict()
-    for API responses.
+    consistent error handling and logging. Presentation layer maps
+    these to HTTP responses using message, error_code, and details.
 
     Attributes:
         message: Human-readable error description.
-        error_code: Machine-readable error code for API responses.
+        error_code: Machine-readable error code.
         details: Additional error context (e.g. field, resource_id).
     """
 
@@ -32,24 +32,12 @@ class TimelineException(Exception):
         Args:
             message: Human-readable error description.
             error_code: Optional machine-readable code; defaults to class name.
-            details: Optional dict of extra context for the response.
+            details: Optional dict of extra context.
         """
         self.message = message
         self.error_code = error_code or self.__class__.__name__
         self.details = details or {}
         super().__init__(self.message)
-
-    def to_dict(self) -> dict[str, Any]:
-        """Convert exception to dictionary for API responses.
-
-        Returns:
-            Dict with keys: error, message, details.
-        """
-        return {
-            "error": self.error_code,
-            "message": self.message,
-            "details": self.details,
-        }
 
 
 class ValidationException(TimelineException):
@@ -120,7 +108,7 @@ class TenantNotFoundException(TimelineException):
         )
 
 
-class TenantAlreadyExistsError(TimelineException):
+class TenantAlreadyExistsException(TimelineException):
     """Raised when creating a tenant whose code already exists."""
 
     def __init__(self, code: str) -> None:
@@ -136,7 +124,31 @@ class TenantAlreadyExistsError(TimelineException):
         )
 
 
-class DocumentVersionConflictError(TimelineException):
+class UserAlreadyExistsException(TimelineException):
+    """Raised when creating a user whose username or email already exists in the tenant."""
+
+    def __init__(self) -> None:
+        """Initialize with a generic message (username/email duplicate in tenant)."""
+        super().__init__(
+            "Username or email already registered in this tenant",
+            "USER_ALREADY_EXISTS",
+            {},
+        )
+
+
+class DuplicateEmailException(TimelineException):
+    """Raised when updating a user to an email already registered in the tenant."""
+
+    def __init__(self) -> None:
+        """Initialize with a generic message (email duplicate in tenant)."""
+        super().__init__(
+            "Email is already registered in this tenant",
+            "DUPLICATE_EMAIL",
+            {},
+        )
+
+
+class DocumentVersionConflictException(TimelineException):
     """Raised when a concurrent request won the parent version update (optimistic lock)."""
 
     def __init__(self, parent_document_id: str) -> None:
@@ -182,6 +194,24 @@ class EventChainBrokenException(TimelineException):
         )
 
 
+class VerificationLimitExceededException(TimelineException):
+    """Raised when tenant event count exceeds verification_max_events (use background job)."""
+
+    def __init__(self, tenant_id: str, total_events: int, max_events: int) -> None:
+        """Initialize with tenant and counts.
+
+        Args:
+            tenant_id: Tenant whose event count exceeded the limit.
+            total_events: Current total event count.
+            max_events: Configured maximum for inline verification.
+        """
+        super().__init__(
+            f"Tenant has {total_events} events; maximum for inline verification is {max_events}",
+            "VERIFICATION_LIMIT_EXCEEDED",
+            {"tenant_id": tenant_id, "total_events": total_events, "max_events": max_events},
+        )
+
+
 class SchemaValidationException(TimelineException):
     """Raised when event payload fails schema validation."""
 
@@ -199,7 +229,50 @@ class SchemaValidationException(TimelineException):
         )
 
 
-class DuplicateAssignmentError(TimelineException):
+class SqlNotConfiguredException(TimelineException):
+    """Raised when an operation requires Postgres but the backend is not configured."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="This operation requires a SQL database that is not configured.",
+            error_code="SERVICE_UNAVAILABLE",
+        )
+
+
+class CredentialException(TimelineException):
+    """Raised when credential decryption or format fails (e.g. OAuth client secrets)."""
+
+    def __init__(self, message: str = "Credential operation failed") -> None:
+        super().__init__(message, "CREDENTIAL_ERROR")
+
+
+class TransitionValidationException(TimelineException):
+    """Raised when an event type is emitted without required prior event types in the stream."""
+
+    def __init__(
+        self,
+        message: str,
+        event_type: str,
+        required_prior_event_types: list[str],
+        **details_extra: Any,
+    ) -> None:
+        """Initialize with message and transition context.
+
+        Args:
+            message: Human-readable description.
+            event_type: The event type that was rejected.
+            required_prior_event_types: Event types that must have occurred first.
+            **details_extra: Optional keys merged into details (e.g. reason, max).
+        """
+        details = {
+            "event_type": event_type,
+            "required_prior_event_types": required_prior_event_types,
+            **details_extra,
+        }
+        super().__init__(message, "TRANSITION_VIOLATION", details)
+
+
+class DuplicateAssignmentException(TimelineException):
     """Raised when assigning a role/permission that is already assigned (unique constraint)."""
 
     def __init__(self, message: str, assignment_type: str, details_extra: dict[str, Any] | None = None) -> None:
@@ -213,5 +286,3 @@ class DuplicateAssignmentError(TimelineException):
         details = details_extra or {}
         details["assignment_type"] = assignment_type
         super().__init__(message, "DUPLICATE_ASSIGNMENT", details)
-
-

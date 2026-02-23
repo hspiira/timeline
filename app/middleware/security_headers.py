@@ -1,32 +1,54 @@
 """Security headers middleware.
 
-Adds common security-related response headers (X-Content-Type-Options, etc.).
+Adds common security-related response headers (CSP, HSTS, X-Content-Type-Options, etc.).
+Uses raw ASGI (no BaseHTTPMiddleware) for production-safe streaming and background tasks.
 """
 
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from starlette.responses import Response
+from typing import Callable
+
+# CSP: allow same-origin, docs (Swagger/ReDoc) and root page inline styles/scripts,
+# Google Fonts for landing page, and Swagger UI CDN (FastAPI /docs).
+DEFAULT_HEADERS = {
+    "Content-Security-Policy": (
+        "default-src 'self'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
+        "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'"
+    ),
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+}
 
 
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """Set security headers on all responses."""
+def SecurityHeadersMiddleware(
+    app: Callable, headers: dict[str, str] | None = None
+) -> Callable:
+    """Set security headers on all responses. Raw ASGI."""
+    resolved = headers if headers is not None else DEFAULT_HEADERS.copy()
+    header_list = [(k.encode(), v.encode()) for k, v in resolved.items()]
 
-    # Default headers; override via constructor if needed.
-    DEFAULT_HEADERS = {
-        "X-Content-Type-Options": "nosniff",
-        "X-Frame-Options": "DENY",
-        "X-XSS-Protection": "1; mode=block",
-        "Referrer-Policy": "strict-origin-when-cross-origin",
-        "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
-    }
+    async def asgi_app(scope: dict, receive: Callable, send: Callable) -> None:
+        if scope["type"] != "http":
+            await app(scope, receive, send)
+            return
 
-    def __init__(self, app, headers: dict[str, str] | None = None):
-        super().__init__(app)
-        self.headers = headers if headers is not None else self.DEFAULT_HEADERS.copy()
+        async def send_wrapper(message: dict) -> None:
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                seen = {h[0].lower() for h in headers}
+                for name_b, value_b in header_list:
+                    if name_b.lower() not in seen:
+                        headers.append((name_b, value_b))
+                        seen.add(name_b.lower())
+                message["headers"] = headers
+            await send(message)
 
-    async def dispatch(self, request: Request, call_next) -> Response:
-        """Add security headers to the response."""
-        response = await call_next(request)
-        for name, value in self.headers.items():
-            response.headers.setdefault(name, value)
-        return response
+        await app(scope, receive, send_wrapper)
+
+    return asgi_app

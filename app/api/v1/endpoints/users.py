@@ -2,9 +2,15 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-from app.api.v1.dependencies import get_user_repo, get_user_repo_for_write, get_tenant_id
+from app.api.v1.dependencies import (
+    get_tenant_id,
+    get_user_repo,
+    get_user_repo_for_write,
+    require_permission,
+)
+from app.core.limiter import limit_writes
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
 from app.schemas.user import UserCreateRequest, UserResponse
 
@@ -12,10 +18,13 @@ router = APIRouter()
 
 
 @router.post("", response_model=UserResponse, status_code=201)
+@limit_writes
 async def create_user(
+    request: Request,
     body: UserCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     user_repo: UserRepository = Depends(get_user_repo_for_write),
+    _: Annotated[object, Depends(require_permission("user", "create"))] = None,
 ):
     """Create a user (tenant-scoped)."""
     try:
@@ -35,6 +44,7 @@ async def get_user(
     user_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     user_repo: UserRepository = Depends(get_user_repo),
+    _: Annotated[object, Depends(require_permission("user", "read"))] = None,
 ):
     """Get user by id (tenant-scoped)."""
     user = await user_repo.get_by_id_and_tenant(user_id, tenant_id)
@@ -46,9 +56,10 @@ async def get_user(
 @router.get("", response_model=list[UserResponse])
 async def list_users(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
     user_repo: UserRepository = Depends(get_user_repo),
+    _: Annotated[object, Depends(require_permission("user", "read"))] = None,
 ):
     """List users for tenant (paginated)."""
     users = await user_repo.get_users_by_tenant(

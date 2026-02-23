@@ -11,6 +11,13 @@ class UserCreateRequest(BaseModel):
     password: str = Field(..., min_length=8)
 
 
+class UserUpdate(BaseModel):
+    """Request body for updating current user (partial)."""
+
+    email: EmailStr | None = None
+    password: str | None = Field(default=None, min_length=8)
+
+
 class UserResponse(BaseModel):
     """User response (no password)."""
 

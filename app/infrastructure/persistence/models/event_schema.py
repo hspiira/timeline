@@ -3,6 +3,7 @@
 from typing import Any
 
 from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.persistence.database import Base
@@ -16,10 +17,13 @@ class EventSchema(MultiTenantModel, Base):
 
     event_type: Mapped[str] = mapped_column(String, nullable=False, index=True)
     schema_definition: Mapped[dict[str, Any]] = mapped_column(
-        "schema_json", JSON, nullable=False
+        JSON, nullable=False
     )
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    allowed_subject_types: Mapped[list[str] | None] = mapped_column(
+        JSONB, nullable=True
+    )
     created_by: Mapped[str | None] = mapped_column(
         String, ForeignKey("app_user.id", ondelete="SET NULL"), nullable=True, index=True
     )

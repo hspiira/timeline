@@ -1,26 +1,70 @@
-"""Roles API: list and get roles (tenant-scoped).
-
-Uses only injected get_role_repo; no manual repo construction.
-"""
+"""Roles API: list, get, create, update, delete, and role-permissions (tenant-scoped)."""
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-from app.api.v1.dependencies import get_role_repo, get_tenant_id
+from app.api.v1.dependencies import (
+    get_permission_repo,
+    get_role_permission_repo_for_write,
+    get_role_repo,
+    get_role_repo_for_write,
+    get_role_service,
+    get_tenant_id,
+    require_permission,
+)
+from app.domain.exceptions import DuplicateAssignmentException, ValidationException
+from app.application.services.role_service import RoleService
+from app.core.limiter import limit_writes
+from app.infrastructure.persistence.repositories.permission_repo import (
+    PermissionRepository,
+)
+from app.infrastructure.persistence.repositories.role_permission_repo import (
+    RolePermissionRepository,
+)
 from app.infrastructure.persistence.repositories.role_repo import RoleRepository
-from app.schemas.role import RoleResponse
+from app.schemas.role import (
+    RoleCreateRequest,
+    RolePermissionAssign,
+    RoleResponse,
+    RoleUpdate,
+    RolePermissionAssignedResponse,
+)
 
 router = APIRouter()
+
+
+@router.post("", response_model=RoleResponse, status_code=201)
+@limit_writes
+async def create_role(
+    request: Request,
+    body: RoleCreateRequest,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    role_service: Annotated[RoleService, Depends(get_role_service)],
+    _: Annotated[object, Depends(require_permission("role", "create"))] = None,
+):
+    """Create a role (tenant-scoped). Optionally assign permissions by code."""
+    try:
+        created = await role_service.create_role_with_permissions(
+            tenant_id=tenant_id,
+            code=body.code,
+            name=body.name,
+            description=body.description,
+            permission_codes=body.permission_codes,
+        )
+    except ValidationException as e:
+        raise HTTPException(status_code=400, detail=e.message) from e
+    return RoleResponse.model_validate(created)
 
 
 @router.get("", response_model=list[RoleResponse])
 async def list_roles(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    skip: int = 0,
-    limit: int = 100,
+    role_repo: Annotated[RoleRepository, Depends(get_role_repo)],
+    _: Annotated[object, Depends(require_permission("role", "read"))] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
     include_inactive: bool = False,
-    role_repo: RoleRepository = Depends(get_role_repo),
 ):
     """List roles for tenant (paginated)."""
     roles = await role_repo.get_by_tenant(
@@ -32,14 +76,129 @@ async def list_roles(
     return [RoleResponse.model_validate(r) for r in roles]
 
 
-@router.get("/{role_id}")
+@router.get("/{role_id}", response_model=RoleResponse)
 async def get_role(
     role_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    role_repo: RoleRepository = Depends(get_role_repo),
+    role_repo: Annotated[RoleRepository, Depends(get_role_repo)],
+    _: Annotated[object, Depends(require_permission("role", "read"))] = None,
 ):
     """Get role by id (tenant-scoped)."""
     role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
     return RoleResponse.model_validate(role)
+
+
+@router.put("/{role_id}", response_model=RoleResponse)
+@limit_writes
+async def update_role(
+    request: Request,
+    role_id: str,
+    body: RoleUpdate,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    role_repo: Annotated[RoleRepository, Depends(get_role_repo_for_write)],
+    _: Annotated[object, Depends(require_permission("role", "update"))] = None,
+):
+    """Update role (name, description, is_active). Tenant-scoped."""
+    role = await role_repo.get_entity_by_id_and_tenant(role_id, tenant_id)
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+    if role.is_system:
+        raise HTTPException(status_code=400, detail="System roles cannot be updated")
+    if body.name is not None:
+        role.name = body.name
+    if body.description is not None:
+        role.description = body.description
+    if body.is_active is not None:
+        role.is_active = body.is_active
+    updated = await role_repo.update(role)
+    return RoleResponse.model_validate(updated)
+
+
+@router.delete("/{role_id}", status_code=204)
+@limit_writes
+async def delete_role(
+    request: Request,
+    role_id: str,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    role_repo: Annotated[RoleRepository, Depends(get_role_repo_for_write)],
+    _: Annotated[object, Depends(require_permission("role", "delete"))] = None,
+):
+    """Deactivate role (soft delete). Tenant-scoped."""
+    role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+    result = await role_repo.deactivate(role_id, tenant_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Role not found")
+
+
+@router.post(
+    "/{role_id}/permissions",
+    response_model=RolePermissionAssignedResponse,
+    status_code=201,
+)
+@limit_writes
+async def assign_permission_to_role(
+    request: Request,
+    role_id: str,
+    body: RolePermissionAssign,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    role_repo: Annotated[RoleRepository, Depends(get_role_repo)],
+    permission_repo: Annotated[PermissionRepository, Depends(get_permission_repo)],
+    role_permission_repo: Annotated[
+        RolePermissionRepository, Depends(get_role_permission_repo_for_write)
+    ],
+    _: Annotated[object, Depends(require_permission("role", "manage_permissions"))] = None,
+):
+    """Assign a permission to a role. Tenant-scoped. Permission must belong to the same tenant. Requires role:manage_permissions (admin-only by default)."""
+    role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+    permission = await permission_repo.get_by_id_and_tenant(body.permission_id, tenant_id)
+    if not permission:
+        raise HTTPException(status_code=404, detail="Permission not found")
+    try:
+        await role_permission_repo.assign_permission_to_role(
+            role_id=role_id,
+            permission_id=body.permission_id,
+            tenant_id=tenant_id,
+        )
+    except DuplicateAssignmentException:
+        raise HTTPException(
+            status_code=400,
+            detail="Permission already assigned to role",
+        ) from None
+    return RolePermissionAssignedResponse(
+        role_id=role_id, permission_id=body.permission_id
+    )
+
+
+@router.delete("/{role_id}/permissions/{permission_id}", status_code=204)
+@limit_writes
+async def remove_permission_from_role(
+    request: Request,
+    role_id: str,
+    permission_id: str,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    role_repo: Annotated[RoleRepository, Depends(get_role_repo)],
+    role_permission_repo: Annotated[
+        RolePermissionRepository, Depends(get_role_permission_repo_for_write)
+    ],
+    _: Annotated[object, Depends(require_permission("role", "manage_permissions"))] = None,
+):
+    """Remove a permission from a role. Tenant-scoped. Requires role:manage_permissions (admin-only by default)."""
+    role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+    removed = await role_permission_repo.remove_permission_from_role(
+        role_id=role_id,
+        permission_id=permission_id,
+        tenant_id=tenant_id,
+    )
+    if not removed:
+        raise HTTPException(
+            status_code=404,
+            detail="Permission not assigned to role",
+        )

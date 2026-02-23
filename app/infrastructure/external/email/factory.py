@@ -2,6 +2,8 @@
 
 from typing import ClassVar
 
+import httpx
+
 from app.infrastructure.external.email.protocols import (
     EmailProviderConfig,
     IEmailProvider,
@@ -26,11 +28,18 @@ class EmailProviderFactory:
     }
 
     @classmethod
-    def create_provider(cls, config: EmailProviderConfig) -> IEmailProvider:
+    def create_provider(
+        cls,
+        config: EmailProviderConfig,
+        *,
+        http_client: httpx.AsyncClient | None = None,
+    ) -> IEmailProvider:
         """Create provider instance for config.
 
         Args:
             config: Email provider configuration.
+            http_client: Optional shared httpx.AsyncClient for connection reuse
+                (e.g. OutlookProvider uses it for Graph API calls).
 
         Returns:
             GmailProvider, IMAPProvider, or OutlookProvider.
@@ -46,6 +55,8 @@ class EmailProviderFactory:
                 f"Supported: {list(cls._providers.keys())}"
             )
         logger.debug("Creating %s for %s", provider_class.__name__, config.email_address)
+        if provider_class.__name__ == "OutlookProvider" and http_client is not None:
+            return provider_class(http_client=http_client)
         return provider_class()
 
     @classmethod

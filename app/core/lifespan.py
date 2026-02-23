@@ -5,10 +5,12 @@ no business logic here, only wiring of infrastructure (Firebase, cache,
 WebSocket manager, telemetry, DB engine dispose).
 """
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
+import httpx
 from fastapi import FastAPI
 
 from app.core.config import get_settings
@@ -21,29 +23,37 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Run startup then yield; on exit run shutdown.
 
     Startup order: Firebase, WebSocket manager, Redis cache (if enabled),
-    telemetry (if enabled). Shutdown order: cache disconnect, telemetry
-    shutdown, SQL engine dispose (if postgres).
+    telemetry (if enabled). Shutdown order: Firebase close, shared HTTP client
+    close, cache disconnect, telemetry shutdown, SQL engine dispose (if postgres).
     """
     settings = get_settings()
 
     # ---- Startup ----
+    # Shared HTTP client for OAuth, Firebase, and other outbound calls (connection reuse).
+    app.state.oauth_http_client = httpx.AsyncClient(timeout=30.0)
+
     from app.infrastructure.firebase import init_firebase
 
-    fb_initialized = init_firebase()
+    fb_initialized = init_firebase(http_client=app.state.oauth_http_client)
     logger.info("Firebase initialized: %s", fb_initialized)
 
     from app.api.websocket import ConnectionManager
 
     app.state.ws_manager = ConnectionManager()
+    app.state.verification_jobs = {}
 
     if settings.redis_enabled:
         from app.infrastructure.cache.redis_cache import CacheService
+        from app.infrastructure.messaging.redis_pubsub import run_sync_progress_broadcast
 
         cache = CacheService()
         await cache.connect()
         app.state.cache = cache
+        sync_broadcast_task = asyncio.create_task(run_sync_progress_broadcast(app))
+        app.state.sync_progress_broadcast_task = sync_broadcast_task
     else:
         app.state.cache = None
+        app.state.sync_progress_broadcast_task = None
 
     if settings.telemetry_enabled:
         from app.shared.telemetry.telemetry import TelemetryConfig, set_telemetry
@@ -67,6 +77,24 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
     # ---- Shutdown ----
+    from app.infrastructure.firebase import close_firebase
+
+    await close_firebase()
+
+    if getattr(app.state, "oauth_http_client", None) is not None:
+        await app.state.oauth_http_client.aclose()
+        app.state.oauth_http_client = None
+        logger.info("OAuth HTTP client closed")
+
+    sync_task = getattr(app.state, "sync_progress_broadcast_task", None)
+    if sync_task is not None:
+        sync_task.cancel()
+        try:
+            await sync_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("Sync progress broadcast task stopped")
+
     if getattr(app.state, "cache", None) is not None:
         await app.state.cache.disconnect()
         logger.info("Cache disconnected")

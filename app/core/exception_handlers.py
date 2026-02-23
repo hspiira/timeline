@@ -23,36 +23,57 @@ _ERROR_CODE_STATUS: dict[str, int] = {
     "TENANT_NOT_FOUND": 404,
     "TENANT_ALREADY_EXISTS": 409,
     "DOCUMENT_VERSION_CONFLICT": 409,
+    "DUPLICATE_ASSIGNMENT": 409,
     "AUTHENTICATION_ERROR": 401,
     "AUTHORIZATION_ERROR": 403,
     "VALIDATION_ERROR": 400,
     "PERMISSION_DENIED": 403,
     "CHAIN_INTEGRITY_ERROR": 400,
+    "VERIFICATION_LIMIT_EXCEEDED": 400,
     "SCHEMA_VALIDATION_ERROR": 400,
+    "TRANSITION_VIOLATION": 409,
+    "USER_ALREADY_EXISTS": 400,
+    "DUPLICATE_EMAIL": 400,
+    "CREDENTIAL_ERROR": 500,
+    "SERVICE_UNAVAILABLE": 503,
 }
 
 
 def _timeline_exception_handler(
     request: Request, exc: TimelineException
 ) -> JSONResponse:
-    """Return JSON from TimelineException.to_dict() with appropriate status code."""
+    """Map domain exception to JSON response with appropriate status code."""
     status = _ERROR_CODE_STATUS.get(exc.error_code, 400)
-    return JSONResponse(
-        status_code=status,
-        content=exc.to_dict(),
-    )
+    content = {
+        "error": exc.error_code,
+        "message": exc.message,
+        "details": exc.details,
+    }
+    return JSONResponse(status_code=status, content=content)
+
+
+def _make_errors_json_safe(obj: Any) -> Any:
+    """Recursively convert validation error details to JSON-serializable form (e.g. Exception -> str)."""
+    if isinstance(obj, Exception):
+        return str(obj)
+    if isinstance(obj, dict):
+        return {k: _make_errors_json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_make_errors_json_safe(v) for v in obj]
+    return obj
 
 
 def _validation_exception_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
     """Return 422 with validation error details."""
+    details = _make_errors_json_safe(exc.errors())
     return JSONResponse(
         status_code=422,
         content={
             "error": "VALIDATION_ERROR",
             "message": "Request validation failed",
-            "details": exc.errors(),
+            "details": details,
         },
     )
 
@@ -81,8 +102,8 @@ def _generic_exception_handler(request: Request, exc: Exception) -> JSONResponse
 def register_exception_handlers(app: FastAPI) -> None:
     """Register all exception handlers on the FastAPI app.
 
-    Call once after creating the app. Handlers: TimelineException (and
-    subclasses), RequestValidationError, StarletteHTTPException, generic Exception.
+    Call once after creating the app. Handlers: TimelineException (and subclasses),
+    RequestValidationError, StarletteHTTPException, generic Exception.
     """
     app.add_exception_handler(TimelineException, _timeline_exception_handler)
     app.add_exception_handler(RequestValidationError, _validation_exception_handler)

@@ -4,23 +4,21 @@ from __future__ import annotations
 
 import secrets
 import string
-from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from app.application.interfaces.repositories import ITenantRepository, IUserRepository
+from app.application.dtos.tenant import TenantCreationResult
+from app.application.interfaces.repositories import (
+    IPasswordSetTokenStore,
+    ITenantRepository,
+    IUserRepository,
+)
 from app.application.interfaces.services import ITenantInitializationService
 from app.domain.enums import TenantStatus
-from app.domain.exceptions import TenantAlreadyExistsError
+from app.domain.exceptions import TenantAlreadyExistsException
+from app.shared.enums import ActorType, AuditAction
 
-
-@dataclass
-class TenantCreationResult:
-    """Result of tenant creation."""
-
-    tenant_id: str
-    tenant_code: str
-    tenant_name: str
-    admin_username: str
-    admin_password: str
+if TYPE_CHECKING:
+    from app.application.interfaces.services import IAuditService
 
 
 class TenantCreationService:
@@ -31,26 +29,41 @@ class TenantCreationService:
         tenant_repo: ITenantRepository,
         user_repo: IUserRepository,
         init_service: ITenantInitializationService,
+        audit_service: IAuditService | None = None,
+        token_store: IPasswordSetTokenStore | None = None,
     ) -> None:
         self.tenant_repo = tenant_repo
         self.user_repo = user_repo
         self.init_service = init_service
+        self.audit_service = audit_service
+        self.token_store = token_store
 
     async def create_tenant(
         self,
         code: str,
         name: str,
-        admin_password: str | None = None,
+        admin_initial_password: str | None = None,
     ) -> TenantCreationResult:
         """Create tenant, init RBAC, create admin user, assign admin role.
 
-        Caller must run this within a single DB transaction (e.g. use a
-        transactional session dependency) so that tenant creation, RBAC init,
-        user creation and role assignment are atomic.
+        If admin_initial_password is provided, it is used for the admin user;
+        otherwise a password is generated (but never returned). Caller must run
+        this within a single DB transaction (e.g. use a transactional session
+        dependency) so that tenant creation, RBAC init, user creation and role
+        assignment are atomic.
+
+        Timeout / cancellation:
+        - Postgres: the whole flow runs in one transaction; on request timeout
+          (e.g. 504) the transaction is rolled back and no partial tenant is left.
+        - Firestore: each write commits immediately. If the request times out
+          mid-flow, you can get partial state (e.g. tenant + some permissions
+          but no admin user). Retrying with the same code will then fail with
+          "tenant already exists". Consider increasing timeout for this
+          endpoint or cleaning up orphaned tenant docs if needed.
         """
         existing = await self.tenant_repo.get_by_code(code)
         if existing:
-            raise TenantAlreadyExistsError(code)
+            raise TenantAlreadyExistsException(code)
 
         created_tenant = await self.tenant_repo.create_tenant(
             code=code,
@@ -63,9 +76,13 @@ class TenantCreationService:
             tenant_id=tenant_id,
         )
 
-        password = admin_password or self._generate_secure_password()
+        password = (
+            admin_initial_password
+            if admin_initial_password is not None
+            else self._generate_secure_password()
+        )
         admin_username = "admin"
-        admin_email = f"admin@{code}.tl"
+        admin_email = f"admin@{code}.timeline"
         admin_user = await self.user_repo.create_user(
             tenant_id=tenant_id,
             username=admin_username,
@@ -78,12 +95,43 @@ class TenantCreationService:
             admin_user_id=admin_user.id,
         )
 
+        set_password_token: str | None = None
+        set_password_expires_at = None
+        if self.token_store is not None:
+            set_password_token, set_password_expires_at = await self.token_store.create(
+                admin_user.id
+            )
+
+        if self.audit_service is not None:
+            status_value = (
+                created_tenant.status.value
+                if hasattr(created_tenant.status, "value")
+                else str(created_tenant.status)
+            )
+            await self.audit_service.emit_audit_event(
+                tenant_id=tenant_id,
+                entity_type="tenant",
+                action=AuditAction.CREATED,
+                entity_id=tenant_id,
+                entity_data={
+                    "id": tenant_id,
+                    "code": created_tenant.code,
+                    "name": created_tenant.name,
+                    "status": status_value,
+                },
+                actor_id=None,
+                actor_type=ActorType.SYSTEM,
+                metadata=None,
+            )
+
         return TenantCreationResult(
             tenant_id=tenant_id,
             tenant_code=created_tenant.code,
             tenant_name=created_tenant.name,
             admin_username=admin_username,
-            admin_password=password,
+            admin_email=admin_email,
+            set_password_token=set_password_token,
+            set_password_expires_at=set_password_expires_at,
         )
 
     @staticmethod

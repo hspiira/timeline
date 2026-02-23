@@ -1,0 +1,196 @@
+{
+  "_comment": "Dev seed data for Timeline. References: docs/DATABASE_SCHEMA.md. Use tenant_code and subject external_ref for references.",
+  "tenants": [
+    { "code": "timeline", "name": "Timeline", "status": "active" },
+    { "code": "globex", "name": "Globex Inc", "status": "active" },
+    { "code": "initech", "name": "Initech LLC", "status": "active" }
+  ],
+  "event_schemas": [
+    {
+      "tenant_code": "timeline",
+      "event_type": "client",
+      "version": 1,
+      "is_active": true,
+      "schema_definition": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "status": { "type": "string", "enum": ["new", "active", "inactive"] },
+          "notes": { "type": "string" }
+        },
+        "required": ["name", "email"]
+      }
+    },
+    {
+      "tenant_code": "timeline",
+      "event_type": "order",
+      "version": 1,
+      "is_active": true,
+      "schema_definition": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "number" },
+          "currency": { "type": "string" },
+          "items": { "type": "integer" }
+        },
+        "required": ["total", "currency"]
+      }
+    },
+    {
+      "tenant_code": "timeline",
+      "event_type": "user",
+      "version": 1,
+      "is_active": true,
+      "schema_definition": {
+        "type": "object",
+        "properties": {
+          "action": { "type": "string" },
+          "ip": { "type": "string" },
+          "field": { "type": "string" }
+        }
+      }
+    },
+    {
+      "tenant_code": "timeline",
+      "event_type": "project",
+      "version": 1,
+      "is_active": true,
+      "schema_definition": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "status": { "type": "string" },
+          "progress": { "type": "integer" }
+        }
+      }
+    },
+    {
+      "tenant_code": "timeline",
+      "event_type": "deal",
+      "version": 1,
+      "is_active": true,
+      "schema_definition": {
+        "type": "object",
+        "properties": {
+          "value": { "type": "number" },
+          "stage": { "type": "string" }
+        },
+        "required": ["value", "stage"]
+      }
+    }
+  ],
+  "subjects": [
+    { "tenant_code": "timeline", "subject_type": "client", "external_ref": "EXT-001" },
+    { "tenant_code": "timeline", "subject_type": "client", "external_ref": "EXT-002" },
+    { "tenant_code": "timeline", "subject_type": "order", "external_ref": "ORD-001" },
+    { "tenant_code": "timeline", "subject_type": "order", "external_ref": "ORD-002" },
+    { "tenant_code": "timeline", "subject_type": "user", "external_ref": "USR-001" },
+    { "tenant_code": "timeline", "subject_type": "project", "external_ref": "PRJ-001" },
+    { "tenant_code": "timeline", "subject_type": "deal", "external_ref": "DL-001" },
+    { "tenant_code": "timeline", "subject_type": "client", "external_ref": "EXT-003" },
+    { "tenant_code": "timeline", "subject_type": "client", "external_ref": "EXT-004" },
+    { "tenant_code": "timeline", "subject_type": "order", "external_ref": "ORD-003" },
+    { "tenant_code": "timeline", "subject_type": "order", "external_ref": "ORD-004" },
+    { "tenant_code": "timeline", "subject_type": "user", "external_ref": "USR-002" },
+    { "tenant_code": "timeline", "subject_type": "project", "external_ref": "PRJ-002" },
+    { "tenant_code": "timeline", "subject_type": "deal", "external_ref": "DL-002" },
+    { "tenant_code": "timeline", "subject_type": "client", "external_ref": "EXT-005" },
+    { "tenant_code": "timeline", "subject_type": "client", "external_ref": "EXT-006" },
+    { "tenant_code": "timeline", "subject_type": "order", "external_ref": "ORD-005" },
+    { "tenant_code": "timeline", "subject_type": "order", "external_ref": "ORD-006" },
+    { "tenant_code": "timeline", "subject_type": "user", "external_ref": "USR-003" },
+    { "tenant_code": "timeline", "subject_type": "project", "external_ref": "PRJ-003" },
+    { "tenant_code": "timeline", "subject_type": "deal", "external_ref": "DL-003" },
+    { "tenant_code": "timeline", "subject_type": "client", "external_ref": "EXT-007" },
+    { "tenant_code": "timeline", "subject_type": "client", "external_ref": "EXT-008" },
+    { "tenant_code": "timeline", "subject_type": "order", "external_ref": "ORD-007" },
+    { "tenant_code": "timeline", "subject_type": "order", "external_ref": "ORD-008" },
+    { "tenant_code": "timeline", "subject_type": "user", "external_ref": "USR-004" },
+    { "tenant_code": "timeline", "subject_type": "project", "external_ref": "PRJ-004" },
+    { "tenant_code": "timeline", "subject_type": "deal", "external_ref": "DL-004" },
+    { "tenant_code": "timeline", "subject_type": "client", "external_ref": "EXT-009" },
+    { "tenant_code": "timeline", "subject_type": "client", "external_ref": "EXT-010" }
+  ],
+  "users": [
+    { "tenant_code": "timeline", "username": "alice", "email": "alice@timeline.example.com", "password": "devpassword", "is_active": true },
+    { "tenant_code": "timeline", "username": "bob", "email": "bob@timeline.example.com", "password": "devpassword", "is_active": true },
+    { "tenant_code": "timeline", "username": "carol", "email": "carol@timeline.example.com", "password": "devpassword", "is_active": true },
+    { "tenant_code": "timeline", "username": "dave", "email": "dave@timeline.example.com", "password": "devpassword", "is_active": true },
+    { "tenant_code": "timeline", "username": "eve", "email": "eve@timeline.example.com", "password": "devpassword", "is_active": true }
+  ],
+  "workflows": [
+    {
+      "tenant_code": "timeline",
+      "name": "On client created - welcome",
+      "description": "When a client is created, append a follow-up event.",
+      "trigger_event_type": "client",
+      "is_active": true,
+      "trigger_conditions": null,
+      "actions": [
+        { "type": "create_event", "params": { "event_type": "user", "schema_version": 1, "payload": { "action": "welcome_sent" } } }
+      ],
+      "max_executions_per_day": null,
+      "execution_order": 0
+    },
+    {
+      "tenant_code": "timeline",
+      "name": "On order placed",
+      "description": "Notify on new order.",
+      "trigger_event_type": "order",
+      "is_active": true,
+      "trigger_conditions": null,
+      "actions": [
+        { "type": "create_event", "params": { "event_type": "order", "schema_version": 1, "payload": { "total": 0, "currency": "USD" } } }
+      ],
+      "max_executions_per_day": null,
+      "execution_order": 0
+    },
+    {
+      "tenant_code": "timeline",
+      "name": "On user action - audit",
+      "description": "Audit user events.",
+      "trigger_event_type": "user",
+      "is_active": true,
+      "trigger_conditions": null,
+      "actions": [
+        { "type": "create_event", "params": { "event_type": "user", "schema_version": 1, "payload": { "action": "audit_log" } } }
+      ],
+      "max_executions_per_day": null,
+      "execution_order": 0
+    }
+  ],
+  "events": [
+    { "tenant_code": "timeline", "subject_external_ref": "EXT-001", "event_type": "client", "schema_version": 1, "event_time": "2025-01-01T10:00:00Z", "payload": { "name": "Maria Santos", "email": "maria.santos@northfield.co", "status": "active" } },
+    { "tenant_code": "timeline", "subject_external_ref": "EXT-002", "event_type": "client", "schema_version": 1, "event_time": "2025-01-01T10:05:00Z", "payload": { "name": "James Wilson", "email": "j.wilson@wilsonlegal.com", "status": "active" } },
+    { "tenant_code": "timeline", "subject_external_ref": "ORD-001", "event_type": "order", "schema_version": 1, "event_time": "2025-01-01T11:00:00Z", "payload": { "total": 99.99, "currency": "USD", "items": 2 } },
+    { "tenant_code": "timeline", "subject_external_ref": "ORD-002", "event_type": "order", "schema_version": 1, "event_time": "2025-01-01T11:10:00Z", "payload": { "total": 149.5, "currency": "USD", "items": 3 } },
+    { "tenant_code": "timeline", "subject_external_ref": "USR-001", "event_type": "user", "schema_version": 1, "event_time": "2025-01-01T12:00:00Z", "payload": { "action": "login", "ip": "192.168.1.1" } },
+    { "tenant_code": "timeline", "subject_external_ref": "PRJ-001", "event_type": "project", "schema_version": 1, "event_time": "2025-01-01T13:00:00Z", "payload": { "name": "Website redesign", "status": "in_progress", "progress": 25 } },
+    { "tenant_code": "timeline", "subject_external_ref": "DL-001", "event_type": "deal", "schema_version": 1, "event_time": "2025-01-01T14:00:00Z", "payload": { "value": 5000, "stage": "negotiation" } },
+    { "tenant_code": "timeline", "subject_external_ref": "EXT-001", "event_type": "client", "schema_version": 1, "event_time": "2025-01-02T09:00:00Z", "payload": { "name": "Maria Santos", "email": "maria.santos@northfield.co", "status": "active", "notes": "Follow-up call scheduled" } },
+    { "tenant_code": "timeline", "subject_external_ref": "EXT-003", "event_type": "client", "schema_version": 1, "event_time": "2025-01-02T09:30:00Z", "payload": { "name": "Sophie Chen", "email": "sophie.chen@chenconsulting.io", "status": "new" } },
+    { "tenant_code": "timeline", "subject_external_ref": "EXT-004", "event_type": "client", "schema_version": 1, "event_time": "2025-01-02T10:00:00Z", "payload": { "name": "David Okonkwo", "email": "david.o@okonkwo.ng", "status": "new" } },
+    { "tenant_code": "timeline", "subject_external_ref": "ORD-003", "event_type": "order", "schema_version": 1, "event_time": "2025-01-02T10:15:00Z", "payload": { "total": 299, "currency": "USD", "items": 1 } },
+    { "tenant_code": "timeline", "subject_external_ref": "ORD-004", "event_type": "order", "schema_version": 1, "event_time": "2025-01-02T11:00:00Z", "payload": { "total": 75.25, "currency": "EUR", "items": 4 } },
+    { "tenant_code": "timeline", "subject_external_ref": "USR-002", "event_type": "user", "schema_version": 1, "event_time": "2025-01-02T12:00:00Z", "payload": { "action": "profile_updated", "field": "avatar" } },
+    { "tenant_code": "timeline", "subject_external_ref": "PRJ-002", "event_type": "project", "schema_version": 1, "event_time": "2025-01-02T13:00:00Z", "payload": { "name": "Mobile app launch", "status": "planned", "progress": 0 } },
+    { "tenant_code": "timeline", "subject_external_ref": "DL-002", "event_type": "deal", "schema_version": 1, "event_time": "2025-01-02T14:00:00Z", "payload": { "value": 12000, "stage": "proposal" } },
+    { "tenant_code": "timeline", "subject_external_ref": "EXT-005", "event_type": "client", "schema_version": 1, "event_time": "2025-01-03T09:00:00Z", "payload": { "name": "Emma Lindqvist", "email": "emma.lindqvist@lindqvist.se", "status": "active" } },
+    { "tenant_code": "timeline", "subject_external_ref": "EXT-006", "event_type": "client", "schema_version": 1, "event_time": "2025-01-03T09:30:00Z", "payload": { "name": "Raj Patel", "email": "raj.patel@patelgroup.in", "status": "inactive" } },
+    { "tenant_code": "timeline", "subject_external_ref": "ORD-005", "event_type": "order", "schema_version": 1, "event_time": "2025-01-03T10:00:00Z", "payload": { "total": 199.99, "currency": "USD", "items": 2 } },
+    { "tenant_code": "timeline", "subject_external_ref": "ORD-006", "event_type": "order", "schema_version": 1, "event_time": "2025-01-03T11:00:00Z", "payload": { "total": 50, "currency": "GBP", "items": 1 } },
+    { "tenant_code": "timeline", "subject_external_ref": "USR-003", "event_type": "user", "schema_version": 1, "event_time": "2025-01-03T12:00:00Z", "payload": { "action": "logout" } },
+    { "tenant_code": "timeline", "subject_external_ref": "PRJ-003", "event_type": "project", "schema_version": 1, "event_time": "2025-01-03T13:00:00Z", "payload": { "name": "Q1 marketing campaign", "status": "in_progress", "progress": 50 } },
+    { "tenant_code": "timeline", "subject_external_ref": "DL-003", "event_type": "deal", "schema_version": 1, "event_time": "2025-01-03T14:00:00Z", "payload": { "value": 8000, "stage": "closed_won" } },
+    { "tenant_code": "timeline", "subject_external_ref": "EXT-007", "event_type": "client", "schema_version": 1, "event_time": "2025-01-04T09:00:00Z", "payload": { "name": "Yuki Tanaka", "email": "y.tanaka@tanaka.co.jp", "status": "active" } },
+    { "tenant_code": "timeline", "subject_external_ref": "EXT-008", "event_type": "client", "schema_version": 1, "event_time": "2025-01-04T10:00:00Z", "payload": { "name": "Fatima Al-Hassan", "email": "fatima@alhassan.sa", "status": "new" } },
+    { "tenant_code": "timeline", "subject_external_ref": "ORD-007", "event_type": "order", "schema_version": 1, "event_time": "2025-01-04T11:00:00Z", "payload": { "total": 399, "currency": "USD", "items": 5 } },
+    { "tenant_code": "timeline", "subject_external_ref": "ORD-008", "event_type": "order", "schema_version": 1, "event_time": "2025-01-04T12:00:00Z", "payload": { "total": 125, "currency": "USD", "items": 2 } },
+    { "tenant_code": "timeline", "subject_external_ref": "USR-004", "event_type": "user", "schema_version": 1, "event_time": "2025-01-04T13:00:00Z", "payload": { "action": "login", "ip": "10.0.0.1" } },
+    { "tenant_code": "timeline", "subject_external_ref": "PRJ-004", "event_type": "project", "schema_version": 1, "event_time": "2025-01-04T14:00:00Z", "payload": { "name": "Cloud migration", "status": "completed", "progress": 100 } },
+    { "tenant_code": "timeline", "subject_external_ref": "DL-004", "event_type": "deal", "schema_version": 1, "event_time": "2025-01-04T15:00:00Z", "payload": { "value": 3000, "stage": "qualification" } },
+    { "tenant_code": "timeline", "subject_external_ref": "EXT-009", "event_type": "client", "schema_version": 1, "event_time": "2025-01-05T09:00:00Z", "payload": { "name": "Oliver Schmidt", "email": "oliver.schmidt@schmidt-gmbh.de", "status": "active" } },
+    { "tenant_code": "timeline", "subject_external_ref": "EXT-010", "event_type": "client", "schema_version": 1, "event_time": "2025-01-05T10:00:00Z", "payload": { "name": "Nina Kowalski", "email": "nina.kowalski@kowalski.pl", "status": "active" } }
+  ]
+}

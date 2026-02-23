@@ -8,8 +8,27 @@ import re
 from dataclasses import dataclass
 from typing import ClassVar
 
-# Shared slug pattern: lowercase alphanumeric with optional hyphens (e.g. acme-corp).
 _SLUG_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+_UNDERSCORE_RE = re.compile(r"^[a-z0-9]+(_[a-z0-9]+)*$")
+
+
+def _validate_slug(
+    value: str,
+    min_len: int,
+    max_len: int,
+    field_name: str,
+    length_msg: str,
+    format_hint: str = "lowercase alphanumeric with optional hyphens",
+) -> None:
+    """Validate non-empty, length, and slug format. Raises ValueError on failure."""
+    if not value:
+        raise ValueError(f"{field_name} must be a non-empty string")
+    if len(value) < min_len or len(value) > max_len:
+        raise ValueError(length_msg)
+    if not _SLUG_RE.match(value):
+        raise ValueError(
+            f"{field_name} must be {format_hint} (e.g., 'acme', 'acme-corp')"
+        )
 
 
 @dataclass(frozen=True)
@@ -23,46 +42,34 @@ class TenantCode:
     value: str
 
     def __post_init__(self) -> None:
-        """Validate format and length.
-
-        Raises:
-            ValueError: If empty, length out of range, or invalid format.
-        """
-        if not self.value:
-            raise ValueError("Tenant code must be a non-empty string")
-        if len(self.value) < 3 or len(self.value) > 15:
-            raise ValueError("Tenant code must be 3-15 characters")
-        if not _SLUG_RE.match(self.value):
-            raise ValueError(
-                "Tenant code must be lowercase alphanumeric with optional hyphens "
-                "(e.g., 'acme', 'acme-corp', 'abc123')"
-            )
+        _validate_slug(
+            self.value,
+            min_len=3,
+            max_len=15,
+            field_name="Tenant code",
+            length_msg="Tenant code must be 3-15 characters",
+        )
 
 
 @dataclass(frozen=True)
 class SubjectType:
     """Value object for subject type (SRP).
 
-    Subject types are lowercase alphanumeric with optional hyphens,
-    max 150 characters (e.g. 'client', 'policy').
+    Subject types are lowercase alphanumeric with optional underscores,
+    max 150 characters (e.g. 'client', 'system_audit').
     """
 
     value: str
 
     def __post_init__(self) -> None:
-        """Validate non-empty, length, and format.
-
-        Raises:
-            ValueError: If empty, too long, or invalid format.
-        """
         if not self.value:
             raise ValueError("Subject type must be a non-empty string")
         if len(self.value) > 150:
             raise ValueError("Subject type must not exceed 150 characters")
-        if not _SLUG_RE.match(self.value):
+        if not _UNDERSCORE_RE.match(self.value):
             raise ValueError(
-                "Subject type must be lowercase alphanumeric with optional hyphens "
-                "(e.g., 'client', 'policy', 'supplier')"
+                "Subject type must be lowercase alphanumeric with optional "
+                "underscores (e.g., 'client', 'system_audit')"
             )
 
 
@@ -76,7 +83,6 @@ class EventType:
 
     value: str
 
-    # Standard event types (reference only - custom types are allowed)
     VALID_TYPES: ClassVar[frozenset[str]] = frozenset(
         {
             "created",

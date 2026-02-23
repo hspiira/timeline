@@ -1,37 +1,41 @@
-"""Permission, RolePermission, UserRole repository with audit."""
+"""Permission repository: Permission entity only (single responsibility)."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import or_, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.exceptions import DuplicateAssignmentError
-from app.infrastructure.persistence.models.permission import (
-    Permission,
-    RolePermission,
-    UserRole,
-)
-from app.infrastructure.persistence.models.role import Role
+from app.application.dtos.permission import PermissionResult
+from app.infrastructure.persistence.models.permission import Permission
 from app.infrastructure.persistence.repositories.auditable_repo import (
     AuditableRepository,
 )
-from app.shared.enums import AuditAction
-from app.shared.utils.datetime import utc_now
 
 if TYPE_CHECKING:
     from app.infrastructure.services.system_audit_service import SystemAuditService
 
 
+def _permission_to_result(p: Permission) -> PermissionResult:
+    """Map ORM Permission to application PermissionResult."""
+    return PermissionResult(
+        id=p.id,
+        tenant_id=p.tenant_id,
+        code=p.code,
+        resource=p.resource,
+        action=p.action,
+        description=p.description,
+    )
+
+
 class PermissionRepository(AuditableRepository[Permission]):
-    """Permission repository and role/permission, user/role assignment helpers."""
+    """Permission entity CRUD only. Role–permission and user–role are in separate repos."""
 
     def __init__(
         self,
         db: AsyncSession,
-        audit_service: SystemAuditService | None = None,
+        audit_service: "SystemAuditService | None" = None,
         *,
         enable_audit: bool = True,
     ) -> None:
@@ -39,9 +43,6 @@ class PermissionRepository(AuditableRepository[Permission]):
 
     def _get_entity_type(self) -> str:
         return "permission"
-
-    def _get_tenant_id(self, obj: Permission) -> str:
-        return obj.tenant_id
 
     def _serialize_for_audit(self, obj: Permission) -> dict[str, Any]:
         return {
@@ -52,12 +53,44 @@ class PermissionRepository(AuditableRepository[Permission]):
             "description": obj.description,
         }
 
+    async def create_permission(
+        self,
+        tenant_id: str,
+        code: str,
+        resource: str,
+        action: str,
+        description: str | None = None,
+    ) -> PermissionResult:
+        """Create a permission; return application DTO."""
+        perm = Permission(
+            tenant_id=tenant_id,
+            code=code,
+            resource=resource,
+            action=action,
+            description=description,
+        )
+        created = await self.create(perm)
+        return _permission_to_result(created)
+
     async def get_by_code_and_tenant(
         self, code: str, tenant_id: str
-    ) -> Permission | None:
+    ) -> PermissionResult | None:
         result = await self.db.execute(
             select(Permission).where(
                 Permission.code == code,
+                Permission.tenant_id == tenant_id,
+            )
+        )
+        perm = result.scalar_one_or_none()
+        return _permission_to_result(perm) if perm else None
+
+    async def get_by_id_and_tenant(
+        self, permission_id: str, tenant_id: str
+    ) -> Permission | None:
+        """Return permission by id if it belongs to the tenant; otherwise None."""
+        result = await self.db.execute(
+            select(Permission).where(
+                Permission.id == permission_id,
                 Permission.tenant_id == tenant_id,
             )
         )
@@ -72,155 +105,5 @@ class PermissionRepository(AuditableRepository[Permission]):
             .order_by(Permission.resource, Permission.action)
             .offset(skip)
             .limit(limit)
-        )
-        return list(result.scalars().all())
-
-    async def get_permissions_for_role(
-        self, role_id: str, tenant_id: str
-    ) -> list[Permission]:
-        result = await self.db.execute(
-            select(Permission)
-            .join(RolePermission, RolePermission.permission_id == Permission.id)
-            .where(
-                RolePermission.role_id == role_id,
-                RolePermission.tenant_id == tenant_id,
-            )
-        )
-        return list(result.scalars().all())
-
-    async def assign_permission_to_role(
-        self, role_id: str, permission_id: str, tenant_id: str
-    ) -> RolePermission:
-        rp = RolePermission(
-            tenant_id=tenant_id,
-            role_id=role_id,
-            permission_id=permission_id,
-        )
-        try:
-            self.db.add(rp)
-            await self.db.flush()
-            await self.db.refresh(rp)
-        except IntegrityError:
-            raise DuplicateAssignmentError(
-                "Permission already assigned to role",
-                assignment_type="role_permission",
-                details_extra={"role_id": role_id, "permission_id": permission_id},
-            ) from None
-        if self._audit_enabled and self._audit_service:
-            await self._audit_service.emit_audit_event(
-                tenant_id=tenant_id,
-                entity_type="role",
-                action=AuditAction.ASSIGNED,
-                entity_id=role_id,
-                entity_data={"permission_id": permission_id},
-                actor_id=self._get_actor_id(),
-                actor_type=self._get_actor_type(),
-                metadata={"permission_assigned": permission_id},
-            )
-        return rp
-
-    async def remove_permission_from_role(
-        self, role_id: str, permission_id: str, tenant_id: str
-    ) -> bool:
-        result = await self.db.execute(
-            select(RolePermission).where(
-                RolePermission.role_id == role_id,
-                RolePermission.permission_id == permission_id,
-                RolePermission.tenant_id == tenant_id,
-            )
-        )
-        rp = result.scalar_one_or_none()
-        if not rp:
-            return False
-        await self.db.delete(rp)
-        await self.db.flush()
-        if self._audit_enabled and self._audit_service:
-            await self._audit_service.emit_audit_event(
-                tenant_id=tenant_id,
-                entity_type="role",
-                action=AuditAction.UNASSIGNED,
-                entity_id=role_id,
-                entity_data={"permission_id": permission_id},
-                actor_id=self._get_actor_id(),
-                actor_type=self._get_actor_type(),
-                metadata={"permission_removed": permission_id},
-            )
-        return True
-
-    async def assign_role_to_user(
-        self,
-        user_id: str,
-        role_id: str,
-        tenant_id: str,
-        assigned_by: str | None = None,
-    ) -> UserRole:
-        ur = UserRole(
-            tenant_id=tenant_id,
-            user_id=user_id,
-            role_id=role_id,
-            assigned_by=assigned_by,
-        )
-        try:
-            self.db.add(ur)
-            await self.db.flush()
-            await self.db.refresh(ur)
-        except IntegrityError:
-            raise DuplicateAssignmentError(
-                "Role already assigned to user",
-                assignment_type="user_role",
-                details_extra={"user_id": user_id, "role_id": role_id},
-            ) from None
-        if self._audit_enabled and self._audit_service:
-            await self._audit_service.emit_audit_event(
-                tenant_id=tenant_id,
-                entity_type="role",
-                action=AuditAction.ASSIGNED,
-                entity_id=role_id,
-                entity_data={"user_id": user_id, "assigned_by": assigned_by},
-                actor_id=self._get_actor_id(),
-                actor_type=self._get_actor_type(),
-                metadata={"role_assigned_to_user": user_id},
-            )
-        return ur
-
-    async def remove_role_from_user(
-        self, user_id: str, role_id: str, tenant_id: str
-    ) -> bool:
-        result = await self.db.execute(
-            select(UserRole).where(
-                UserRole.user_id == user_id,
-                UserRole.role_id == role_id,
-                UserRole.tenant_id == tenant_id,
-            )
-        )
-        ur = result.scalar_one_or_none()
-        if not ur:
-            return False
-        await self.db.delete(ur)
-        await self.db.flush()
-        if self._audit_enabled and self._audit_service:
-            await self._audit_service.emit_audit_event(
-                tenant_id=tenant_id,
-                entity_type="role",
-                action=AuditAction.UNASSIGNED,
-                entity_id=role_id,
-                entity_data={"user_id": user_id},
-                actor_id=self._get_actor_id(),
-                actor_type=self._get_actor_type(),
-                metadata={"role_removed_from_user": user_id},
-            )
-        return True
-
-    async def get_user_roles(self, user_id: str, tenant_id: str) -> list[Role]:
-        now = utc_now()
-        result = await self.db.execute(
-            select(Role)
-            .join(UserRole, UserRole.role_id == Role.id)
-            .where(
-                UserRole.user_id == user_id,
-                UserRole.tenant_id == tenant_id,
-                Role.is_active.is_(True),
-                or_(UserRole.expires_at.is_(None), UserRole.expires_at > now),
-            )
         )
         return list(result.scalars().all())

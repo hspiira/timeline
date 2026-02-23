@@ -22,6 +22,9 @@ from app.shared.utils.datetime import utc_now
 
 logger = get_logger(__name__)
 
+# Max tenant_ids to cache (audit subject lookup). FIFO eviction when full.
+_AUDIT_SUBJECT_CACHE_MAX_SIZE = 10_000
+
 
 class SystemAuditService:
     """Emits system audit events using tenant audit subject and schema (hash-chained)."""
@@ -35,6 +38,19 @@ class SystemAuditService:
         self.hash_service = hash_service
         self._subject_cache: dict[str, str] = {}
 
+    def _subject_cache_get(self, tenant_id: str) -> str | None:
+        return self._subject_cache.get(tenant_id)
+
+    def _subject_cache_set(self, tenant_id: str, subject_id: str) -> None:
+        cache = self._subject_cache
+        if tenant_id in cache:
+            cache[tenant_id] = subject_id
+            return
+        if len(cache) >= _AUDIT_SUBJECT_CACHE_MAX_SIZE:
+            oldest = next(iter(cache))
+            del cache[oldest]
+        cache[tenant_id] = subject_id
+
     async def emit_audit_event(
         self,
         tenant_id: str,
@@ -46,7 +62,13 @@ class SystemAuditService:
         actor_type: Any = None,
         metadata: dict[str, Any] | None = None,
     ) -> Event | None:
-        """Emit one audit event. Returns created Event or None if audit subject missing."""
+        """Emit one audit event. Returns created Event or None if audit subject missing.
+
+        Flushes the insert so the audit row is written in the current transaction
+        immediately. Audit remains part of the same transaction; if it rolls back,
+        the audit row is rolled back too. To persist audit across rollbacks, use
+        a separate session/connection and commit there.
+        """
         system_subject_id = await self._get_system_subject(tenant_id)
         if not system_subject_id:
             logger.warning(
@@ -88,6 +110,7 @@ class SystemAuditService:
             hash=computed_hash,
         )
         self.db.add(event)
+        await self.db.flush()
         logger.debug(
             "Emitted audit event for %s.%s (entity_id: %s)",
             entity_type,
@@ -97,8 +120,9 @@ class SystemAuditService:
         return event
 
     async def _get_system_subject(self, tenant_id: str) -> str | None:
-        if tenant_id in self._subject_cache:
-            return self._subject_cache[tenant_id]
+        cached = self._subject_cache_get(tenant_id)
+        if cached is not None:
+            return cached
         result = await self.db.execute(
             select(Subject.id).where(
                 Subject.tenant_id == tenant_id,
@@ -108,7 +132,7 @@ class SystemAuditService:
         )
         subject_id = result.scalar_one_or_none()
         if subject_id:
-            self._subject_cache[tenant_id] = subject_id
+            self._subject_cache_set(tenant_id, subject_id)
         return subject_id
 
     async def _get_latest_hash(self, subject_id: str) -> str | None:

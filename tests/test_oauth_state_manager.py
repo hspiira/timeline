@@ -1,6 +1,7 @@
 """Tests for OAuthStateManager (envelope_encryption)."""
 
 import pytest
+from pydantic import SecretStr
 
 from app.infrastructure.external.email.envelope_encryption import OAuthStateManager
 
@@ -8,7 +9,7 @@ from app.infrastructure.external.email.envelope_encryption import OAuthStateMana
 @pytest.fixture
 def oauth_state_manager(monkeypatch: pytest.MonkeyPatch) -> OAuthStateManager:
     """OAuthStateManager with a fixed secret for deterministic tests."""
-    fake_settings = type("_", (), {"secret_key": "test-secret-key-for-oauth-state-signing"})()
+    fake_settings = type("_", (), {"secret_key": SecretStr("test-secret-key-for-oauth-state-signing")})()
     monkeypatch.setattr(
         "app.infrastructure.external.email.envelope_encryption.get_settings",
         lambda: fake_settings,

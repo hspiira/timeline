@@ -1,4 +1,4 @@
-# new-timeline
+# timeline
 
 Multi-tenant event sourcing API with FastAPI.
 
@@ -15,7 +15,7 @@ Optional extras (install when you use these features):
 | Extra | Use when |
 |-------|----------|
 | `email` | Gmail/Outlook/IMAP integration (`aioimaplib`, `google-api-python-client`, `msal`) |
-| `storage` | Local/S3 file storage (`aiofiles`, `boto3`) |
+| `storage` | **S3** document storage (`boto3`). Default `local` backend uses `aiofiles` (in main deps). |
 | `dev` | Tests, lint, type-checking |
 
 Examples:
@@ -38,6 +38,13 @@ Copy `.env.example` to `.env` and set:
 | Postgres | If postgres | `DATABASE_URL` (e.g. `postgresql+asyncpg://user:pass@host:5432/db`) |
 
 Optional: `REDIS_*` (cache), `ALLOWED_ORIGINS`, `REQUEST_TIMEOUT_SECONDS`, storage and telemetry settings. See `.env.example` and `app.core.config`.
+
+## Secrets and keys (do not commit)
+
+- **Never commit** `.env`, `.env.local`, `.env.development`, `.env.production`, or any file under `secrets/`.
+- For Firestore, use **`FIREBASE_SERVICE_ACCOUNT_KEY`** (full JSON in env) or **`FIREBASE_SERVICE_ACCOUNT_PATH`** pointing to a file **outside the repo** (e.g. `~/.config` or CI secret mount).
+- The repo’s `.gitignore` ignores `secrets/`, `*-firebase-adminsdk-*.json`, `serviceAccountKey*.json`, and common GCP key filenames. Only `.env.example` is tracked.
+- **If a key was ever pushed to GitHub:** revoke/rotate it in Google Cloud Console immediately and use a new key.
 
 ## Run
 

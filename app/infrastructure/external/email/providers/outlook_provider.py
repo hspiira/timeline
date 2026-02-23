@@ -1,5 +1,6 @@
 """Outlook/Office 365 provider using Microsoft Graph API."""
 
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -19,10 +20,20 @@ logger = get_logger(__name__)
 class OutlookProvider:
     """Outlook/Office 365 provider using Microsoft Graph API."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, http_client: httpx.AsyncClient | None = None) -> None:
         self._access_token: str | None = None
         self._config: EmailProviderConfig | None = None
         self._graph_url = "https://graph.microsoft.com/v1.0"
+        self._shared_http = http_client
+
+    @asynccontextmanager
+    async def _http_cm(self):
+        """Yield shared HTTP client or a short-lived one (connection reuse when shared)."""
+        if self._shared_http is not None:
+            yield self._shared_http
+            return
+        async with httpx.AsyncClient() as client:
+            yield client
 
     async def connect(self, config: EmailProviderConfig) -> None:
         """Connect to Microsoft Graph using OAuth credentials."""
@@ -77,7 +88,7 @@ class OutlookProvider:
             params["$top"] = 1000
         if since:
             params["$filter"] = f"receivedDateTime ge {since.isoformat()}"
-        async with httpx.AsyncClient() as client:
+        async with self._http_cm() as client:
             while True:
                 if next_link:
                     response = await client.get(
@@ -145,7 +156,7 @@ class OutlookProvider:
             "expirationDateTime": expiration,
             "clientState": "timeline-secret-value",
         }
-        async with httpx.AsyncClient() as client:
+        async with self._http_cm() as client:
             response = await client.post(
                 f"{self._graph_url}/subscriptions",
                 headers={"Authorization": f"Bearer {self._access_token}"},

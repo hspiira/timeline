@@ -13,17 +13,18 @@ dependencies = [
     # Database & ORM
     "sqlalchemy>=2.0.45",
     "asyncpg>=0.31.0",
-    "greenlet>=3.0.0",
     # Caching
     "redis>=7.1.0",
     # Authentication & Security
     "bcrypt>=5.0.0",
     "cryptography>=46.0.3",
     "nh3>=0.2.0",
-    "python-jose>=3.5.0",
+    "pyjwt>=2.10.0",
     # Firebase / Firestore (REST + google-auth)
     "google-auth>=2.45.0",
-    # Utilities
+    # Utilities & storage (local backend used by document upload)
+    "aiofiles>=25.1.0",
+    "aioimaplib>=2.0.1",
     "cuid2>=2.0.1",
     "jsonschema>=4.25.1",
     "slowapi>=0.1.9",
@@ -37,23 +38,22 @@ dependencies = [
     "opentelemetry-instrumentation-logging>=0.60b1",
     "opentelemetry-instrumentation-redis>=0.60b1",
     "opentelemetry-instrumentation-sqlalchemy>=0.60b1",
+    "greenlet>=3.3.1",
+    "python-pptx>=1.0.2",
 ]
 
 [project.optional-dependencies]
 email = [
-    "aioimaplib>=2.0.1",
     "google-api-python-client>=2.187.0",
     "msal>=1.34.0",
 ]
 storage = [
-    "aiofiles>=25.1.0",
     "boto3>=1.42.19",
 ]
 dev = [
     # Testing
     "pytest>=9.0.2",
     "pytest-asyncio>=0.24.0",
-    "freezegun>=1.5.1",
     "httpx>=0.27.0",
     # Code Quality
     "black>=25.12.0",
@@ -61,8 +61,22 @@ dev = [
     "autoflake>=2.3.1",
     "flake8>=7.0.0",
     "mypy>=1.11.0",
+    # Security
+    "pip-audit>=2.7.0",
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "requires_db: mark test as requiring PostgreSQL (skip when DATABASE_BACKEND != postgres or DATABASE_URL unset)",
+]
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy", "sqlalchemy.ext.mypy.plugin"]
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+exclude = ["alembic/"]

@@ -148,8 +148,11 @@ class LocalStorageService:
                     "uploaded_at": upload_meta["uploaded_at"],
                 }
             finally:
-                if Path(temp_path).exists():
+                try:
                     os.close(temp_fd)
+                except OSError:
+                    pass
+                if Path(temp_path).exists():
                     os.unlink(temp_path)
         except (
             StorageChecksumMismatchError,

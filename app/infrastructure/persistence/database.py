@@ -6,14 +6,25 @@ get_firestore_client() from app.infrastructure.firebase.client instead.
 
 Engine and session factory are created lazily on first use (get_db /
 get_db_transactional) so import does not trigger Settings validation.
+
+When RLS is enabled, get_db and get_db_transactional set app.current_tenant_id
+from the tenant context (set by TenantContextMiddleware) so row-level security
+policies restrict rows to the current tenant.
 """
 
+import logging
 from typing import Any
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
 from app.core.config import get_settings
+from app.core.tenant_context import get_tenant_id as get_current_tenant_id
+from app.core.tenant_validation import is_valid_tenant_id_format
+from app.domain.exceptions import SqlNotConfiguredException
+
+logger = logging.getLogger(__name__)
 
 # Set by _ensure_engine() on first use; avoids get_settings() at import time.
 engine: Any = None
@@ -70,20 +81,53 @@ class Base(DeclarativeBase):
     """Base class for all SQLAlchemy declarative models."""
 
 
+def _quote_set_value(value: str) -> str:
+    """Escape a value for use in PostgreSQL SET (single-quoted literal)."""
+    return value.replace("'", "''")
+
+
+def _is_valid_tenant_id_for_set_local(value: str) -> bool:
+    """Return True if value is safe to interpolate into SET LOCAL (format + length)."""
+    return is_valid_tenant_id_format(value)
+
+
+async def _set_tenant_context(session: AsyncSession) -> None:
+    """Set app.current_tenant_id on the session for RLS (when tenant context is set).
+
+    SET LOCAL does not support bound parameters in PostgreSQL; the value must be
+    interpolated. We validate format (CUID/UUID-style, max length) and escape
+    single quotes. If validation fails, we skip SET LOCAL and log.
+    """
+    tenant_id = get_current_tenant_id()
+    if not tenant_id:
+        return
+    if not _is_valid_tenant_id_for_set_local(tenant_id):
+        logger.warning(
+            "Skipping SET LOCAL app.current_tenant_id: tenant_id failed format validation (length=%d)",
+            len(tenant_id),
+        )
+        return
+    safe = _quote_set_value(tenant_id)
+    await session.execute(text(f"SET LOCAL app.current_tenant_id = '{safe}'"))
+
+
 async def get_db():
     """Database session dependency for read operations.
 
     Does not commit; use get_db_transactional for writes.
+    When tenant context is set (middleware), runs SET LOCAL app.current_tenant_id for RLS.
     Yields a session and closes it on exit.
-    Raises RuntimeError when database_backend is not 'postgres'.
+    Raises SqlNotConfiguredException when database_backend is not 'postgres'.
     """
     _ensure_engine()
     if AsyncSessionLocal is None:
-        raise RuntimeError(
-            "SQL database is not configured (database_backend is not 'postgres'). "
-            "Use get_firestore_client() from app.infrastructure.firebase.client for Firestore."
+        logger.error(
+            "SQL database not configured: set DATABASE_BACKEND=postgres and DATABASE_URL "
+            "(e.g. postgresql+asyncpg://user:pass@localhost:5432/dbname), then run: uv run alembic upgrade head"
         )
+        raise SqlNotConfiguredException()
     async with AsyncSessionLocal() as session:
+        await _set_tenant_context(session)
         yield session
 
 
@@ -91,15 +135,18 @@ async def get_db_transactional():
     """Database session dependency for write operations.
 
     Begins a transaction, commits on success, rolls back on exception.
+    When tenant context is set (middleware), runs SET LOCAL app.current_tenant_id for RLS.
     Use for POST, PUT, PATCH, DELETE endpoints.
-    Raises RuntimeError when database_backend is not 'postgres'.
+    Raises SqlNotConfiguredException when database_backend is not 'postgres'.
     """
     _ensure_engine()
     if AsyncSessionLocal is None:
-        raise RuntimeError(
-            "SQL database is not configured (database_backend is not 'postgres'). "
-            "Use get_firestore_client() from app.infrastructure.firebase.client for Firestore."
+        logger.error(
+            "SQL database not configured: set DATABASE_BACKEND=postgres and DATABASE_URL "
+            "(e.g. postgresql+asyncpg://user:pass@localhost:5432/dbname), then run: uv run alembic upgrade head"
         )
+        raise SqlNotConfiguredException()
     async with AsyncSessionLocal() as session:
         async with session.begin():
+            await _set_tenant_context(session)
             yield session

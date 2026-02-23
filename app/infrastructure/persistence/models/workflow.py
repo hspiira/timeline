@@ -6,6 +6,7 @@ from typing import Any
 import sqlalchemy as sa
 from sqlalchemy import (
     CheckConstraint,
+    Index,
     JSON,
     Boolean,
     DateTime,
@@ -82,6 +83,11 @@ class WorkflowExecution(MultiTenantModel, Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     __table_args__ = (
+        Index(
+            "ix_workflow_execution_tenant_workflow",
+            "tenant_id",
+            "workflow_id",
+        ),
         CheckConstraint(
             "status IN ({})".format(
                 ", ".join(

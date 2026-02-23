@@ -6,9 +6,11 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.user import UserResult
+from app.domain.exceptions import DuplicateEmailException, UserAlreadyExistsException
 from app.infrastructure.persistence.models.user import User
 from app.infrastructure.persistence.repositories.auditable_repo import (
     AuditableRepository,
@@ -16,8 +18,19 @@ from app.infrastructure.persistence.repositories.auditable_repo import (
 from app.infrastructure.security.password import get_password_hash, verify_password
 from app.shared.enums import AuditAction
 
-# Valid bcrypt hash for constant-time comparison when user is not found (timing-attack mitigation)
-_DUMMY_HASH = get_password_hash("not-a-real-password")
+# Lazy dummy hash for constant-time comparison when user is not found (timing-attack mitigation).
+# Computed on first use in a thread to avoid blocking the event loop at import.
+_dummy_hash_cache: str | None = None
+
+
+async def _get_dummy_hash() -> str:
+    """Return a valid bcrypt hash for dummy comparison; computed once in thread pool."""
+    global _dummy_hash_cache
+    if _dummy_hash_cache is None:
+        _dummy_hash_cache = await asyncio.to_thread(
+            get_password_hash, "not-a-real-password"
+        )
+    return _dummy_hash_cache
 
 if TYPE_CHECKING:
     from app.infrastructure.services.system_audit_service import SystemAuditService
@@ -49,10 +62,8 @@ class UserRepository(AuditableRepository[User]):
     def _get_entity_type(self) -> str:
         return "user"
 
-    def _get_tenant_id(self, obj: User) -> str:
-        return obj.tenant_id
-
     def _serialize_for_audit(self, obj: User) -> dict[str, Any]:
+        """Audit payload: never include password_hash or other secrets (see docs/AUDIT_AND_PII.md)."""
         return {
             "id": obj.id,
             "username": obj.username,
@@ -88,7 +99,8 @@ class UserRepository(AuditableRepository[User]):
     ) -> User | None:
         user = await self.get_by_username_and_tenant(username, tenant_id)
         if not user:
-            await asyncio.to_thread(verify_password, password, _DUMMY_HASH)
+            dummy_hash = await _get_dummy_hash()
+            await asyncio.to_thread(verify_password, password, dummy_hash)
             return None
         if not user.is_active:
             return None
@@ -107,6 +119,7 @@ class UserRepository(AuditableRepository[User]):
         email: str,
         password: str,
     ) -> UserResult:
+        """Create user; raise UserAlreadyExistsException on unique constraint violation."""
         hashed = await asyncio.to_thread(get_password_hash, password)
         user = User(
             tenant_id=tenant_id,
@@ -115,15 +128,29 @@ class UserRepository(AuditableRepository[User]):
             hashed_password=hashed,
             is_active=True,
         )
-        created = await self.create(user)
-        return _user_to_result(created)
+        try:
+            created = await self.create(user)
+            return _user_to_result(created)
+        except IntegrityError:
+            raise UserAlreadyExistsException()
 
-    async def update_password(self, user_id: str, new_password: str) -> User | None:
+    async def update(
+        self, obj: User, *, skip_existence_check: bool = False
+    ) -> User:
+        """Update user; raise DuplicateEmailException on unique constraint (e.g. duplicate email)."""
+        try:
+            return await super().update(obj, skip_existence_check=skip_existence_check)
+        except IntegrityError:
+            raise DuplicateEmailException()
+
+    async def update_password(self, user_id: str, new_password: str) -> UserResult | None:
+        """Update user password by id; return updated user result or None if not found."""
         user = await super().get_by_id(user_id)
         if not user:
             return None
         user.hashed_password = await asyncio.to_thread(get_password_hash, new_password)
-        return await self.update(user)
+        updated = await self.update(user)
+        return _user_to_result(updated)
 
     async def deactivate(self, user_id: str, tenant_id: str) -> User | None:
         user = await self.get_by_id_and_tenant(user_id, tenant_id)

@@ -1,12 +1,30 @@
-"""WebSocket endpoint: single /ws that uses the connection manager from app.state.
+"""WebSocket endpoint: single /ws and GET /status.
 
-Uses only the injected ConnectionManager (set in lifespan); no manual construction.
+Uses only the ConnectionManager on app.state (set in lifespan); no manual construction.
 Requires a valid JWT via query param ?token=... before registering the connection.
 """
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Request, WebSocket, WebSocketDisconnect
+
+from app.api.v1.dependencies import get_tenant_id, require_permission
+from app.schemas.websocket import WebSocketStatusResponse
 
 router = APIRouter()
+
+
+@router.get("/status", response_model=WebSocketStatusResponse)
+async def websocket_status(
+    request: Request,
+    _: Annotated[object, Depends(require_permission("tenant", "read"))] = None,
+) -> WebSocketStatusResponse:
+    """Return WebSocket connection count for monitoring. Requires tenant read permission (e.g. admin)."""
+    manager = getattr(request.app.state, "ws_manager", None)
+    total_connections = (
+        await manager.get_connection_count() if manager else 0
+    )
+    return WebSocketStatusResponse(total_connections=total_connections)
 
 
 async def _reject_websocket(websocket: WebSocket, reason: str, code: int = 1008) -> None:
@@ -31,20 +49,22 @@ async def websocket_endpoint(websocket: WebSocket):
         from app.infrastructure.security.jwt import verify_token
 
         payload = verify_token(token)
-        if not payload.get("sub") or not payload.get("tenant_id"):
+        user_id = payload.get("sub")
+        tenant_id = payload.get("tenant_id")
+        if not user_id or not tenant_id:
             await _reject_websocket(websocket, "Invalid token")
             return
     except ValueError:
         await _reject_websocket(websocket, "Invalid token")
         return
-    await manager.connect(websocket)
+
+    await manager.connect(websocket, tenant_id=tenant_id)
     try:
         while True:
-            data = await websocket.receive_text()
-            await websocket.send_text(f"Echo: {data}")
+            await websocket.receive_text()
+            # Placeholder: drain messages until disconnect. Real push/notify
+            # can use manager.broadcast_to_tenant(tenant_id, message).
     except WebSocketDisconnect:
         pass
-    except Exception:
-        raise
     finally:
         await manager.disconnect(websocket)

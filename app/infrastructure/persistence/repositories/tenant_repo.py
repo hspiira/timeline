@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.tenant import TenantResult
 from app.domain.enums import TenantStatus
-from app.domain.exceptions import TenantAlreadyExistsError
+from app.domain.exceptions import TenantAlreadyExistsException
 from app.infrastructure.cache.cache_protocol import CacheProtocol
 from app.infrastructure.cache.keys import tenant_code_key, tenant_key
 from app.infrastructure.persistence.models.tenant import Tenant
@@ -26,7 +26,9 @@ if TYPE_CHECKING:
 
 def _tenant_to_result(t: Tenant) -> TenantResult:
     """Map ORM Tenant to application TenantResult."""
-    return TenantResult(id=t.id, code=t.code, name=t.name, status=t.status)
+    return TenantResult(
+        id=t.id, code=t.code, name=t.name, status=TenantStatus(t.status)
+    )
 
 
 def _tenant_from_cached(cached: dict[str, Any]) -> Tenant:
@@ -57,11 +59,12 @@ class TenantRepository(AuditableRepository[Tenant]):
     def _get_entity_type(self) -> str:
         return "tenant"
 
-    def _get_tenant_id(self, obj: Tenant) -> str:
-        return obj.id
-
     def _serialize_for_audit(self, obj: Tenant) -> dict[str, Any]:
         return {"id": obj.id, "code": obj.code, "name": obj.name, "status": obj.status}
+
+    async def get_entity_by_id(self, tenant_id: str) -> Tenant | None:
+        """Get tenant ORM by ID for update/delete (bypasses cache, reads from DB)."""
+        return await super().get_by_id(tenant_id)
 
     async def get_by_id(self, tenant_id: str) -> TenantResult | None:
         """Get tenant by ID, from cache if available."""
@@ -69,8 +72,7 @@ class TenantRepository(AuditableRepository[Tenant]):
             cached = await self.cache.get(tenant_key(tenant_id))
             if cached is not None:
                 tenant = _tenant_from_cached(cached)
-                merged = await self.db.merge(tenant)
-                return _tenant_to_result(merged)
+                return _tenant_to_result(tenant)
         tenant = await super().get_by_id(tenant_id)
         if tenant and self.cache and self.cache.is_available():
             d = _tenant_to_dict(tenant)
@@ -82,14 +84,14 @@ class TenantRepository(AuditableRepository[Tenant]):
     ) -> TenantResult:
         """Create tenant from code/name/status; return created entity.
 
-        Raises TenantAlreadyExistsError on unique constraint violation (e.g. duplicate code).
+        Raises TenantAlreadyExistsException on unique constraint violation (e.g. duplicate code).
         """
         tenant = Tenant(code=code, name=name, status=status.value)
         try:
             created = await self.create(tenant)
             return _tenant_to_result(created)
         except IntegrityError:
-            raise TenantAlreadyExistsError(code)
+            raise TenantAlreadyExistsException(code)
 
     async def get_by_code(self, code: str) -> TenantResult | None:
         """Get tenant by unique code, from cache if available."""
@@ -97,8 +99,7 @@ class TenantRepository(AuditableRepository[Tenant]):
             cached = await self.cache.get(tenant_code_key(code))
             if cached is not None:
                 tenant = _tenant_from_cached(cached)
-                merged = await self.db.merge(tenant)
-                return _tenant_to_result(merged)
+                return _tenant_to_result(tenant)
         result = await self.db.execute(select(Tenant).where(Tenant.code == code))
         tenant = result.scalar_one_or_none()
         if tenant and self.cache and self.cache.is_available():
@@ -107,7 +108,9 @@ class TenantRepository(AuditableRepository[Tenant]):
             await self.cache.set(tenant_key(tenant.id), d, ttl=self.cache_ttl)
         return _tenant_to_result(tenant) if tenant else None
 
-    async def get_active_tenants(self, skip: int = 0, limit: int = 100) -> list[Tenant]:
+    async def get_active_tenants(
+        self, skip: int = 0, limit: int = 100
+    ) -> list[TenantResult]:
         """Get active tenants with pagination."""
         result = await self.db.execute(
             select(Tenant)
@@ -115,25 +118,32 @@ class TenantRepository(AuditableRepository[Tenant]):
             .offset(skip)
             .limit(limit)
         )
-        return list(result.scalars().all())
+        return [_tenant_to_result(t) for t in result.scalars().all()]
 
-    async def update_status(
-        self, tenant_id: str, status: TenantStatus
-    ) -> Tenant | None:
-        """Update tenant status and emit status_changed audit (no generic UPDATED)."""
+    async def update_tenant(
+        self,
+        tenant_id: str,
+        name: str | None = None,
+        status: TenantStatus | None = None,
+    ) -> TenantResult | None:
+        """Update tenant name and/or status; return updated result or None if not found."""
         tenant = await super().get_by_id(tenant_id)
         if not tenant:
             return None
         old_status = tenant.status
-        tenant.status = status.value
+        if name is not None:
+            tenant.name = name
+        if status is not None:
+            tenant.status = status.value
         updated = await self.update_without_audit(tenant)
         await _invalidate_tenant_cache(self.cache, updated.id, updated.code)
-        await self.emit_custom_audit(
-            updated,
-            AuditAction.STATUS_CHANGED,
-            metadata={"old_status": old_status, "new_status": status.value},
-        )
-        return updated
+        if status is not None and status != old_status:
+            await self.emit_custom_audit(
+                updated,
+                AuditAction.STATUS_CHANGED,
+                metadata={"old_status": old_status, "new_status": updated.status},
+            )
+        return _tenant_to_result(updated)
 
     async def _on_after_create(self, obj: Tenant) -> None:
         await super()._on_after_create(obj)

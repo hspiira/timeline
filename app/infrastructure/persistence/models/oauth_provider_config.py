@@ -17,10 +17,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from app.infrastructure.persistence.database import Base
-from app.infrastructure.persistence.models.mixins import AuditedMultiTenantModel
+from app.infrastructure.persistence.models.mixins import AuditedMultiTenantModelNoDeletedBy
 
 
-class OAuthProviderConfig(AuditedMultiTenantModel, Base):
+class OAuthProviderConfig(AuditedMultiTenantModelNoDeletedBy, Base):
     """OAuth provider credentials (versioned, envelope-encrypted). Table: oauth_provider_config."""
 
     __tablename__ = "oauth_provider_config"

@@ -91,6 +91,25 @@ class UserAuditMixin(TimestampMixin, SoftDeleteMixin):
         )
 
 
+class UserAuditMixinNoDeletedBy(TimestampMixin, SoftDeleteMixin):
+    """User audit without deleted_by (for tables that have only created_by, updated_by, deleted_at)."""
+
+    @declared_attr
+    def created_by(cls) -> Mapped[str | None]:
+        return mapped_column(
+            String,
+            ForeignKey("app_user.id", ondelete="SET NULL"),
+            nullable=True,
+            index=True,
+        )
+
+    @declared_attr
+    def updated_by(cls) -> Mapped[str | None]:
+        return mapped_column(
+            String, ForeignKey("app_user.id", ondelete="SET NULL"), nullable=True
+        )
+
+
 class VersionedMixin:
     """Mixin for optimistic locking: version integer, default 1."""
 
@@ -116,7 +135,13 @@ class MultiTenantModel(CuidMixin, TenantMixin, TimestampMixin):
 
 
 class AuditedMultiTenantModel(CuidMixin, TenantMixin, UserAuditMixin):
-    """Combined mixin: CUID + tenant_id + user audit (timestamps, created_by, etc.)."""
+    """Combined mixin: CUID + tenant_id + user audit (timestamps, created_by, deleted_by, etc.)."""
+
+    __abstract__ = True
+
+
+class AuditedMultiTenantModelNoDeletedBy(CuidMixin, TenantMixin, UserAuditMixinNoDeletedBy):
+    """Like AuditedMultiTenantModel but without deleted_by (for oauth_provider_config etc.)."""
 
     __abstract__ = True
 

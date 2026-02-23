@@ -40,11 +40,17 @@ class BaseRepository[ModelType: Base]:
         await self._on_after_create(obj)
         return obj
 
-    async def update(self, obj: ModelType) -> ModelType:
+    async def update(
+        self, obj: ModelType, *, skip_existence_check: bool = False
+    ) -> ModelType:
         """Update an existing record (merge if detached) and run _on_after_update hook.
 
         Verifies the record exists by primary key before merging; raises
         ResourceNotFoundException if any PK is missing or no row is found.
+        When the object is already attached to this session, skips the existence
+        SELECT to avoid a redundant query. When skip_existence_check is True,
+        the existence SELECT is also skipped (use when the caller just loaded
+        the entity in this session).
         """
         mapper = sa_inspect(self.model)
         pk_attrs = mapper.primary_key
@@ -54,14 +60,19 @@ class BaseRepository[ModelType: Base]:
                     f"Cannot update: primary key '{col.key}' is missing on "
                     f"{self.model.__name__} instance."
                 )
-        stmt = select(self.model).where(
-            and_(*(getattr(self.model, c.key) == getattr(obj, c.key) for c in pk_attrs))
-        )
-        result = await self.db.execute(stmt)
-        if result.scalar_one_or_none() is None:
-            pk_str = ",".join(str(getattr(obj, c.key)) for c in pk_attrs)
-            raise ResourceNotFoundException(self.model.__name__, pk_str)
-        if object_session(obj) is None:
+        attached = object_session(obj) is self.db.sync_session
+        if not attached and not skip_existence_check:
+            stmt = select(self.model).where(
+                and_(
+                    *(getattr(self.model, c.key) == getattr(obj, c.key) for c in pk_attrs)
+                )
+            )
+            result = await self.db.execute(stmt)
+            if result.scalar_one_or_none() is None:
+                pk_str = ",".join(str(getattr(obj, c.key)) for c in pk_attrs)
+                raise ResourceNotFoundException(self.model.__name__, pk_str)
+            obj = await self.db.merge(obj)
+        elif not attached and skip_existence_check:
             obj = await self.db.merge(obj)
         await self.db.flush()
         await self.db.refresh(obj)

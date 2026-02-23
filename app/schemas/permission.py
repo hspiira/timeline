@@ -1,6 +1,15 @@
 """Permission API schemas."""
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class PermissionCreateRequest(BaseModel):
+    """Request body for creating a permission."""
+
+    code: str = Field(..., min_length=1, max_length=128)
+    resource: str = Field(..., min_length=1, max_length=64)
+    action: str = Field(..., min_length=1, max_length=64)
+    description: str | None = Field(default=None, max_length=500)
 
 
 class PermissionResponse(BaseModel):

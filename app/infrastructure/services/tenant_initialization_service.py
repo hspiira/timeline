@@ -7,6 +7,12 @@ from typing import TypedDict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.services.relationship_event_schema import (
+    RELATIONSHIP_ADDED_EVENT_TYPE,
+    RELATIONSHIP_EVENT_SCHEMA_VERSION,
+    RELATIONSHIP_REMOVED_EVENT_TYPE,
+    get_relationship_event_schema_definition,
+)
 from app.application.services.system_audit_schema import (
     SYSTEM_AUDIT_EVENT_TYPE,
     SYSTEM_AUDIT_SCHEMA_VERSION,
@@ -14,6 +20,7 @@ from app.application.services.system_audit_schema import (
     SYSTEM_AUDIT_SUBJECT_TYPE,
     get_system_audit_schema_definition,
 )
+from app.domain.exceptions import ResourceNotFoundException
 from app.infrastructure.persistence.models.event_schema import EventSchema
 from app.infrastructure.persistence.models.permission import (
     Permission,
@@ -43,6 +50,8 @@ SYSTEM_PERMISSIONS: list[tuple[str, str, str, str]] = [
     ("subject:update", "subject", "update", "Update subjects"),
     ("subject:delete", "subject", "delete", "Delete subjects"),
     ("subject:list", "subject", "list", "List subjects"),
+    ("subject:export", "subject", "export", "Export subject data (GDPR)"),
+    ("subject:erasure", "subject", "erasure", "Erase/anonymize subject data (GDPR)"),
     ("user:create", "user", "create", "Create users"),
     ("user:read", "user", "read", "View users"),
     ("user:update", "user", "update", "Update users"),
@@ -50,9 +59,13 @@ SYSTEM_PERMISSIONS: list[tuple[str, str, str, str]] = [
     ("user:list", "user", "list", "List users"),
     ("role:create", "role", "create", "Create roles"),
     ("role:read", "role", "read", "View roles"),
-    ("role:update", "role", "update", "Modify roles"),
+    ("role:update", "role", "update", "Modify role name/description (not permissions)"),
     ("role:delete", "role", "delete", "Delete roles"),
+    ("role:manage_permissions", "role", "manage_permissions", "Assign/remove permissions to/from roles (admin-only)"),
     ("role:assign", "role", "assign", "Assign roles to users"),
+    ("user_role:read", "user_role", "read", "View user role assignments"),
+    ("user_role:update", "user_role", "update", "Assign/remove non-admin roles to/from users"),
+    ("user_role:assign_admin", "user_role", "assign_admin", "Assign or remove admin role (admin-only)"),
     ("permission:create", "permission", "create", "Create permissions"),
     ("permission:read", "permission", "read", "View permissions"),
     ("permission:delete", "permission", "delete", "Delete permissions"),
@@ -66,8 +79,25 @@ SYSTEM_PERMISSIONS: list[tuple[str, str, str, str]] = [
     ("workflow:read", "workflow", "read", "View workflows"),
     ("workflow:update", "workflow", "update", "Update workflows"),
     ("workflow:delete", "workflow", "delete", "Delete workflows"),
+    ("flow:create", "flow", "create", "Create flows"),
+    ("flow:read", "flow", "read", "View flows"),
+    ("flow:update", "flow", "update", "Update flows"),
+    ("flow:delete", "flow", "delete", "Delete flows"),
+    ("naming_template:create", "naming_template", "create", "Create naming templates"),
+    ("naming_template:read", "naming_template", "read", "View naming templates"),
+    ("naming_template:update", "naming_template", "update", "Update naming templates"),
+    ("naming_template:delete", "naming_template", "delete", "Delete naming templates"),
+    ("audit:read", "audit", "read", "View audit log"),
+    ("relationship_kind:read", "relationship_kind", "read", "View relationship kinds"),
+    ("relationship_kind:create", "relationship_kind", "create", "Create relationship kinds"),
+    ("relationship_kind:update", "relationship_kind", "update", "Update relationship kinds"),
+    ("relationship_kind:delete", "relationship_kind", "delete", "Delete relationship kinds"),
     ("*:*", "*", "*", "Super admin - all permissions"),
 ]
+
+# Permissions that must not be granted via resource wildcards (e.g. subject:*).
+# GDPR-sensitive operations require explicit assignment (e.g. Administrator or DPO).
+GDPR_SENSITIVE_PERMISSIONS: frozenset[str] = frozenset({"subject:export", "subject:erasure"})
 
 DEFAULT_ROLES: dict[str, RoleData] = {
     "admin": {
@@ -85,9 +115,14 @@ DEFAULT_ROLES: dict[str, RoleData] = {
             "user:read",
             "user:create",
             "user:list",
+            "user_role:read",
+            "user_role:update",
             "document:*",
             "event_schema:read",
             "workflow:*",
+            "flow:*",
+            "naming_template:*",
+            "relationship_kind:*",
         ],
         "is_system": True,
     },
@@ -105,12 +140,13 @@ DEFAULT_ROLES: dict[str, RoleData] = {
             "document:create",
             "document:read",
             "event_schema:read",
+            "relationship_kind:read",
         ],
         "is_system": True,
     },
     "auditor": {
         "name": "Auditor (Read-Only)",
-        "description": "Read-only access to events and subjects",
+        "description": "Read-only access to events, subjects, and audit log",
         "permissions": [
             "event:read",
             "event:list",
@@ -118,6 +154,8 @@ DEFAULT_ROLES: dict[str, RoleData] = {
             "subject:list",
             "document:read",
             "event_schema:read",
+            "audit:read",
+            "relationship_kind:read",
         ],
         "is_system": True,
     },
@@ -142,8 +180,16 @@ class TenantInitializationService:
 
         audit_schema = self._build_audit_schema(tenant_id, created_by=None)
         audit_subject = self._build_audit_subject(tenant_id)
+        rel_added_schema = self._build_relationship_event_schema(
+            tenant_id, RELATIONSHIP_ADDED_EVENT_TYPE
+        )
+        rel_removed_schema = self._build_relationship_event_schema(
+            tenant_id, RELATIONSHIP_REMOVED_EVENT_TYPE
+        )
         self.db.add(audit_schema)
         self.db.add(audit_subject)
+        self.db.add(rel_added_schema)
+        self.db.add(rel_removed_schema)
         await self.db.flush()
 
         permissions, permission_map = self._build_permissions(tenant_id)
@@ -166,7 +212,7 @@ class TenantInitializationService:
             )
             admin_role_id = result.scalar_one_or_none()
             if not admin_role_id:
-                raise ValueError(f"Admin role not found for tenant {tenant_id}")
+                raise ResourceNotFoundException("role", f"admin:{tenant_id}")
         else:
             admin_role_id = tenant_roles["admin"]
 
@@ -242,7 +288,7 @@ class TenantInitializationService:
             return [
                 pid
                 for code, pid in permission_map.items()
-                if code.startswith(prefix + ":")
+                if code.startswith(prefix + ":") and code not in GDPR_SENSITIVE_PERMISSIONS
             ]
         pid = permission_map.get(pattern)
         return [pid] if pid else []
@@ -278,4 +324,19 @@ class TenantInitializationService:
             tenant_id=tenant_id,
             subject_type=SYSTEM_AUDIT_SUBJECT_TYPE,
             external_ref=SYSTEM_AUDIT_SUBJECT_REF,
+        )
+
+    @staticmethod
+    def _build_relationship_event_schema(
+        tenant_id: str, event_type: str
+    ) -> EventSchema:
+        """Build EventSchema for relationship_added or relationship_removed (version 1)."""
+        return EventSchema(
+            id=generate_cuid(),
+            tenant_id=tenant_id,
+            event_type=event_type,
+            schema_definition=get_relationship_event_schema_definition(),
+            version=RELATIONSHIP_EVENT_SCHEMA_VERSION,
+            is_active=True,
+            created_by=None,
         )

@@ -5,6 +5,7 @@ Represents the business concept of a subject, independent of persistence.
 
 from dataclasses import dataclass, field
 
+from app.domain.exceptions import ValidationException
 from app.domain.value_objects.core import SubjectType
 
 
@@ -13,7 +14,7 @@ class SubjectEntity:
     """Domain entity for subject (SRP: business logic separate from persistence).
 
     A subject is the entity whose timeline (event chain) is being maintained.
-    Optional internal state (_event_count, _has_events) supports chain queries.
+    Validation runs on construction.
     """
 
     id: str
@@ -24,20 +25,15 @@ class SubjectEntity:
     _event_count: int = field(default=0, repr=False)
     _has_events: bool = field(default=False, repr=False)
 
-    def validate(self) -> bool:
-        """Validate subject business rules.
+    def __post_init__(self) -> None:
+        self.validate()
 
-        Returns:
-            True if valid.
-
-        Raises:
-            ValueError: If id or tenant_id is missing.
-        """
+    def validate(self) -> None:
+        """Validate subject business rules. Raises ValidationException if invalid."""
         if not self.id:
-            raise ValueError("Subject ID is required")
+            raise ValidationException("Subject ID is required", field="id")
         if not self.tenant_id:
-            raise ValueError("Subject must belong to a tenant")
-        return True
+            raise ValidationException("Subject must belong to a tenant", field="tenant_id")
 
     def belongs_to_tenant(self, tenant_id: str) -> bool:
         """Return whether this subject belongs to the given tenant.

@@ -14,13 +14,17 @@ from app.domain.enums import TenantStatus
 from app.domain.exceptions import (
     AuthenticationException,
     AuthorizationException,
-    DuplicateAssignmentError,
+    CredentialException,
+    DuplicateAssignmentException,
     EventChainBrokenException,
     ResourceNotFoundException,
     SchemaValidationException,
+    SqlNotConfiguredException,
     TenantNotFoundException,
     TimelineException,
+    TransitionValidationException,
     ValidationException,
+    VerificationLimitExceededException,
 )
 from app.domain.value_objects import (
     EventChain,
@@ -33,7 +37,9 @@ from app.domain.value_objects import (
 __all__ = [
     "AuthenticationException",
     "AuthorizationException",
-    "DuplicateAssignmentError",
+    "CredentialException",
+    "SqlNotConfiguredException",
+    "DuplicateAssignmentException",
     "EventChain",
     "EventChainBrokenException",
     "EventEntity",
@@ -49,5 +55,7 @@ __all__ = [
     "TenantNotFoundException",
     "TenantStatus",
     "TimelineException",
+    "TransitionValidationException",
     "ValidationException",
+    "VerificationLimitExceededException",
 ]
