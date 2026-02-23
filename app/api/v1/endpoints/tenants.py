@@ -22,7 +22,7 @@ from app.core.config import get_settings
 from app.core.limiter import limit_create_tenant, limit_writes
 from app.domain.enums import TenantStatus
 from app.infrastructure.services.api_audit_log_service import ApiAuditLogService
-from app.shared.request_audit import get_audit_request_context
+from app.shared.request_audit import get_audit_request_context, set_audit_payload
 from app.schemas.tenant import (
     TenantCreateRequest,
     TenantCreateResponse,
@@ -186,28 +186,13 @@ async def update_tenant_status(
 async def delete_tenant(
     request: Request,
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
-    db: Annotated[AsyncSession, Depends(get_db_transactional)],
     tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo_for_write)],
-    current_user: Annotated[UserResult, Depends(require_permission("tenant", "delete"))],
+    _: Annotated[object, Depends(require_permission("tenant", "delete"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
-    """Soft-delete tenant. Path tenant_id must match X-Tenant-ID header. Logs delete action for audit."""
+    """Soft-delete tenant. Path tenant_id must match X-Tenant-ID header. Logs delete for audit."""
     updated = await tenant_repo.update_tenant(tenant_id, status=TenantStatus.ARCHIVED)
     if not updated:
         raise HTTPException(status_code=404, detail="Tenant not found")
-    request_id, ip_address, user_agent = get_audit_request_context(request)
-    svc = ApiAuditLogService(db)
-    await svc.log_action(
-        tenant_id=tenant_id,
-        user_id=current_user.id,
-        action="delete",
-        resource_type="tenants",
-        resource_id=tenant_id,
-        old_values=None,
-        new_values={"status": TenantStatus.ARCHIVED.value},
-        ip_address=ip_address,
-        user_agent=user_agent,
-        request_id=request_id,
-        success=True,
-        error_message=None,
-    )
+    set_audit_payload(request, new_values={"status": TenantStatus.ARCHIVED.value})
     return None

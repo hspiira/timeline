@@ -111,7 +111,7 @@ This deploys a preview and will fail at build time if the bundle is too large or
 ## Development
 
 - **Guidelines for contributors and agents:** [docs/AGENT_GUIDELINES.md](docs/AGENT_GUIDELINES.md)
-- **Architecture and operations:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/MULTI_TENANCY_AND_SECURITY.md](docs/MULTI_TENANCY_AND_SECURITY.md)
+- **Architecture and operations:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SECURITY_AND_COMPLIANCE.md](docs/SECURITY_AND_COMPLIANCE.md)
 - **Run:** `uv run uvicorn app.main:app --reload`
 - **Tests:** `uv run pytest tests/ -v` (requires `uv sync --all-extras` or `--extra dev` for pytest, httpx, pytest-asyncio)
 - **Scripts:** `uv run python -m scripts.create_test_user <tenant_code> <username> [password]`, `scripts.seed_rbac <tenant_id_or_code>`, `scripts.reset_password <user_id> <new_password>`. Scripts require Postgres (`DATABASE_URL`).

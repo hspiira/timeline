@@ -14,6 +14,7 @@ import httpx
 from fastapi import FastAPI
 
 from app.core.config import get_settings
+from app.core.verification_job_store import VerificationJobStore
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     from app.api.websocket import ConnectionManager
 
     app.state.ws_manager = ConnectionManager()
-    app.state.verification_jobs = {}
+    app.state.verification_job_store = VerificationJobStore()
 
     if settings.redis_enabled:
         from app.infrastructure.cache.redis_cache import CacheService

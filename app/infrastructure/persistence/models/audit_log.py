@@ -3,9 +3,9 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, text
+from sqlalchemy import Boolean, Connection, DateTime, ForeignKey, String, Text, event, text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, Mapper, mapped_column
 
 from app.infrastructure.persistence.database import Base
 from app.shared.utils.generators import generate_cuid
@@ -36,3 +36,23 @@ class AuditLog(Base):
     )
     success: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+@event.listens_for(AuditLog, "before_update")
+def _prevent_audit_log_updates(
+    _mapper: Mapper[Any], _connection: Connection, _target: AuditLog
+) -> None:
+    """Audit log entries are append-only; updates are forbidden."""
+    raise ValueError(
+        "Audit log entries are immutable and cannot be updated."
+    )
+
+
+@event.listens_for(AuditLog, "before_delete")
+def _prevent_audit_log_deletes(
+    _mapper: Mapper[Any], _connection: Connection, _target: AuditLog
+) -> None:
+    """Audit log entries cannot be deleted for compliance."""
+    raise ValueError(
+        "Audit log entries cannot be deleted."
+    )

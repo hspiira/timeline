@@ -15,6 +15,7 @@ from app.infrastructure.persistence.repositories import AuditLogRepository
 from app.infrastructure.services.api_audit_log_service import ApiAuditLogService
 from app.shared.request_audit import (
     get_audit_action_from_method,
+    get_audit_payload,
     get_audit_request_context,
     get_audit_resource_from_path,
     get_tenant_and_user_for_audit,
@@ -47,6 +48,7 @@ async def ensure_audit_logged(
         return
     request_id, ip_address, user_agent = get_audit_request_context(request)
     action = get_audit_action_from_method(request.method)
+    old_values, new_values = get_audit_payload(request)
     try:
         svc = ApiAuditLogService(db)
         await svc.log_action(
@@ -55,8 +57,8 @@ async def ensure_audit_logged(
             action=action,
             resource_type=resource_type,
             resource_id=resource_id,
-            old_values=None,
-            new_values=None,
+            old_values=old_values,
+            new_values=new_values,
             ip_address=ip_address,
             user_agent=user_agent,
             request_id=request_id,

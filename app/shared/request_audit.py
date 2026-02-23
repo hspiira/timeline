@@ -66,3 +66,32 @@ def get_audit_action_from_method(method: str) -> str:
         "PATCH": "update",
         "DELETE": "delete",
     }.get(method, method.lower())
+
+
+def set_audit_payload(
+    request: Request,
+    *,
+    old_values: dict | None = None,
+    new_values: dict | None = None,
+) -> None:
+    """Set old/new values for the API audit log (picked up by ensure_audit_logged).
+
+    Call from a route before returning when you want this request's audit entry
+    to include before/after state. ensure_audit_logged reads request.state.audit_payload
+    after the route returns.
+    """
+    request.state.audit_payload = {
+        "old_values": old_values,
+        "new_values": new_values,
+    }
+
+
+def get_audit_payload(request: Request) -> tuple[dict | None, dict | None]:
+    """Return (old_values, new_values) from request.state.audit_payload if set."""
+    payload = getattr(request.state, "audit_payload", None)
+    if not payload:
+        return (None, None)
+    return (
+        payload.get("old_values"),
+        payload.get("new_values"),
+    )
