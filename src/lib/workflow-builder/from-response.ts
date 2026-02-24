@@ -13,6 +13,7 @@ type WorkflowResponseLike = {
   name: string
   trigger_event_type: string
   actions: ApiAction[]
+  trigger_conditions?: Record<string, unknown> | null
 }
 
 const STEP_DY = 140
@@ -34,7 +35,7 @@ export function workflowFromResponse(res: WorkflowResponseLike): Workflow {
   nodes.push(triggerNode)
 
   if (!res.actions?.length) {
-    return { id: res.id, name: res.name, nodes, edges }
+    return { id: res.id, name: res.name, nodes, edges, triggerConditions: res.trigger_conditions ?? undefined }
   }
 
   let prevId: string = triggerId
@@ -69,7 +70,7 @@ export function workflowFromResponse(res: WorkflowResponseLike): Workflow {
       continue
     }
 
-    const isIntegration = type !== 'create_event' && type !== 'send_email' && type !== 'update_subject'
+    const isIntegration = type !== 'create_event' && type !== 'send_email' && type !== 'update_subject' && type !== 'create_relationship'
     const nodeType = isIntegration ? 'integration_action' : 'action'
     const config: Record<string, unknown> = isIntegration
       ? { operation: type, integration: '', params }
@@ -82,5 +83,5 @@ export function workflowFromResponse(res: WorkflowResponseLike): Workflow {
     y += STEP_DY
   }
 
-  return { id: res.id, name: res.name, nodes, edges }
+  return { id: res.id, name: res.name, nodes, edges, triggerConditions: res.trigger_conditions ?? undefined }
 }

@@ -54,6 +54,7 @@ function collectActions(
 export function workflowGraphToCreateRequest(workflow: Workflow): {
   trigger_event_type: string
   actions: WorkflowActionItem[]
+  trigger_conditions?: Record<string, unknown> | null
 } | null {
   const trigger = workflow.nodes.find((n) => nodeRegistry.getOptional(n.type)?.isTrigger)
   if (!trigger) return null
@@ -69,5 +70,13 @@ export function workflowGraphToCreateRequest(workflow: Workflow): {
     seen.add(toId)
     collectActions(workflow, toId, actions)
   }
-  return { trigger_event_type, actions }
+  const result: {
+    trigger_event_type: string
+    actions: WorkflowActionItem[]
+    trigger_conditions?: Record<string, unknown> | null
+  } = { trigger_event_type, actions }
+  if (workflow.triggerConditions !== undefined) {
+    result.trigger_conditions = workflow.triggerConditions
+  }
+  return result
 }

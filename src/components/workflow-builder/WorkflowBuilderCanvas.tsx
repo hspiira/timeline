@@ -9,11 +9,11 @@ import {
   useUpdateNodeInternals,
   addEdge,
   MarkerType,
-  ConnectionLineType,
   type Connection,
   type Node,
   type ReactFlowInstance,
   Panel,
+  BackgroundVariant,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import {
@@ -30,6 +30,8 @@ import { ActionNode } from './ActionNode'
 import { IntegrationActionNode } from './IntegrationActionNode'
 import { ConditionNode } from './ConditionNode'
 import { TerminalNode } from './TerminalNode'
+import { FloatingEdge } from './FloatingEdge'
+import { CustomConnectionLine } from './CustomConnectionLine'
 import type { NodeType } from '@/lib/workflow-builder/types'
 import { ArrowRight, ArrowDown } from 'lucide-react'
 
@@ -41,16 +43,22 @@ const nodeTypes = {
   terminal: TerminalNode,
 }
 
+const edgeTypes = {
+  floating: FloatingEdge,
+}
+
 const defaultEdgeOptions = {
-  type: 'smoothstep',
+  type: 'floating',
   markerEnd: {
     type: MarkerType.ArrowClosed,
-    width: 14,
-    height: 14,
+    width: 16,
+    height: 16,
+    color: 'hsl(var(--foreground) / 0.6)',
   },
-  pathOptions: { borderRadius: 28 },
-  style: { strokeWidth: 1.5 },
+  style: { strokeWidth: 2, stroke: 'hsl(var(--foreground) / 0.6)' },
 }
+
+const connectionLineStyle = { stroke: 'hsl(var(--border))', strokeWidth: 1.5 }
 
 export interface WorkflowBuilderCanvasProps {
   workflow: Workflow
@@ -169,6 +177,7 @@ function WorkflowBuilderCanvasInner({
         type,
         position,
         data: { workflowNode, label: type },
+        dragHandle: '.workflow-node-drag-handle',
       }
       setNodes((nds) => nds.concat(newNode))
       onSelectionChange?.(id)
@@ -189,8 +198,19 @@ function WorkflowBuilderCanvasInner({
 
   const handleInit = useCallback((instance: ReactFlowInstance<Node<WorkflowNodeData>>) => {
     flowInstanceRef.current = instance
-    instance.fitView({ padding: 0.3, duration: 200 })
+    // Fit entire workflow in view with padding for a minimal zoomed work area
+    instance.fitView({ padding: 0.25, duration: 200, minZoom: 0.15, maxZoom: 1.5 })
   }, [])
+
+  // Re-fit view when workflow structure changes (e.g. template load) so model stays in view
+  useEffect(() => {
+    const instance = flowInstanceRef.current
+    if (!instance) return
+    const t = setTimeout(() => {
+      flowInstanceRef.current?.fitView({ padding: 0.25, duration: 300, minZoom: 0.15, maxZoom: 1.5 })
+    }, 100)
+    return () => clearTimeout(t)
+  }, [workflow.nodes.length, workflow.edges.length])
 
   const handleSelectionChange = useCallback(
     (params: { nodes: Node<WorkflowNodeData>[] }) => {
@@ -234,7 +254,7 @@ function WorkflowBuilderCanvasInner({
         })
       )
       setLayoutDirection(direction)
-      setTimeout(() => flowInstanceRef.current?.fitView({ padding: 0.3, duration: 300 }), 50)
+      setTimeout(() => flowInstanceRef.current?.fitView({ padding: 0.25, duration: 300 }), 50)
     },
     [nodes, edges, setNodes]
   )
@@ -256,12 +276,17 @@ function WorkflowBuilderCanvasInner({
         onInit={handleInit}
         onSelectionChange={handleSelectionChange}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
-        connectionLineType={ConnectionLineType.SmoothStep}
+        connectionLineComponent={CustomConnectionLine}
+        connectionLineStyle={connectionLineStyle}
+        noDragClassName="workflow-node-drag-handle"
         fitView={false}
+        minZoom={0.15}
+        maxZoom={1.5}
         className="bg-muted/10"
       >
-        <Background gap={20} size={1} />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
         <Controls showInteractive={false} />
         <Panel position="top-center" className="w-full max-w-full pt-0 px-2 pb-2">
           <div className="flex items-center justify-between gap-4 w-full">

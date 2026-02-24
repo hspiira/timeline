@@ -1,13 +1,17 @@
 import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react'
 import { CircleDot } from 'lucide-react'
 import type { WorkflowNodeData } from '@/lib/workflow-builder/flow-adapter'
+import { nodeRegistry } from '@/lib/workflow-builder/node-registry'
 import { WorkflowNodeShell, HANDLE_CLASS } from './WorkflowNodeShell'
 
 const HIDE_WHEN_NOT_CONNECTING = '!opacity-0 pointer-events-none'
 
 export function ConditionNode({ data, selected }: NodeProps<import('@xyflow/react').Node<WorkflowNodeData>>) {
-  const expression = (data.workflowNode.configuration?.expression as string) ?? ''
+  const node = data.workflowNode
+  const expression = (node.configuration?.expression as string) ?? ''
   const title = expression || 'Check condition'
+  const description = (node.configuration?.description as string) || undefined
+  const desc = nodeRegistry.getOptional(node.type)
   const connection = useConnection()
   const isConnecting = connection?.inProgress === true
   const showHandles = isConnecting || selected
@@ -22,6 +26,8 @@ export function ConditionNode({ data, selected }: NodeProps<import('@xyflow/reac
       badgeIcon={<CircleDot className="w-3 h-3" />}
       badgeVariant="blue"
       title={title}
+      description={description}
+      tag={desc?.category}
       selected={selected}
     >
       {/* Yes/no on all 4 sides; target handles (for incoming) only show when connecting (in shell) */}

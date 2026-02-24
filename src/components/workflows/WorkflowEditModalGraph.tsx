@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useEventTypes } from '@/hooks/useEventTypes'
+import { useWorkflowEngineContext } from '@/hooks/useWorkflowEngineContext'
 import { useFormSubmit } from '@/hooks/useFormSubmit'
 import type { components } from '@/lib/timeline-api'
 import {
@@ -33,13 +33,15 @@ export function WorkflowEditModalGraph({
   onClose,
   onSave,
 }: WorkflowEditModalGraphProps) {
-  const { types: eventTypes, loading: loadingEventTypes } = useEventTypes()
+  const workflowContext = useWorkflowEngineContext()
+  const { eventTypes, loading: loadingEventTypes } = workflowContext
   const [workflow, setWorkflow] = useState<Workflow>(() =>
     workflowFromResponse({
       id: initialWorkflow.id,
       name: initialWorkflow.name,
       trigger_event_type: initialWorkflow.trigger_event_type ?? '',
       actions: initialWorkflow.actions ?? [],
+      trigger_conditions: initialWorkflow.trigger_conditions ?? undefined,
     })
   )
   const [name, setName] = useState(initialWorkflow.name ?? '')
@@ -121,6 +123,7 @@ export function WorkflowEditModalGraph({
       is_active: isActive,
       trigger_event_type: triggerEventTypeFinal,
       actions: payloadFromGraph.actions,
+      ...(workflow.triggerConditions !== undefined && { trigger_conditions: workflow.triggerConditions }),
     }
 
     const result = await execute(() => onSave(initialWorkflow.id, updateData as WorkflowUpdate))
@@ -230,7 +233,7 @@ export function WorkflowEditModalGraph({
                 </h4>
                 <NodeConfigPanel
                   node={node}
-                  eventTypes={eventTypes}
+                  workflowContext={workflowContext}
                   onUpdate={(updates) =>
                     setWorkflow((prev) =>
                       updateNode(prev, node.id, {

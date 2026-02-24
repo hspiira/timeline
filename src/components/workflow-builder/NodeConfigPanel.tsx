@@ -117,11 +117,13 @@ function ActionConfig({
   actionType,
   params,
   eventTypes,
+  workflowContext,
   onUpdate,
 }: {
   actionType: string
   params: Record<string, unknown>
   eventTypes: string[]
+  workflowContext?: import('@/hooks/useWorkflowEngineContext').WorkflowEngineContextValue
   onUpdate: (updates: Record<string, unknown>) => void
 }) {
   const [showJson, setShowJson] = useState(false)
@@ -257,6 +259,48 @@ function ActionConfig({
     )
   }
 
+  if (actionType === 'create_relationship') {
+    const relationshipKinds = workflowContext?.relationshipKinds ?? []
+    const relationship_kind = (params.relationship_kind as string) ?? ''
+    const source_subject_id = (params.source_subject_id as string) ?? ''
+    const target_subject_id = (params.target_subject_id as string) ?? ''
+    const options = relationshipKinds.map((r) => ({
+      value: r.kind,
+      label: r.display_name || r.kind,
+    }))
+    return (
+      <div className="space-y-3">
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Relationship kind</label>
+          <SingleSelectCombobox
+            value={relationship_kind}
+            onValueChange={(v) => onUpdate({ params: { ...params, relationship_kind: v || undefined } })}
+            options={[{ value: '', label: 'Select kind' }, ...options]}
+            placeholder="Select relationship kind"
+            className="w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Source subject</label>
+          <SubjectSelector
+            value={source_subject_id}
+            onChange={(v) => onUpdate({ params: { ...params, source_subject_id: v || undefined } })}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Target subject</label>
+          <SubjectSelector
+            value={target_subject_id}
+            onChange={(v) => onUpdate({ params: { ...params, target_subject_id: v || undefined } })}
+          />
+        </div>
+        <Button type="button" variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={() => setShowJson(true)}>
+          Edit as JSON
+        </Button>
+      </div>
+    )
+  }
+
   if (actionType === 'update_subject') {
     const subject_id = (params.subject_id as string) ?? ''
     const rest = { ...params }
@@ -325,36 +369,82 @@ function ActionConfig({
 
 export interface NodeConfigPanelProps {
   node: WorkflowNode
-  eventTypes: string[]
+  /** @deprecated Prefer workflowContext. When workflowContext is provided, eventTypes come from it. */
+  eventTypes?: string[]
+  /** Entity lists for the workflow builder (from useWorkflowEngineContext). When provided, used for all dropdowns. */
+  workflowContext?: import('@/hooks/useWorkflowEngineContext').WorkflowEngineContextValue
+  /** Optional step-specific tip from a workflow template (Attio-style). */
+  templateStepTip?: string
   onUpdate: (updates: Record<string, unknown>) => void
 }
 
-export function NodeConfigPanel({ node, eventTypes, onUpdate }: NodeConfigPanelProps) {
+function TipBlock({ text }: { text: string }) {
+  return (
+    <div className="rounded-lg border border-blue-200/80 bg-blue-50/80 dark:border-blue-800/60 dark:bg-blue-950/30 px-2.5 py-2 mb-3">
+      <p className="text-[11px] text-blue-800 dark:text-blue-200 leading-relaxed">{text}</p>
+    </div>
+  )
+}
+
+export function NodeConfigPanel({ node, eventTypes: eventTypesProp, workflowContext, templateStepTip, onUpdate }: NodeConfigPanelProps) {
   const desc = nodeRegistry.getOptional(node.type)
   if (!desc) return null
 
+  const eventTypes = workflowContext?.eventTypes ?? eventTypesProp ?? []
+  const tip = templateStepTip ?? desc.tip
+
   if (desc.isTrigger) {
+    const eventType = (node.configuration?.eventType as string) ?? ''
+    const transitionRule = workflowContext?.transitionRules?.find((r) => r.event_type === eventType)
+    const requiredPrior = transitionRule?.required_prior_event_types ?? []
     return (
       <div className="space-y-2">
+        {tip && <TipBlock text={tip} />}
         <label className="block text-xs font-medium text-muted-foreground">When event type</label>
         <SingleSelectCombobox
-          value={(node.configuration?.eventType as string) ?? ''}
+          value={eventType}
           onValueChange={(v) => onUpdate({ eventType: v })}
           options={optionsFromStrings(eventTypes, { value: '', label: 'When event type…' })}
           placeholder="When event type…"
           className="w-full"
         />
+        {requiredPrior.length > 0 && (
+          <p className="text-[11px] text-muted-foreground">
+            Required prior events: {requiredPrior.join(', ')}
+          </p>
+        )}
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Description (optional)</label>
+          <Input
+            value={(node.configuration?.description as string) ?? ''}
+            onChange={(e) => onUpdate({ description: e.target.value })}
+            placeholder="e.g. When subscription is cancelled"
+            className="text-sm"
+          />
+        </div>
       </div>
     )
   }
 
   if (desc.isCondition) {
     return (
-      <ConditionConfig
-        nodeId={node.id}
-        expression={(node.configuration?.expression as string) ?? ''}
-        onUpdate={onUpdate}
-      />
+      <>
+        {tip && <TipBlock text={tip} />}
+        <ConditionConfig
+          nodeId={node.id}
+          expression={(node.configuration?.expression as string) ?? ''}
+          onUpdate={onUpdate}
+        />
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1 mt-2">Description (optional)</label>
+          <Input
+            value={(node.configuration?.description as string) ?? ''}
+            onChange={(e) => onUpdate({ description: e.target.value })}
+            placeholder="e.g. Did status change to cancelled?"
+            className="text-sm"
+          />
+        </div>
+      </>
     )
   }
 
@@ -363,6 +453,7 @@ export function NodeConfigPanel({ node, eventTypes, onUpdate }: NodeConfigPanelP
     const params = (node.configuration?.params as Record<string, unknown>) ?? {}
     return (
       <div className="space-y-3">
+        {tip && <TipBlock text={tip} />}
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">What this step does</label>
           <SingleSelectCombobox
@@ -377,8 +468,18 @@ export function NodeConfigPanel({ node, eventTypes, onUpdate }: NodeConfigPanelP
           actionType={actionType}
           params={params}
           eventTypes={eventTypes}
+          workflowContext={workflowContext}
           onUpdate={onUpdate}
         />
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Description (optional)</label>
+          <Input
+            value={(node.configuration?.description as string) ?? ''}
+            onChange={(e) => onUpdate({ description: e.target.value })}
+            placeholder="e.g. Create follow-up event"
+            className="text-sm"
+          />
+        </div>
       </div>
     )
   }

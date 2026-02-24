@@ -1,12 +1,13 @@
 import type { LucideIcon } from 'lucide-react'
-import { Zap, Mail, UserCog } from 'lucide-react'
+import { Zap, Mail, UserCog, Link2 } from 'lucide-react'
 
-/** Single source of truth for workflow action types (create_event, send_email, update_subject). */
+/** Single source of truth for workflow action types (create_event, send_email, update_subject, create_relationship). */
 
 export const WORKFLOW_ACTION_TYPES = [
   { value: 'create_event', label: 'Create Event', icon: Zap },
   { value: 'send_email', label: 'Send Email', icon: Mail },
   { value: 'update_subject', label: 'Update Subject', icon: UserCog },
+  { value: 'create_relationship', label: 'Create Relationship', icon: Link2 },
 ] as const
 
 export type WorkflowActionTypeValue = (typeof WORKFLOW_ACTION_TYPES)[number]['value']

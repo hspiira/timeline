@@ -35,6 +35,14 @@ function sideFacing(
   return dy > 0 ? 'bottom' : 'top'
 }
 
+/** Side of target node that faces the source (for target handle). */
+function targetSideFacingSource(
+  targetPos: { x: number; y: number },
+  sourcePos: { x: number; y: number }
+): 'top' | 'right' | 'bottom' | 'left' {
+  return sideFacing(targetPos, sourcePos)
+}
+
 export function workflowToFlow(workflow: Workflow): {
   nodes: Node<WorkflowNodeData>[]
   edges: Edge<WorkflowEdgeData>[]
@@ -44,37 +52,43 @@ export function workflowToFlow(workflow: Workflow): {
     type: n.type,
     position: n.position,
     data: { workflowNode: n, label: n.type },
+    dragHandle: '.workflow-node-drag-handle',
   }))
   const nodePos = (id: string) => workflow.nodes.find((n) => n.id === id)?.position
   const edges: Edge<WorkflowEdgeData>[] = workflow.edges.map((e) => {
     const isConditionEdge = e.label === 'true' || e.label === 'false'
     const sourcePos = nodePos(e.from)
     const targetPos = nodePos(e.to)
-    const targetHandle =
-      e.targetHandle ??
-      (sourcePos && targetPos ? sideFacing(targetPos, sourcePos) : 'top')
     const sourceSide =
       sourcePos && targetPos ? sideFacing(sourcePos, targetPos) : 'bottom'
+    const targetSide =
+      sourcePos && targetPos ? targetSideFacingSource(targetPos, sourcePos) : 'top'
     const conditionHandle =
       isConditionEdge ? `${sourceSide}-${e.label}` : undefined
     const sourceHandle =
       e.sourceHandle ?? (conditionHandle ?? sourceSide)
+    const targetHandle = e.targetHandle ?? targetSide
     return {
       id: e.id,
       source: e.from,
       target: e.to,
       sourceHandle,
       targetHandle,
-      type: 'smoothstep',
-      markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
-      style: { strokeWidth: 1.5 },
+      type: 'floating',
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 16,
+        height: 16,
+        color: 'hsl(var(--foreground) / 0.6)',
+      },
+      style: { strokeWidth: 2, stroke: 'hsl(var(--foreground) / 0.6)' },
       ...(isConditionEdge && {
         data: { label: e.label },
         label: e.label === 'true' ? 'is true' : 'is false',
         labelStyle: { fontSize: 10, fontWeight: 500 },
         labelBgStyle: { fill: 'var(--color-card)', fillOpacity: 0.95 },
         labelBgPadding: [4, 2] as [number, number],
-        labelBgBorderRadius: 4,
+        labelBgBorderRadius: 12,
       }),
     }
   })

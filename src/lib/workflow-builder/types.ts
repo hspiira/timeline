@@ -46,10 +46,21 @@ export interface Workflow {
   name: string
   nodes: WorkflowNode[]
   edges: WorkflowEdge[]
+  /** Optional trigger conditions (backend-specific). Passed through by adapters. */
+  triggerConditions?: Record<string, unknown> | null
 }
 
 export function createEmptyWorkflow(id: string, name: string): Workflow {
   return { id, name, nodes: [], edges: [] }
+}
+
+/** Default trigger node id for new workflows (Attio-style: start by specifying the trigger). */
+export const DEFAULT_TRIGGER_NODE_ID = 'trigger-default'
+
+/** Creates a new workflow with a single trigger node so the user starts by specifying the trigger. */
+export function createWorkflowWithDefaultTrigger(id: string, name: string): Workflow {
+  const triggerNode = createNode(DEFAULT_TRIGGER_NODE_ID, 'trigger', { x: 0, y: 0 }, { eventType: '' })
+  return { id, name, nodes: [triggerNode], edges: [] }
 }
 
 export function createNode(
