@@ -7,6 +7,8 @@ interface ModalProps {
   isOpen: boolean
   onClose: () => void
   title?: string
+  /** Optional subtitle (e.g. workflow name) shown below the title in muted style */
+  subtitle?: ReactNode
   children: ReactNode
   footer?: ReactNode
   maxWidth?: string
@@ -60,6 +62,7 @@ export function Modal({
   isOpen,
   onClose,
   title,
+  subtitle,
   children,
   footer,
   maxWidth = 'max-w-md',
@@ -96,6 +99,8 @@ export function Modal({
 
   if (!isOpen) return null
 
+  const hasHeader = title || subtitle || closeButton
+
   return (
     <div
       className="modal-backdrop-animate fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-(--z-index)"
@@ -103,21 +108,26 @@ export function Modal({
       role="presentation"
     >
       <div
-        className={`modal-content-animate bg-background border border-border rounded-none ${maxWidth} w-full max-h-[90vh] overflow-auto p-4 sm:p-6 shadow-2xl`}
+        className={`modal-content-animate bg-background border border-border rounded-none ${maxWidth} w-full max-h-[90vh] flex flex-col shadow-2xl`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
       >
         {/* Header */}
-        {(title || closeButton) && (
-          <div className="flex items-center justify-between mb-6">
-            {title && <h2 id={titleId} className="text-xl font-semibold text-foreground">{title}</h2>}
+        {hasHeader && (
+          <div className="flex items-start justify-between gap-4 shrink-0 px-4 pt-4 pb-2 sm:px-6 sm:pt-6 sm:pb-2">
+            <div className="min-w-0 flex-1">
+              {title && <h2 id={titleId} className="text-xl font-semibold text-foreground">{title}</h2>}
+              {subtitle && (
+                <p className="mt-0.5 text-sm text-muted-foreground break-words">{subtitle}</p>
+              )}
+            </div>
             {closeButton && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className="relative -mr-2 -mt-2"
+                className="-mr-2 -mt-1 shrink-0"
                 aria-label="Close modal"
               >
                 <X className="w-5 h-5" />
@@ -126,11 +136,15 @@ export function Modal({
           </div>
         )}
 
-        {/* Content */}
-        <div className="text-foreground">{children}</div>
+        {/* Content - scrollable */}
+        <div className="flex-1 overflow-auto px-4 pt-2 pb-4 sm:px-6 sm:pt-2 sm:pb-6 text-foreground">{children}</div>
 
         {/* Footer */}
-        {footer && <div className="pt-4 border-t border-border mt-6">{footer}</div>}
+        {footer && (
+          <div className="shrink-0 border-t border-border px-4 py-4 sm:px-6 sm:py-4 bg-muted/20">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   )

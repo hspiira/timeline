@@ -64,6 +64,28 @@ The seed script uses the following environment variables:
 
 - `VITE_API_URL` - API base URL (default: `http://localhost:8000`)
 
+## Import Workflow from JSON
+
+To create the **New Client Rollout** workflow (or any workflow defined as requirements JSON) in the system:
+
+1. Start the backend server.
+2. Log in to the UI and get your auth token:
+   - Open browser dev tools → Application → Local Storage (or Console).
+   - Run: `localStorage.getItem("auth_token")` and copy the value.
+3. From the project root, run:
+
+```bash
+pnpm run import:workflow -- <YOUR_AUTH_TOKEN>
+```
+
+Or call the script directly with an optional JSON path:
+
+```bash
+npx tsx scripts/import-workflow.ts <YOUR_AUTH_TOKEN> docs/workflow-new-client-rollout-v2.json
+```
+
+By default the script reads `docs/workflow-new-client-rollout-v2.json`. Optional env: `API_URL`, `TENANT_ID`.
+
 ## Notes
 
 - All methods require authentication

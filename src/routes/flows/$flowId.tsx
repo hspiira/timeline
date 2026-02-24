@@ -19,6 +19,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { LoadingIcon } from '@/components/ui/icons'
 import { Button } from '@/components/ui/button'
 import SubjectSelector from '@/components/subjects/SubjectSelector'
+import { FlowWorkflowSteps } from '@/components/flows/FlowWorkflowSteps'
 export const Route = createFileRoute('/flows/$flowId')({
   beforeLoad: () => {
     requireAuthBeforeLoad()
@@ -67,6 +68,24 @@ function FlowDetailPage() {
       return Array.isArray(data) ? data : []
     },
     enabled: !!flowId,
+  })
+
+  const subjectIds = subjects.map((s) => s.subject_id).filter(Boolean)
+  const { data: subjectDetailsMap = {} } = useQuery({
+    queryKey: ['flow-subject-details', flowId, subjectIds],
+    queryFn: async () => {
+      const results = await Promise.all(
+        subjectIds.map((id) =>
+          timelineApi.subjects.get(id).then(({ data }) => ({ id, data }))
+        )
+      )
+      const map: Record<string, { display_name?: string | null; external_ref?: string | null }> = {}
+      results.forEach(({ id, data }) => {
+        if (data) map[id] = { display_name: data.display_name, external_ref: data.external_ref }
+      })
+      return map
+    },
+    enabled: !!flowId && subjectIds.length > 0,
   })
 
   const { data: events = [], isLoading: eventsLoading } = useQuery({
@@ -146,6 +165,15 @@ function FlowDetailPage() {
       </div>
 
       <div className="space-y-8">
+        {/* Workflow execution: steps */}
+        {workflow && (
+          <FlowWorkflowSteps
+            flowId={flowId}
+            workflow={workflow}
+            eventCount={events.length}
+          />
+        )}
+
         {/* Subjects */}
         <section>
           <h2 className="text-lg font-semibold text-foreground mb-2 flex items-center gap-2">
@@ -174,6 +202,7 @@ function FlowDetailPage() {
                 }
                 setAddSubjectId('')
                 queryClient.invalidateQueries({ queryKey: ['flow-subjects', flowId] })
+                queryClient.invalidateQueries({ queryKey: ['flow-subject-details', flowId] })
                 toast.success('Subject added')
               }}
             >
@@ -192,64 +221,85 @@ function FlowDetailPage() {
             </p>
           ) : (
             <ul className="list-none divide-y divide-border/50 border border-border/50 rounded-none bg-card/50">
-              {subjects.map((s) => (
-                <li
-                  key={s.subject_id}
-                  className="flex items-center justify-between px-4 py-3"
-                >
-                  <Link
-                    to="/subjects/$subjectId"
-                    params={{ subjectId: s.subject_id }}
-                    search={{ tab: 'events' }}
-                    className="text-primary hover:underline font-medium"
+              {subjects.map((s) => {
+                const details = subjectDetailsMap[s.subject_id]
+                const displayName = details?.display_name ?? null
+                const externalRef = details?.external_ref ?? null
+                const primaryLabel =
+                  displayName || externalRef || s.subject_id
+                const secondaryLabel =
+                  displayName
+                    ? (externalRef ?? s.subject_id)
+                    : externalRef
+                    ? s.subject_id
+                    : null
+                return (
+                  <li
+                    key={s.subject_id}
+                    className="flex items-center justify-between px-4 py-3"
                   >
-                    {s.subject_id}
-                  </Link>
-                  <div className="flex items-center gap-2">
-                    {s.role && (
-                      <span className="text-muted-foreground text-sm">
-                        {s.role}
-                      </span>
-                    )}
-                    <Link
-                      to="/subjects/$subjectId"
-                      params={{ subjectId: s.subject_id }}
-                      search={{ tab: 'events' }}
-                      className="text-muted-foreground hover:text-foreground"
-                      title="Open subject"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </Link>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-muted-foreground hover:text-destructive"
-                      title="Remove from flow"
-                      disabled={removingId === s.subject_id}
-                      onClick={async () => {
-                        setRemovingId(s.subject_id)
-                        const { error } = await timelineApi.flows.removeSubject(
-                          flowId,
-                          s.subject_id
-                        )
-                        setRemovingId(null)
-                        if (error) {
-                          toast.error('Failed to remove subject', String((error as { message?: string }).message ?? 'Unknown error'))
-                          return
-                        }
-                        queryClient.invalidateQueries({ queryKey: ['flow-subjects', flowId] })
-                        toast.success('Subject removed')
-                      }}
-                    >
-                      {removingId === s.subject_id ? (
-                        <LoadingIcon />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
+                    <div className="min-w-0">
+                      <Link
+                        to="/subjects/$subjectId"
+                        params={{ subjectId: s.subject_id }}
+                        search={{ tab: 'events' }}
+                        className="text-primary hover:underline font-medium block truncate"
+                      >
+                        {primaryLabel}
+                      </Link>
+                      {secondaryLabel && (
+                        <span className="text-muted-foreground text-xs block truncate">
+                          {secondaryLabel}
+                        </span>
                       )}
-                    </Button>
-                  </div>
-                </li>
-              ))}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {s.role && (
+                        <span className="text-muted-foreground text-sm">
+                          {s.role}
+                        </span>
+                      )}
+                      <Link
+                        to="/subjects/$subjectId"
+                        params={{ subjectId: s.subject_id }}
+                        search={{ tab: 'events' }}
+                        className="text-muted-foreground hover:text-foreground"
+                        title="Open subject"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground hover:text-destructive"
+                        title="Remove from flow"
+                        disabled={removingId === s.subject_id}
+                        onClick={async () => {
+                          setRemovingId(s.subject_id)
+                          const { error } = await timelineApi.flows.removeSubject(
+                            flowId,
+                            s.subject_id
+                          )
+                          setRemovingId(null)
+                          if (error) {
+                            toast.error('Failed to remove subject', String((error as { message?: string }).message ?? 'Unknown error'))
+                            return
+                          }
+                        queryClient.invalidateQueries({ queryKey: ['flow-subjects', flowId] })
+                        queryClient.invalidateQueries({ queryKey: ['flow-subject-details', flowId] })
+                        toast.success('Subject removed')
+                        }}
+                      >
+                        {removingId === s.subject_id ? (
+                          <LoadingIcon />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </section>

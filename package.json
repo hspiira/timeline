@@ -10,7 +10,8 @@
     "format": "biome format",
     "lint": "biome lint",
     "check": "biome check",
-    "generate:api": "openapi-typescript http://localhost:8000/openapi.json -o src/lib/timeline-api.ts"
+    "generate:api": "openapi-typescript http://localhost:8000/openapi.json -o src/lib/timeline-api.ts",
+    "import:workflow": "npx tsx scripts/import-workflow.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",

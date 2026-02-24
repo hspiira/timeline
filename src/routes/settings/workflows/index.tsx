@@ -6,8 +6,8 @@ import { useToast } from '@/hooks/useToast'
 import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { timelineApi } from '@/lib/api-client'
 import { Plus, Play, Pause, Trash2, CheckCircle, SquarePen, Network, FileCheck } from 'lucide-react'
-import { WorkflowCreateModalGraph } from '@/components/workflows/WorkflowCreateModalGraph'
-import { WorkflowEditModalGraph } from '@/components/workflows/WorkflowEditModalGraph'
+import { WorkflowRequirementsModal } from '@/components/workflows/WorkflowRequirementsModal'
+import { WorkflowEditModal } from '@/components/workflows/WorkflowEditModal'
 import { WorkflowDocumentRequirementsModal } from '@/components/workflows/WorkflowDocumentRequirementsModal'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { ErrorModal } from '@/components/ui/ErrorModal'
@@ -314,7 +314,7 @@ function WorkflowsPage() {
   return (
     <>
       {showCreateModal && !hasNoAccess && (
-        <WorkflowCreateModalGraph
+        <WorkflowRequirementsModal
           onClose={() => setShowCreateModal(false)}
           onSubmit={handleCreateWorkflow}
           title="Create workflow"
@@ -323,7 +323,7 @@ function WorkflowsPage() {
 
       {/* Edit Workflow Modal */}
       {editingWorkflow && !hasNoAccess && (
-        <WorkflowEditModalGraph
+        <WorkflowEditModal
           workflow={editingWorkflow}
           onClose={() => setEditingWorkflow(null)}
           onSave={handleUpdateWorkflow}
