@@ -45,10 +45,22 @@ const RESOURCE_COLORS: Record<ActivityType['resourceType'], string> = {
   role: 'text-indigo-500',
 }
 
+/** Icon tint per resource type for card variant; project uses green, icons carry the type color */
+const CARD_ROW_ICON: Record<ActivityType['resourceType'], string> = {
+  event: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400',
+  subject: 'bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400',
+  document: 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400',
+  workflow: 'bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400',
+  permission: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400',
+  role: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400',
+}
+
 interface MinimalActivityFeedProps {
   limit?: number
   /** When provided (e.g. from analytics dashboard), show these instead of fetching */
   recentEvents?: RecentEventItem[] | null
+  /** Card variant: simpler list styling to match other dashboard cards */
+  variant?: 'default' | 'card'
 }
 
 function formatRelativeTime(date: Date): string {
@@ -65,12 +77,11 @@ function formatRelativeTime(date: Date): string {
   return formatShortDate(date)
 }
 
-function ActivityRow({ activity }: { activity: ActivityType }) {
+function ActivityRow({ activity, variant = 'default' }: { activity: ActivityType; variant?: 'default' | 'card' }) {
   const Icon = RESOURCE_ICONS[activity.resourceType]
   const iconColor = RESOURCE_COLORS[activity.resourceType]
   const config = ACTIVITY_CONFIG[activity.action]
 
-  // Build link based on resource type
   const getLink = () => {
     if (activity.resourceType === 'subject') {
       return `/subjects/${activity.resourceId}`
@@ -82,9 +93,37 @@ function ActivityRow({ activity }: { activity: ActivityType }) {
   }
 
   const link = getLink()
+
+  if (variant === 'card') {
+    const iconTheme = CARD_ROW_ICON[activity.resourceType]
+    const content = (
+      <div className="flex items-center gap-3 py-2.5 border-b border-border/40 last:border-b-0 hover:bg-muted/30 transition-colors group">
+        <div className={`w-8 h-8 rounded-none flex items-center justify-center shrink-0 ${iconTheme}`}>
+          <Icon className="w-4 h-4" strokeWidth={1.5} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-foreground truncate">
+            <span className="font-medium">{activity.resourceName}</span>
+            <span className="text-muted-foreground font-normal"> · {config.label}</span>
+          </p>
+          {activity.description && (
+            <p className="text-xs text-muted-foreground truncate mt-0.5">{activity.description}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {formatRelativeTime(activity.timestamp)}
+          </span>
+          {link && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />}
+        </div>
+      </div>
+    )
+    if (link) return <Link to={link}>{content}</Link>
+    return content
+  }
+
   const content = (
     <div className="flex items-center gap-3 py-3 px-4 border-b border-border/40 last:border-b-0 hover:bg-[var(--dashboard-accent-muted)]/50 transition-colors group cursor-pointer">
-      {/* Accent bar + icon */}
       <div
         className="w-1 h-8 rounded-full shrink-0 bg-[var(--dashboard-accent)] opacity-60 group-hover:opacity-100 transition-opacity"
         aria-hidden
@@ -92,25 +131,17 @@ function ActivityRow({ activity }: { activity: ActivityType }) {
       <div className={`w-9 h-9 rounded-none bg-muted/60 flex items-center justify-center shrink-0 ${iconColor}`}>
         <Icon className="w-4 h-4" strokeWidth={1.75} />
       </div>
-
-      {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-foreground truncate">
-            {activity.resourceName}
-          </span>
+          <span className="text-sm font-medium text-foreground truncate">{activity.resourceName}</span>
           <span className={`text-[10px] px-1.5 py-0.5 rounded-none font-medium ${config.color}`}>
             {config.label}
           </span>
         </div>
         {activity.description && (
-          <p className="text-xs text-muted-foreground truncate mt-0.5">
-            {activity.description}
-          </p>
+          <p className="text-xs text-muted-foreground truncate mt-0.5">{activity.description}</p>
         )}
       </div>
-
-      {/* Time and arrow */}
       <div className="flex items-center gap-2 shrink-0">
         <span className="text-xs text-muted-foreground tabular-nums">
           {formatRelativeTime(activity.timestamp)}
@@ -121,17 +152,14 @@ function ActivityRow({ activity }: { activity: ActivityType }) {
       </div>
     </div>
   )
-
-  if (link) {
-    return <Link to={link}>{content}</Link>
-  }
-
+  if (link) return <Link to={link}>{content}</Link>
   return content
 }
 
 function MinimalActivityFeedContent({
   limit = 10,
   recentEvents: recentEventsProp,
+  variant = 'default',
 }: MinimalActivityFeedProps) {
   const [showAll, setShowAll] = useState(false)
   const { feed, loading, error, fetchMore } = useActivityFeed({
@@ -156,8 +184,8 @@ function MinimalActivityFeedContent({
 
   if (loading && sourceItems.length === 0) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+      <div className={`flex items-center justify-center text-muted-foreground ${variant === 'card' ? 'py-6' : 'py-8'}`}>
+        <div className="flex flex-col items-center gap-2">
           <LoadingIcon size="md" />
           <span className="text-xs">Loading activity...</span>
         </div>
@@ -167,10 +195,10 @@ function MinimalActivityFeedContent({
 
   if (error) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="flex items-center gap-2 text-red-500">
+      <div className={`flex items-center justify-center ${variant === 'card' ? 'py-6' : 'py-8'}`}>
+        <div className="flex items-center gap-2 text-destructive text-xs">
           <ErrorIcon />
-          <span className="text-xs">{error}</span>
+          <span>{error}</span>
         </div>
       </div>
     )
@@ -178,25 +206,25 @@ function MinimalActivityFeedContent({
 
   if (sourceItems.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="w-12 h-12 rounded-none bg-[var(--dashboard-accent-muted)] flex items-center justify-center mb-3">
-          <Activity className="w-6 h-6 text-[var(--dashboard-accent)]" strokeWidth={1.5} />
+      <div className={`flex flex-col items-center justify-center text-center ${variant === 'card' ? 'py-8' : 'py-12'}`}>
+        <div className="w-10 h-10 rounded-none bg-muted flex items-center justify-center mb-2 text-muted-foreground">
+          <Activity className="w-5 h-5" strokeWidth={1.5} />
         </div>
         <p className="text-sm font-medium text-foreground">No recent activity</p>
-        <p className="text-xs text-muted-foreground mt-1">Activities will appear here as they occur</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Activities will appear here as they occur</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-0.5">
+    <div className={variant === 'card' ? '' : 'space-y-0.5'}>
       {displayedActivities.map((activity) => (
-        <ActivityRow key={activity.id} activity={activity} />
+        <ActivityRow key={activity.id} activity={activity} variant={variant} />
       ))}
 
       {/* Load more / Show less — only when using fetched feed, not dashboard recent_events */}
       {hasMore && activitiesFromDashboard.length === 0 && (
-        <div className="pt-2 flex justify-center">
+        <div className={`flex justify-center ${variant === 'card' ? 'pt-1' : 'pt-2'}`}>
           {showAll ? (
             <div className="flex gap-2">
               {feed.hasMore && (
@@ -210,12 +238,7 @@ function MinimalActivityFeedContent({
                   {loading ? <LoadingIcon size="sm" /> : 'Load More'}
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAll(false)}
-                className="text-xs"
-              >
+              <Button variant="ghost" size="sm" onClick={() => setShowAll(false)} className="text-xs">
                 Show Less
               </Button>
             </div>
@@ -224,7 +247,7 @@ function MinimalActivityFeedContent({
               variant="ghost"
               size="sm"
               onClick={() => setShowAll(true)}
-              className="text-xs text-muted-foreground hover:text-foreground hover:bg-[var(--dashboard-accent-muted)]"
+              className={`text-xs text-muted-foreground hover:text-foreground ${variant === 'card' ? 'hover:bg-muted/50' : 'hover:bg-[var(--dashboard-accent-muted)]'}`}
             >
               View all activity
             </Button>
@@ -232,13 +255,8 @@ function MinimalActivityFeedContent({
         </div>
       )}
       {hasMore && activitiesFromDashboard.length > 0 && showAll && (
-        <div className="pt-2 flex justify-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowAll(false)}
-            className="text-xs"
-          >
+        <div className={`flex justify-center ${variant === 'card' ? 'pt-1' : 'pt-2'}`}>
+          <Button variant="ghost" size="sm" onClick={() => setShowAll(false)} className="text-xs">
             Show Less
           </Button>
         </div>

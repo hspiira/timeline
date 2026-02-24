@@ -13,7 +13,7 @@ import { UrgentTasksCard } from '@/components/dashboard/UrgentTasksCard'
 import { AnnouncementsCard } from '@/components/dashboard/AnnouncementsCard'
 import { TurnoverChartCard } from '@/components/dashboard/TurnoverChartCard'
 import { LatestTurnoverCard } from '@/components/dashboard/LatestTurnoverCard'
-import { MinimalActivityFeed } from '@/components/dashboard/MinimalActivityFeed'
+import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard'
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import { timelineApi } from '@/lib/api-client'
 import { getApiErrorDisplay } from '@/lib/api-utils'
@@ -272,23 +272,15 @@ function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5">
           <div className="lg:col-span-7">
             <TurnoverChartCard
-              startCount={0}
-              endCount={totalEvents}
-              added={eventsToday}
-              removed={0}
+              totalSubjects={data.stats?.total_subjects ?? 0}
+              totalEvents={totalEvents}
+              recentEvents={data.stats?.recent_events ?? undefined}
               loading={loading}
             />
           </div>
           <div className="lg:col-span-5 space-y-6">
             <LatestTurnoverCard />
-            <div>
-              <h2 className="font-display text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                Recent activity
-              </h2>
-              <div className="rounded-none border border-border/60 bg-card/80 backdrop-blur-sm overflow-hidden">
-                <MinimalActivityFeed limit={8} recentEvents={data.stats?.recent_events} />
-              </div>
-            </div>
+            <RecentActivityCard limit={8} recentEvents={data.stats?.recent_events} />
           </div>
         </div>
       </div>

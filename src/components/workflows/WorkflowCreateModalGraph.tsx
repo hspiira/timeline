@@ -165,8 +165,11 @@ export function WorkflowCreateModalGraph({
           </div>
           <div className="min-w-[200px]">
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Trigger event type
+              When this workflow runs
             </label>
+            <p className="text-[11px] text-muted-foreground/80 mb-1">
+              This workflow runs when an event of this type is created.
+            </p>
             <SingleSelectCombobox
               value={triggerNode ? (triggerNode.configuration?.eventType as string) ?? '' : triggerEventType}
               onValueChange={handleTriggerEventTypeChange}
@@ -204,7 +207,7 @@ export function WorkflowCreateModalGraph({
             return (
               <div className="w-64 shrink-0 rounded-lg border border-border bg-background p-3">
                 <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                  Configure node
+                  Configure step
                 </h4>
                 <NodeConfigPanel
                   node={node}

@@ -82,31 +82,38 @@ function allBranchesTerminateOrRejoin(workflow: Workflow): boolean {
   return triggerNodes.every((t) => dfs(t.id))
 }
 
+/** User-facing validation messages for non-technical users. */
 export function validateWorkflow(workflow: Workflow): ValidationResult {
   const errors: string[] = []
   const triggers = getTriggerNodes(workflow)
-  if (triggers.length === 0) errors.push('Workflow must have exactly one trigger node')
-  if (triggers.length > 1) errors.push('Workflow must have exactly one trigger node')
+  if (triggers.length === 0) {
+    errors.push('Add a trigger (when an event happens), then add at least one step and connect them.')
+  }
+  if (triggers.length > 1) {
+    errors.push('Only one trigger is allowed. Remove the extra trigger or merge the workflow.')
+  }
 
   for (const node of getConditionNodes(workflow)) {
     const edgesFrom = workflow.edges.filter((e) => e.from === node.id)
     const hasTrue = edgesFrom.some((e) => e.label === 'true')
     const hasFalse = edgesFrom.some((e) => e.label === 'false')
     if (!hasTrue || !hasFalse) {
-      errors.push(`Condition node "${node.id}" must have exactly two outgoing edges labeled "true" and "false"`)
+      errors.push('Connect both outcomes for this condition: one for when it’s true (Yes), one for when it’s false (No).')
+      break
     }
     if (edgesFrom.length > 2) {
-      errors.push(`Condition node "${node.id}" must have exactly two outgoing edges`)
+      errors.push('A condition can only have two outcomes: Yes and No. Remove extra connections.')
+      break
     }
   }
 
   const orphans = orphanNodes(workflow)
   if (orphans.length > 0) {
-    errors.push(`Orphan nodes (not reachable from trigger): ${orphans.map((n) => n.id).join(', ')}`)
+    errors.push('Some steps aren’t connected from the start. Connect them from the trigger or remove them.')
   }
 
   if (!allBranchesTerminateOrRejoin(workflow)) {
-    errors.push('All branches must eventually reach a terminal node or rejoin the flow')
+    errors.push('Every path should eventually reach an end. Add an End step to any branch that doesn’t.')
   }
 
   return {
