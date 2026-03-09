@@ -129,7 +129,7 @@ async def test_audit_log_captures_tenant_id_and_resource_for_mutation(
     """After a successful mutation, audit log contains tenant_id and resource_type (and resource_id when in path)."""
     if auth_headers is None:
         pytest.skip("auth_headers not available (Postgres not configured)")
-    # Perform a mutation that is logged by AuditLogMiddleware (POST to a resource under /api/v1/)
+    # Perform a mutation that is logged by ensure_audit_logged dependency (POST to a resource under /api/v1/)
     create_resp = await client.post(
         "/api/v1/subjects",
         headers=auth_headers,

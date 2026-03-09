@@ -17,12 +17,15 @@ if TYPE_CHECKING:
 
 
 class SubjectService:
-    """Create and query subjects (tenant-scoped). Validates subject type and external_ref uniqueness."""
+    """Create and query subjects (tenant-scoped). Validates subject type and external_ref uniqueness.
+
+    Requires subject_type_repo; schema_validator is optional (used when type comes from tenant config).
+    """
 
     def __init__(
         self,
         subject_repo: ISubjectRepository,
-        subject_type_repo: "ISubjectTypeRepository | None" = None,
+        subject_type_repo: "ISubjectTypeRepository",
         schema_validator: "SubjectTypeSchemaValidator | None" = None,
     ) -> None:
         self.subject_repo = subject_repo
@@ -37,16 +40,11 @@ class SubjectService:
         If tenant has config for this type, use config.type_name; else validate
         via SubjectType value object. Returns (type_value, from_tenant_config).
         """
-        if self.subject_type_repo:
-            config = await self.subject_type_repo.get_by_tenant_and_type(
-                tenant_id, subject_type
-            )
-            if config:
-                return (config.type_name, True)
-            try:
-                return (SubjectType(subject_type).value, False)
-            except ValueError as e:
-                raise ValidationException(str(e), field="subject_type") from e
+        config = await self.subject_type_repo.get_by_tenant_and_type(
+            tenant_id, subject_type
+        )
+        if config:
+            return (config.type_name, True)
         try:
             return (SubjectType(subject_type).value, False)
         except ValueError as e:

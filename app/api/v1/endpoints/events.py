@@ -29,7 +29,6 @@ from app.infrastructure.persistence.repositories.event_repo import EventReposito
 from app.schemas.event import (
     ChainVerificationResponse,
     EventCountResponse,
-    EventCreateRequest,
     EventListResponse,
     EventResponse,
     EventVerificationResult,
@@ -99,21 +98,20 @@ def _to_verification_response(
 @limit_writes
 async def create_event(
     request: Request,
-    body: EventCreateRequest,
+    body: EventCreate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     event_svc: Annotated[EventService, Depends(get_event_service)],
     _: Annotated[object, Depends(require_permission("event", "create"))] = None,
     _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a single event (hash chaining, optional schema validation, workflows)."""
-    cmd = EventCreate(**body.model_dump())
     try:
-        created = await event_svc.create_event(tenant_id, cmd)
+        created = await event_svc.create_event(tenant_id, body)
         return EventResponse(
             id=created.id,
             subject_id=created.subject_id,
             event_type=created.event_type.value,
-            schema_version=cmd.schema_version,
+            schema_version=body.schema_version,
             event_time=created.event_time,
             payload=created.payload,
             hash=created.chain.current_hash.value,

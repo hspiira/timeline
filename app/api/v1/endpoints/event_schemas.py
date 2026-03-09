@@ -143,16 +143,15 @@ async def update_event_schema(
     _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Update event schema (schema_definition, is_active, allowed_subject_types). Tenant-scoped."""
-    schema = await schema_repo.get_entity_by_id_and_tenant(schema_id, tenant_id)
-    if not schema:
+    updated = await schema_repo.update_schema(
+        schema_id,
+        tenant_id,
+        schema_definition=body.schema_definition,
+        is_active=body.is_active,
+        allowed_subject_types=body.allowed_subject_types,
+    )
+    if not updated:
         raise HTTPException(status_code=404, detail="Event schema not found")
-    if body.schema_definition is not None:
-        schema.schema_definition = body.schema_definition
-    if body.is_active is not None:
-        schema.is_active = body.is_active
-    if body.allowed_subject_types is not None:
-        schema.allowed_subject_types = body.allowed_subject_types
-    updated = await schema_repo.update(schema)
     return EventSchemaResponse.model_validate(updated)
 
 
@@ -167,7 +166,6 @@ async def delete_event_schema(
     _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Delete event schema by id. Tenant-scoped."""
-    schema = await schema_repo.get_entity_by_id_and_tenant(schema_id, tenant_id)
-    if not schema:
+    deleted = await schema_repo.delete_schema(schema_id, tenant_id)
+    if not deleted:
         raise HTTPException(status_code=404, detail="Event schema not found")
-    await schema_repo.delete(schema)

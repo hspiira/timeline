@@ -9,21 +9,55 @@ Repositories use SQLAlchemy and PostgreSQL only.
 
 from __future__ import annotations
 
-from app.api.v1.dependencies.auth import (
-    AuthSecurity,
+from app.api.v1.dependencies._core import (
     OAuthDriverRegistry,
-    get_auth_security,
+    ensure_audit_logged,
+    get_audit_log_repo,
+    get_authorization_service,
+    get_create_access_token,
     get_credential_encryptor,
+    get_current_user,
+    get_current_user_optional,
+    get_email_account_repo,
+    get_email_account_repo_for_write,
+    get_email_account_service,
     get_envelope_encryptor,
+    get_oauth_config_service,
     get_oauth_driver_registry,
+    get_oauth_provider_config_repo,
+    get_oauth_provider_config_repo_for_write,
     get_oauth_state_manager,
-)
-from app.api.v1.dependencies.audit import ensure_audit_logged, get_audit_log_repo
-from app.api.v1.dependencies.db import (
+    get_oauth_state_repo,
+    get_password_hash_dependency,
+    get_permission_repo,
+    get_permission_repo_for_write,
+    get_permission_service,
+    get_rls_readiness_result,
+    get_role_permission_repo,
+    get_role_permission_repo_for_write,
+    get_role_repo,
+    get_role_repo_for_write,
+    get_role_service,
     get_set_password_deps,
     get_system_audit_service,
+    get_tenant_creation_service,
+    get_tenant_id,
+    get_tenant_repo,
+    get_tenant_repo_for_write,
+    get_user_repo,
+    get_user_repo_for_write,
+    get_user_role_repo,
+    get_user_role_repo_for_write,
+    get_user_service,
+    get_verified_tenant_id,
+    require_permission,
 )
-from app.api.v1.dependencies.document import (
+from app.api.v1.dependencies._domain import (
+    ChainVerificationResult,
+    build_event_service_for_session,
+    get_create_flow_use_case,
+    get_dashboard_stats_use_case,
+    get_create_subject_snapshot_use_case,
     get_document_category_repo,
     get_document_category_repo_for_write,
     get_document_query_service,
@@ -32,51 +66,24 @@ from app.api.v1.dependencies.document import (
     get_document_repo,
     get_document_repo_for_write,
     get_document_upload_service,
-    get_run_document_retention_use_case,
-)
-from app.api.v1.dependencies.event import (
-    ChainVerificationResult,
-    build_event_service_for_session,
     get_event_repo,
     get_event_schema_repo,
     get_event_schema_repo_for_write,
     get_event_service,
     get_event_transition_rule_repo,
     get_event_transition_rule_repo_for_write,
-    get_verification_runner,
-    get_verification_service,
-)
-from app.api.v1.dependencies.flow import (
-    get_create_flow_use_case,
     get_flow_document_compliance_use_case,
     get_flow_repo,
     get_flow_repo_for_write,
-)
-from app.api.v1.dependencies.health import get_rls_readiness_result
-from app.api.v1.dependencies.naming import (
+    get_get_subject_state_use_case,
     get_naming_template_repo,
     get_naming_template_repo_for_write,
-)
-from app.api.v1.dependencies.oauth_email import (
-    get_email_account_repo,
-    get_email_account_repo_for_write,
-    get_email_account_service,
-    get_oauth_config_service,
-    get_oauth_provider_config_repo,
-    get_oauth_provider_config_repo_for_write,
-    get_oauth_state_repo,
-)
-from app.api.v1.dependencies.search_analytics import (
-    get_dashboard_stats_use_case,
-    get_search_repo,
-    get_search_service,
-)
-from app.api.v1.dependencies.subject import (
-    get_create_subject_snapshot_use_case,
-    get_get_subject_state_use_case,
     get_relationship_kind_repo,
     get_relationship_kind_repo_for_write,
+    get_run_document_retention_use_case,
     get_run_snapshot_job_use_case,
+    get_search_repo,
+    get_search_service,
     get_subject_erasure_service,
     get_subject_export_service,
     get_subject_read_service,
@@ -86,48 +93,21 @@ from app.api.v1.dependencies.subject import (
     get_subject_service,
     get_subject_type_repo,
     get_subject_type_repo_for_write,
-)
-from app.api.v1.dependencies.tenant import (
-    get_tenant_creation_service,
-    get_tenant_id,
-    get_tenant_repo,
-    get_tenant_repo_for_write,
-    get_verified_tenant_id,
-)
-from app.api.v1.dependencies.user_rbac import (
-    get_authorization_service,
-    get_current_user,
-    get_current_user_optional,
-    get_permission_repo,
-    get_permission_repo_for_write,
-    get_permission_service,
-    get_role_permission_repo,
-    get_role_permission_repo_for_write,
-    get_role_repo,
-    get_role_repo_for_write,
-    get_role_service,
-    get_user_repo,
-    get_user_repo_for_write,
-    get_user_role_repo,
-    get_user_role_repo_for_write,
-    get_user_service,
-    require_permission,
-)
-from app.api.v1.dependencies.workflow import (
+    get_verification_runner,
+    get_verification_service,
     get_workflow_execution_repo,
     get_workflow_repo,
     get_workflow_repo_for_write,
 )
 
 __all__ = [
-    "AuthSecurity",
     "build_event_service_for_session",
     "ChainVerificationResult",
     "OAuthDriverRegistry",
     "ensure_audit_logged",
     "get_audit_log_repo",
-    "get_auth_security",
     "get_authorization_service",
+    "get_create_access_token",
     "get_create_flow_use_case",
     "get_create_subject_snapshot_use_case",
     "get_credential_encryptor",
@@ -164,6 +144,7 @@ __all__ = [
     "get_oauth_provider_config_repo_for_write",
     "get_oauth_state_manager",
     "get_oauth_state_repo",
+    "get_password_hash_dependency",
     "get_permission_repo",
     "get_permission_repo_for_write",
     "get_permission_service",

@@ -1,39 +1,11 @@
 """Event API schemas. Minimal for Phase 3; full validation in Phase 6."""
 
-from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
-
-def _ensure_aware_datetime(v: datetime | str) -> datetime:
-    """Accept datetime or ISO string; treat naive datetimes as UTC (common from frontends)."""
-    if isinstance(v, str):
-        dt = datetime.fromisoformat(v.replace("Z", "+00:00"))
-    else:
-        dt = v
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt
-
-
-class EventCreateRequest(BaseModel):
-    """Payload for creating an event. Schema version must match an active schema."""
-
-    subject_id: str = Field(..., min_length=1)
-    event_type: str = Field(..., min_length=1)
-    schema_version: int = Field(..., ge=1)
-    event_time: AwareDatetime
-    payload: dict[str, Any] = Field(default_factory=dict)
-    workflow_instance_id: str | None = None
-    correlation_id: str | None = None
-
-    @field_validator("event_time", mode="before")
-    @classmethod
-    def event_time_aware(cls, v: Any) -> datetime:
-        if v is None:
-            raise ValueError("event_time is required")
-        return _ensure_aware_datetime(v)
+# Request body for create event: use application DTO (single source of truth).
+from app.application.dtos.event import EventCreate
 
 
 class EventListResponse(BaseModel):

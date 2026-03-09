@@ -4,13 +4,13 @@ Uses only injected dependencies (get_user_repo, get_tenant_repo); no manual
 repo construction. JWT created via infrastructure security.
 """
 
+from collections.abc import Callable
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import (
-    AuthSecurity,
-    get_auth_security,
+    get_create_access_token,
     get_current_user,
     get_set_password_deps,
     get_tenant_repo,
@@ -104,7 +104,9 @@ async def login(
     body: LoginRequest,
     user_repo: Annotated[UserRepository, Depends(get_user_repo)],
     tenant_repo: Annotated[TenantRepository, Depends(get_tenant_repo)],
-    auth_security: Annotated[AuthSecurity, Depends(get_auth_security)],
+    create_token: Annotated[
+        Callable[[dict], str], Depends(get_create_access_token)
+    ],
 ):
     """Authenticate with tenant_code, username, and password; return JWT.
 
@@ -125,8 +127,8 @@ async def login(
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    token = auth_security.create_access_token(
-        data={"sub": user.id, "tenant_id": user.tenant_id, "username": user.username},
+    token = create_token(
+        {"sub": user.id, "tenant_id": user.tenant_id, "username": user.username},
     )
     return TokenResponse(access_token=token, token_type="bearer")
 

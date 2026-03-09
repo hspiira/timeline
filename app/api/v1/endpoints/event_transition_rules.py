@@ -115,14 +115,17 @@ async def update_event_transition_rule(
     _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Update event transition rule (partial). Tenant-scoped."""
-    entity = await rule_repo.get_entity_by_id(rule_id)
-    if not entity or entity.tenant_id != tenant_id:
+    updated = await rule_repo.update_rule(
+        rule_id,
+        tenant_id,
+        required_prior_event_types=body.required_prior_event_types,
+        description=body.description,
+        prior_event_payload_conditions=body.prior_event_payload_conditions,
+        max_occurrences_per_stream=body.max_occurrences_per_stream,
+        fresh_prior_event_type=body.fresh_prior_event_type,
+    )
+    if not updated:
         raise HTTPException(status_code=404, detail=_MSG_RULE_NOT_FOUND)
-    for attr in _PATCH_OPTIONAL_ATTRS:
-        value = getattr(body, attr, None)
-        if value is not None:
-            setattr(entity, attr, value)
-    updated = await rule_repo.update(entity, skip_existence_check=True)
     return EventTransitionRuleResponse.model_validate(updated)
 
 
@@ -139,7 +142,6 @@ async def delete_event_transition_rule(
     _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Delete event transition rule by id. Tenant-scoped."""
-    entity = await rule_repo.get_entity_by_id(rule_id)
-    if not entity or entity.tenant_id != tenant_id:
+    deleted = await rule_repo.delete_rule(rule_id, tenant_id)
+    if not deleted:
         raise HTTPException(status_code=404, detail=_MSG_RULE_NOT_FOUND)
-    await rule_repo.delete(entity)

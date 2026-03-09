@@ -294,14 +294,6 @@ class IEventSchemaRepository(Protocol):
     ) -> EventSchemaResult | None:
         """Return schema by ID and tenant (tenant-scoped)."""
 
-    async def get_entity_by_id(self, schema_id: str) -> object | None:
-        """Return ORM entity by id for update/delete."""
-
-    async def get_entity_by_id_and_tenant(
-        self, schema_id: str, tenant_id: str
-    ) -> object | None:
-        """Return ORM entity by id and tenant for update/delete (tenant-scoped)."""
-
     async def get_by_version(
         self, tenant_id: str, event_type: str, version: int
     ) -> EventSchemaResult | None:
@@ -336,13 +328,19 @@ class IEventSchemaRepository(Protocol):
     ) -> EventSchemaResult:
         """Create event schema with next version; return created result."""
 
-    async def update(
-        self, obj: object, *, skip_existence_check: bool = False
-    ) -> object:
-        """Update existing schema (ORM); return updated entity."""
+    async def update_schema(
+        self,
+        schema_id: str,
+        tenant_id: str,
+        *,
+        schema_definition: dict[str, Any] | None = None,
+        is_active: bool | None = None,
+        allowed_subject_types: list[str] | None = None,
+    ) -> EventSchemaResult | None:
+        """Update schema by id and tenant; return updated result or None if not found."""
 
-    async def delete(self, obj: object) -> None:
-        """Delete schema (ORM)."""
+    async def delete_schema(self, schema_id: str, tenant_id: str) -> bool:
+        """Delete schema by id and tenant. Return True if deleted, False if not found."""
 
 
 # Event transition rule repository interface
@@ -367,9 +365,6 @@ class IEventTransitionRuleRepository(Protocol):
     ) -> list[EventTransitionRuleResult]:
         """Return all transition rules for tenant."""
 
-    async def get_entity_by_id(self, rule_id: str) -> object:
-        """Return ORM entity by id for update/delete."""
-
     async def create_rule(
         self,
         tenant_id: str,
@@ -382,11 +377,21 @@ class IEventTransitionRuleRepository(Protocol):
     ) -> EventTransitionRuleResult:
         """Create a transition rule."""
 
-    async def update(self, obj: object, *, skip_existence_check: bool = False) -> object:
-        """Update rule."""
+    async def update_rule(
+        self,
+        rule_id: str,
+        tenant_id: str,
+        *,
+        required_prior_event_types: list[str] | None = None,
+        description: str | None = None,
+        prior_event_payload_conditions: dict[str, dict[str, Any]] | None = None,
+        max_occurrences_per_stream: int | None = None,
+        fresh_prior_event_type: str | None = None,
+    ) -> EventTransitionRuleResult | None:
+        """Update rule by id and tenant; return updated result or None if not found."""
 
-    async def delete(self, obj: object) -> None:
-        """Delete rule."""
+    async def delete_rule(self, rule_id: str, tenant_id: str) -> bool:
+        """Delete rule by id and tenant. Return True if deleted, False if not found."""
 
 
 # Subject type repository interface

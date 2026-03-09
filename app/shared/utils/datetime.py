@@ -8,6 +8,24 @@ Use these helpers instead of datetime.now() or datetime.utcnow().
 from datetime import UTC, datetime
 
 
+def parse_aware_datetime(v: datetime | str) -> datetime:
+    """Accept datetime or ISO string; treat naive datetimes as UTC (e.g. from APIs).
+
+    Args:
+        v: Datetime or ISO 8601 string (e.g. with 'Z' or offset).
+
+    Returns:
+        UTC-aware datetime.
+    """
+    if isinstance(v, str):
+        dt = datetime.fromisoformat(v.replace("Z", "+00:00"))
+    else:
+        dt = v
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return dt
+
+
 def utc_now() -> datetime:
     """
     Return the current UTC datetime with timezone info.
