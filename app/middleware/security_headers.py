@@ -1,12 +1,12 @@
 """Security headers middleware.
 
-Adds common security-related response headers (CSP, HSTS, X-Content-Type-Options, etc.).
-Uses raw ASGI (no BaseHTTPMiddleware) for production-safe streaming and background tasks.
+Adds CSP, HSTS, X-Content-Type-Options, etc. to all responses.
+Uses raw ASGI for production-safe streaming and background tasks.
 """
 
 from typing import Callable
 
-# CSP: same-origin, root page inline styles/scripts, Google Fonts, Scalar API docs (proxy.scalar.com).
+# CSP: same-origin, inline styles/scripts, Google Fonts, Scalar proxy.
 DEFAULT_HEADERS = {
     "Content-Security-Policy": (
         "default-src 'self'; "
@@ -39,13 +39,13 @@ def SecurityHeadersMiddleware(
 
         async def send_wrapper(message: dict) -> None:
             if message["type"] == "http.response.start":
-                headers = list(message.get("headers", []))
-                seen = {h[0].lower() for h in headers}
+                out_headers = list(message.get("headers", []))
+                seen = {h[0].lower() for h in out_headers}
                 for name_b, value_b in header_list:
                     if name_b.lower() not in seen:
-                        headers.append((name_b, value_b))
+                        out_headers.append((name_b, value_b))
                         seen.add(name_b.lower())
-                message["headers"] = headers
+                message["headers"] = out_headers
             await send(message)
 
         await app(scope, receive, send_wrapper)

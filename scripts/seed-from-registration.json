@@ -1,5 +1,5 @@
 {
-  "_comment": "Full seed from tenant registration to events. Flow: tenant+RBAC+admin → event_schemas → subjects → users (agent) → workflows → events. All references: tenant_code; subject external_ref; event_type. One dummy password for all users (hashed by script). See docs/SEED_FROM_REGISTRATION_FLOW.md.",
+  "_comment": "Full seed from tenant registration to events. Flow: tenant+RBAC+admin → event_schemas → subjects → users (agent) → workflows → events. All references: tenant_code; subject external_ref; event_type. One dummy password for all users (hashed by script). See docs/RUNBOOKS.md §5 Seed from registration.",
   "seed_password": "SeedPassword1!",
   "tenants": [
     {

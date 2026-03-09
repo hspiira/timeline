@@ -1,6 +1,6 @@
 """Seed from tenant registration through to events with a single dummy password.
 
-Flow (see docs/SEED_FROM_REGISTRATION_FLOW.md):
+Flow (see docs/RUNBOOKS.md §5 Seed from registration):
   1. Tenant registration: create tenant + RBAC init + admin user (dummy password) + assign admin role.
   2. Event schemas (by tenant_code, event_type).
   3. Event transition rules (by tenant_code, event_type).

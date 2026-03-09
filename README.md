@@ -110,7 +110,7 @@ This deploys a preview and will fail at build time if the bundle is too large or
 
 ## Development
 
-- **Guidelines for contributors and agents:** [docs/AGENT_GUIDELINES.md](docs/AGENT_GUIDELINES.md)
+- **Guidelines for contributors and agents:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (§ Contributor guidelines)
 - **Architecture and operations:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SECURITY_AND_COMPLIANCE.md](docs/SECURITY_AND_COMPLIANCE.md)
 - **Run:** `uv run uvicorn app.main:app --reload`
 - **Tests:** `uv run pytest tests/ -v` (requires `uv sync --all-extras` or `--extra dev` for pytest, httpx, pytest-asyncio)

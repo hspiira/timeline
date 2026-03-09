@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Timeline project guidelines
 
-**Full reference:** [docs/AGENT_GUIDELINES.md](docs/AGENT_GUIDELINES.md). Follow it for all edits, features, and refactors.
+**Full reference:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (including Contributor guidelines). Follow it for all edits, features, and refactors.
 
 ## Design principles (DRY, SOLID, OOP)
 
@@ -32,7 +32,7 @@ alwaysApply: true
    - Domain errors: raise `TimelineException` (or subclasses) with `error_code`. Add mapping in `app.core.exception_handlers` if new code.
 
 5. **Style**
-   - Google-style docstrings (see `docs/DOCSTRING_STANDARD.md`). Type hints on public signatures. Lint with black, isort, flake8 (see `.flake8`).
+   - Google-style docstrings (see `docs/ARCHITECTURE.md` § Code style and docstrings). Type hints on public signatures. Lint with black, isort, flake8 (see `.flake8`).
 
 6. **README**
    - Project-only; no migration or internal process docs in README.
@@ -40,4 +40,4 @@ alwaysApply: true
 7. **Database**
    - Alembic is a main dependency (migrations run in production). Scripts assume Postgres unless documented otherwise.
 
-When in doubt, open **docs/AGENT_GUIDELINES.md** and apply the relevant section.
+When in doubt, open **docs/ARCHITECTURE.md** and apply the relevant section.

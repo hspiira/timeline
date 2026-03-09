@@ -20,9 +20,8 @@ from app.core.limiter import limiter
 from app.core.exception_handlers import register_exception_handlers
 from app.core.lifespan import create_lifespan
 from app.middleware import (
-    CorrelationIDMiddleware,
-    RequestIDMiddleware,
     RequestSizeLimitMiddleware,
+    RequestTrackingMiddleware,
     SecurityHeadersMiddleware,
     TenantContextMiddleware,
     TimeoutMiddleware,
@@ -58,10 +57,10 @@ def create_app() -> FastAPI:
     app.add_middleware(TenantContextMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(
-        CorrelationIDMiddleware,
-        header_name=settings.correlation_id_header,
+        RequestTrackingMiddleware,
+        request_id_header=settings.request_id_header,
+        correlation_id_header=settings.correlation_id_header,
     )
-    app.add_middleware(RequestIDMiddleware, header_name=settings.request_id_header)
     app.add_middleware(RequestSizeLimitMiddleware, max_bytes=settings.max_upload_size)
     app.add_middleware(TimeoutMiddleware, timeout_seconds=settings.request_timeout_seconds)
 

@@ -72,7 +72,10 @@ class EventEntity:
             raise ValidationException("Event must belong to a subject", field="subject_id")
         now = utc_now()
         event_time_utc = ensure_utc(self.event_time)
-        assert event_time_utc is not None  # event_time is always set
+        if event_time_utc is None:
+            raise ValidationException(
+                "event_time is required", field="event_time"
+            )
         if event_time_utc > now:
             raise ValidationException("Event time cannot be in the future", field="event_time")
         if not self.payload:
