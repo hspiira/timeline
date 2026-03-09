@@ -39,15 +39,6 @@ class EventRepository(BaseRepository[Event]):
     async def delete(self, obj: Event) -> None:
         raise NotImplementedError("Events are immutable and cannot be deleted")
 
-    async def get_last_hash(self, subject_id: str, tenant_id: str) -> str | None:
-        result = await self.db.execute(
-            select(Event.hash)
-            .where(Event.subject_id == subject_id, Event.tenant_id == tenant_id)
-            .order_by(desc(Event.event_time), desc(Event.id))
-            .limit(1)
-        )
-        return result.scalar_one_or_none()
-
     async def get_last_event(self, subject_id: str, tenant_id: str) -> EventResult | None:
         result = await self.db.execute(
             select(Event)

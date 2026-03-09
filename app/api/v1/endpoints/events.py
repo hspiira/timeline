@@ -106,15 +106,7 @@ async def create_event(
     _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a single event (hash chaining, optional schema validation, workflows)."""
-    cmd = EventCreate(
-        subject_id=body.subject_id,
-        event_type=body.event_type,
-        schema_version=body.schema_version,
-        event_time=body.event_time,
-        payload=body.payload,
-        workflow_instance_id=body.workflow_instance_id,
-        correlation_id=body.correlation_id,
-    )
+    cmd = EventCreate(**body.model_dump())
     try:
         created = await event_svc.create_event(tenant_id, cmd)
         return EventResponse(

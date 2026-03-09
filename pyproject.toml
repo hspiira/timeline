@@ -28,6 +28,7 @@ dependencies = [
     "cuid2>=2.0.1",
     "jsonschema>=4.25.1",
     "slowapi>=0.1.9",
+    "scalar-fastapi>=1.0.0",
     # Database Migrations
     "alembic>=1.14.0",
     # Observability (OTLP only; Jaeger ingests OTLP on 4317)

@@ -42,9 +42,6 @@ if TYPE_CHECKING:
 class IEventRepository(Protocol):
     """Protocol for event repository (DIP)."""
 
-    async def get_last_hash(self, subject_id: str, tenant_id: str) -> str | None:
-        """Return hash of the most recent event for subject in tenant."""
-
     async def get_last_event(self, subject_id: str, tenant_id: str) -> EventResult | None:
         """Return the most recent event for subject in tenant."""
 

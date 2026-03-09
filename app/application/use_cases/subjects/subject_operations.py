@@ -29,13 +29,26 @@ class SubjectService:
         self.subject_type_repo = subject_type_repo
         self.schema_validator = schema_validator
 
-    def _resolve_subject_type(self, tenant_id: str, subject_type: str) -> str:
-        """Resolve subject_type: if tenant has config for this type, allow it; else validate format."""
+    async def _resolve_type(
+        self, tenant_id: str, subject_type: str
+    ) -> tuple[str, bool]:
+        """Resolve subject_type to stored type name.
+
+        If tenant has config for this type, use config.type_name; else validate
+        via SubjectType value object. Returns (type_value, from_tenant_config).
+        """
         if self.subject_type_repo:
-            # Will be checked async in create_subject
-            return subject_type
+            config = await self.subject_type_repo.get_by_tenant_and_type(
+                tenant_id, subject_type
+            )
+            if config:
+                return (config.type_name, True)
+            try:
+                return (SubjectType(subject_type).value, False)
+            except ValueError as e:
+                raise ValidationException(str(e), field="subject_type") from e
         try:
-            return SubjectType(subject_type).value
+            return (SubjectType(subject_type).value, False)
         except ValueError as e:
             raise ValidationException(str(e), field="subject_type") from e
 
@@ -48,29 +61,15 @@ class SubjectService:
         attributes: dict | None = None,
     ) -> SubjectResult:
         """Create a subject; validate subject_type and enforce unique external_ref per tenant."""
-        type_value: str
-        if self.subject_type_repo:
-            config = await self.subject_type_repo.get_by_tenant_and_type(
-                tenant_id, subject_type
+        type_value, from_tenant_config = await self._resolve_type(
+            tenant_id, subject_type
+        )
+        if from_tenant_config and self.schema_validator:
+            await self.schema_validator.validate_attributes(
+                tenant_id=tenant_id,
+                subject_type=subject_type,
+                attributes=attributes or {},
             )
-            if config:
-                type_value = config.type_name
-                if self.schema_validator:
-                    await self.schema_validator.validate_attributes(
-                        tenant_id=tenant_id,
-                        subject_type=subject_type,
-                        attributes=attributes or {},
-                    )
-            else:
-                try:
-                    type_value = SubjectType(subject_type).value
-                except ValueError as e:
-                    raise ValidationException(str(e), field="subject_type") from e
-        else:
-            try:
-                type_value = SubjectType(subject_type).value
-            except ValueError as e:
-                raise ValidationException(str(e), field="subject_type") from e
 
         if external_ref and external_ref.strip():
             existing = await self.subject_repo.get_by_external_ref(
@@ -110,17 +109,7 @@ class SubjectService:
     ) -> list[SubjectResult]:
         """Return subjects for tenant with optional type filter."""
         if subject_type:
-            type_value: str
-            if self.subject_type_repo:
-                config = await self.subject_type_repo.get_by_tenant_and_type(
-                    tenant_id, subject_type
-                )
-                type_value = config.type_name if config else SubjectType(subject_type).value
-            else:
-                try:
-                    type_value = SubjectType(subject_type).value
-                except ValueError as e:
-                    raise ValidationException(str(e), field="subject_type") from e
+            type_value, _ = await self._resolve_type(tenant_id, subject_type)
             return await self.subject_repo.get_by_type(
                 tenant_id=tenant_id,
                 subject_type=type_value,

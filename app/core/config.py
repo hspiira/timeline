@@ -92,6 +92,10 @@ class Settings(BaseSettings):
     # Verification: tenant-wide chain verification (fail-fast over limit; use background job for large tenants).
     verification_max_events: int = 100_000
     verification_timeout_seconds: int = 55
+    # In-memory job store: evict jobs older than this (seconds since creation). Stops unbounded growth.
+    verification_job_max_age_seconds: int = 86400  # 24 hours
+    # After a job reaches terminal state (completed/failed), keep it for this long (seconds) then evict.
+    verification_job_grace_period_seconds: int = 3600  # 1 hour
 
     # RLS readiness: when True, GET /api/v1/health/ready runs RLS checks.
     rls_readiness_check: bool = False

@@ -37,7 +37,10 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     from app.api.websocket import ConnectionManager
 
     app.state.ws_manager = ConnectionManager()
-    app.state.verification_job_store = VerificationJobStore()
+    app.state.verification_job_store = VerificationJobStore(
+        max_age_seconds=settings.verification_job_max_age_seconds,
+        grace_period_seconds=settings.verification_job_grace_period_seconds,
+    )
 
     if settings.redis_enabled:
         from app.infrastructure.cache.redis_cache import CacheService

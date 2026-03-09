@@ -10,6 +10,7 @@ clear get_settings cache) before importing or calling create_app().
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from scalar_fastapi import get_scalar_api_reference
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -38,6 +39,8 @@ def create_app() -> FastAPI:
         version=settings.app_version,
         debug=settings.debug,
         lifespan=create_lifespan,
+        docs_url=None,
+        redoc_url=None,
     )
 
     app.state.limiter = limiter
@@ -70,6 +73,15 @@ def create_app() -> FastAPI:
     def root() -> HTMLResponse:
         """Landing page with links to API documentation."""
         return HTMLResponse(content=render_root_page(settings.app_name))
+
+    @app.get("/docs", include_in_schema=False)
+    def scalar_docs():
+        """Serve Scalar API reference (replaces Swagger UI)."""
+        return get_scalar_api_reference(
+            openapi_url=app.openapi_url,
+            title=f"{settings.app_name} API",
+            scalar_proxy_url="https://proxy.scalar.com",
+        )
 
     return app
 

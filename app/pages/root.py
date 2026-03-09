@@ -161,8 +161,7 @@ def render_root_page(app_name: str) -> str:
             <p>Copy <code>.env.example</code> to <code>.env</code> and set
             <code>DATABASE_URL</code> (Postgres) and secrets before starting.</p>
             <div class="links">
-                <a href="/docs" class="btn primary">Open API docs (Swagger)</a>
-                <a href="/redoc" class="btn">ReDoc</a>
+                <a href="/docs" class="btn primary">Open API docs (Scalar)</a>
             </div>
         </section>
 

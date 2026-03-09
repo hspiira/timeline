@@ -6,8 +6,7 @@ Uses raw ASGI (no BaseHTTPMiddleware) for production-safe streaming and backgrou
 
 from typing import Callable
 
-# CSP: allow same-origin, docs (Swagger/ReDoc) and root page inline styles/scripts,
-# Google Fonts for landing page, and Swagger UI CDN (FastAPI /docs).
+# CSP: same-origin, root page inline styles/scripts, Google Fonts, Scalar API docs (proxy.scalar.com).
 DEFAULT_HEADERS = {
     "Content-Security-Policy": (
         "default-src 'self'; "
@@ -15,7 +14,7 @@ DEFAULT_HEADERS = {
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
         "img-src 'self' data: https:; "
-        "connect-src 'self'; "
+        "connect-src 'self' https://proxy.scalar.com; "
         "frame-ancestors 'none'"
     ),
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",

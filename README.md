@@ -51,7 +51,7 @@ uv run uvicorn app.main:app --reload
 ```
 
 - API: http://127.0.0.1:8000
-- Docs: http://127.0.0.1:8000/docs
+- API docs (Scalar): http://127.0.0.1:8000/docs
 
 ## Project layout
 
