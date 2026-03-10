@@ -158,13 +158,12 @@ class EventService:
                         tenant_id, data, event_hash, prev_hash
                     )
                 break
-            except IntegrityError:
+            except IntegrityError as exc:
                 if attempt == MAX_RETRIES - 1:
                     raise ChainForkError(
-                        f"Could not append event for subject {data.subject_id} "
-                        f"after {MAX_RETRIES} attempts.",
+                        "Could not append event after retries.",
                         data.subject_id,
-                    )
+                    ) from exc
                 await asyncio.sleep(0.05 * (2**attempt))
 
         entity = _event_result_to_entity(created)

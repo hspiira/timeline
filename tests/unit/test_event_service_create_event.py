@@ -47,6 +47,16 @@ def _event_result(
     )
 
 
+class _async_ctx:
+    """Minimal async context manager for mocking session.begin()."""
+
+    async def __aenter__(self) -> "_async_ctx":
+        return self
+
+    async def __aexit__(self, *args: object) -> None:
+        return None
+
+
 @pytest.fixture
 def event_service_mocks():
     """EventService with mocked event_repo, hash_service, subject_repo (no schema/transition/workflow)."""
@@ -82,16 +92,6 @@ def event_service_mocks():
         transition_validator=None,
     )
     return svc, event_repo, subject_repo
-
-
-class _async_ctx:
-    """Minimal async context manager for mocking session.begin()."""
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, *args):
-        return None
 
 
 async def test_create_event_calls_repo_and_returns_entity(
