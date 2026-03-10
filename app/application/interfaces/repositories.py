@@ -42,6 +42,9 @@ if TYPE_CHECKING:
 class IEventRepository(Protocol):
     """Protocol for event repository (DIP)."""
 
+    async def lock_subject_for_update(self, subject_id: str) -> None:
+        """Acquire a row-level exclusive lock on the subject for the duration of the transaction."""
+
     async def get_last_event(self, subject_id: str, tenant_id: str) -> EventResult | None:
         """Return the most recent event for subject in tenant."""
 

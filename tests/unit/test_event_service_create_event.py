@@ -1,7 +1,7 @@
 """EventService.create_event unit tests with mocked repos."""
 
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -64,19 +64,34 @@ def event_service_mocks():
             attributes={},
         )
     )
+    event_repo.lock_subject_for_update = AsyncMock(return_value=None)
     event_repo.get_last_event = AsyncMock(return_value=None)
     event_repo.create_event = AsyncMock(
         return_value=_event_result(event_hash="a" * 64, previous_hash=None)
     )
+    db = MagicMock()
+    db.begin.return_value = _async_ctx()
+
     svc = EventService(
         event_repo=event_repo,
         hash_service=hash_service,
         subject_repo=subject_repo,
+        db=db,
         schema_validator=None,
         workflow_engine_provider=None,
         transition_validator=None,
     )
     return svc, event_repo, subject_repo
+
+
+class _async_ctx:
+    """Minimal async context manager for mocking session.begin()."""
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return None
 
 
 async def test_create_event_calls_repo_and_returns_entity(
@@ -93,6 +108,7 @@ async def test_create_event_calls_repo_and_returns_entity(
     assert entity.event_type.value == "created"
     assert entity.payload == {"name": "test"}
     subject_repo.get_by_id_and_tenant.assert_awaited_once_with("sub1", "t1")
+    event_repo.lock_subject_for_update.assert_awaited_once_with("sub1")
     event_repo.get_last_event.assert_awaited_once_with("sub1", "t1")
     event_repo.create_event.assert_awaited_once()
     call_kw = event_repo.create_event.call_args

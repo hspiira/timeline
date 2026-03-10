@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable
+
+from sqlalchemy.exc import IntegrityError
 
 from app.application.dtos.event import EventCreate, EventResult, EventToPersist
 from app.application.dtos.subject_type import SubjectTypeResult
@@ -13,11 +16,17 @@ from app.application.interfaces.repositories import (
 )
 from app.application.interfaces.services import IHashService
 from app.domain.entities.event import EventEntity
-from app.domain.exceptions import ResourceNotFoundException, ValidationException
+from app.domain.exceptions import (
+    ChainForkError,
+    ResourceNotFoundException,
+    ValidationException,
+)
 from app.domain.value_objects.core import EventChain, EventType, Hash
 from app.shared.telemetry.logging import get_logger
 
 if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
     from app.application.interfaces.repositories import ISubjectTypeRepository
     from app.application.interfaces.services import (
         IEventSchemaValidator,
@@ -45,6 +54,8 @@ def _event_result_to_entity(r: EventResult) -> EventEntity:
 
 logger = get_logger(__name__)
 
+MAX_RETRIES = 3
+
 
 class EventService:
     """Creates events with hash chaining and optional schema validation (IEventService)."""
@@ -54,6 +65,8 @@ class EventService:
         event_repo: IEventRepository,
         hash_service: IHashService,
         subject_repo: ISubjectRepository,
+        *,
+        db: "AsyncSession",
         schema_validator: IEventSchemaValidator | None = None,
         workflow_engine_provider: Callable[[], IWorkflowEngine | None] | None = None,
         transition_validator: IEventTransitionValidator | None = None,
@@ -62,6 +75,7 @@ class EventService:
         self.event_repo = event_repo
         self.hash_service = hash_service
         self.subject_repo = subject_repo
+        self.db = db
         self.schema_validator = schema_validator
         self._workflow_engine_provider = workflow_engine_provider
         self.transition_validator = transition_validator
@@ -117,26 +131,41 @@ class EventService:
                 workflow_instance_id=data.workflow_instance_id,
             )
 
-        prev_event = await self.event_repo.get_last_event(data.subject_id, tenant_id)
-        prev_hash = prev_event.hash if prev_event else None
+        for attempt in range(MAX_RETRIES):
+            try:
+                async with self.db.begin():
+                    await self.event_repo.lock_subject_for_update(data.subject_id)
+                    prev_event = await self.event_repo.get_last_event(
+                        data.subject_id, tenant_id
+                    )
+                    prev_hash = prev_event.hash if prev_event else None
 
-        EventEntity.validate_event_time_after_previous(
-            data.event_time,
-            prev_event.event_time if prev_event else None,
-        )
+                    EventEntity.validate_event_time_after_previous(
+                        data.event_time,
+                        prev_event.event_time if prev_event else None,
+                    )
 
-        event_hash = self.hash_service.compute_hash(
-            subject_id=data.subject_id,
-            event_type=data.event_type,
-            schema_version=data.schema_version,
-            event_time=data.event_time,
-            payload=data.payload,
-            previous_hash=prev_hash,
-        )
+                    event_hash = self.hash_service.compute_hash(
+                        subject_id=data.subject_id,
+                        event_type=data.event_type,
+                        schema_version=data.schema_version,
+                        event_time=data.event_time,
+                        payload=data.payload,
+                        previous_hash=prev_hash,
+                    )
 
-        created = await self.event_repo.create_event(
-            tenant_id, data, event_hash, prev_hash
-        )
+                    created = await self.event_repo.create_event(
+                        tenant_id, data, event_hash, prev_hash
+                    )
+                break
+            except IntegrityError:
+                if attempt == MAX_RETRIES - 1:
+                    raise ChainForkError(
+                        f"Could not append event for subject {data.subject_id} "
+                        f"after {MAX_RETRIES} attempts.",
+                        data.subject_id,
+                    )
+                await asyncio.sleep(0.05 * (2**attempt))
 
         entity = _event_result_to_entity(created)
         if trigger_workflows and self.workflow_engine:

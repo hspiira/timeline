@@ -176,6 +176,23 @@ class ResourceNotFoundException(TimelineException):
         )
 
 
+class ChainForkError(TimelineException):
+    """Raised when the event chain for a subject cannot be extended without forking, after exhausting retries."""
+
+    def __init__(self, message: str, subject_id: str) -> None:
+        """Initialize with message and subject id.
+
+        Args:
+            message: Human-readable description (e.g. could not append after N attempts).
+            subject_id: Subject whose chain could not be extended.
+        """
+        super().__init__(
+            message,
+            "CHAIN_FORK",
+            {"subject_id": subject_id},
+        )
+
+
 class EventChainBrokenException(TimelineException):
     """Raised when event chain integrity is violated (e.g. hash mismatch)."""
 
