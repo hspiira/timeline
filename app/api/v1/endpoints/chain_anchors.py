@@ -40,9 +40,9 @@ def _to_list_item(a: ChainAnchorResult) -> ChainAnchorListItem:
 async def list_chain_anchors(
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
     anchor_repo: Annotated[ChainAnchorRepository, Depends(get_chain_anchor_repo)],
+    _: Annotated[None, Depends(require_permission("chain_anchor", "read"))],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    _: Annotated[None, Depends(require_permission("chain_anchor", "read"))],
 ) -> list[ChainAnchorListItem]:
     """List all anchors for the tenant (newest first), paginated."""
     anchors = await anchor_repo.list_by_tenant(tenant_id, skip=skip, limit=limit)

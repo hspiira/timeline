@@ -4,16 +4,16 @@ Stores TSA receipts per tenant or per-subject chain tip. subject_id NULL = tenan
 non-null = subject-level (for future use). Partial unique indexes support both.
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
 revision: str = "q3r4s5t6u7v8"
-down_revision: Union[str, Sequence[str], None] = "i9j0k1l2m3n4"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "i9j0k1l2m3n4"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

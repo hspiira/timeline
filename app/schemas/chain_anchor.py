@@ -14,9 +14,9 @@ class ChainAnchorListItem(BaseModel):
     chain_tip_hash: str
     anchored_at: datetime
     tsa_url: str
-    tsa_serial: str | None
+    tsa_serial: str | None = None
     status: str
-    error_message: str | None
+    error_message: str | None = None
     created_at: datetime
 
 
@@ -29,7 +29,7 @@ class ChainAnchorLatestResponse(BaseModel):
     chain_tip_hash: str
     anchored_at: datetime
     tsa_url: str
-    tsa_serial: str | None
+    tsa_serial: str | None = None
     status: str
     tsa_receipt_base64: str | None = Field(
         default=None,

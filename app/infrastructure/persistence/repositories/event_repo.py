@@ -231,7 +231,7 @@ class EventRepository(BaseRepository[Event]):
         result = await self.db.execute(
             select(Event.tenant_id).distinct().order_by(Event.tenant_id)
         )
-        return [r for r in result.scalars().all()]
+        return list(result.scalars().all())
 
     async def create_events_bulk(
         self, tenant_id: str, events: list[EventToPersist]

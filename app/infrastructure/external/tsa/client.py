@@ -12,8 +12,8 @@ from app.infrastructure.external.tsa.config import TsaConfig
 
 logger = logging.getLogger(__name__)
 
-# Canonical hash for chain tip: SHA-256 of UTF-8 encoded hex string (so verification is deterministic).
-HASHNAME = "sha256"
+# Canonical hash for chain tip and RFC 3161 request/verification (must match digest_for_chain_tip).
+CANONICAL_HASHNAME = "sha256"
 
 
 def _digest_for_tsa(chain_tip_hash: str) -> bytes:
@@ -41,6 +41,10 @@ class TsaClient:
     ) -> None:
         self._config = config
         self._client = http_client
+        if self._config.hashname != CANONICAL_HASHNAME:
+            raise ValueError(
+                f"TSA hashname must be {CANONICAL_HASHNAME!r} for chain-tip anchoring"
+            )
 
     def digest_for_chain_tip(self, chain_tip_hash: str) -> bytes:
         """Canonical digest for anchoring: SHA-256 of UTF-8 encoded chain tip hash."""
@@ -51,7 +55,7 @@ class TsaClient:
         nonce = int.from_bytes(os.urandom(8), "big")
         request = rfc3161ng.make_timestamp_request(
             digest=data_digest,
-            hashname=self._config.hashname,
+            hashname=CANONICAL_HASHNAME,
             nonce=nonce,
         )
         return rfc3161ng.encode_timestamp_request(request)
@@ -69,15 +73,18 @@ class TsaClient:
             rfc3161ng.TimestampingError: On HTTP or TSA error.
         """
         body = self._build_request(data_hash)
-        response = await self._client.post(
-            self._config.url,
-            content=body,
-            headers={"Content-Type": "application/timestamp-query"},
-            timeout=float(self._config.timeout_seconds),
-        )
-        response.raise_for_status()
+        try:
+            response = await self._client.post(
+                self._config.url,
+                content=body,
+                headers={"Content-Type": "application/timestamp-query"},
+                timeout=float(self._config.timeout_seconds),
+            )
+            response.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise rfc3161ng.TimestampingError("TSA request failed") from exc
         tsr = rfc3161ng.decode_timestamp_response(response.content)
-        if int(tsr.status[0]) != 0:  # granted
+        if int(tsr.status[0]) not in {0, 1}:  # granted | grantedWithMods
             raise rfc3161ng.TimestampingError(
                 f"TSA returned status {tsr.status}; response content not a valid granted token"
             )
@@ -98,7 +105,7 @@ class TsaClient:
             rfc3161ng.check_timestamp(
                 receipt,
                 digest=data_hash,
-                hashname=self._config.hashname,
+                hashname=CANONICAL_HASHNAME,
                 certificate=cert,
             )
             return True

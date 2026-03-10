@@ -68,6 +68,9 @@ async def run_chain_anchor_job(app: FastAPI) -> None:
                         "Anchor failed for tenant_id=%s",
                         tenant_id,
                     )
+        except asyncio.CancelledError:
+            logger.info("Chain anchor job cancelled, shutting down")
+            raise
         except Exception:
             logger.exception("Chain anchor job encountered a fatal error")
 

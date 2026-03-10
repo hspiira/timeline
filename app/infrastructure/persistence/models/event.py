@@ -57,6 +57,13 @@ class Event(CuidMixin, TenantMixin, Base):
         Index(
             "ix_event_tenant_type_version", "tenant_id", "event_type", "schema_version"
         ),
+        Index(
+            "ix_event_tenant_created_at",
+            "tenant_id",
+            "created_at",
+            "event_time",
+            "id",
+        ),
         CheckConstraint("created_at IS NOT NULL", name="ck_event_created_at_immutable"),
     )
 
