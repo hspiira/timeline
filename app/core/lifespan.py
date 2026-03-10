@@ -55,6 +55,14 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.cache = None
         app.state.sync_progress_broadcast_task = None
 
+    if settings.chain_anchor_enabled:
+        from app.core.anchor_job import run_chain_anchor_job
+
+        app.state.chain_anchor_task = asyncio.create_task(run_chain_anchor_job(app))
+        logger.info("Chain anchor job started")
+    else:
+        app.state.chain_anchor_task = None
+
     if settings.telemetry_enabled:
         from app.shared.telemetry.telemetry import TelemetryConfig, set_telemetry
 
@@ -81,6 +89,15 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
         await app.state.oauth_http_client.aclose()
         app.state.oauth_http_client = None
         logger.info("OAuth HTTP client closed")
+
+    chain_anchor_task = getattr(app.state, "chain_anchor_task", None)
+    if chain_anchor_task is not None:
+        chain_anchor_task.cancel()
+        try:
+            await chain_anchor_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("Chain anchor task stopped")
 
     sync_task = getattr(app.state, "sync_progress_broadcast_task", None)
     if sync_task is not None:

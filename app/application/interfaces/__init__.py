@@ -5,6 +5,7 @@ No runtime imports from app.infrastructure or app.presentation.
 """
 
 from app.application.interfaces.repositories import (
+    IChainAnchorRepository,
     IDocumentCategoryRepository,
     IDocumentRepository,
     IEventRepository,
@@ -34,6 +35,7 @@ from app.application.interfaces.storage import IStorageService
 __all__ = [
     "IAuditService",
     "ICacheService",
+    "IChainAnchorRepository",
     "IDocumentCategoryRepository",
     "IDocumentRepository",
     "IEventRepository",

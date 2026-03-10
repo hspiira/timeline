@@ -10,6 +10,7 @@ from app.api.v1.endpoints import (
     analytics,
     audit_log as audit_log_endpoint,
     auth,
+    chain_anchors,
     document_categories,
     documents,
     email_accounts,
@@ -46,6 +47,9 @@ api_router.include_router(
 )
 api_router.include_router(events.router, prefix="/events", tags=["events"])
 api_router.include_router(tenants.router, prefix="/tenants", tags=["tenants"])
+api_router.include_router(
+    chain_anchors.router, prefix="/tenants", tags=["chain-anchors"]
+)
 api_router.include_router(documents.router, prefix="/documents", tags=["documents"])
 api_router.include_router(
     document_categories.router,

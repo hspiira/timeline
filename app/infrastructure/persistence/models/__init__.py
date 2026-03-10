@@ -41,6 +41,7 @@ from app.infrastructure.persistence.models.relationship_kind import Relationship
 from app.infrastructure.persistence.models.subject_relationship import (
     SubjectRelationship,
 )
+from app.infrastructure.persistence.models.chain_anchor import ChainAnchor
 from app.infrastructure.persistence.models.subject_snapshot import SubjectSnapshot
 from app.infrastructure.persistence.models.task import Task
 from app.infrastructure.persistence.models.tenant import Tenant
@@ -50,6 +51,7 @@ from app.infrastructure.persistence.models.workflow import Workflow, WorkflowExe
 
 __all__ = [
     "AuditLog",
+    "ChainAnchor",
     "PasswordSetToken",
     "Tenant",
     "User",

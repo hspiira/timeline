@@ -7,6 +7,9 @@ from app.infrastructure.persistence.repositories.auditable_repo import (
     AuditableRepository,
 )
 from app.infrastructure.persistence.repositories.base import BaseRepository
+from app.infrastructure.persistence.repositories.chain_anchor_repo import (
+    ChainAnchorRepository,
+)
 from app.infrastructure.persistence.repositories.document_repo import DocumentRepository
 from app.infrastructure.persistence.repositories.document_requirement_repo import (
     DocumentRequirementRepository,
@@ -73,6 +76,7 @@ __all__ = [
     "AuditLogRepository",
     "AuditableRepository",
     "BaseRepository",
+    "ChainAnchorRepository",
     "DocumentCategoryRepository",
     "DocumentRepository",
     "DocumentRequirementRepository",

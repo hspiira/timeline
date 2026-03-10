@@ -1,0 +1,21 @@
+"""DTOs for chain anchor use cases (TSA receipt storage and retrieval)."""
+
+from dataclasses import dataclass
+from datetime import datetime
+
+
+@dataclass(frozen=True)
+class ChainAnchorResult:
+    """Chain anchor read-model (result of get, list, create, update)."""
+
+    id: str
+    tenant_id: str
+    subject_id: str | None  # None = tenant-level anchor; set for per-subject (future)
+    chain_tip_hash: str
+    anchored_at: datetime
+    tsa_url: str
+    tsa_receipt: bytes | None  # raw DER TimeStampToken; None when pending/failed
+    tsa_serial: str | None
+    status: str  # pending | confirmed | failed
+    error_message: str | None
+    created_at: datetime

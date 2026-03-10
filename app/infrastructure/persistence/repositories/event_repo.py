@@ -214,6 +214,22 @@ class EventRepository(BaseRepository[Event]):
         )
         return [_event_to_result(e) for e in result.scalars().all()]
 
+    async def get_chain_tip_hash(self, tenant_id: str) -> str | None:
+        """Return the hash of the latest event for the tenant (chain tip). None if no events."""
+        result = await self.db.execute(
+            select(Event.hash)
+            .where(Event.tenant_id == tenant_id)
+            .order_by(desc(Event.event_time), desc(Event.id))
+            .limit(1)
+        )
+        row = result.scalar_one_or_none()
+        return row if row else None
+
+    async def get_distinct_tenant_ids(self) -> list[str]:
+        """Return distinct tenant_ids that have at least one event (for anchoring job)."""
+        result = await self.db.execute(select(Event.tenant_id).distinct())
+        return [r for r in result.scalars().all()]
+
     async def create_events_bulk(
         self, tenant_id: str, events: list[EventToPersist]
     ) -> list[EventResult]:
