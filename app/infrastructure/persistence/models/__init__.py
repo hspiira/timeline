@@ -48,6 +48,9 @@ from app.infrastructure.persistence.models.tenant import Tenant
 from app.infrastructure.persistence.models.password_set_token import PasswordSetToken
 from app.infrastructure.persistence.models.user import User
 from app.infrastructure.persistence.models.workflow import Workflow, WorkflowExecution
+from app.infrastructure.persistence.models.webhook_subscription import (
+    WebhookSubscription,
+)
 
 __all__ = [
     "AuditLog",
@@ -72,6 +75,7 @@ __all__ = [
     "Permission",
     "RolePermission",
     "UserRole",
+    "WebhookSubscription",
     "Workflow",
     "WorkflowExecution",
     "EmailAccount",

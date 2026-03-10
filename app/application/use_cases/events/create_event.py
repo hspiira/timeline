@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Callable
 from sqlalchemy.exc import IntegrityError
 
 from app.application.dtos.event import EventCreate, EventResult, EventToPersist
+from app.application.services.enrichment import EnrichmentContext
 from app.application.dtos.subject_type import SubjectTypeResult
 from app.application.interfaces.repositories import (
     IEventRepository,
@@ -33,6 +34,7 @@ if TYPE_CHECKING:
         IEventTransitionValidator,
         IWorkflowEngine,
     )
+    from app.application.interfaces.webhook import IWebhookDispatcher
 
 
 def _event_result_to_entity(r: EventResult) -> EventEntity:
@@ -73,6 +75,8 @@ class EventService:
         workflow_engine_provider: Callable[[], IWorkflowEngine | None] | None = None,
         transition_validator: IEventTransitionValidator | None = None,
         subject_type_repo: "ISubjectTypeRepository | None" = None,
+        enrichers: list[Any] | None = None,
+        webhook_dispatcher: "IWebhookDispatcher | None" = None,
     ) -> None:
         self.event_repo = event_repo
         self.hash_service = hash_service
@@ -82,6 +86,8 @@ class EventService:
         self._workflow_engine_provider = workflow_engine_provider
         self.transition_validator = transition_validator
         self.subject_type_repo = subject_type_repo
+        self.enrichers = enrichers or []
+        self._webhook_dispatcher = webhook_dispatcher
 
     @property
     def workflow_engine(self) -> "IWorkflowEngine | None":
@@ -97,6 +103,7 @@ class EventService:
         *,
         trigger_workflows: bool = True,
         skip_transition_validation: bool = False,
+        enrichment_context: EnrichmentContext | None = None,
     ) -> EventEntity:
         """Create one event; validate subject and schema, compute hash, optionally trigger workflows."""
         if data.external_id:
@@ -141,6 +148,10 @@ class EventService:
                 workflow_instance_id=data.workflow_instance_id,
             )
 
+        if enrichment_context and self.enrichers:
+            for enricher in self.enrichers:
+                data = await enricher.enrich(data, enrichment_context)
+
         for attempt in range(MAX_RETRIES):
             try:
                 async with self.db.begin():
@@ -179,6 +190,10 @@ class EventService:
         entity = _event_result_to_entity(created)
         if trigger_workflows and self.workflow_engine:
             await self._trigger_workflows(entity, tenant_id)
+        if self._webhook_dispatcher:
+            await self._webhook_dispatcher.dispatch(
+                tenant_id, entity, subject.subject_type.value
+            )
 
         return entity
 
@@ -189,6 +204,7 @@ class EventService:
         *,
         skip_schema_validation: bool = False,
         trigger_workflows: bool = False,
+        enrichment_context: EnrichmentContext | None = None,
     ) -> list[EventEntity]:
         """Bulk create events (e.g. email sync). Hashes computed sequentially; single DB roundtrip."""
         if not events:
@@ -238,6 +254,14 @@ class EventService:
                             f"Allowed: {', '.join(type_config.allowed_event_types)}",
                             field="event_type",
                         )
+
+        if enrichment_context and self.enrichers:
+            enriched: list[EventCreate] = []
+            for event_data in events:
+                for enricher in self.enrichers:
+                    event_data = await enricher.enrich(event_data, enrichment_context)
+                enriched.append(event_data)
+            events = enriched
 
         representative_subject_id = min(subject_ids)
 

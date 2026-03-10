@@ -10,6 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
     ensure_audit_logged,
+    get_enrichment_context,
+    get_event_create_rate_limit,
     get_event_repo,
     get_event_service,
     get_event_service_for_create,
@@ -19,6 +21,7 @@ from app.api.v1.dependencies import (
     require_permission,
 )
 from app.application.dtos.event import EventCreate
+from app.application.services.enrichment import EnrichmentContext
 from app.application.services.verification_service import (
     ChainVerificationResult,
     VerificationService,
@@ -102,12 +105,18 @@ async def create_event(
     body: EventCreate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     event_svc: Annotated[EventService, Depends(get_event_service_for_create)],
+    enrichment_context: Annotated[
+        EnrichmentContext, Depends(get_enrichment_context)
+    ],
+    _rate: Annotated[None, Depends(get_event_create_rate_limit)] = None,
     _: Annotated[object, Depends(require_permission("event", "create"))] = None,
     _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a single event (hash chaining, optional schema validation, workflows)."""
     try:
-        created = await event_svc.create_event(tenant_id, body)
+        created = await event_svc.create_event(
+            tenant_id, body, enrichment_context=enrichment_context
+        )
         return EventResponse(
             id=created.id,
             subject_id=created.subject_id,

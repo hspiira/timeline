@@ -37,6 +37,11 @@ if TYPE_CHECKING:
     from app.application.dtos.tenant import TenantResult
     from app.application.dtos.user import UserResult
     from app.application.dtos.chain_anchor import ChainAnchorResult
+    from app.application.dtos.webhook_subscription import (
+    WebhookSubscriptionCreate,
+    WebhookSubscriptionResult,
+    WebhookSubscriptionUpdate,
+)
 
 
 # Event repository interface
@@ -972,3 +977,45 @@ class IAuditLogRepository(Protocol):
         to_timestamp: datetime | None = None,
     ) -> int:
         """Return total count of audit log entries for tenant with optional filters."""
+
+
+# Webhook subscription repository interface
+class IWebhookSubscriptionRepository(Protocol):
+    """Protocol for webhook subscription repository (event push)."""
+
+    async def get_active_by_tenant(
+        self, tenant_id: str
+    ) -> list["WebhookSubscriptionResult"]:
+        """Return active subscriptions for tenant (for dispatching)."""
+
+    async def create(
+        self,
+        tenant_id: str,
+        data: "WebhookSubscriptionCreate",
+    ) -> "WebhookSubscriptionResult":
+        """Create a webhook subscription; returns the created record."""
+
+    async def get_by_id(
+        self, tenant_id: str, subscription_id: str
+    ) -> "WebhookSubscriptionResult | None":
+        """Return subscription by id scoped to tenant, or None."""
+
+    async def list_by_tenant(
+        self,
+        tenant_id: str,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list["WebhookSubscriptionResult"]:
+        """List subscriptions for tenant (paginated)."""
+
+    async def update(
+        self,
+        tenant_id: str,
+        subscription_id: str,
+        data: "WebhookSubscriptionUpdate",
+    ) -> "WebhookSubscriptionResult":
+        """Update subscription; raises if not found."""
+
+    async def delete(self, tenant_id: str, subscription_id: str) -> None:
+        """Delete subscription; no-op if not found."""

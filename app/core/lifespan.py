@@ -34,6 +34,10 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Shared HTTP client for OAuth and other outbound calls (connection reuse).
     app.state.oauth_http_client = httpx.AsyncClient(timeout=30.0)
 
+    from app.application.services.rate_limiter import InMemoryRateLimiter
+
+    app.state.event_rate_limiter = InMemoryRateLimiter()
+
     from app.api.websocket import ConnectionManager
 
     app.state.ws_manager = ConnectionManager()

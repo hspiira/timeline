@@ -16,6 +16,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.user import UserResult
+from app.application.services.enrichment import EnrichmentContext
 from app.application.services.authorization_service import AuthorizationService
 from app.application.services.hash_service import HashService
 from app.application.services.permission_service import PermissionService
@@ -650,6 +651,46 @@ async def get_current_user(
     return current_user
 
 
+async def get_event_create_rate_limit(
+    request: Request,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+) -> None:
+    """Raise 429 if event create rate limit exceeded for this tenant."""
+    limiter = getattr(request.app.state, "event_rate_limiter", None)
+    if limiter is None:
+        return
+    settings = get_settings()
+    key = f"event:create:{tenant_id}"
+    allowed = await limiter.check(
+        key,
+        settings.rate_limit_events_per_minute_per_tenant,
+        60,
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many event creations for this tenant; try again later",
+        )
+
+
+async def get_enrichment_context(
+    request: Request,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    current_user: Annotated[UserResult | None, Depends(get_current_user_optional)],
+) -> EnrichmentContext:
+    """Build enrichment context from request (for API-originated events)."""
+    settings = get_settings()
+    request_id = request.headers.get(settings.request_id_header)
+    source_ip = request.client.host if request.client else None
+    actor_id = current_user.id if current_user else None
+    return EnrichmentContext(
+        tenant_id=tenant_id,
+        actor_id=actor_id,
+        request_id=request_id,
+        source_ip=source_ip,
+    )
+
+
 def require_permission(resource: str, action: str):
     """Dependency factory: require JWT auth and that the user has resource:action."""
 
@@ -670,6 +711,8 @@ def require_permission(resource: str, action: str):
 
 # Named permission dependencies (composition root: routes use Depends(get_*))
 get_chain_anchor_read_permission = require_permission("chain_anchor", "read")
+get_webhook_read_permission = require_permission("webhook", "read")
+get_webhook_write_permission = require_permission("webhook", "write")
 
 
 # ---------------------------------------------------------------------------

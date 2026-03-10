@@ -15,6 +15,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.application.services.document_category_metadata_validator import (
     DocumentCategoryMetadataValidator,
 )
+from app.application.services.enrichment import (
+    ActorEnricher,
+    CorrelationEnricher,
+    SourceEnricher,
+)
 from app.application.services.event_schema_validator import EventSchemaValidator
 from app.application.services.event_transition_validator import EventTransitionValidator
 from app.application.services.hash_service import HashService
@@ -57,6 +62,7 @@ from app.infrastructure.persistence.database import (
 )
 from app.infrastructure.persistence.repositories import (
     ChainAnchorRepository,
+    WebhookSubscriptionRepository,
     DocumentCategoryRepository,
     DocumentRepository,
     DocumentRequirementRepository,
@@ -78,6 +84,7 @@ from app.infrastructure.persistence.repositories import (
     WorkflowRepository,
 )
 from app.infrastructure.services import SystemAuditService, WorkflowEngine
+from app.infrastructure.services.webhook_dispatcher import WebhookDispatcher
 from app.infrastructure.services.workflow_notification_service import (
     LogOnlyNotificationService,
     WorkflowRecipientResolver,
@@ -160,6 +167,11 @@ async def get_event_service(
         return workflow_engine_holder[0]
 
     subject_type_repo = SubjectTypeRepository(db, audit_service=audit_svc)
+    default_enrichers = [
+        CorrelationEnricher(),
+        ActorEnricher(),
+        SourceEnricher(),
+    ]
     event_service = EventService(
         event_repo=event_repo,
         hash_service=hash_service,
@@ -169,6 +181,7 @@ async def get_event_service(
         workflow_engine_provider=get_workflow_engine,
         transition_validator=transition_validator,
         subject_type_repo=subject_type_repo,
+        enrichers=default_enrichers,
     )
     notification_service = LogOnlyNotificationService()
     recipient_resolver = WorkflowRecipientResolver(db)
@@ -251,6 +264,13 @@ async def get_event_service_for_create(
         return workflow_engine_holder[0]
 
     subject_type_repo = SubjectTypeRepository(db, audit_service=audit_svc)
+    default_enrichers_create = [
+        CorrelationEnricher(),
+        ActorEnricher(),
+        SourceEnricher(),
+    ]
+    webhook_repo = WebhookSubscriptionRepository(db)
+    webhook_dispatcher = WebhookDispatcher(webhook_repo.get_active_by_tenant)
     event_service = EventService(
         event_repo=event_repo,
         hash_service=hash_service,
@@ -260,6 +280,8 @@ async def get_event_service_for_create(
         workflow_engine_provider=get_workflow_engine,
         transition_validator=transition_validator,
         subject_type_repo=subject_type_repo,
+        enrichers=default_enrichers_create,
+        webhook_dispatcher=webhook_dispatcher,
     )
     notification_service = LogOnlyNotificationService()
     recipient_resolver = WorkflowRecipientResolver(db)
@@ -735,6 +757,33 @@ async def get_chain_anchor_repo(
 ) -> ChainAnchorRepository:
     """Chain anchor repository for read operations (list, latest)."""
     return ChainAnchorRepository(db)
+
+
+# ---------------------------------------------------------------------------
+# Webhook subscriptions
+# ---------------------------------------------------------------------------
+
+async def get_webhook_subscription_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> WebhookSubscriptionRepository:
+    """Webhook subscription repository for read operations (list, get)."""
+    return WebhookSubscriptionRepository(db)
+
+
+async def get_webhook_subscription_repo_for_write(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> WebhookSubscriptionRepository:
+    """Webhook subscription repository for create/update/delete."""
+    return WebhookSubscriptionRepository(db)
+
+
+def get_webhook_dispatcher(
+    webhook_repo: Annotated[
+        WebhookSubscriptionRepository, Depends(get_webhook_subscription_repo)
+    ],
+) -> WebhookDispatcher:
+    """Webhook dispatcher for test delivery (uses repo to resolve subscriptions)."""
+    return WebhookDispatcher(webhook_repo.get_active_by_tenant)
 
 
 # ---------------------------------------------------------------------------

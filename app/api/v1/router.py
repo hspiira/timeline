@@ -32,6 +32,7 @@ from app.api.v1.endpoints import (
     tenants,
     user_roles,
     users,
+    webhooks,
 )
 from app.api.v1.endpoints import websocket as ws_endpoint
 from app.api.v1.endpoints import workflows
@@ -51,6 +52,9 @@ api_router.include_router(connectors.router, prefix="/connectors", tags=["connec
 api_router.include_router(tenants.router, prefix="/tenants", tags=["tenants"])
 api_router.include_router(
     chain_anchors.router, prefix="/tenants", tags=["chain-anchors"]
+)
+api_router.include_router(
+    webhooks.router, prefix="/tenants", tags=["webhooks"]
 )
 api_router.include_router(documents.router, prefix="/documents", tags=["documents"])
 api_router.include_router(

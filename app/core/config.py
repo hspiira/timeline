@@ -138,6 +138,10 @@ class Settings(BaseSettings):
     connector_file_watch_enabled: bool = False
     connector_file_watch_path: str | None = None
 
+    # Event rate limits (per-tenant, per minute)
+    rate_limit_events_per_minute_per_tenant: int = 10_000
+    rate_limit_bulk_events_per_minute_per_tenant: int = 50_000
+
     # OpenTelemetry
     telemetry_enabled: bool = True
     telemetry_exporter: str = "console"
