@@ -8,16 +8,15 @@ Stores rules: event_type requires required_prior_event_types (JSONB array) in st
 """
 
 from collections.abc import Sequence
-from typing import Union
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
 revision: str = "z4a5b6c7d8e9"
-down_revision: Union[str, Sequence[str], None] = "y3z4a5b6c7d8"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "y3z4a5b6c7d8"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

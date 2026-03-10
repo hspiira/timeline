@@ -10,14 +10,14 @@ Migrations and admin scripts that must modify these tables should use a role
 with BYPASSRLS; the application role must not bypass RLS.
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 from alembic import op
 
 revision: str = "i9j0k1l2m3n4"
-down_revision: Union[str, Sequence[str], None] = "n2o3p4q5r6s7"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "n2o3p4q5r6s7"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def _trigger_function_event() -> str:

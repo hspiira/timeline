@@ -53,6 +53,7 @@ from app.infrastructure.external.storage.factory import StorageFactory
 from app.infrastructure.external.storage.protocol import StorageProtocol
 from app.infrastructure.persistence.database import get_db, get_db_transactional
 from app.infrastructure.persistence.repositories import (
+    ChainAnchorRepository,
     DocumentCategoryRepository,
     DocumentRepository,
     DocumentRequirementRepository,
@@ -627,6 +628,17 @@ async def get_flow_document_compliance_use_case(
         document_category_repo=document_category_repo,
         document_repo=document_repo,
     )
+
+
+# ---------------------------------------------------------------------------
+# Chain anchor (RFC 3161 TSA)
+# ---------------------------------------------------------------------------
+
+async def get_chain_anchor_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ChainAnchorRepository:
+    """Chain anchor repository for read operations (list, latest)."""
+    return ChainAnchorRepository(db)
 
 
 # ---------------------------------------------------------------------------

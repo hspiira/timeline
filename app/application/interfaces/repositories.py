@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from app.application.dtos.task import TaskResult
     from app.application.dtos.tenant import TenantResult
     from app.application.dtos.user import UserResult
+    from app.application.dtos.chain_anchor import ChainAnchorResult
 
 
 # Event repository interface
@@ -109,6 +110,12 @@ class IEventRepository(Protocol):
         limit: int = 100,
     ) -> list[EventResult]:
         """Return events for a flow (workflow_instance_id) across all subjects, newest first."""
+
+    async def get_chain_tip_hash(self, tenant_id: str) -> str | None:
+        """Return the hash of the latest event for the tenant (chain tip). None if no events."""
+
+    async def get_distinct_tenant_ids(self) -> list[str]:
+        """Return distinct tenant_ids that have at least one event (for anchoring job). Deterministic order by tenant_id."""
 
 
 # Subject repository interface
@@ -280,6 +287,60 @@ class ISubjectSnapshotRepository(Protocol):
         event_count_at_snapshot: int = 0,
     ) -> SubjectSnapshotResult:
         """Create or replace snapshot for subject (one per subject)."""
+
+
+# Chain anchor repository interface
+class IChainAnchorRepository(Protocol):
+    """Protocol for chain anchor repository (RFC 3161 TSA receipts)."""
+
+    async def get_by_tenant_and_tip(
+        self,
+        tenant_id: str,
+        chain_tip_hash: str,
+        *,
+        subject_id: str | None = None,
+    ) -> ChainAnchorResult | None:
+        """Return anchor for (tenant_id, chain_tip_hash) or (tenant_id, subject_id, chain_tip_hash). subject_id=None for tenant-level."""
+
+    async def create_pending(
+        self,
+        tenant_id: str,
+        chain_tip_hash: str,
+        tsa_url: str,
+        *,
+        anchored_at: datetime | None = None,
+        subject_id: str | None = None,
+    ) -> ChainAnchorResult:
+        """Create a pending anchor row, or return existing on concurrent duplicate (idempotent). subject_id=None for tenant-level."""
+
+    async def update_confirmed(
+        self, anchor_id: str, tsa_receipt: bytes, tsa_serial: str | None
+    ) -> ChainAnchorResult | None:
+        """Mark anchor as confirmed and store receipt; return updated result or None."""
+
+    async def update_failed(self, anchor_id: str, error_message: str) -> ChainAnchorResult | None:
+        """Mark anchor as failed; return updated result or None."""
+
+    async def update_to_pending(self, anchor_id: str) -> ChainAnchorResult | None:
+        """Set status to pending and clear error_message (for retry after failed). Return updated or None."""
+
+    async def list_by_tenant(
+        self,
+        tenant_id: str,
+        skip: int = 0,
+        limit: int = 100,
+        *,
+        tenant_level_only: bool = True,
+    ) -> list[ChainAnchorResult]:
+        """List anchors for tenant, newest first. tenant_level_only=True returns only tenant-level (subject_id IS NULL)."""
+
+    async def get_latest_confirmed(
+        self,
+        tenant_id: str,
+        *,
+        tenant_level_only: bool = True,
+    ) -> ChainAnchorResult | None:
+        """Return the most recent confirmed anchor for tenant, or None. tenant_level_only=True returns only tenant-level."""
 
 
 # Event schema repository interface

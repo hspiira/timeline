@@ -668,6 +668,10 @@ def require_permission(resource: str, action: str):
     return _require
 
 
+# Named permission dependencies (composition root: routes use Depends(get_*))
+get_chain_anchor_read_permission = require_permission("chain_anchor", "read")
+
+
 # ---------------------------------------------------------------------------
 # OAuth provider config and email accounts (formerly oauth_email.py)
 # ---------------------------------------------------------------------------

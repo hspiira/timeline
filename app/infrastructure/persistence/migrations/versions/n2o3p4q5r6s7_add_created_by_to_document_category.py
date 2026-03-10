@@ -8,15 +8,14 @@ Audit field for document category creation (align with subject_type pattern).
 """
 
 from collections.abc import Sequence
-from typing import Union
 
 import sqlalchemy as sa
 from alembic import op
 
 revision: str = "n2o3p4q5r6s7"
-down_revision: Union[str, Sequence[str], None] = "m8n9o0p1q2r3"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "m8n9o0p1q2r3"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

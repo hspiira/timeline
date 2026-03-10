@@ -12,6 +12,7 @@ from __future__ import annotations
 from app.api.v1.dependencies._core import (
     OAuthDriverRegistry,
     ensure_audit_logged,
+    get_chain_anchor_read_permission,
     get_audit_log_repo,
     get_authorization_service,
     get_create_access_token,
@@ -55,6 +56,7 @@ from app.api.v1.dependencies._core import (
 from app.api.v1.dependencies._domain import (
     ChainVerificationResult,
     build_event_service_for_session,
+    get_chain_anchor_repo,
     get_create_flow_use_case,
     get_dashboard_stats_use_case,
     get_create_subject_snapshot_use_case,
@@ -103,6 +105,8 @@ from app.api.v1.dependencies._domain import (
 __all__ = [
     "build_event_service_for_session",
     "ChainVerificationResult",
+    "get_chain_anchor_read_permission",
+    "get_chain_anchor_repo",
     "OAuthDriverRegistry",
     "ensure_audit_logged",
     "get_audit_log_repo",

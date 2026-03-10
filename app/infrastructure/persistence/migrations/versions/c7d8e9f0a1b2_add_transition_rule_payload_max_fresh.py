@@ -9,16 +9,15 @@ fresh prior event type (resubmission). All nullable for backward compatibility.
 """
 
 from collections.abc import Sequence
-from typing import Union
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
 revision: str = "c7d8e9f0a1b2"
-down_revision: Union[str, Sequence[str], None] = "b6c7d8e9f0a1"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "b6c7d8e9f0a1"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

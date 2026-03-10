@@ -2239,6 +2239,22 @@ wheels = [
 ]
 
 [[package]]
+name = "rfc3161ng"
+version = "2.1.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cryptography" },
+    { name = "pyasn1" },
+    { name = "pyasn1-modules" },
+    { name = "python-dateutil" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/87/ab/7b1cc11019fb63d9420093ed9ff339ea544d0158141ac0daf33961a200cf/rfc3161ng-2.1.3.tar.gz", hash = "sha256:1e88614da61b22abd591577f9dd39d3a030335f9e8a12d8bc001149c17d0a01e", size = 22418, upload-time = "2020-10-30T14:38:29.046Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6c/66/cf13725b4ad06527ca482c99202a683ca3b35586eec9bad5f9e19efb43b9/rfc3161ng-2.1.3-py2.py3-none-any.whl", hash = "sha256:81fe7e4488f523c758b1206bf5e72ba2066b78f2812107b1b7bb16a7596e524b", size = 9949, upload-time = "2020-10-30T14:38:26.277Z" },
+]
+
+[[package]]
 name = "rich"
 version = "14.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2584,6 +2600,7 @@ dependencies = [
     { name = "python-multipart" },
     { name = "python-pptx" },
     { name = "redis" },
+    { name = "rfc3161ng" },
     { name = "scalar-fastapi" },
     { name = "slowapi" },
     { name = "sqlalchemy" },
@@ -2648,6 +2665,7 @@ requires-dist = [
     { name = "python-multipart", specifier = ">=0.0.21" },
     { name = "python-pptx", specifier = ">=1.0.2" },
     { name = "redis", specifier = ">=7.1.0" },
+    { name = "rfc3161ng", specifier = ">=2.1.3" },
     { name = "scalar-fastapi", specifier = ">=1.0.0" },
     { name = "slowapi", specifier = ">=0.1.9" },
     { name = "sqlalchemy", specifier = ">=2.0.45" },
