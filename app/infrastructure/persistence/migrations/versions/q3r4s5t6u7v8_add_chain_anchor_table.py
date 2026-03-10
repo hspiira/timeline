@@ -1,6 +1,7 @@
 """Add chain_anchor table for RFC 3161 trusted timestamping.
 
-Stores TSA receipts per tenant chain tip for external verification.
+Stores TSA receipts per tenant or per-subject chain tip. subject_id NULL = tenant-level;
+non-null = subject-level (for future use). Partial unique indexes support both.
 """
 
 from typing import Sequence, Union
@@ -24,6 +25,12 @@ def upgrade() -> None:
             sa.ForeignKey("tenant.id", ondelete="CASCADE"),
             nullable=False,
         ),
+        sa.Column(
+            "subject_id",
+            sa.String(),
+            sa.ForeignKey("subject.id", ondelete="CASCADE"),
+            nullable=True,
+        ),
         sa.Column("chain_tip_hash", sa.String(), nullable=False),
         sa.Column("anchored_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("tsa_url", sa.String(), nullable=False),
@@ -45,10 +52,10 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
-        "ix_chain_anchor_tenant_tip",
+        "ix_chain_anchor_subject_id",
         "chain_anchor",
-        ["tenant_id", "chain_tip_hash"],
-        unique=True,
+        ["subject_id"],
+        unique=False,
     )
     op.create_index(
         "ix_chain_anchor_tenant_status",
@@ -56,9 +63,21 @@ def upgrade() -> None:
         ["tenant_id", "status"],
         unique=False,
     )
+    # Tenant-level: one anchor per (tenant_id, chain_tip_hash) when subject_id IS NULL.
+    op.execute(
+        "CREATE UNIQUE INDEX ix_chain_anchor_tenant_tip ON chain_anchor "
+        "(tenant_id, chain_tip_hash) WHERE subject_id IS NULL"
+    )
+    # Subject-level: one anchor per (tenant_id, subject_id, chain_tip_hash) for future use.
+    op.execute(
+        "CREATE UNIQUE INDEX ix_chain_anchor_subject_tip ON chain_anchor "
+        "(tenant_id, subject_id, chain_tip_hash) WHERE subject_id IS NOT NULL"
+    )
 
 
 def downgrade() -> None:
-    op.drop_index("ix_chain_anchor_tenant_status", table_name="chain_anchor")
+    op.drop_index("ix_chain_anchor_subject_tip", table_name="chain_anchor")
     op.drop_index("ix_chain_anchor_tenant_tip", table_name="chain_anchor")
+    op.drop_index("ix_chain_anchor_tenant_status", table_name="chain_anchor")
+    op.drop_index("ix_chain_anchor_subject_id", table_name="chain_anchor")
     op.drop_table("chain_anchor")

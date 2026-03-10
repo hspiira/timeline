@@ -25,6 +25,8 @@ def _to_result(a: ChainAnchor) -> ChainAnchorResult:
         status=a.status,
         error_message=a.error_message,
         created_at=a.created_at,
+        event_count=a.event_count,
+        subject_tips=a.subject_tips,
     )
 
 

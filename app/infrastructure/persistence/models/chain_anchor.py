@@ -2,13 +2,17 @@
 
 NULL subject_id = tenant-level anchor (one tip for the whole tenant).
 Non-null subject_id = subject-level anchor (for future per-subject anchoring).
+
+event_count and subject_tips are for Option C (Merkle) readiness: record coverage
+and leaf set at anchor time without changing current logic.
 """
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, LargeBinary, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import JSONB
 
 from app.infrastructure.persistence.database import Base
 from app.infrastructure.persistence.models.mixins import CuidMixin
@@ -45,3 +49,6 @@ class ChainAnchor(CuidMixin, Base):
         server_default=func.now(),
         nullable=False,
     )
+    # Option C readiness: event count and per-subject tips at anchor time (not populated yet).
+    event_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    subject_tips: Mapped[dict[str, str] | None] = mapped_column(JSONB, nullable=True)

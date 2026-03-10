@@ -9,10 +9,7 @@ from fastapi import FastAPI
 from app.core.config import get_settings
 from app.infrastructure.external.tsa.client import TsaClient
 from app.infrastructure.external.tsa.config import TsaConfig
-from app.infrastructure.persistence.database import (
-    AsyncSessionLocal,
-    _ensure_engine,
-)
+from app.infrastructure.persistence.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +43,6 @@ async def run_chain_anchor_job(app: FastAPI) -> None:
 
     while True:
         try:
-            _ensure_engine()
             if AsyncSessionLocal is None:
                 logger.error("Chain anchor job: database not configured")
                 await asyncio.sleep(settings.chain_anchor_interval_seconds)

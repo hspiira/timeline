@@ -2,11 +2,14 @@
 
 import hashlib
 import logging
+import os
 from typing import Any
 
 import httpx
 import rfc3161ng
 from pyasn1.codec.der import decoder, encoder
+
+from app.infrastructure.external.tsa.config import TsaConfig
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +54,12 @@ class TsaClient:
         self._client = http_client
 
     def _build_request(self, data_digest: bytes) -> bytes:
-        """Build DER-encoded TimeStampReq for the given digest."""
+        """Build DER-encoded TimeStampReq for the given digest. Uses a random nonce to prevent TSA response replay."""
+        nonce = int.from_bytes(os.urandom(8), "big")
         request = rfc3161ng.make_timestamp_request(
             digest=data_digest,
             hashname=self._config.hashname,
+            nonce=nonce,
         )
         return rfc3161ng.encode_timestamp_request(request)
 
@@ -87,12 +92,21 @@ class TsaClient:
         return encoder.encode(token)
 
     def verify(self, receipt: bytes, data_hash: bytes) -> bool:
-        """Verify a stored receipt (DER TimeStampToken) against the original data_hash."""
+        """Verify a stored receipt (DER TimeStampToken) against the original data_hash.
+
+        When cert_path is set, loads the TSA root certificate and verifies the TSA signature.
+        Without a certificate, only the digest match is checked (weaker; use cert_path in production).
+        """
+        cert: bytes | None = None
+        if self._config.cert_path:
+            with open(self._config.cert_path, "rb") as f:
+                cert = f.read()
         try:
             rfc3161ng.check_timestamp(
                 receipt,
                 digest=data_hash,
                 hashname=self._config.hashname,
+                certificate=cert,
             )
             return True
         except (ValueError, Exception):

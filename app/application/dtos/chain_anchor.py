@@ -19,3 +19,6 @@ class ChainAnchorResult:
     status: str  # pending | confirmed | failed
     error_message: str | None
     created_at: datetime
+    # Option C readiness: event count and per-subject tips at anchor time (not populated yet).
+    event_count: int | None = None
+    subject_tips: dict[str, str] | None = None

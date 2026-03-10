@@ -63,18 +63,20 @@ class AnchorChainTipsUseCase:
             if existing.status == "confirmed":
                 return existing
             if existing.status == "pending" and _is_recent(existing):
-                return None  # skip this run
-            if existing.status == "failed":
-                await self._anchor_repo.update_to_pending(existing.id)
+                return None  # in flight, skip
+            # Stale pending or failed: reuse the row.
+            await self._anchor_repo.update_to_pending(existing.id)
+            anchor_id = existing.id
+        else:
+            anchored_at = utc_now()
+            anchor = await self._anchor_repo.create_pending(
+                tenant_id=tenant_id,
+                chain_tip_hash=tip,
+                anchored_at=anchored_at,
+                tsa_url=self._tsa_url,
+            )
+            anchor_id = anchor.id
 
-        anchored_at = utc_now()
-        anchor = await self._anchor_repo.create_pending(
-            tenant_id=tenant_id,
-            chain_tip_hash=tip,
-            anchored_at=anchored_at,
-            tsa_url=self._tsa_url,
-        )
-        anchor_id = anchor.id
         try:
             data_hash = digest_for_chain_tip(tip)
             receipt = await self._tsa_client.timestamp(data_hash)

@@ -16,6 +16,16 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    """Idempotent: only run when chain_anchor was created without subject_id (old first migration)."""
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name = 'chain_anchor' AND column_name = 'subject_id'"
+        )
+    )
+    if result.scalar() is not None:
+        return  # subject_id already present (new first migration or re-run)
     op.add_column(
         "chain_anchor",
         sa.Column("subject_id", sa.String(), nullable=True),
@@ -35,12 +45,10 @@ def upgrade() -> None:
         unique=False,
     )
     op.drop_index("ix_chain_anchor_tenant_tip", table_name="chain_anchor")
-    # Tenant-level: one anchor per (tenant_id, chain_tip_hash) when subject_id IS NULL.
     op.execute(
         "CREATE UNIQUE INDEX ix_chain_anchor_tenant_tip ON chain_anchor "
         "(tenant_id, chain_tip_hash) WHERE subject_id IS NULL"
     )
-    # Subject-level: one anchor per (tenant_id, subject_id, chain_tip_hash) for future use.
     op.execute(
         "CREATE UNIQUE INDEX ix_chain_anchor_subject_tip ON chain_anchor "
         "(tenant_id, subject_id, chain_tip_hash) WHERE subject_id IS NOT NULL"
