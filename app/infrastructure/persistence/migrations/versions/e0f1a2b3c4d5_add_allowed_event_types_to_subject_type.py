@@ -1,7 +1,7 @@
 """Add allowed_event_types to subject_type.
 
 Revision ID: e0f1a2b3c4d5
-Revises: d8e9f0a1b2c3
+Revises: e9f0a1b2c3d4
 Create Date: 2026-02-18
 
 """

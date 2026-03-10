@@ -11,7 +11,6 @@ can emit relationship events; new tenants get them from tenant init).
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import text
 

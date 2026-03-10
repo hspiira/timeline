@@ -8,6 +8,7 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy import inspect
 
 revision: str = "w4x5y6z7a8b9"
 down_revision: str | Sequence[str] | None = "q3r4s5t6u7v8"
@@ -56,14 +57,32 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index("ix_chain_anchor_subject_tip", table_name="chain_anchor")
-    op.drop_index("ix_chain_anchor_tenant_tip", table_name="chain_anchor")
-    op.create_index(
-        "ix_chain_anchor_tenant_tip",
-        "chain_anchor",
-        ["tenant_id", "chain_tip_hash"],
-        unique=True,
-    )
-    op.drop_index("ix_chain_anchor_subject_id", table_name="chain_anchor")
-    op.drop_constraint("fk_chain_anchor_subject_id", "chain_anchor", type_="foreignkey")
-    op.drop_column("chain_anchor", "subject_id")
+    """Idempotent: only drop indexes/FK/column if they exist (mirrors upgrade no-op when subject_id already present)."""
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    if "chain_anchor" not in inspector.get_table_names():
+        return
+    column_names = {col["name"] for col in inspector.get_columns("chain_anchor")}
+    if "subject_id" not in column_names:
+        return  # Nothing to undo (upgrade was no-op or already downgraded)
+    index_names = {idx["name"] for idx in inspector.get_indexes("chain_anchor")}
+    fk_names = {fk["name"] for fk in inspector.get_foreign_keys("chain_anchor")}
+
+    if "ix_chain_anchor_subject_tip" in index_names:
+        op.drop_index("ix_chain_anchor_subject_tip", table_name="chain_anchor")
+    if "ix_chain_anchor_tenant_tip" in index_names:
+        op.drop_index("ix_chain_anchor_tenant_tip", table_name="chain_anchor")
+        op.create_index(
+            "ix_chain_anchor_tenant_tip",
+            "chain_anchor",
+            ["tenant_id", "chain_tip_hash"],
+            unique=True,
+        )
+    if "ix_chain_anchor_subject_id" in index_names:
+        op.drop_index("ix_chain_anchor_subject_id", table_name="chain_anchor")
+    if "fk_chain_anchor_subject_id" in fk_names:
+        op.drop_constraint(
+            "fk_chain_anchor_subject_id", "chain_anchor", type_="foreignkey"
+        )
+    if "subject_id" in column_names:
+        op.drop_column("chain_anchor", "subject_id")

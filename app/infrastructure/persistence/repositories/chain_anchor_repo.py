@@ -3,10 +3,12 @@
 from datetime import datetime
 
 from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import desc
 
 from app.application.dtos.chain_anchor import ChainAnchorResult
+from app.domain.exceptions import ChainAnchorConflictException
 from app.infrastructure.persistence.models.chain_anchor import ChainAnchor
 from app.infrastructure.persistence.repositories.base import BaseRepository
 
@@ -65,25 +67,48 @@ class ChainAnchorRepository(BaseRepository[ChainAnchor]):
         anchored_at: datetime | None = None,
         subject_id: str | None = None,
     ) -> ChainAnchorResult:
-        """Create a pending anchor row. subject_id=None for tenant-level. Raises IntegrityError if unique (tenant_id, tip) or (tenant_id, subject_id, tip) already exists."""
-        anchor = ChainAnchor(
-            tenant_id=tenant_id,
-            subject_id=subject_id,
-            chain_tip_hash=chain_tip_hash,
-            anchored_at=anchored_at,
-            tsa_url=tsa_url,
-            status="pending",
-        )
-        created = await self.create(anchor)
-        return _to_result(created)
+        """Create a pending anchor row, or return existing on concurrent duplicate (idempotent).
+
+        subject_id=None for tenant-level. On unique constraint (tenant_id, tip) or
+        (tenant_id, subject_id, tip), returns the existing row instead of raising.
+        """
+        try:
+            async with self.db.begin_nested():
+                anchor = ChainAnchor(
+                    tenant_id=tenant_id,
+                    subject_id=subject_id,
+                    chain_tip_hash=chain_tip_hash,
+                    anchored_at=anchored_at,
+                    tsa_url=tsa_url,
+                    status="pending",
+                )
+                created = await self.create(anchor)
+                return _to_result(created)
+        except IntegrityError:
+            existing = await self.get_by_tenant_and_tip(
+                tenant_id, chain_tip_hash, subject_id=subject_id
+            )
+            if existing is not None:
+                return existing
+            raise ChainAnchorConflictException(
+                "Anchor already exists for this chain tip but could not be loaded.",
+                details={"tenant_id": tenant_id, "chain_tip_hash": chain_tip_hash},
+            )
 
     async def update_confirmed(
         self, anchor_id: str, tsa_receipt: bytes, tsa_serial: str | None
     ) -> ChainAnchorResult | None:
-        """Mark anchor as confirmed and store receipt; return updated result or None. Only updates when status is pending."""
+        """Mark anchor as confirmed and store receipt; return updated result or None.
+
+        Updates when status is pending or failed so a valid TSA receipt is not dropped
+        if a concurrent update_failed() raced in (stale-pending retry).
+        """
         result = await self.db.execute(
             update(ChainAnchor)
-            .where(ChainAnchor.id == anchor_id, ChainAnchor.status == "pending")
+            .where(
+                ChainAnchor.id == anchor_id,
+                ChainAnchor.status.in_(("pending", "failed")),
+            )
             .values(
                 status="confirmed",
                 tsa_receipt=tsa_receipt,

@@ -16,17 +16,21 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     """Create composite index for tenant-scoped event list/latest queries."""
-    op.create_index(
-        "ix_event_tenant_created_at",
-        "event",
-        ["tenant_id", "created_at", "event_time", "id"],
-        unique=False,
-    )
+    with op.get_context().autocommit_block():
+        op.create_index(
+            "ix_event_tenant_created_at",
+            "event",
+            ["tenant_id", "created_at", "event_time", "id"],
+            unique=False,
+            postgresql_concurrently=True,
+        )
 
 
 def downgrade() -> None:
     """Drop the composite index."""
-    op.drop_index(
-        "ix_event_tenant_created_at",
-        table_name="event",
-    )
+    with op.get_context().autocommit_block():
+        op.drop_index(
+            "ix_event_tenant_created_at",
+            table_name="event",
+            postgresql_concurrently=True,
+        )

@@ -311,7 +311,7 @@ class IChainAnchorRepository(Protocol):
         anchored_at: datetime | None = None,
         subject_id: str | None = None,
     ) -> ChainAnchorResult:
-        """Create a pending anchor row. subject_id=None for tenant-level. Raises IntegrityError if unique already exists."""
+        """Create a pending anchor row, or return existing on concurrent duplicate (idempotent). subject_id=None for tenant-level."""
 
     async def update_confirmed(
         self, anchor_id: str, tsa_receipt: bytes, tsa_serial: str | None
