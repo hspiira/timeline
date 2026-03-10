@@ -81,9 +81,17 @@ class EventTransitionRuleRepository(BaseRepository[EventTransitionRule]):
         )
         return [_to_result(r) for r in result.scalars().all()]
 
-    async def get_entity_by_id(self, rule_id: str) -> EventTransitionRule | None:
-        """Return ORM entity by id for update/delete."""
-        return await super().get_by_id(rule_id)
+    async def _get_orm_by_id_and_tenant(
+        self, rule_id: str, tenant_id: str
+    ) -> EventTransitionRule | None:
+        """Load rule ORM by id and tenant (internal use for update/delete)."""
+        result = await self.db.execute(
+            select(EventTransitionRule).where(
+                EventTransitionRule.id == rule_id,
+                EventTransitionRule.tenant_id == tenant_id,
+            )
+        )
+        return result.scalar_one_or_none()
 
     async def create_rule(
         self,
@@ -113,6 +121,42 @@ class EventTransitionRuleRepository(BaseRepository[EventTransitionRule]):
         )
         created = await self.create(rule)
         return _to_result(created)
+
+    async def update_rule(
+        self,
+        rule_id: str,
+        tenant_id: str,
+        *,
+        required_prior_event_types: list[str] | None = None,
+        description: str | None = None,
+        prior_event_payload_conditions: dict | None = None,
+        max_occurrences_per_stream: int | None = None,
+        fresh_prior_event_type: str | None = None,
+    ) -> EventTransitionRuleResult | None:
+        """Update rule by id and tenant; return updated result or None if not found."""
+        rule = await self._get_orm_by_id_and_tenant(rule_id, tenant_id)
+        if not rule:
+            return None
+        if required_prior_event_types is not None:
+            rule.required_prior_event_types = required_prior_event_types
+        if description is not None:
+            rule.description = description
+        if prior_event_payload_conditions is not None:
+            rule.prior_event_payload_conditions = prior_event_payload_conditions
+        if max_occurrences_per_stream is not None:
+            rule.max_occurrences_per_stream = max_occurrences_per_stream
+        if fresh_prior_event_type is not None:
+            rule.fresh_prior_event_type = fresh_prior_event_type
+        updated = await super().update(rule, skip_existence_check=True)
+        return _to_result(updated)
+
+    async def delete_rule(self, rule_id: str, tenant_id: str) -> bool:
+        """Delete rule by id and tenant. Return True if deleted, False if not found."""
+        rule = await self._get_orm_by_id_and_tenant(rule_id, tenant_id)
+        if not rule:
+            return False
+        await self.delete(rule)
+        return True
 
     async def update(
         self, obj: EventTransitionRule, *, skip_existence_check: bool = False

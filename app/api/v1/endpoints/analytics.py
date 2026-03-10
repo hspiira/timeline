@@ -41,4 +41,7 @@ async def get_dashboard(
             )
             for e in stats.recent_events
         ],
+        chain_verification_info=(
+            "Run verification per subject or tenant via POST /api/v1/events/verify-chain."
+        ),
     )

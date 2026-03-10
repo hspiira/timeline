@@ -1,6 +1,6 @@
 """Seed from tenant registration through to events with a single dummy password.
 
-Flow (see docs/SEED_FROM_REGISTRATION_FLOW.md):
+Flow (see docs/RUNBOOKS.md §5 Seed from registration):
   1. Tenant registration: create tenant + RBAC init + admin user (dummy password) + assign admin role.
   2. Event schemas (by tenant_code, event_type).
   3. Event transition rules (by tenant_code, event_type).
@@ -16,7 +16,7 @@ Usage:
     uv run python -m scripts.seed_from_registration [path/to/seed-from-registration.json]
 
 Default path: scripts/seed-from-registration.json.
-Requires: DATABASE_BACKEND=postgres, migrations applied.
+Requires: DATABASE_URL (Postgres), migrations applied.
 """
 
 from __future__ import annotations
@@ -135,10 +135,6 @@ async def run(path: Path) -> None:
     workflows_data = data.get("workflows", [])
     events_data = data.get("events", [])
 
-    settings = get_settings()
-    if settings.database_backend != "postgres":
-        print("This script requires DATABASE_BACKEND=postgres", file=sys.stderr)
-        sys.exit(1)
     _ensure_engine()
     if db_mod.AsyncSessionLocal is None:
         print(

@@ -35,15 +35,14 @@ async def client() -> AsyncClient:
 async def db_session() -> AsyncSession:
     """Database session for repository/integration tests. Rolls back after test.
 
-    Requires DATABASE_BACKEND=postgres and DATABASE_URL. Skips (pytest.skip)
-    when Postgres is not configured. Use @pytest.mark.requires_db to mark
-    tests that need this fixture; run without DB via: pytest -m 'not requires_db'.
+    Requires DATABASE_URL. Skips (pytest.skip) when Postgres is not configured.
+    Use @pytest.mark.requires_db to mark tests that need this fixture;
+    run without DB via: pytest -m 'not requires_db'.
     """
     _ensure_engine()
     if AsyncSessionLocal is None:
         pytest.skip(
-            "Postgres not configured: set DATABASE_BACKEND=postgres and DATABASE_URL, "
-            "then run: uv run alembic upgrade head"
+            "Postgres not configured: set DATABASE_URL and run: uv run alembic upgrade head"
         )
     async with AsyncSessionLocal() as session:
         yield session
@@ -61,7 +60,7 @@ async def auth_headers(client: AsyncClient) -> dict[str, str] | None:
     _ensure_engine()
     if AsyncSessionLocal is None:
         pytest.skip(
-            "Postgres not configured: set DATABASE_BACKEND=postgres and DATABASE_URL"
+            "Postgres not configured: set DATABASE_URL and run: uv run alembic upgrade head"
         )
     # Ensure tenant creation is allowed in tests (secret required by endpoint).
     if "CREATE_TENANT_SECRET" not in os.environ:

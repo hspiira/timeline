@@ -12,6 +12,27 @@ from app.infrastructure.persistence.models.audit_log import AuditLog
 from app.shared.utils.generators import generate_cuid
 
 
+def _audit_list_conditions(
+    tenant_id: str,
+    *,
+    resource_type: str | None = None,
+    user_id: str | None = None,
+    from_timestamp: datetime | None = None,
+    to_timestamp: datetime | None = None,
+) -> list:
+    """Build filter conditions for list/count queries (single source of truth)."""
+    conditions = [AuditLog.tenant_id == tenant_id]
+    if resource_type is not None:
+        conditions.append(AuditLog.resource_type == resource_type)
+    if user_id is not None:
+        conditions.append(AuditLog.user_id == user_id)
+    if from_timestamp is not None:
+        conditions.append(AuditLog.timestamp >= from_timestamp)
+    if to_timestamp is not None:
+        conditions.append(AuditLog.timestamp <= to_timestamp)
+    return conditions
+
+
 def _orm_to_result(row: AuditLog) -> AuditLogResult:
     """Map ORM to application DTO."""
     return AuditLogResult(
@@ -72,16 +93,13 @@ class AuditLogRepository:
         to_timestamp: datetime | None = None,
     ) -> list[AuditLogResult]:
         """List audit log entries for tenant with optional filters (newest first)."""
-        conditions = [AuditLog.tenant_id == tenant_id]
-        if resource_type is not None:
-            conditions.append(AuditLog.resource_type == resource_type)
-        if user_id is not None:
-            conditions.append(AuditLog.user_id == user_id)
-        if from_timestamp is not None:
-            conditions.append(AuditLog.timestamp >= from_timestamp)
-        if to_timestamp is not None:
-            conditions.append(AuditLog.timestamp <= to_timestamp)
-
+        conditions = _audit_list_conditions(
+            tenant_id,
+            resource_type=resource_type,
+            user_id=user_id,
+            from_timestamp=from_timestamp,
+            to_timestamp=to_timestamp,
+        )
         stmt = (
             select(AuditLog)
             .where(and_(*conditions))
@@ -104,16 +122,13 @@ class AuditLogRepository:
         to_timestamp: datetime | None = None,
     ) -> tuple[list[AuditLogResult], int]:
         """List audit log entries and total count in one query (window count)."""
-        conditions = [AuditLog.tenant_id == tenant_id]
-        if resource_type is not None:
-            conditions.append(AuditLog.resource_type == resource_type)
-        if user_id is not None:
-            conditions.append(AuditLog.user_id == user_id)
-        if from_timestamp is not None:
-            conditions.append(AuditLog.timestamp >= from_timestamp)
-        if to_timestamp is not None:
-            conditions.append(AuditLog.timestamp <= to_timestamp)
-
+        conditions = _audit_list_conditions(
+            tenant_id,
+            resource_type=resource_type,
+            user_id=user_id,
+            from_timestamp=from_timestamp,
+            to_timestamp=to_timestamp,
+        )
         stmt = (
             select(
                 AuditLog,
@@ -140,15 +155,13 @@ class AuditLogRepository:
         to_timestamp: datetime | None = None,
     ) -> int:
         """Return total count of audit log entries for tenant with same filters as list."""
-        conditions = [AuditLog.tenant_id == tenant_id]
-        if resource_type is not None:
-            conditions.append(AuditLog.resource_type == resource_type)
-        if user_id is not None:
-            conditions.append(AuditLog.user_id == user_id)
-        if from_timestamp is not None:
-            conditions.append(AuditLog.timestamp >= from_timestamp)
-        if to_timestamp is not None:
-            conditions.append(AuditLog.timestamp <= to_timestamp)
+        conditions = _audit_list_conditions(
+            tenant_id,
+            resource_type=resource_type,
+            user_id=user_id,
+            from_timestamp=from_timestamp,
+            to_timestamp=to_timestamp,
+        )
         stmt = select(func.count(AuditLog.id)).where(and_(*conditions))
         result = await self.db.execute(stmt)
         return result.scalar() or 0

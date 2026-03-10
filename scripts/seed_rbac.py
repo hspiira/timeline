@@ -8,8 +8,7 @@ Resolves tenant by id or code. Requires Postgres. All imports use app.*.
 import asyncio
 import sys
 
-from app.core.config import get_settings
-from app.infrastructure.persistence.database import AsyncSessionLocal
+from app.infrastructure.persistence.database import AsyncSessionLocal, _ensure_engine
 from app.infrastructure.persistence.repositories import TenantRepository
 from app.infrastructure.services.tenant_initialization_service import (
     TenantInitializationService,
@@ -26,10 +25,7 @@ async def main() -> None:
         sys.exit(1)
     tenant_arg = sys.argv[1]
 
-    settings = get_settings()
-    if settings.database_backend != "postgres":
-        print("This script requires DATABASE_BACKEND=postgres", file=sys.stderr)
-        sys.exit(1)
+    _ensure_engine()
     if AsyncSessionLocal is None:
         print("AsyncSessionLocal not configured", file=sys.stderr)
         sys.exit(1)

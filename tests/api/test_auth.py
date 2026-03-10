@@ -164,7 +164,7 @@ async def test_set_initial_password_passwords_mismatch_returns_422(
 async def test_set_initial_password_invalid_token_returns_400(client: AsyncClient) -> None:
     """POST /api/v1/auth/set-initial-password with invalid/expired token returns 400.
 
-    Requires Postgres (token store); when Firestore, dependency raises and returns 503.
+    Requires Postgres (token store).
     """
     from app.infrastructure.persistence.database import AsyncSessionLocal, _ensure_engine
 
@@ -179,7 +179,7 @@ async def test_set_initial_password_invalid_token_returns_400(client: AsyncClien
             "password_confirm": "NewPassword123!",
         },
     )
-    # 400 when token invalid; 503 when backend is not Postgres (table doesn't exist or Firestore)
+    # 400 when token invalid; 503 when DB not configured (e.g. DATABASE_URL unset)
     assert response.status_code in (400, 503)
     if response.status_code == 400:
         assert "Invalid or expired link" in response.json().get("detail", "")

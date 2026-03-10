@@ -4,18 +4,28 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from pydantic import BaseModel, Field, field_validator
 
-@dataclass(frozen=True)
-class EventCreate:
-    """Input for creating an event record (write-model). Use case builds this; repo persists and returns EventResult."""
+from app.shared.utils.datetime import parse_aware_datetime
 
-    subject_id: str
-    event_type: str
-    schema_version: int
-    event_time: datetime
-    payload: dict[str, Any]
+
+class EventCreate(BaseModel):
+    """Payload for creating an event (request body and use-case input)."""
+
+    subject_id: str = Field(..., min_length=1)
+    event_type: str = Field(..., min_length=1)
+    schema_version: int = Field(..., ge=1)
+    event_time: datetime = Field(...)
+    payload: dict[str, Any] = Field(default_factory=dict)
     workflow_instance_id: str | None = None
     correlation_id: str | None = None
+
+    @field_validator("event_time", mode="before")
+    @classmethod
+    def event_time_aware(cls, v: Any) -> datetime:
+        if v is None:
+            raise ValueError("event_time is required")
+        return parse_aware_datetime(v)
 
 
 @dataclass(frozen=True)

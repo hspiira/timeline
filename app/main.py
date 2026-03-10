@@ -10,6 +10,7 @@ clear get_settings cache) before importing or calling create_app().
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from scalar_fastapi import get_scalar_api_reference
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -19,10 +20,8 @@ from app.core.limiter import limiter
 from app.core.exception_handlers import register_exception_handlers
 from app.core.lifespan import create_lifespan
 from app.middleware import (
-    AuditLogMiddleware,
-    CorrelationIDMiddleware,
-    RequestIDMiddleware,
     RequestSizeLimitMiddleware,
+    RequestTrackingMiddleware,
     SecurityHeadersMiddleware,
     TenantContextMiddleware,
     TimeoutMiddleware,
@@ -38,6 +37,8 @@ def create_app() -> FastAPI:
         version=settings.app_version,
         debug=settings.debug,
         lifespan=create_lifespan,
+        docs_url=None,
+        redoc_url=None,
     )
 
     app.state.limiter = limiter
@@ -53,14 +54,13 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.add_middleware(AuditLogMiddleware)
     app.add_middleware(TenantContextMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(
-        CorrelationIDMiddleware,
-        header_name=settings.correlation_id_header,
+        RequestTrackingMiddleware,
+        request_id_header=settings.request_id_header,
+        correlation_id_header=settings.correlation_id_header,
     )
-    app.add_middleware(RequestIDMiddleware, header_name=settings.request_id_header)
     app.add_middleware(RequestSizeLimitMiddleware, max_bytes=settings.max_upload_size)
     app.add_middleware(TimeoutMiddleware, timeout_seconds=settings.request_timeout_seconds)
 
@@ -70,6 +70,15 @@ def create_app() -> FastAPI:
     def root() -> HTMLResponse:
         """Landing page with links to API documentation."""
         return HTMLResponse(content=render_root_page(settings.app_name))
+
+    @app.get("/docs", include_in_schema=False)
+    def scalar_docs():
+        """Serve Scalar API reference (replaces Swagger UI)."""
+        return get_scalar_api_reference(
+            openapi_url=app.openapi_url,
+            title=f"{settings.app_name} API",
+            scalar_proxy_url="https://proxy.scalar.com",
+        )
 
     return app
 

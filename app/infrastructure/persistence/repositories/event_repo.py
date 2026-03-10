@@ -39,15 +39,6 @@ class EventRepository(BaseRepository[Event]):
     async def delete(self, obj: Event) -> None:
         raise NotImplementedError("Events are immutable and cannot be deleted")
 
-    async def get_last_hash(self, subject_id: str, tenant_id: str) -> str | None:
-        result = await self.db.execute(
-            select(Event.hash)
-            .where(Event.subject_id == subject_id, Event.tenant_id == tenant_id)
-            .order_by(desc(Event.event_time), desc(Event.id))
-            .limit(1)
-        )
-        return result.scalar_one_or_none()
-
     async def get_last_event(self, subject_id: str, tenant_id: str) -> EventResult | None:
         result = await self.db.execute(
             select(Event)
@@ -137,10 +128,10 @@ class EventRepository(BaseRepository[Event]):
         if as_of is not None:
             q = q.where(Event.event_time <= as_of)
         if after_event_id is not None:
-            after_event = await self.get_by_id(after_event_id)
+            after_event = await self.get_by_id_and_tenant(after_event_id, tenant_id)
             if not after_event:
                 return []
-            if after_event.subject_id != subject_id or after_event.tenant_id != tenant_id:
+            if after_event.subject_id != subject_id:
                 raise ValueError(
                     f"after_event_id {after_event_id!r} does not belong to subject_id={subject_id!r}, tenant_id={tenant_id!r}"
                 )

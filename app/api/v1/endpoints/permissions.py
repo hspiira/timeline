@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.exc import IntegrityError
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_permission_repo,
     get_permission_repo_for_write,
     get_permission_service,
@@ -32,6 +33,7 @@ async def create_permission(
         PermissionService, Depends(get_permission_service)
     ],
     _: Annotated[object, Depends(require_permission("permission", "create"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a permission (tenant-scoped)."""
     try:
@@ -95,6 +97,7 @@ async def delete_permission(
         PermissionRepository, Depends(get_permission_repo_for_write)
     ],
     _: Annotated[object, Depends(require_permission("permission", "delete"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Delete permission. Tenant-scoped."""
     perm = await permission_repo.get_by_id_and_tenant(permission_id, tenant_id)

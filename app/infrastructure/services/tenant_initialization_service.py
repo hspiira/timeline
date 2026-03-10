@@ -99,6 +99,7 @@ SYSTEM_PERMISSIONS: list[tuple[str, str, str, str]] = [
 # GDPR-sensitive operations require explicit assignment (e.g. Administrator or DPO).
 GDPR_SENSITIVE_PERMISSIONS: frozenset[str] = frozenset({"subject:export", "subject:erasure"})
 
+# Only the admin role receives *:* (compliance: single well-audited super-admin role).
 DEFAULT_ROLES: dict[str, RoleData] = {
     "admin": {
         "name": "Administrator",

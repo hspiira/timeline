@@ -42,9 +42,6 @@ if TYPE_CHECKING:
 class IEventRepository(Protocol):
     """Protocol for event repository (DIP)."""
 
-    async def get_last_hash(self, subject_id: str, tenant_id: str) -> str | None:
-        """Return hash of the most recent event for subject in tenant."""
-
     async def get_last_event(self, subject_id: str, tenant_id: str) -> EventResult | None:
         """Return the most recent event for subject in tenant."""
 
@@ -71,6 +68,11 @@ class IEventRepository(Protocol):
 
     async def get_by_id(self, event_id: str) -> EventResult | None:
         """Return event by ID."""
+
+    async def get_by_id_and_tenant(
+        self, event_id: str, tenant_id: str
+    ) -> EventResult | None:
+        """Return event by ID if it belongs to tenant."""
 
     async def get_by_subject(
         self, subject_id: str, tenant_id: str, skip: int = 0, limit: int = 100
@@ -191,6 +193,11 @@ class IRelationshipKindRepository(Protocol):
     ) -> RelationshipKindResult | None:
         """Return relationship kind by ID."""
 
+    async def get_by_id_and_tenant(
+        self, kind_id: str, tenant_id: str
+    ) -> RelationshipKindResult | None:
+        """Return relationship kind by ID and tenant (tenant-scoped)."""
+
     async def get_by_tenant_and_kind(
         self, tenant_id: str, kind: str
     ) -> RelationshipKindResult | None:
@@ -282,8 +289,10 @@ class IEventSchemaRepository(Protocol):
     async def get_by_id(self, schema_id: str) -> EventSchemaResult | None:
         """Return schema by ID."""
 
-    async def get_entity_by_id(self, schema_id: str) -> object | None:
-        """Return ORM entity by id for update/delete."""
+    async def get_by_id_and_tenant(
+        self, schema_id: str, tenant_id: str
+    ) -> EventSchemaResult | None:
+        """Return schema by ID and tenant (tenant-scoped)."""
 
     async def get_by_version(
         self, tenant_id: str, event_type: str, version: int
@@ -319,13 +328,19 @@ class IEventSchemaRepository(Protocol):
     ) -> EventSchemaResult:
         """Create event schema with next version; return created result."""
 
-    async def update(
-        self, obj: object, *, skip_existence_check: bool = False
-    ) -> object:
-        """Update existing schema (ORM); return updated entity."""
+    async def update_schema(
+        self,
+        schema_id: str,
+        tenant_id: str,
+        *,
+        schema_definition: dict[str, Any] | None = None,
+        is_active: bool | None = None,
+        allowed_subject_types: list[str] | None = None,
+    ) -> EventSchemaResult | None:
+        """Update schema by id and tenant; return updated result or None if not found."""
 
-    async def delete(self, obj: object) -> None:
-        """Delete schema (ORM)."""
+    async def delete_schema(self, schema_id: str, tenant_id: str) -> bool:
+        """Delete schema by id and tenant. Return True if deleted, False if not found."""
 
 
 # Event transition rule repository interface
@@ -350,9 +365,6 @@ class IEventTransitionRuleRepository(Protocol):
     ) -> list[EventTransitionRuleResult]:
         """Return all transition rules for tenant."""
 
-    async def get_entity_by_id(self, rule_id: str) -> object:
-        """Return ORM entity by id for update/delete."""
-
     async def create_rule(
         self,
         tenant_id: str,
@@ -365,11 +377,21 @@ class IEventTransitionRuleRepository(Protocol):
     ) -> EventTransitionRuleResult:
         """Create a transition rule."""
 
-    async def update(self, obj: object, *, skip_existence_check: bool = False) -> object:
-        """Update rule."""
+    async def update_rule(
+        self,
+        rule_id: str,
+        tenant_id: str,
+        *,
+        required_prior_event_types: list[str] | None = None,
+        description: str | None = None,
+        prior_event_payload_conditions: dict[str, dict[str, Any]] | None = None,
+        max_occurrences_per_stream: int | None = None,
+        fresh_prior_event_type: str | None = None,
+    ) -> EventTransitionRuleResult | None:
+        """Update rule by id and tenant; return updated result or None if not found."""
 
-    async def delete(self, obj: object) -> None:
-        """Delete rule."""
+    async def delete_rule(self, rule_id: str, tenant_id: str) -> bool:
+        """Delete rule by id and tenant. Return True if deleted, False if not found."""
 
 
 # Subject type repository interface
@@ -502,7 +524,7 @@ class IDocumentRequirementRepository(Protocol):
 
 # Tenant repository interface
 class ITenantRepository(Protocol):
-    """Protocol for tenant repository (DIP). Postgres and Firestore implementations."""
+    """Protocol for tenant repository (DIP)."""
 
     async def get_by_id(self, tenant_id: str) -> TenantResult | None:
         """Return tenant by ID."""
@@ -531,7 +553,7 @@ class ITenantRepository(Protocol):
 
 # User repository interface
 class IUserRepository(Protocol):
-    """Protocol for user repository (DIP). Postgres and Firestore implementations."""
+    """Protocol for user repository (DIP)."""
 
     async def get_by_id(self, user_id: str) -> UserResult | None:
         """Return user by ID."""

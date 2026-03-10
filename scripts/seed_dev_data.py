@@ -8,7 +8,7 @@ Usage:
     uv run python -m scripts.seed_dev_data [path/to/seed-data.json]
 
 Default path: docs/seed-data.json (relative to project root).
-Requires: DATABASE_BACKEND=postgres, existing DB. Tenants are created if not found.
+Requires: DATABASE_URL (Postgres), existing DB. Tenants are created if not found.
 """
 
 from __future__ import annotations
@@ -97,10 +97,6 @@ async def run(path: Path) -> None:
     workflows_data = data.get("workflows", [])
     events_data = data.get("events", [])
 
-    settings = get_settings()
-    if settings.database_backend != "postgres":
-        print("This script requires DATABASE_BACKEND=postgres", file=sys.stderr)
-        sys.exit(1)
     _ensure_engine()
     from app.infrastructure.persistence import database as db_mod
     if db_mod.AsyncSessionLocal is None:

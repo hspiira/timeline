@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
     OAuthDriverRegistry,
+    ensure_audit_logged,
     get_oauth_config_service,
     get_oauth_driver_registry,
     get_oauth_provider_config_repo,
@@ -71,6 +72,7 @@ async def oauth_authorize(
     current_user: Annotated[UserResult, Depends(require_permission("oauth_config", "read"))],
     oauth_service: OAuthConfigService = Depends(get_oauth_config_service),
     return_url: str | None = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Build OAuth authorization URL and return it; frontend redirects user there."""
     url = await oauth_service.build_authorize_url(
@@ -179,6 +181,7 @@ async def create_oauth_config(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     current_user: Annotated[UserResult, Depends(require_permission("oauth_config", "create"))],
     oauth_service: OAuthConfigService = Depends(get_oauth_config_service),
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create OAuth provider config (envelope-encrypted credentials)."""
     config = await oauth_service.create_config(
@@ -202,6 +205,7 @@ async def update_oauth_config(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     oauth_service: OAuthConfigService = Depends(get_oauth_config_service),
     _: Annotated[object, Depends(require_permission("oauth_config", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Partially update OAuth provider config (display_name, redirect_uri, scopes)."""
     config = await oauth_service.update_config(
@@ -227,6 +231,7 @@ async def delete_oauth_config(
     oauth_repo: Annotated[
         OAuthProviderConfigRepository, Depends(get_oauth_provider_config_repo_for_write)
     ],
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Soft-delete OAuth provider config."""
     deleted = await oauth_repo.soft_delete(
@@ -247,6 +252,7 @@ async def rotate_oauth_config(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     current_user: Annotated[UserResult, Depends(require_permission("oauth_config", "update"))],
     oauth_service: OAuthConfigService = Depends(get_oauth_config_service),
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Rotate OAuth credentials: create new version with new client_id/client_secret."""
     new_config = await oauth_service.rotate_config(
@@ -281,9 +287,8 @@ async def get_oauth_config_health(
     )
 
 
-# TODO: Implement OAuth config audit trail. Query audit entries via OAuthProviderConfigRepository
-# (or dedicated audit repo) for config_id/tenant_id and return in OAuthConfigAuditResponse.entries.
-# Track with: "OAuth config audit API" / audit trail implementation.
+# Phase 7: OAuth config audit trail. Query audit entries for config_id/tenant_id and
+# return in OAuthConfigAuditResponse.entries. See docs/PROJECT_OVERVIEW.md.
 
 
 @router.get(
@@ -298,7 +303,7 @@ async def get_oauth_config_audit(
     ],
     _: Annotated[object, Depends(require_permission("oauth_config", "read"))] = None,
 ):
-    """Return audit log entries for this OAuth config. Stub: returns empty list until audit retrieval is implemented (see TODO above)."""
+    """Return audit log entries for this OAuth config. Returns empty list; full audit retrieval planned for Phase 7."""
     config = await oauth_repo.get_by_id_and_tenant(config_id, tenant_id)
     if not config:
         raise HTTPException(status_code=404, detail="OAuth config not found")

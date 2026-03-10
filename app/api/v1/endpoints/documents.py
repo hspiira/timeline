@@ -8,6 +8,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_document_query_service,
     get_document_repo_for_write,
     get_document_upload_service,
@@ -73,6 +74,7 @@ async def upload_document(
     created_by: str | None = Form(None),
     parent_document_id: str | None = Form(None),
     metadata: str | None = Form(None),
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Upload a document for a subject (storage + document record).
 
@@ -222,6 +224,7 @@ async def update_document(
         IDocumentRepository, Depends(get_document_repo_for_write)
     ],
     _: Annotated[object, Depends(require_permission("document", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Update document metadata (e.g. document_type). Tenant-scoped."""
     doc = await document_repo.get_by_id_and_tenant(document_id, tenant_id)
@@ -245,6 +248,7 @@ async def delete_document(
         IDocumentRepository, Depends(get_document_repo_for_write)
     ],
     _: Annotated[object, Depends(require_permission("document", "delete"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Soft-delete document. Tenant-scoped."""
     # Fetch first to distinguish 404 (not found) vs 410 (already deleted); soft_delete

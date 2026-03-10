@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_relationship_kind_repo,
     get_relationship_kind_repo_for_write,
     get_tenant_id,
@@ -49,6 +50,7 @@ async def create_relationship_kind(
     _: Annotated[
         object, Depends(require_permission("relationship_kind", "create"))
     ] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a relationship kind (tenant-scoped)."""
     try:
@@ -74,8 +76,8 @@ async def get_relationship_kind(
     ] = None,
 ):
     """Get relationship kind by id (must belong to tenant)."""
-    item = await repo.get_by_id(kind_id)
-    if not item or item.tenant_id != tenant_id:
+    item = await repo.get_by_id_and_tenant(kind_id, tenant_id)
+    if not item:
         raise HTTPException(status_code=404, detail="Relationship kind not found")
     return RelationshipKindResponse.model_validate(item)
 
@@ -93,6 +95,7 @@ async def update_relationship_kind(
     _: Annotated[
         object, Depends(require_permission("relationship_kind", "update"))
     ] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Update relationship kind (partial)."""
     updated = await repo.update(
@@ -119,6 +122,7 @@ async def delete_relationship_kind(
     _: Annotated[
         object, Depends(require_permission("relationship_kind", "delete"))
     ] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Delete relationship kind (tenant-scoped)."""
     deleted = await repo.delete(kind_id=kind_id, tenant_id=tenant_id)

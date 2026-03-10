@@ -20,7 +20,7 @@ dependencies = [
     "cryptography>=46.0.3",
     "nh3>=0.2.0",
     "pyjwt>=2.10.0",
-    # Firebase / Firestore (REST + google-auth)
+    # OAuth / Google APIs (e.g. Gmail in email extra)
     "google-auth>=2.45.0",
     # Utilities & storage (local backend used by document upload)
     "aiofiles>=25.1.0",
@@ -28,6 +28,7 @@ dependencies = [
     "cuid2>=2.0.1",
     "jsonschema>=4.25.1",
     "slowapi>=0.1.9",
+    "scalar-fastapi>=1.0.0",
     # Database Migrations
     "alembic>=1.14.0",
     # Observability (OTLP only; Jaeger ingests OTLP on 4317)
@@ -69,7 +70,7 @@ dev = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
-    "requires_db: mark test as requiring PostgreSQL (skip when DATABASE_BACKEND != postgres or DATABASE_URL unset)",
+    "requires_db: mark test as requiring PostgreSQL (skip when DATABASE_URL unset)",
 ]
 
 [tool.mypy]

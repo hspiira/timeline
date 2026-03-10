@@ -19,7 +19,7 @@ class TenantCreationResult:
     tenant_name: str
     admin_username: str
     admin_email: str
-    # Raw token for building set_password_url (endpoint adds base URL). None when token store not used (e.g. Firestore).
+    # Raw token for building set_password_url (endpoint adds base URL). None when token store not used.
     set_password_token: str | None = None
     set_password_expires_at: datetime | None = None
 

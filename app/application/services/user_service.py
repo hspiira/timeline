@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from typing import Any
 
 from app.application.dtos.user import UserResult
@@ -24,9 +25,13 @@ def _user_to_result(u: Any) -> UserResult:
 class UserService:
     """Update current user profile (email, password)."""
 
-    def __init__(self, user_repo: Any, auth_security: Any) -> None:
+    def __init__(
+        self,
+        user_repo: Any,
+        hash_password: Callable[[str], str],
+    ) -> None:
         self._user_repo = user_repo
-        self._auth_security = auth_security
+        self._hash_password = hash_password
 
     async def update_me(
         self,
@@ -45,7 +50,7 @@ class UserService:
             user.email = email
         if password is not None:
             user.hashed_password = await asyncio.to_thread(
-                self._auth_security.hash_password, password
+                self._hash_password, password
             )
         updated = await self._user_repo.update(user)
         return _user_to_result(updated)

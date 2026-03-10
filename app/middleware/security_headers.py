@@ -1,13 +1,12 @@
 """Security headers middleware.
 
-Adds common security-related response headers (CSP, HSTS, X-Content-Type-Options, etc.).
-Uses raw ASGI (no BaseHTTPMiddleware) for production-safe streaming and background tasks.
+Adds CSP, HSTS, X-Content-Type-Options, etc. to all responses.
+Uses raw ASGI for production-safe streaming and background tasks.
 """
 
 from typing import Callable
 
-# CSP: allow same-origin, docs (Swagger/ReDoc) and root page inline styles/scripts,
-# Google Fonts for landing page, and Swagger UI CDN (FastAPI /docs).
+# CSP: same-origin, inline styles/scripts, Google Fonts, Scalar proxy.
 DEFAULT_HEADERS = {
     "Content-Security-Policy": (
         "default-src 'self'; "
@@ -15,7 +14,7 @@ DEFAULT_HEADERS = {
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
         "img-src 'self' data: https:; "
-        "connect-src 'self'; "
+        "connect-src 'self' https://proxy.scalar.com; "
         "frame-ancestors 'none'"
     ),
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
@@ -40,13 +39,13 @@ def SecurityHeadersMiddleware(
 
         async def send_wrapper(message: dict) -> None:
             if message["type"] == "http.response.start":
-                headers = list(message.get("headers", []))
-                seen = {h[0].lower() for h in headers}
+                out_headers = list(message.get("headers", []))
+                seen = {h[0].lower() for h in out_headers}
                 for name_b, value_b in header_list:
                     if name_b.lower() not in seen:
-                        headers.append((name_b, value_b))
+                        out_headers.append((name_b, value_b))
                         seen.add(name_b.lower())
-                message["headers"] = headers
+                message["headers"] = out_headers
             await send(message)
 
         await app(scope, receive, send_wrapper)

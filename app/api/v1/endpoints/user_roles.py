@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import (
+    ensure_audit_logged,
     get_authorization_service,
     get_current_user,
     get_role_repo,
@@ -67,6 +68,7 @@ async def assign_role_to_user(
     user_repo: Annotated[UserRepository, Depends(get_user_repo)],
     role_repo: Annotated[RoleRepository, Depends(get_role_repo)],
     user_role_repo: Annotated[UserRoleRepository, Depends(get_user_role_repo_for_write)],
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Assign a role to a user (tenant-scoped). Admin role requires user_role:assign_admin; other roles require user_role:update."""
     user = await user_repo.get_by_id_and_tenant(user_id, tenant_id)
@@ -98,6 +100,7 @@ async def remove_role_from_user(
     auth_svc: Annotated[AuthorizationService, Depends(get_authorization_service)],
     role_repo: Annotated[RoleRepository, Depends(get_role_repo)],
     user_role_repo: Annotated[UserRoleRepository, Depends(get_user_role_repo_for_write)],
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Remove a role from a user (tenant-scoped). Admin role requires user_role:assign_admin; other roles require user_role:update."""
     role = await role_repo.get_by_id_and_tenant(role_id, tenant_id)
