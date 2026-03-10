@@ -303,3 +303,14 @@ class DuplicateAssignmentException(TimelineException):
         details = details_extra or {}
         details["assignment_type"] = assignment_type
         super().__init__(message, "DUPLICATE_ASSIGNMENT", details)
+
+
+class ChainAnchorConflictException(TimelineException):
+    """Raised when a chain anchor duplicate is detected but the existing row cannot be loaded."""
+
+    def __init__(
+        self,
+        message: str,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message, "CHAIN_ANCHOR_CONFLICT", details)

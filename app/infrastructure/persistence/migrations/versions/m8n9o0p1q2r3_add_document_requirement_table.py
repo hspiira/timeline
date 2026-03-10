@@ -8,15 +8,14 @@ Required document categories per workflow (and optionally per step). step_defini
 """
 
 from collections.abc import Sequence
-from typing import Union
 
 import sqlalchemy as sa
 from alembic import op
 
 revision: str = "m8n9o0p1q2r3"
-down_revision: Union[str, Sequence[str], None] = "l7m8n9o0p1q2"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "l7m8n9o0p1q2"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

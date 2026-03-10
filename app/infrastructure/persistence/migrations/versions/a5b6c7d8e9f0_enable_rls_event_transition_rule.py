@@ -8,14 +8,13 @@ Row-level security for event_transition_rule (tenant-scoped).
 """
 
 from collections.abc import Sequence
-from typing import Union
 
 from alembic import op
 
 revision: str = "a5b6c7d8e9f0"
-down_revision: Union[str, Sequence[str], None] = "z4a5b6c7d8e9"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "z4a5b6c7d8e9"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

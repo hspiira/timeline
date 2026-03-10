@@ -12,15 +12,14 @@ New tenants get these from TenantInitializationService; this migration backfills
 """
 
 from collections.abc import Sequence
-from typing import Union
 
 from alembic import op
 from sqlalchemy import text
 
 revision: str = "d8e9f0a1b2c3"
-down_revision: Union[str, Sequence[str], None] = "c7d8e9f0a1b2"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "c7d8e9f0a1b2"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 # New permissions: (code, resource, action, description)
 NEW_PERMISSIONS = [

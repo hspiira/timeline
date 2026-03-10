@@ -10,17 +10,16 @@ Adds composite indexes to match repository query patterns:
 """
 
 from collections.abc import Sequence
-from typing import Union
 
 from alembic import op
 
 revision: str = "h0i1j2k3l4m5"
-down_revision: Union[str, Sequence[str], None] = (
+down_revision: str | Sequence[str] | None = (
     "d7e8f9a0b1c2",
     "g8h9i0j1k2l3",
 )
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

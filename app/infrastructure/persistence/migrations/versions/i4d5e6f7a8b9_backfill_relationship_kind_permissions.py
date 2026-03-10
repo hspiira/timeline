@@ -10,15 +10,14 @@ New tenants get these from TenantInitializationService.
 """
 
 from collections.abc import Sequence
-from typing import Union
 
 from alembic import op
 from sqlalchemy import text
 
 revision: str = "i4d5e6f7a8b9"
-down_revision: Union[str, Sequence[str], None] = "h3c4d5e6f7a8"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "h3c4d5e6f7a8"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 NEW_PERMISSIONS = [
     ("relationship_kind:read", "relationship_kind", "read", "View relationship kinds"),

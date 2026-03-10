@@ -84,6 +84,13 @@ class Settings(BaseSettings):
     # When empty, set_password_url is not included in tenant create response.
     set_password_base_url: str = ""
 
+    # Chain anchoring (RFC 3161). Opt-in; job runs only when enabled.
+    chain_anchor_enabled: bool = False
+    chain_anchor_interval_seconds: int = 300  # 5 minutes
+    chain_anchor_tsa_url: str = "https://freetsa.org/tsr"
+    chain_anchor_tsa_cert_path: str | None = None  # path to TSA root cert for prod verification
+    chain_anchor_tsa_timeout_seconds: int = 10
+
     # Request / middleware
     request_timeout_seconds: int = 60
     request_id_header: str = "X-Request-ID"

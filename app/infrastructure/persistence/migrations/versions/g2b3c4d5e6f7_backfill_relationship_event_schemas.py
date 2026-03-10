@@ -9,16 +9,15 @@ for every existing tenant that does not already have them (so existing tenants
 can emit relationship events; new tenants get them from tenant init).
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import text
 
 revision: str = "g2b3c4d5e6f7"
-down_revision: Union[str, Sequence[str], None] = "f1a2b3c4d5e6"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "f1a2b3c4d5e6"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 # Same shape as get_relationship_event_schema_definition()
 RELATIONSHIP_EVENT_SCHEMA_JSON = """{
