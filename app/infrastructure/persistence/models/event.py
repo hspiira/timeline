@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import (
+    BigInteger,
     CheckConstraint,
     Connection,
     DateTime,
@@ -43,6 +44,12 @@ class Event(CuidMixin, TenantMixin, Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    # Monotonic insertion order (sequence); use for ORDER BY instead of created_at (transaction-scoped).
+    event_seq: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        server_default=text("nextval('event_event_seq_seq'::regclass)"),
+    )
 
     __table_args__ = (
         Index("ix_event_subject_time", "subject_id", "event_time"),
@@ -64,6 +71,7 @@ class Event(CuidMixin, TenantMixin, Base):
             "event_time",
             "id",
         ),
+        Index("ix_event_tenant_event_seq", "tenant_id", "event_seq"),
         CheckConstraint("created_at IS NOT NULL", name="ck_event_created_at_immutable"),
     )
 

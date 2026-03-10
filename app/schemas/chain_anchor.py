@@ -12,7 +12,7 @@ class ChainAnchorListItem(BaseModel):
     tenant_id: str
     subject_id: str | None = None  # None = tenant-level anchor
     chain_tip_hash: str
-    anchored_at: datetime
+    anchored_at: datetime | None = None  # None when pending
     tsa_url: str
     tsa_serial: str | None = None
     status: str
@@ -27,7 +27,7 @@ class ChainAnchorLatestResponse(BaseModel):
     tenant_id: str
     subject_id: str | None = None  # None = tenant-level anchor
     chain_tip_hash: str
-    anchored_at: datetime
+    anchored_at: datetime | None = None  # None when pending
     tsa_url: str
     tsa_serial: str | None = None
     status: str

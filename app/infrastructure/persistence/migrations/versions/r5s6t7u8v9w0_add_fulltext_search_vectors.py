@@ -8,15 +8,15 @@ Adds tsvector columns and triggers for full-text search on subject
 (display_name, external_ref, attributes) and event (event_type, payload).
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 
 revision: str = "s6t7u8v9w0x1"
-down_revision: Union[str, Sequence[str], None] = "p4q5r6s7t8u9"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "p4q5r6s7t8u9"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

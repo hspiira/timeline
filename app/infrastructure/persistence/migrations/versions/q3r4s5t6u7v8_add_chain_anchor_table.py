@@ -33,7 +33,7 @@ def upgrade() -> None:
             nullable=True,
         ),
         sa.Column("chain_tip_hash", sa.String(), nullable=False),
-        sa.Column("anchored_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("anchored_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("tsa_url", sa.String(), nullable=False),
         sa.Column("tsa_receipt", sa.LargeBinary(), nullable=True),
         sa.Column("tsa_serial", sa.String(), nullable=True),

@@ -7,16 +7,16 @@ Idempotent: if the table already has event_count (e.g. created by q3r4s5t6u7v8 w
 these columns), this upgrade is a no-op.
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
 revision: str = "x5y6z7a8b9c0"
-down_revision: Union[str, Sequence[str], None] = "w4x5y6z7a8b9"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "w4x5y6z7a8b9"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

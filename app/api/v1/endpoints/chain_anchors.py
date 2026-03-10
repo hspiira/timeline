@@ -6,9 +6,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.api.v1.dependencies import (
+    get_chain_anchor_read_permission,
     get_chain_anchor_repo,
     get_verified_tenant_id,
-    require_permission,
 )
 from app.application.dtos.chain_anchor import ChainAnchorResult
 from app.infrastructure.persistence.repositories import ChainAnchorRepository
@@ -40,7 +40,7 @@ def _to_list_item(a: ChainAnchorResult) -> ChainAnchorListItem:
 async def list_chain_anchors(
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
     anchor_repo: Annotated[ChainAnchorRepository, Depends(get_chain_anchor_repo)],
-    _: Annotated[None, Depends(require_permission("chain_anchor", "read"))],
+    _: Annotated[None, Depends(get_chain_anchor_read_permission)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ) -> list[ChainAnchorListItem]:
@@ -57,7 +57,7 @@ async def list_chain_anchors(
 async def get_latest_chain_anchor(
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
     anchor_repo: Annotated[ChainAnchorRepository, Depends(get_chain_anchor_repo)],
-    _: Annotated[None, Depends(require_permission("chain_anchor", "read"))],
+    _: Annotated[None, Depends(get_chain_anchor_read_permission)],
 ) -> ChainAnchorLatestResponse:
     """Return the most recent confirmed anchor with base64-encoded receipt for offline verification."""
     anchor = await anchor_repo.get_latest_confirmed(tenant_id)

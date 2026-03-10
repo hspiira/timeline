@@ -12,7 +12,7 @@ class ChainAnchorResult:
     tenant_id: str
     subject_id: str | None  # None = tenant-level anchor; set for per-subject (future)
     chain_tip_hash: str
-    anchored_at: datetime
+    anchored_at: datetime | None  # None when pending (set when confirmed)
     tsa_url: str
     tsa_receipt: bytes | None  # raw DER TimeStampToken; None when pending/failed
     tsa_serial: str | None

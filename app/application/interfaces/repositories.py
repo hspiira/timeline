@@ -306,9 +306,9 @@ class IChainAnchorRepository(Protocol):
         self,
         tenant_id: str,
         chain_tip_hash: str,
-        anchored_at: datetime,
         tsa_url: str,
         *,
+        anchored_at: datetime | None = None,
         subject_id: str | None = None,
     ) -> ChainAnchorResult:
         """Create a pending anchor row. subject_id=None for tenant-level. Raises IntegrityError if unique already exists."""

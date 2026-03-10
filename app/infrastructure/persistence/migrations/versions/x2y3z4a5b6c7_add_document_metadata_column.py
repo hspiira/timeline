@@ -7,16 +7,16 @@ Create Date: 2026-02-15
 Stores validated document category metadata (JSON) on the document record.
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
 revision: str = "x2y3z4a5b6c7"
-down_revision: Union[str, Sequence[str], None] = "w1x2y3z4a5b6"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "w1x2y3z4a5b6"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

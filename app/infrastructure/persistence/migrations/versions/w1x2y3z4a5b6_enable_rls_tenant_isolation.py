@@ -10,14 +10,14 @@ The application must SET app.current_tenant_id at the start of each request (e.g
 Migrations and admin scripts should use a DB role with BYPASSRLS; the app role must not.
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 from alembic import op
 
 revision: str = "w1x2y3z4a5b6"
-down_revision: Union[str, Sequence[str], None] = "v0w1x2y3z4a5"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "v0w1x2y3z4a5"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 # Tables that have tenant_id column (policy: tenant_id = current_setting(...))
 TENANT_SCOPED_TABLES = [

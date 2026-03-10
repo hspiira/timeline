@@ -86,10 +86,26 @@ class TsaClient:
         tsr = rfc3161ng.decode_timestamp_response(response.content)
         if int(tsr.status[0]) not in {0, 1}:  # granted | grantedWithMods
             raise rfc3161ng.TimestampingError(
-                f"TSA returned status {tsr.status}; response content not a valid granted token"
+                "TSA returned non-granted status; response is not a valid granted token"
             )
         token = tsr.time_stamp_token
-        return encoder.encode(token)
+        token_bytes = encoder.encode(token)
+        cert: bytes | None = None
+        if self._config.cert_path:
+            with open(self._config.cert_path, "rb") as f:
+                cert = f.read()
+        try:
+            rfc3161ng.check_timestamp(
+                token_bytes,
+                digest=data_hash,
+                hashname=CANONICAL_HASHNAME,
+                certificate=cert,
+            )
+        except (ValueError, Exception) as exc:
+            raise rfc3161ng.TimestampingError(
+                "TSA token message imprint or signature does not match request"
+            ) from exc
+        return token_bytes
 
     def verify(self, receipt: bytes, data_hash: bytes) -> bool:
         """Verify a stored receipt (DER TimeStampToken) against the original data_hash.

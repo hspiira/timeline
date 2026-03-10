@@ -36,7 +36,9 @@ class ChainAnchor(CuidMixin, Base):
         index=True,
     )
     chain_tip_hash: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    anchored_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    anchored_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     tsa_url: Mapped[str] = mapped_column(String, nullable=False)
     tsa_receipt: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     tsa_serial: Mapped[str | None] = mapped_column(String, nullable=True)

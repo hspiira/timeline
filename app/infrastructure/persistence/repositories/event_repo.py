@@ -40,11 +40,11 @@ class EventRepository(BaseRepository[Event]):
         raise NotImplementedError("Events are immutable and cannot be deleted")
 
     async def get_last_event(self, subject_id: str, tenant_id: str) -> EventResult | None:
-        # created_at is server-generated and monotonic; use as tie-breaker over event_time/id.
+        # event_seq is monotonic insertion order (created_at is transaction-scoped in PostgreSQL).
         result = await self.db.execute(
             select(Event)
             .where(Event.subject_id == subject_id, Event.tenant_id == tenant_id)
-            .order_by(desc(Event.created_at), desc(Event.event_time), desc(Event.id))
+            .order_by(desc(Event.event_seq))
             .limit(1)
         )
         row = result.scalar_one_or_none()
@@ -62,10 +62,10 @@ class EventRepository(BaseRepository[Event]):
                 Event.tenant_id == tenant_id,
                 Event.subject_id.in_(subject_ids),
             )
-            .order_by(Event.subject_id, desc(Event.created_at), desc(Event.event_time), desc(Event.id))
+            .order_by(Event.subject_id, desc(Event.event_seq))
         )
         rows = result.scalars().all()
-        # First row per subject_id is the latest (ordered by created_at, event_time, id).
+        # First row per subject_id is the latest (ordered by event_seq).
         out: dict[str, EventResult | None] = dict.fromkeys(subject_ids)
         for e in rows:
             if out.get(e.subject_id) is None:
@@ -104,7 +104,7 @@ class EventRepository(BaseRepository[Event]):
         result = await self.db.execute(
             select(Event)
             .where(Event.subject_id == subject_id, Event.tenant_id == tenant_id)
-            .order_by(desc(Event.created_at), desc(Event.event_time), desc(Event.id))
+            .order_by(desc(Event.event_seq))
             .offset(skip)
             .limit(limit)
         )
@@ -189,7 +189,7 @@ class EventRepository(BaseRepository[Event]):
         result = await self.db.execute(
             select(Event)
             .where(Event.tenant_id == tenant_id)
-            .order_by(desc(Event.created_at), desc(Event.event_time), desc(Event.id))
+            .order_by(desc(Event.event_seq))
             .offset(skip)
             .limit(limit)
         )
@@ -209,18 +209,18 @@ class EventRepository(BaseRepository[Event]):
                 Event.tenant_id == tenant_id,
                 Event.workflow_instance_id == workflow_instance_id,
             )
-            .order_by(desc(Event.created_at), desc(Event.event_time), desc(Event.id))
+            .order_by(desc(Event.event_seq))
             .offset(skip)
             .limit(limit)
         )
         return [_event_to_result(e) for e in result.scalars().all()]
 
     async def get_chain_tip_hash(self, tenant_id: str) -> str | None:
-        """Return the hash of the latest event for the tenant (chain tip). None if no events. Uses created_at DESC for monotonic tie-breaker."""
+        """Return the hash of the latest event for the tenant (chain tip). None if no events. Uses event_seq for insertion order."""
         result = await self.db.execute(
             select(Event.hash)
             .where(Event.tenant_id == tenant_id)
-            .order_by(desc(Event.created_at), desc(Event.event_time), desc(Event.id))
+            .order_by(desc(Event.event_seq))
             .limit(1)
         )
         row = result.scalar_one_or_none()
