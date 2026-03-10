@@ -12,6 +12,7 @@ from app.api.v1.dependencies import (
     ensure_audit_logged,
     get_event_repo,
     get_event_service,
+    get_event_service_for_create,
     get_tenant_id,
     get_verification_service,
     get_verification_runner,
@@ -100,7 +101,7 @@ async def create_event(
     request: Request,
     body: EventCreate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    event_svc: Annotated[EventService, Depends(get_event_service)],
+    event_svc: Annotated[EventService, Depends(get_event_service_for_create)],
     _: Annotated[object, Depends(require_permission("event", "create"))] = None,
     _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):

@@ -250,6 +250,7 @@ async def run(path: Path) -> None:
                     event_repo=event_repo,
                     hash_service=hash_service,
                     subject_repo=subject_repo,
+                    db=session,
                     schema_validator=schema_validator,
                     workflow_engine_provider=lambda: None,
                 )

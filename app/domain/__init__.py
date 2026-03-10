@@ -14,6 +14,7 @@ from app.domain.enums import TenantStatus
 from app.domain.exceptions import (
     AuthenticationException,
     AuthorizationException,
+    ChainForkError,
     ChainAnchorConflictException,
     CredentialException,
     DuplicateAssignmentException,
@@ -38,6 +39,7 @@ from app.domain.value_objects import (
 __all__ = [
     "AuthenticationException",
     "AuthorizationException",
+    "ChainForkError",
     "ChainAnchorConflictException",
     "CredentialException",
     "SqlNotConfiguredException",

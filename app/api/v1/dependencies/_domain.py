@@ -51,7 +51,10 @@ from app.application.use_cases.subjects import (
 from app.core.config import get_settings
 from app.infrastructure.external.storage.factory import StorageFactory
 from app.infrastructure.external.storage.protocol import StorageProtocol
-from app.infrastructure.persistence.database import get_db, get_db_transactional
+from app.infrastructure.persistence.database import (
+    get_db,
+    get_db_transactional,
+)
 from app.infrastructure.persistence.repositories import (
     ChainAnchorRepository,
     DocumentCategoryRepository,
@@ -126,6 +129,7 @@ def build_event_service_for_session(
         event_repo=event_repo,
         hash_service=hash_service,
         subject_repo=subject_repo,
+        db=db,
         schema_validator=schema_validator,
         workflow_engine_provider=None,
         transition_validator=transition_validator,
@@ -160,6 +164,63 @@ async def get_event_service(
         event_repo=event_repo,
         hash_service=hash_service,
         subject_repo=subject_repo,
+        db=db,
+        schema_validator=schema_validator,
+        workflow_engine_provider=get_workflow_engine,
+        transition_validator=transition_validator,
+        subject_type_repo=subject_type_repo,
+    )
+    notification_service = LogOnlyNotificationService()
+    recipient_resolver = WorkflowRecipientResolver(db)
+    template_renderer = WorkflowTemplateRenderer()
+    task_repo = TaskRepository(db)
+    role_repo = RoleRepository(db, audit_service=None)
+    workflow_engine = WorkflowEngine(
+        db,
+        event_service,
+        workflow_repo,
+        notification_service=notification_service,
+        recipient_resolver=recipient_resolver,
+        template_renderer=template_renderer,
+        task_repo=task_repo,
+        role_repo=role_repo,
+    )
+    workflow_engine_holder[0] = workflow_engine
+    return event_service
+
+
+async def get_event_service_for_create(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    tenant_id: Annotated[str, Depends(_core.get_tenant_id)],
+    audit_svc: Annotated[SystemAuditService, Depends(_core.get_system_audit_service)],
+) -> EventService:
+    """Build EventService for single-event create with retry semantics.
+
+    Uses get_db (no outer transaction) so each retry in create_event runs in
+    a fresh transaction (session.begin()), not a savepoint.
+    """
+    event_repo = EventRepository(db)
+    hash_service = HashService()
+    subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=audit_svc)
+    schema_repo = EventSchemaRepository(db, cache_service=None, audit_service=audit_svc)
+    schema_validator = EventSchemaValidator(schema_repo)
+    workflow_repo = WorkflowRepository(db, audit_service=audit_svc)
+    transition_rule_repo = EventTransitionRuleRepository(db)
+    transition_validator = EventTransitionValidator(
+        rule_repo=transition_rule_repo,
+        event_repo=event_repo,
+    )
+    workflow_engine_holder: list[WorkflowEngine | None] = [None]
+
+    def get_workflow_engine() -> WorkflowEngine | None:
+        return workflow_engine_holder[0]
+
+    subject_type_repo = SubjectTypeRepository(db, audit_service=audit_svc)
+    event_service = EventService(
+        event_repo=event_repo,
+        hash_service=hash_service,
+        subject_repo=subject_repo,
+        db=db,
         schema_validator=schema_validator,
         workflow_engine_provider=get_workflow_engine,
         transition_validator=transition_validator,

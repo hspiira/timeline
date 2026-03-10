@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import asc, desc, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.event import EventCreate, EventResult, EventToPersist
@@ -38,6 +38,13 @@ class EventRepository(BaseRepository[Event]):
 
     async def delete(self, obj: Event) -> None:
         raise NotImplementedError("Events are immutable and cannot be deleted")
+
+    async def lock_subject_for_update(self, subject_id: str) -> None:
+        """Acquire row-level exclusive lock on the subject row for the current transaction."""
+        await self.db.execute(
+            text("SELECT id FROM subject WHERE id = :sid FOR UPDATE"),
+            {"sid": subject_id},
+        )
 
     async def get_last_event(self, subject_id: str, tenant_id: str) -> EventResult | None:
         # event_seq is monotonic insertion order (created_at is transaction-scoped in PostgreSQL).
