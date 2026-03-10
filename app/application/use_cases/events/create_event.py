@@ -211,65 +211,86 @@ class EventService:
                             field="event_type",
                         )
 
-        # Fetch last event per subject in one query (batch).
-        last_events = await self.event_repo.get_last_events_for_subjects(
-            tenant_id, subject_ids
-        )
-        chain_state: dict[str, tuple[str | None, datetime | None]] = {
-            sid: (
-                (last_events[sid].hash, last_events[sid].event_time)
-                if last_events.get(sid) else (None, None)
-            )
-            for sid in subject_ids
-        }
+        representative_subject_id = min(subject_ids)
 
-        to_persist: list[EventToPersist] = []
-        for event_data in events:
-            prev_hash, prev_time = chain_state[event_data.subject_id]
-            EventEntity.validate_event_time_after_previous(
-                event_data.event_time,
-                prev_time,
-            )
-            if self.transition_validator:
-                await self.transition_validator.validate_can_emit(
-                    tenant_id=tenant_id,
-                    subject_id=event_data.subject_id,
-                    event_type=event_data.event_type,
-                    workflow_instance_id=event_data.workflow_instance_id,
-                )
-            if not skip_schema_validation and self.schema_validator:
-                subject = subject_by_id[event_data.subject_id]
-                await self.schema_validator.validate_payload(
-                    tenant_id,
-                    event_data.event_type,
-                    event_data.schema_version,
-                    event_data.payload,
-                    subject_type=subject.subject_type.value,
-                )
-            event_hash = self.hash_service.compute_hash(
-                subject_id=event_data.subject_id,
-                event_type=event_data.event_type,
-                schema_version=event_data.schema_version,
-                event_time=event_data.event_time,
-                payload=event_data.payload,
-                previous_hash=prev_hash,
-            )
-            to_persist.append(
-                EventToPersist(
-                    subject_id=event_data.subject_id,
-                    event_type=event_data.event_type,
-                    schema_version=event_data.schema_version,
-                    event_time=event_data.event_time,
-                    payload=event_data.payload,
-                    hash=event_hash,
-                    previous_hash=prev_hash,
-                    workflow_instance_id=event_data.workflow_instance_id,
-                    correlation_id=event_data.correlation_id,
-                )
-            )
-            chain_state[event_data.subject_id] = (event_hash, event_data.event_time)
+        for attempt in range(MAX_RETRIES):
+            try:
+                async with self.db.begin():
+                    for subject_id in sorted(subject_ids):
+                        await self.event_repo.lock_subject_for_update(subject_id)
+                    last_events = await self.event_repo.get_last_events_for_subjects(
+                        tenant_id, subject_ids
+                    )
+                    chain_state: dict[str, tuple[str | None, datetime | None]] = {
+                        sid: (
+                            (last_events[sid].hash, last_events[sid].event_time)
+                            if last_events.get(sid)
+                            else (None, None)
+                        )
+                        for sid in subject_ids
+                    }
 
-        created = await self.event_repo.create_events_bulk(tenant_id, to_persist)
+                    to_persist: list[EventToPersist] = []
+                    for event_data in events:
+                        prev_hash, prev_time = chain_state[event_data.subject_id]
+                        EventEntity.validate_event_time_after_previous(
+                            event_data.event_time,
+                            prev_time,
+                        )
+                        if self.transition_validator:
+                            await self.transition_validator.validate_can_emit(
+                                tenant_id=tenant_id,
+                                subject_id=event_data.subject_id,
+                                event_type=event_data.event_type,
+                                workflow_instance_id=event_data.workflow_instance_id,
+                            )
+                        if not skip_schema_validation and self.schema_validator:
+                            subject = subject_by_id[event_data.subject_id]
+                            await self.schema_validator.validate_payload(
+                                tenant_id,
+                                event_data.event_type,
+                                event_data.schema_version,
+                                event_data.payload,
+                                subject_type=subject.subject_type.value,
+                            )
+                        event_hash = self.hash_service.compute_hash(
+                            subject_id=event_data.subject_id,
+                            event_type=event_data.event_type,
+                            schema_version=event_data.schema_version,
+                            event_time=event_data.event_time,
+                            payload=event_data.payload,
+                            previous_hash=prev_hash,
+                        )
+                        to_persist.append(
+                            EventToPersist(
+                                subject_id=event_data.subject_id,
+                                event_type=event_data.event_type,
+                                schema_version=event_data.schema_version,
+                                event_time=event_data.event_time,
+                                payload=event_data.payload,
+                                hash=event_hash,
+                                previous_hash=prev_hash,
+                                workflow_instance_id=event_data.workflow_instance_id,
+                                correlation_id=event_data.correlation_id,
+                            )
+                        )
+                        chain_state[event_data.subject_id] = (
+                            event_hash,
+                            event_data.event_time,
+                        )
+
+                    created = await self.event_repo.create_events_bulk(
+                        tenant_id, to_persist
+                    )
+                break
+            except IntegrityError as exc:
+                if attempt == MAX_RETRIES - 1:
+                    raise ChainForkError(
+                        "Could not append events after retries.",
+                        representative_subject_id,
+                    ) from exc
+                await asyncio.sleep(0.05 * (2**attempt))
+
         entities = [_event_result_to_entity(ev) for ev in created]
 
         if trigger_workflows and self.workflow_engine:
