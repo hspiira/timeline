@@ -49,10 +49,7 @@ class AnchorChainTipsUseCase:
         Returns:
             The (possibly existing) confirmed anchor result, or None if tenant has no events.
         """
-        from app.infrastructure.external.tsa.client import (
-            digest_for_chain_tip,
-            extract_serial_from_token,
-        )
+        from app.infrastructure.external.tsa.client import extract_serial_from_token
 
         tip = await self._event_repo.get_chain_tip_hash(tenant_id)
         if tip is None:
@@ -78,7 +75,7 @@ class AnchorChainTipsUseCase:
             anchor_id = anchor.id
 
         try:
-            data_hash = digest_for_chain_tip(tip)
+            data_hash = self._tsa_client.digest_for_chain_tip(tip)
             receipt = await self._tsa_client.timestamp(data_hash)
             serial = extract_serial_from_token(receipt)
             updated = await self._anchor_repo.update_confirmed(

@@ -115,7 +115,7 @@ class IEventRepository(Protocol):
         """Return the hash of the latest event for the tenant (chain tip). None if no events."""
 
     async def get_distinct_tenant_ids(self) -> list[str]:
-        """Return distinct tenant_ids that have at least one event (for anchoring job)."""
+        """Return distinct tenant_ids that have at least one event (for anchoring job). Deterministic order by tenant_id."""
 
 
 # Subject repository interface

@@ -8,6 +8,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects.postgresql import JSONB
 
 revision: str = "q3r4s5t6u7v8"
 down_revision: Union[str, Sequence[str], None] = "i9j0k1l2m3n4"
@@ -49,6 +50,8 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
+        sa.Column("event_count", sa.Integer(), nullable=True),
+        sa.Column("subject_tips", JSONB, nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(

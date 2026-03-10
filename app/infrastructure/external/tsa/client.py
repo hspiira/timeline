@@ -3,7 +3,6 @@
 import hashlib
 import logging
 import os
-from typing import Any
 
 import httpx
 import rfc3161ng
@@ -32,16 +31,6 @@ def extract_serial_from_token(token_der: bytes) -> str | None:
         return None
 
 
-def extract_serial_from_tsr(tsr: Any) -> str | None:
-    """Extract serial number from a decoded TimeStampResp (rfc3161ng object)."""
-    try:
-        token = tsr.time_stamp_token
-        serial = token.tst_info.getComponentByPosition(3)
-        return str(int(serial)) if serial is not None else None
-    except Exception:
-        return None
-
-
 class TsaClient:
     """RFC 3161 TSA client. Uses shared httpx.AsyncClient for POST; rfc3161ng for request/response ASN.1."""
 
@@ -52,6 +41,10 @@ class TsaClient:
     ) -> None:
         self._config = config
         self._client = http_client
+
+    def digest_for_chain_tip(self, chain_tip_hash: str) -> bytes:
+        """Canonical digest for anchoring: SHA-256 of UTF-8 encoded chain tip hash."""
+        return _digest_for_tsa(chain_tip_hash)
 
     def _build_request(self, data_digest: bytes) -> bytes:
         """Build DER-encoded TimeStampReq for the given digest. Uses a random nonce to prevent TSA response replay."""

@@ -227,8 +227,10 @@ class EventRepository(BaseRepository[Event]):
         return row if row else None
 
     async def get_distinct_tenant_ids(self) -> list[str]:
-        """Return distinct tenant_ids that have at least one event (for anchoring job)."""
-        result = await self.db.execute(select(Event.tenant_id).distinct())
+        """Return distinct tenant_ids that have at least one event (for anchoring job). Deterministic order by tenant_id."""
+        result = await self.db.execute(
+            select(Event.tenant_id).distinct().order_by(Event.tenant_id)
+        )
         return [r for r in result.scalars().all()]
 
     async def create_events_bulk(
