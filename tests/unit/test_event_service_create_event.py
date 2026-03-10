@@ -76,6 +76,7 @@ def event_service_mocks():
     )
     event_repo.lock_subject_for_update = AsyncMock(return_value=None)
     event_repo.get_last_event = AsyncMock(return_value=None)
+    event_repo.get_by_subject_and_external_id = AsyncMock(return_value=None)
     event_repo.create_event = AsyncMock(
         return_value=_event_result(event_hash="a" * 64, previous_hash=None)
     )
@@ -131,4 +132,29 @@ async def test_create_event_subject_not_found_raises(
 
     assert exc_info.value.details.get("resource_type") == "subject"
     assert exc_info.value.details.get("resource_id") == "sub1"
+    event_repo.create_event.assert_not_awaited()
+
+
+async def test_create_event_idempotency_returns_existing(
+    event_service_mocks,
+) -> None:
+    """When external_id is set and event already exists, return it without creating."""
+    svc, event_repo, subject_repo = event_service_mocks
+    existing = _event_result(
+        event_hash="a" * 64,
+        previous_hash="b" * 64,
+    )
+    event_repo.get_by_subject_and_external_id = AsyncMock(return_value=existing)
+    data = _event_create().model_copy(
+        update={"external_id": "kafka-offset-123", "source": "kafka:billing"}
+    )
+
+    entity = await svc.create_event("t1", data, trigger_workflows=False)
+
+    assert entity.id == "ev1"
+    assert entity.chain.current_hash.value == "a" * 64
+    event_repo.get_by_subject_and_external_id.assert_awaited_once_with(
+        "sub1", "t1", "kafka-offset-123"
+    )
+    event_repo.lock_subject_for_update.assert_not_awaited()
     event_repo.create_event.assert_not_awaited()

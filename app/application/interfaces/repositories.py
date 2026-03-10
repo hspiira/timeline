@@ -54,6 +54,16 @@ class IEventRepository(Protocol):
     ) -> dict[str, EventResult | None]:
         """Return the latest event per subject (batch). Missing subjects have None."""
 
+    async def get_by_subject_and_external_id(
+        self, subject_id: str, tenant_id: str, external_id: str
+    ) -> EventResult | None:
+        """Return event by subject and external idempotency key, if any."""
+
+    async def get_by_external_ids(
+        self, tenant_id: str, subject_external_pairs: set[tuple[str, str]]
+    ) -> dict[tuple[str, str], EventResult]:
+        """Return existing events for (subject_id, external_id) pairs. Key: (subject_id, external_id) -> EventResult."""
+
     async def create_event(
         self,
         tenant_id: str,

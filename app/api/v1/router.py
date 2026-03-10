@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
     audit_log as audit_log_endpoint,
     auth,
     chain_anchors,
+    connectors,
     document_categories,
     documents,
     email_accounts,
@@ -46,6 +47,7 @@ api_router.include_router(
     audit_log_endpoint.router, prefix="/audit-log", tags=["audit-log"]
 )
 api_router.include_router(events.router, prefix="/events", tags=["events"])
+api_router.include_router(connectors.router, prefix="/connectors", tags=["connectors"])
 api_router.include_router(tenants.router, prefix="/tenants", tags=["tenants"])
 api_router.include_router(
     chain_anchors.router, prefix="/tenants", tags=["chain-anchors"]

@@ -19,6 +19,10 @@ class EventCreate(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
     workflow_instance_id: str | None = None
     correlation_id: str | None = None
+    # Platform: set by connectors for idempotency; optional for API callers.
+    external_id: str | None = None
+    # Platform: originating system (e.g. "api:crm", "cdc:postgres:policies", "kafka:billing").
+    source: str | None = None
 
     @field_validator("event_time", mode="before")
     @classmethod
@@ -43,6 +47,8 @@ class EventResult:
     hash: str
     workflow_instance_id: str | None = None
     correlation_id: str | None = None
+    external_id: str | None = None
+    source: str | None = None
 
 
 @dataclass(frozen=True)
@@ -58,3 +64,5 @@ class EventToPersist:
     previous_hash: str | None
     workflow_instance_id: str | None = None
     correlation_id: str | None = None
+    external_id: str | None = None
+    source: str | None = None

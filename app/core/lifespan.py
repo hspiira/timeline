@@ -63,6 +63,30 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     else:
         app.state.chain_anchor_task = None
 
+    connectors_enabled = (
+        settings.connector_cdc_postgres_enabled
+        or settings.connector_kafka_enabled
+        or settings.connector_email_enabled
+        or settings.connector_file_watch_enabled
+    )
+    if connectors_enabled:
+        from app.infrastructure.persistence.database import AsyncSessionLocal
+
+        if AsyncSessionLocal is not None:
+            from app.connectors.runner import ConnectorRunner, make_event_service_factory
+
+            factory = make_event_service_factory(AsyncSessionLocal)
+            runner = ConnectorRunner(event_service_factory=factory)
+            # Register connectors here when implemented (CDC, Kafka, etc.)
+            app.state.connector_runner = runner
+            asyncio.create_task(runner.start_all(), name="connector_runner")
+            logger.info("Connector runner started")
+        else:
+            app.state.connector_runner = None
+            logger.warning("Connectors enabled but database not configured; connector runner disabled")
+    else:
+        app.state.connector_runner = None
+
     if settings.telemetry_enabled:
         from app.shared.telemetry.telemetry import TelemetryConfig, set_telemetry
 
@@ -98,6 +122,12 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
         except asyncio.CancelledError:
             pass
         logger.info("Chain anchor task stopped")
+
+    connector_runner = getattr(app.state, "connector_runner", None)
+    if connector_runner is not None:
+        await connector_runner.stop_all()
+        app.state.connector_runner = None
+        logger.info("Connector runner stopped")
 
     sync_task = getattr(app.state, "sync_progress_broadcast_task", None)
     if sync_task is not None:

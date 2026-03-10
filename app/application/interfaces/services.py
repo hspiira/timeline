@@ -75,6 +75,7 @@ class IEventService(Protocol):
         data: EventCreate,
         *,
         trigger_workflows: bool = True,
+        skip_transition_validation: bool = False,
     ) -> EventEntity:
         """Create a new event with cryptographic chaining and optional schema validation."""
 

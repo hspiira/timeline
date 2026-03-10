@@ -50,9 +50,26 @@ class Event(CuidMixin, TenantMixin, Base):
         nullable=False,
         server_default=text("nextval('event_event_seq_seq'::regclass)"),
     )
+    # Platform: idempotency key for connectors (CDC/Kafka retries); optional for API.
+    external_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Platform: originating system identifier (e.g. "api:crm", "cdc:postgres:policies").
+    source: Mapped[str | None] = mapped_column(String, nullable=True)
 
     __table_args__ = (
         Index("ix_event_subject_time", "subject_id", "event_time"),
+        Index(
+            "ix_event_subject_external_id",
+            "subject_id",
+            "external_id",
+            unique=True,
+            postgresql_where=text("external_id IS NOT NULL"),
+        ),
+        Index(
+            "ix_event_tenant_source",
+            "tenant_id",
+            "source",
+            postgresql_where=text("source IS NOT NULL"),
+        ),
         Index("ix_event_tenant_subject", "tenant_id", "subject_id"),
         Index(
             "ix_event_tenant_subject_workflow",

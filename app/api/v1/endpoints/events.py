@@ -118,6 +118,8 @@ async def create_event(
             hash=created.chain.current_hash.value,
             workflow_instance_id=created.workflow_instance_id,
             correlation_id=created.correlation_id,
+            external_id=created.external_id,
+            source=created.source,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

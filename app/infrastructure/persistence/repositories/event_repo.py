@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import asc, desc, func, select, text
+from sqlalchemy import asc, desc, func, select, text, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.event import EventCreate, EventResult, EventToPersist
@@ -24,6 +24,8 @@ def _event_to_result(e: Event) -> EventResult:
         hash=e.hash,
         workflow_instance_id=e.workflow_instance_id,
         correlation_id=e.correlation_id,
+        external_id=e.external_id,
+        source=e.source,
     )
 
 
@@ -79,6 +81,37 @@ class EventRepository(BaseRepository[Event]):
                 out[e.subject_id] = _event_to_result(e)
         return out
 
+    async def get_by_subject_and_external_id(
+        self, subject_id: str, tenant_id: str, external_id: str
+    ) -> EventResult | None:
+        """Return event by subject and external idempotency key, if any."""
+        result = await self.db.execute(
+            select(Event).where(
+                Event.subject_id == subject_id,
+                Event.tenant_id == tenant_id,
+                Event.external_id == external_id,
+            )
+        )
+        row = result.scalar_one_or_none()
+        return _event_to_result(row) if row else None
+
+    async def get_by_external_ids(
+        self, tenant_id: str, subject_external_pairs: set[tuple[str, str]]
+    ) -> dict[tuple[str, str], EventResult]:
+        """Return existing events for (subject_id, external_id) pairs."""
+        if not subject_external_pairs:
+            return {}
+        result = await self.db.execute(
+            select(Event).where(
+                Event.tenant_id == tenant_id,
+                tuple_(Event.subject_id, Event.external_id).in_(
+                    list(subject_external_pairs)
+                ),
+            )
+        )
+        rows = result.scalars().all()
+        return {(e.subject_id, e.external_id): _event_to_result(e) for e in rows}
+
     async def create_event(
         self,
         tenant_id: str,
@@ -97,6 +130,8 @@ class EventRepository(BaseRepository[Event]):
             previous_hash=previous_hash,
             workflow_instance_id=data.workflow_instance_id,
             correlation_id=data.correlation_id,
+            external_id=data.external_id,
+            source=data.source,
         )
         created = await self.create(event)
         return _event_to_result(created)
@@ -257,6 +292,8 @@ class EventRepository(BaseRepository[Event]):
                 previous_hash=e.previous_hash,
                 workflow_instance_id=e.workflow_instance_id,
                 correlation_id=e.correlation_id,
+                external_id=e.external_id,
+                source=e.source,
             )
             for e in events
         ]

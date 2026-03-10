@@ -7,7 +7,7 @@ validated at load time.
 
 from functools import lru_cache
 
-from pydantic import SecretStr, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -121,6 +121,20 @@ class Settings(BaseSettings):
     cache_ttl_permissions: int = 300
     cache_ttl_schemas: int = 600
     cache_ttl_tenants: int = 900
+
+    # Connectors (platform event ingestion)
+    connector_cdc_postgres_enabled: bool = False
+    connector_cdc_postgres_dsn: SecretStr | None = None
+    connector_cdc_postgres_slot_name: str = "timeline_cdc"
+    connector_cdc_postgres_publication: str = "timeline_pub"
+    connector_kafka_enabled: bool = False
+    connector_kafka_bootstrap_servers: str | None = None
+    connector_kafka_group_id: str = "timeline-consumer"
+    connector_kafka_topics: list[str] = Field(default_factory=list)
+    connector_kafka_auto_offset_reset: str = "earliest"
+    connector_email_enabled: bool = False
+    connector_file_watch_enabled: bool = False
+    connector_file_watch_path: str | None = None
 
     # OpenTelemetry
     telemetry_enabled: bool = True

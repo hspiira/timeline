@@ -50,6 +50,8 @@ def _event_result_to_entity(r: EventResult) -> EventEntity:
         chain=chain,
         workflow_instance_id=r.workflow_instance_id,
         correlation_id=r.correlation_id,
+        external_id=r.external_id,
+        source=r.source,
     )
 
 logger = get_logger(__name__)
@@ -94,8 +96,16 @@ class EventService:
         data: EventCreate,
         *,
         trigger_workflows: bool = True,
+        skip_transition_validation: bool = False,
     ) -> EventEntity:
         """Create one event; validate subject and schema, compute hash, optionally trigger workflows."""
+        if data.external_id:
+            existing = await self.event_repo.get_by_subject_and_external_id(
+                data.subject_id, tenant_id, data.external_id
+            )
+            if existing:
+                return _event_result_to_entity(existing)
+
         subject = await self.subject_repo.get_by_id_and_tenant(
             data.subject_id, tenant_id
         )
@@ -123,7 +133,7 @@ class EventService:
                 subject_type=subject.subject_type.value,
             )
 
-        if self.transition_validator:
+        if not skip_transition_validation and self.transition_validator:
             await self.transition_validator.validate_can_emit(
                 tenant_id=tenant_id,
                 subject_id=data.subject_id,
@@ -183,6 +193,24 @@ class EventService:
         """Bulk create events (e.g. email sync). Hashes computed sequentially; single DB roundtrip."""
         if not events:
             return []
+
+        seen_entities: list[EventEntity] = []
+        pairs = {(e.subject_id, e.external_id) for e in events if e.external_id}
+        if pairs:
+            already_seen = await self.event_repo.get_by_external_ids(
+                tenant_id, pairs
+            )
+            new_events = [
+                e
+                for e in events
+                if (e.subject_id, e.external_id) not in already_seen
+            ]
+            seen_entities = [
+                _event_result_to_entity(r) for r in already_seen.values()
+            ]
+            if not new_events:
+                return seen_entities
+            events = new_events
 
         subject_ids = {e.subject_id for e in events}
         subjects = await self.subject_repo.get_by_ids_and_tenant(tenant_id, subject_ids)
@@ -272,6 +300,8 @@ class EventService:
                                 previous_hash=prev_hash,
                                 workflow_instance_id=event_data.workflow_instance_id,
                                 correlation_id=event_data.correlation_id,
+                                external_id=event_data.external_id,
+                                source=event_data.source,
                             )
                         )
                         chain_state[event_data.subject_id] = (
@@ -292,6 +322,8 @@ class EventService:
                 await asyncio.sleep(0.05 * (2**attempt))
 
         entities = [_event_result_to_entity(ev) for ev in created]
+        if pairs:
+            entities = seen_entities + entities
 
         if trigger_workflows and self.workflow_engine:
             for ev in entities:

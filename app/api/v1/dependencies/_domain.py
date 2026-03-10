@@ -189,6 +189,41 @@ async def get_event_service(
     return event_service
 
 
+def build_event_service_for_connector(
+    db: AsyncSession,
+    tenant_id: str,
+) -> EventService:
+    """Build EventService for connector/background use (no request context).
+
+    Same composition as get_event_service_for_create but sync; no workflow
+    engine (connectors use trigger_workflows=False). Used by ConnectorRunner.
+    """
+    from app.infrastructure.services import SystemAuditService
+
+    audit_svc = SystemAuditService(db, HashService())
+    event_repo = EventRepository(db)
+    hash_service = HashService()
+    subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=audit_svc)
+    schema_repo = EventSchemaRepository(db, cache_service=None, audit_service=audit_svc)
+    schema_validator = EventSchemaValidator(schema_repo)
+    transition_rule_repo = EventTransitionRuleRepository(db)
+    transition_validator = EventTransitionValidator(
+        rule_repo=transition_rule_repo,
+        event_repo=event_repo,
+    )
+    subject_type_repo = SubjectTypeRepository(db, audit_service=audit_svc)
+    return EventService(
+        event_repo=event_repo,
+        hash_service=hash_service,
+        subject_repo=subject_repo,
+        db=db,
+        schema_validator=schema_validator,
+        workflow_engine_provider=None,
+        transition_validator=transition_validator,
+        subject_type_repo=subject_type_repo,
+    )
+
+
 async def get_event_service_for_create(
     db: Annotated[AsyncSession, Depends(get_db)],
     tenant_id: Annotated[str, Depends(_core.get_tenant_id)],
