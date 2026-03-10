@@ -9,7 +9,7 @@ from __future__ import annotations
 from contextlib import aclosing
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.services.document_category_metadata_validator import (
@@ -238,6 +238,7 @@ def build_event_service_for_connector(
 
 
 async def get_event_service_for_create(
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     tenant_id: Annotated[str, Depends(_core.get_tenant_id)],
     audit_svc: Annotated[SystemAuditService, Depends(_core.get_system_audit_service)],
@@ -271,6 +272,9 @@ async def get_event_service_for_create(
     ]
     webhook_repo = WebhookSubscriptionRepository(db)
     webhook_dispatcher = WebhookDispatcher(webhook_repo.get_active_by_tenant)
+    event_stream_broadcaster = getattr(
+        request.app.state, "event_stream_broadcaster", None
+    )
     event_service = EventService(
         event_repo=event_repo,
         hash_service=hash_service,
@@ -282,6 +286,7 @@ async def get_event_service_for_create(
         subject_type_repo=subject_type_repo,
         enrichers=default_enrichers_create,
         webhook_dispatcher=webhook_dispatcher,
+        event_stream_broadcaster=event_stream_broadcaster,
     )
     notification_service = LogOnlyNotificationService()
     recipient_resolver = WorkflowRecipientResolver(db)

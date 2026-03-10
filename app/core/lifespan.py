@@ -46,6 +46,12 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
         grace_period_seconds=settings.verification_job_grace_period_seconds,
     )
 
+    from app.infrastructure.services.event_stream_broadcaster import (
+        InMemoryEventStreamBroadcaster,
+    )
+
+    app.state.event_stream_broadcaster = InMemoryEventStreamBroadcaster()
+
     if settings.redis_enabled:
         from app.infrastructure.cache.redis_cache import CacheService
         from app.infrastructure.messaging.redis_pubsub import run_sync_progress_broadcast

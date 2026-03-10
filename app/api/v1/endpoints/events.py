@@ -1,12 +1,14 @@
 """Event API: thin routes delegating to EventService and EventRepository."""
 
 import asyncio
+import json
 import logging
 import uuid
 from collections.abc import Awaitable, Callable
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from starlette.responses import StreamingResponse
 
 from app.api.v1.dependencies import (
     ensure_audit_logged,
@@ -158,6 +160,39 @@ async def list_events(
             limit=limit,
         )
     return [EventListResponse.model_validate(e) for e in events]
+
+
+@router.get(
+    "/stream",
+    summary="Stream new events (SSE)",
+)
+async def stream_events(
+    request: Request,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    subject_id: str | None = Query(None, description="Filter to this subject"),
+    _: Annotated[object, Depends(require_permission("event", "read"))] = None,
+):
+    """Server-Sent Events stream of new events for the tenant (and optionally one subject). Requires event:read."""
+    broadcaster = getattr(request.app.state, "event_stream_broadcaster", None)
+    if broadcaster is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Event stream not available",
+        )
+
+    async def event_generator():
+        async for payload in broadcaster.subscribe(tenant_id, subject_id):
+            yield f"data: {json.dumps(payload)}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.get(

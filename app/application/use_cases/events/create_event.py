@@ -34,7 +34,27 @@ if TYPE_CHECKING:
         IEventTransitionValidator,
         IWorkflowEngine,
     )
+    from app.application.interfaces.event_stream import IEventStreamBroadcaster
     from app.application.interfaces.webhook import IWebhookDispatcher
+
+
+def _event_result_to_sse_payload(r: EventResult) -> dict:
+    """Build JSON-serializable payload for SSE (event_time as ISO string)."""
+    return {
+        "id": r.id,
+        "tenant_id": r.tenant_id,
+        "subject_id": r.subject_id,
+        "event_type": r.event_type,
+        "schema_version": r.schema_version,
+        "event_time": r.event_time.isoformat(),
+        "payload": r.payload,
+        "previous_hash": r.previous_hash,
+        "hash": r.hash,
+        "workflow_instance_id": r.workflow_instance_id,
+        "correlation_id": r.correlation_id,
+        "external_id": r.external_id,
+        "source": r.source,
+    }
 
 
 def _event_result_to_entity(r: EventResult) -> EventEntity:
@@ -77,6 +97,7 @@ class EventService:
         subject_type_repo: "ISubjectTypeRepository | None" = None,
         enrichers: list[Any] | None = None,
         webhook_dispatcher: "IWebhookDispatcher | None" = None,
+        event_stream_broadcaster: "IEventStreamBroadcaster | None" = None,
     ) -> None:
         self.event_repo = event_repo
         self.hash_service = hash_service
@@ -88,6 +109,7 @@ class EventService:
         self.subject_type_repo = subject_type_repo
         self.enrichers = enrichers or []
         self._webhook_dispatcher = webhook_dispatcher
+        self._event_stream_broadcaster = event_stream_broadcaster
 
     @property
     def workflow_engine(self) -> "IWorkflowEngine | None":
@@ -193,6 +215,12 @@ class EventService:
         if self._webhook_dispatcher:
             await self._webhook_dispatcher.dispatch(
                 tenant_id, entity, subject.subject_type.value
+            )
+        if self._event_stream_broadcaster:
+            self._event_stream_broadcaster.publish(
+                tenant_id,
+                _event_result_to_sse_payload(created),
+                created.subject_id,
             )
 
         return entity
@@ -352,6 +380,13 @@ class EventService:
         if trigger_workflows and self.workflow_engine:
             for ev in entities:
                 await self._trigger_workflows(ev, tenant_id)
+        if self._event_stream_broadcaster:
+            for ev in created:
+                self._event_stream_broadcaster.publish(
+                    tenant_id,
+                    _event_result_to_sse_payload(ev),
+                    ev.subject_id,
+                )
 
         return entities
 
