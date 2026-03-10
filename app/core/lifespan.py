@@ -73,11 +73,20 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
         from app.infrastructure.persistence.database import AsyncSessionLocal
 
         if AsyncSessionLocal is not None:
+            from app.connectors.email.connector import EmailConnector
             from app.connectors.runner import ConnectorRunner, make_event_service_factory
 
             factory = make_event_service_factory(AsyncSessionLocal)
             runner = ConnectorRunner(event_service_factory=factory)
-            # Register connectors here when implemented (CDC, Kafka, etc.)
+            if settings.connector_email_enabled and settings.connector_email_tenant_id:
+                runner.register(
+                    EmailConnector(
+                        connector_id="email",
+                        tenant_id=settings.connector_email_tenant_id,
+                        poll_interval_seconds=settings.connector_email_poll_interval_seconds,
+                    )
+                )
+            # CDC, Kafka, file_watch: register when implemented
             app.state.connector_runner = runner
             asyncio.create_task(runner.start_all(), name="connector_runner")
             logger.info("Connector runner started")

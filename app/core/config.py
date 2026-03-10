@@ -133,6 +133,8 @@ class Settings(BaseSettings):
     connector_kafka_topics: list[str] = Field(default_factory=list)
     connector_kafka_auto_offset_reset: str = "earliest"
     connector_email_enabled: bool = False
+    connector_email_tenant_id: str | None = None
+    connector_email_poll_interval_seconds: float = 60.0
     connector_file_watch_enabled: bool = False
     connector_file_watch_path: str | None = None
 
