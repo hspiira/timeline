@@ -59,21 +59,28 @@ class ConnectorRunner:
         return [await c.health() for c in self._connectors]
 
     async def _run_connector(self, connector: IConnector) -> None:
-        """Run one connector: start, consume events(), ingest; stop on cancel/error."""
-        await connector.start()
-        try:
-            it: AsyncIterator[list[ConnectorEvent]] = connector.events()
-            async for batch in it:
-                await self._ingest_batch(connector, batch)
-        except asyncio.CancelledError:
-            await connector.stop()
-            raise
-        except Exception:
-            logger.exception(
-                "Connector %s crashed",
-                connector.connector_id,
-            )
-            await connector.stop()
+        """Run one connector: start, consume events(), ingest; restart on crash with backoff."""
+        backoff_seconds = 5
+        max_backoff = 300
+        while True:
+            try:
+                await connector.start()
+                it: AsyncIterator[list[ConnectorEvent]] = connector.events()
+                async for batch in it:
+                    await self._ingest_batch(connector, batch)
+                return  # clean exit
+            except asyncio.CancelledError:
+                await connector.stop()
+                raise
+            except Exception:
+                logger.exception(
+                    "Connector %s crashed, restarting in %ds",
+                    connector.connector_id,
+                    backoff_seconds,
+                )
+                await connector.stop()
+                await asyncio.sleep(backoff_seconds)
+                backoff_seconds = min(backoff_seconds * 2, max_backoff)
 
     async def _ingest_batch(
         self, connector: IConnector, batch: list[ConnectorEvent]
@@ -102,6 +109,7 @@ class ConnectorRunner:
                         create_data,
                         trigger_workflows=False,
                         skip_transition_validation=True,
+                        skip_schema_validation=True,
                     )
                 except Exception:
                     logger.exception(
@@ -113,16 +121,18 @@ class ConnectorRunner:
 
 def make_event_service_factory(
     session_factory: "async_sessionmaker[AsyncSession]",
+    app: object | None = None,
 ) -> Callable[[str], AbstractAsyncContextManager["EventService"]]:
     """Build an async context manager factory that yields EventService per tenant_id.
 
     Used by lifespan to create ConnectorRunner's event_service_factory.
+    When app is provided, connector-ingested events trigger webhooks and SSE.
     """
     from app.api.v1.dependencies._domain import build_event_service_for_connector
 
     @asynccontextmanager
     async def factory(tenant_id: str):
         async with session_factory() as db:
-            yield build_event_service_for_connector(db, tenant_id)
+            yield build_event_service_for_connector(db, tenant_id, app=app)
 
     return factory

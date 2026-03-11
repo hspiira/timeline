@@ -205,11 +205,14 @@ async def get_event_service(
 def build_event_service_for_connector(
     db: AsyncSession,
     tenant_id: str,
+    app: object | None = None,
 ) -> EventService:
     """Build EventService for connector/background use (no request context).
 
     Same composition as get_event_service_for_create but sync; no workflow
     engine (connectors use trigger_workflows=False). Used by ConnectorRunner.
+    When app is provided, wires webhook_dispatcher (shared http_client) and
+    event_stream_broadcaster so connector-ingested events trigger webhooks and SSE.
     """
     from app.infrastructure.services import SystemAuditService
 
@@ -225,6 +228,22 @@ def build_event_service_for_connector(
         event_repo=event_repo,
     )
     subject_type_repo = SubjectTypeRepository(db, audit_service=audit_svc)
+
+    webhook_dispatcher = None
+    event_stream_broadcaster = None
+    if app is not None:
+        state = getattr(app, "state", None)
+        if state is not None:
+            oauth_http_client = getattr(state, "oauth_http_client", None)
+            event_stream_broadcaster = getattr(
+                state, "event_stream_broadcaster", None
+            )
+            webhook_repo = WebhookSubscriptionRepository(db)
+            webhook_dispatcher = WebhookDispatcher(
+                webhook_repo.get_active_by_tenant,
+                http_client=oauth_http_client,
+            )
+
     return EventService(
         event_repo=event_repo,
         hash_service=hash_service,
@@ -234,6 +253,8 @@ def build_event_service_for_connector(
         workflow_engine_provider=None,
         transition_validator=transition_validator,
         subject_type_repo=subject_type_repo,
+        webhook_dispatcher=webhook_dispatcher,
+        event_stream_broadcaster=event_stream_broadcaster,
     )
 
 
@@ -271,7 +292,11 @@ async def get_event_service_for_create(
         SourceEnricher(),
     ]
     webhook_repo = WebhookSubscriptionRepository(db)
-    webhook_dispatcher = WebhookDispatcher(webhook_repo.get_active_by_tenant)
+    oauth_http_client = getattr(request.app.state, "oauth_http_client", None)
+    webhook_dispatcher = WebhookDispatcher(
+        webhook_repo.get_active_by_tenant,
+        http_client=oauth_http_client,
+    )
     event_stream_broadcaster = getattr(
         request.app.state, "event_stream_broadcaster", None
     )

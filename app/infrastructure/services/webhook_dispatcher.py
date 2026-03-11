@@ -126,7 +126,7 @@ class WebhookDispatcher:
             "X-Timeline-Signature": f"sha256={signature}",
         }
         last_error: Exception | None = None
-        for delay in RETRY_DELAYS:
+        for i, delay in enumerate(RETRY_DELAYS):
             try:
                 r = await client.post(sub.target_url, content=body, headers=headers)
                 r.raise_for_status()
@@ -139,7 +139,8 @@ class WebhookDispatcher:
                     delay,
                     e,
                 )
-                await asyncio.sleep(delay)
+                if i < len(RETRY_DELAYS) - 1:
+                    await asyncio.sleep(delay)
         logger.exception(
             "Webhook delivery to %s failed after retries: %s",
             sub.target_url,

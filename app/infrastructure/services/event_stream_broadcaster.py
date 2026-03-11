@@ -12,7 +12,11 @@ QUEUE_MAXSIZE = 1000
 
 
 class InMemoryEventStreamBroadcaster(IEventStreamBroadcaster):
-    """In-memory broadcaster: subscribers get queues; publish pushes to matching queues."""
+    """In-memory broadcaster: subscribers get queues; publish pushes to matching queues.
+
+    Uses threading.Lock so sync publish() can run without awaiting; subscribe() is async.
+    When replacing with Redis pub/sub, make publish async and use asyncio.Lock throughout.
+    """
 
     def __init__(self) -> None:
         self._subs: dict[tuple[str, str | None], list[asyncio.Queue]] = {}

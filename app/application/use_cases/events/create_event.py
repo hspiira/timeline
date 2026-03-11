@@ -125,6 +125,7 @@ class EventService:
         *,
         trigger_workflows: bool = True,
         skip_transition_validation: bool = False,
+        skip_schema_validation: bool = False,
         enrichment_context: EnrichmentContext | None = None,
     ) -> EventEntity:
         """Create one event; validate subject and schema, compute hash, optionally trigger workflows."""
@@ -153,7 +154,7 @@ class EventService:
                         field="event_type",
                     )
 
-        if self.schema_validator:
+        if not skip_schema_validation and self.schema_validator:
             await self.schema_validator.validate_payload(
                 tenant_id,
                 data.event_type,
@@ -380,6 +381,13 @@ class EventService:
         if trigger_workflows and self.workflow_engine:
             for ev in entities:
                 await self._trigger_workflows(ev, tenant_id)
+        if self._webhook_dispatcher:
+            for ev in created:
+                subject = subject_by_id[ev.subject_id]
+                entity = _event_result_to_entity(ev)
+                await self._webhook_dispatcher.dispatch(
+                    tenant_id, entity, subject.subject_type.value
+                )
         if self._event_stream_broadcaster:
             for ev in created:
                 self._event_stream_broadcaster.publish(

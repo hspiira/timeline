@@ -86,7 +86,7 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
             from app.connectors.email.connector import EmailConnector
             from app.connectors.runner import ConnectorRunner, make_event_service_factory
 
-            factory = make_event_service_factory(AsyncSessionLocal)
+            factory = make_event_service_factory(AsyncSessionLocal, app)
             runner = ConnectorRunner(event_service_factory=factory)
             if settings.connector_email_enabled and settings.connector_email_tenant_id:
                 runner.register(
