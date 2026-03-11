@@ -26,6 +26,7 @@ def _event_to_result(e: Event) -> EventResult:
         correlation_id=e.correlation_id,
         external_id=e.external_id,
         source=e.source,
+        event_seq=getattr(e, "event_seq", 0),
     )
 
 
@@ -268,6 +269,24 @@ class EventRepository(BaseRepository[Event]):
         row = result.scalar_one_or_none()
         return row if row else None
 
+    async def get_events_since_seq(
+        self,
+        tenant_id: str,
+        since_seq: int,
+        limit: int = 1000,
+    ) -> list[EventResult]:
+        """Return events for tenant with event_seq > since_seq, ordered by event_seq asc (for projection engine watermark polling)."""
+        result = await self.db.execute(
+            select(Event)
+            .where(
+                Event.tenant_id == tenant_id,
+                Event.event_seq > since_seq,
+            )
+            .order_by(asc(Event.event_seq))
+            .limit(limit)
+        )
+        return [_event_to_result(e) for e in result.scalars().all()]
+
     async def get_distinct_tenant_ids(self) -> list[str]:
         """Return distinct tenant_ids that have at least one event (for anchoring job). Deterministic order by tenant_id."""
         result = await self.db.execute(
@@ -299,5 +318,7 @@ class EventRepository(BaseRepository[Event]):
         ]
         self.db.add_all(objs)
         await self.db.flush()
-        # IDs and fields are set in Python (CUID + payload); no refresh needed.
+        # Refresh so server-generated event_seq is loaded (server_default=nextval).
+        for o in objs:
+            await self.db.refresh(o)
         return [_event_to_result(o) for o in objs]

@@ -651,25 +651,54 @@ async def get_current_user(
     return current_user
 
 
-async def get_event_create_rate_limit(
+async def check_event_rate_limit(
     request: Request,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
 ) -> None:
-    """Raise 429 if event create rate limit exceeded for this tenant."""
+    """Raise 429 if event create rate limit exceeded for this tenant. Wire on POST /events."""
     limiter = getattr(request.app.state, "event_rate_limiter", None)
     if limiter is None:
         return
     settings = get_settings()
-    key = f"event:create:{tenant_id}"
+    allowed = await limiter.check(
+        key=f"events:{tenant_id}",
+        limit=settings.rate_limit_events_per_minute_per_tenant,
+        window_seconds=60,
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail="Event rate limit exceeded",
+        )
+
+
+async def get_event_create_rate_limit(
+    request: Request,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+) -> None:
+    """Alias for check_event_rate_limit. Raise 429 if event create rate limit exceeded for this tenant."""
+    await check_event_rate_limit(request, tenant_id)
+
+
+async def get_event_bulk_rate_limit(
+    request: Request,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+) -> None:
+    """Raise 429 if bulk event create rate limit exceeded for this tenant. Wire on POST /events/bulk."""
+    limiter = getattr(request.app.state, "event_rate_limiter", None)
+    if limiter is None:
+        return
+    settings = get_settings()
+    key = f"event:bulk:{tenant_id}"
     allowed = await limiter.check(
         key,
-        settings.rate_limit_events_per_minute_per_tenant,
+        settings.rate_limit_bulk_events_per_minute_per_tenant,
         60,
     )
     if not allowed:
         raise HTTPException(
             status_code=429,
-            detail="Too many event creations for this tenant; try again later",
+            detail="Too many bulk event creations for this tenant; try again later",
         )
 
 

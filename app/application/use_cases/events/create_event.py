@@ -214,8 +214,10 @@ class EventService:
         if trigger_workflows and self.workflow_engine:
             await self._trigger_workflows(entity, tenant_id)
         if self._webhook_dispatcher:
-            await self._webhook_dispatcher.dispatch(
-                tenant_id, entity, subject.subject_type.value
+            asyncio.create_task(
+                self._webhook_dispatcher.dispatch(
+                    tenant_id, entity, subject.subject_type.value
+                )
             )
         if self._event_stream_broadcaster:
             self._event_stream_broadcaster.publish(
@@ -385,8 +387,10 @@ class EventService:
             for ev in created:
                 subject = subject_by_id[ev.subject_id]
                 entity = _event_result_to_entity(ev)
-                await self._webhook_dispatcher.dispatch(
-                    tenant_id, entity, subject.subject_type.value
+                asyncio.create_task(
+                    self._webhook_dispatcher.dispatch(
+                        tenant_id, entity, subject.subject_type.value
+                    )
                 )
         if self._event_stream_broadcaster:
             for ev in created:

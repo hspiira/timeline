@@ -49,6 +49,8 @@ class EventResult:
     correlation_id: str | None = None
     external_id: str | None = None
     source: str | None = None
+    # Monotonic insertion order; used by projection engine for watermarks (get_events_since_seq).
+    event_seq: int = 0
 
 
 @dataclass(frozen=True)

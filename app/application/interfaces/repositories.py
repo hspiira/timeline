@@ -109,6 +109,14 @@ class IEventRepository(Protocol):
     ) -> list[EventResult]:
         """Return events for subject in chronological order (oldest first). If as_of is set, only events with event_time <= as_of. If after_event_id is set, only events after that event (for snapshot replay). If workflow_instance_id is set, only events in that stream."""
 
+    async def get_events_since_seq(
+        self,
+        tenant_id: str,
+        since_seq: int,
+        limit: int = 1000,
+    ) -> list[EventResult]:
+        """Return events for tenant with event_seq > since_seq, ordered by event_seq asc. Used by projection engine for watermark polling."""
+
     async def count_by_tenant(self, tenant_id: str) -> int:
         """Return total event count for tenant (for verification limit check)."""
 
