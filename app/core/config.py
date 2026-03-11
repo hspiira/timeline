@@ -202,6 +202,28 @@ class Settings(BaseSettings):
                 "allowed_origins must not be '*' (use explicit origins, e.g. "
                 "ALLOWED_ORIGINS=https://app.example.com)."
             )
+        # Connectors: fail fast when enabled but required config is missing.
+        if self.connector_email_enabled and not self.connector_email_tenant_id:
+            raise ValueError(
+                "CONNECTOR_EMAIL_TENANT_ID is required when CONNECTOR_EMAIL_ENABLED=true."
+            )
+        if self.connector_file_watch_enabled and not self.connector_file_watch_path:
+            raise ValueError(
+                "CONNECTOR_FILE_WATCH_PATH is required when CONNECTOR_FILE_WATCH_ENABLED=true."
+            )
+        if self.connector_cdc_postgres_enabled and not self.connector_cdc_postgres_dsn:
+            raise ValueError(
+                "CONNECTOR_CDC_POSTGRES_DSN is required when CONNECTOR_CDC_POSTGRES_ENABLED=true."
+            )
+        if self.connector_kafka_enabled:
+            if not self.connector_kafka_bootstrap_servers:
+                raise ValueError(
+                    "CONNECTOR_KAFKA_BOOTSTRAP_SERVERS is required when CONNECTOR_KAFKA_ENABLED=true."
+                )
+            if not self.connector_kafka_topics:
+                raise ValueError(
+                    "CONNECTOR_KAFKA_TOPICS is required when CONNECTOR_KAFKA_ENABLED=true."
+                )
         return self
 
 

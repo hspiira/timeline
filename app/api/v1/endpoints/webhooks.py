@@ -32,13 +32,14 @@ router = APIRouter()
 
 
 def _to_response(r: WebhookSubscriptionResult) -> WebhookSubscriptionResponse:
-    """Map DTO to response (no secret)."""
+    """Map DTO to response (no plaintext secret)."""
     return WebhookSubscriptionResponse(
         id=r.id,
         tenant_id=r.tenant_id,
         target_url=r.target_url,
         event_types=r.event_types,
         subject_types=r.subject_types,
+        secret_present=r.secret_present,
         active=r.active,
         created_at=r.created_at,
     )
@@ -60,7 +61,7 @@ async def create_webhook(
 ) -> WebhookSubscriptionCreateResponse:
     """Create a webhook subscription. Secret is returned only in this response."""
     data = WebhookSubscriptionCreate(
-        target_url=body.target_url,
+        target_url=str(body.target_url),
         event_types=body.event_types,
         subject_types=body.subject_types,
         secret=body.secret,
@@ -72,9 +73,10 @@ async def create_webhook(
         target_url=created.target_url,
         event_types=created.event_types,
         subject_types=created.subject_types,
+        secret_present=True,
         active=created.active,
         created_at=created.created_at,
-        secret=created.secret,
+        secret=body.secret,
     )
 
 
@@ -133,7 +135,7 @@ async def update_webhook(
 ) -> WebhookSubscriptionResponse:
     """Partially update a webhook subscription."""
     data = WebhookSubscriptionUpdate(
-        target_url=body.target_url,
+        target_url=str(body.target_url) if body.target_url is not None else None,
         event_types=body.event_types,
         subject_types=body.subject_types,
         secret=body.secret,
@@ -143,7 +145,10 @@ async def update_webhook(
         updated = await repo.update(tenant_id, subscription_id, data)
         return _to_response(updated)
     except ResourceNotFoundException:
-        raise HTTPException(status_code=404, detail="Webhook subscription not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Webhook subscription not found",
+        ) from None
 
 
 @router.delete(
@@ -178,7 +183,7 @@ async def test_webhook(
     _: Annotated[object, Depends(get_webhook_write_permission)],
 ) -> WebhookSubscriptionTestResponse:
     """POST a test payload to the subscription URL. Returns whether delivery succeeded (2xx)."""
-    sub = await repo.get_by_id(tenant_id, subscription_id)
+    sub = await repo.get_by_id_for_dispatch(tenant_id, subscription_id)
     if sub is None:
         raise HTTPException(status_code=404, detail="Webhook subscription not found")
     delivered = await dispatcher.send_test(sub)

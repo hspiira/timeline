@@ -49,8 +49,9 @@ class EventResult:
     correlation_id: str | None = None
     external_id: str | None = None
     source: str | None = None
-    # Monotonic insertion order; used by projection engine for watermarks (get_events_since_seq).
-    event_seq: int = 0
+    # Monotonic insertion order (watermark); required for sequence-backed reads (get_events_since_seq).
+    # None means missing mapping/backfill; consumers must reject before using as offset.
+    event_seq: int | None = None
 
 
 @dataclass(frozen=True)

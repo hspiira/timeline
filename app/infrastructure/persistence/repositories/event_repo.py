@@ -26,7 +26,7 @@ def _event_to_result(e: Event) -> EventResult:
         correlation_id=e.correlation_id,
         external_id=e.external_id,
         source=e.source,
-        event_seq=getattr(e, "event_seq", 0),
+        event_seq=e.event_seq,
     )
 
 
@@ -285,7 +285,14 @@ class EventRepository(BaseRepository[Event]):
             .order_by(asc(Event.event_seq))
             .limit(limit)
         )
-        return [_event_to_result(e) for e in result.scalars().all()]
+        events = [_event_to_result(e) for e in result.scalars().all()]
+        for ev in events:
+            if ev.event_seq is None:
+                raise ValueError(
+                    "event_seq is required for sequence-backed read; "
+                    "missing repository mapping or backfill"
+                )
+        return events
 
     async def get_distinct_tenant_ids(self) -> list[str]:
         """Return distinct tenant_ids that have at least one event (for anchoring job). Deterministic order by tenant_id."""

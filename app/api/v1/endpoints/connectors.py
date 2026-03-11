@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
-from app.api.v1.dependencies import require_permission
+from app.api.v1.dependencies import get_system_read_permission
 
 router = APIRouter()
 
@@ -27,7 +27,7 @@ def _health_payload(connectors: list, status: str) -> dict:
 @router.get("/health")
 async def connectors_health(
     request: Request,
-    _: Annotated[object, Depends(require_permission("system", "read"))] = None,
+    _: Annotated[object, Depends(get_system_read_permission)] = None,
 ):
     """Return health for all registered connectors. 200 if all running, 207 if any degraded, 503 if all stopped."""
     runner = getattr(request.app.state, "connector_runner", None)

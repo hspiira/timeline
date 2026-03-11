@@ -6,9 +6,8 @@ import asyncio
 import logging
 from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import Any
 
-from app.connectors.base import ConnectorEvent, ConnectorHealth, IConnector
+from app.connectors.base import ConnectorEvent, ConnectorHealth
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +32,7 @@ class EmailConnector:
         self._tenant_id = tenant_id
         self._poll_interval_seconds = poll_interval_seconds
         self._running = False
+        self._stop_event = asyncio.Event()
         self._last_event_at: datetime | None = None
         self._error: str | None = None
 
@@ -47,12 +47,14 @@ class EmailConnector:
     async def start(self) -> None:
         """Mark connector as running (no external connection yet)."""
         self._running = True
+        self._stop_event.clear()
         self._error = None
         logger.info("Email connector %s started for tenant %s", self._connector_id, self._tenant_id)
 
     async def stop(self) -> None:
         """Mark connector as stopped."""
         self._running = False
+        self._stop_event.set()
         logger.info("Email connector %s stopped", self._connector_id)
 
     async def health(self) -> ConnectorHealth:
@@ -74,6 +76,12 @@ class EmailConnector:
                 # - load email accounts for tenant (sync_status=pending or periodic poll)
                 # - fetch messages via provider, map to ConnectorEvent, yield batches
                 yield []
-                await asyncio.sleep(self._poll_interval_seconds)
+                try:
+                    await asyncio.wait_for(
+                        self._stop_event.wait(),
+                        timeout=self._poll_interval_seconds,
+                    )
+                except asyncio.TimeoutError:
+                    continue
 
         return _generate()

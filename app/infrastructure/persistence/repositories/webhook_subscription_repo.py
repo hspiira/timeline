@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.webhook_subscription import (
     WebhookSubscriptionCreate,
+    WebhookSubscriptionForDispatch,
     WebhookSubscriptionResult,
     WebhookSubscriptionUpdate,
 )
@@ -19,6 +20,19 @@ from app.infrastructure.persistence.repositories.base import BaseRepository
 
 def _to_result(row: WebhookSubscription) -> WebhookSubscriptionResult:
     return WebhookSubscriptionResult(
+        id=row.id,
+        tenant_id=row.tenant_id,
+        target_url=row.target_url,
+        event_types=row.event_types or [],
+        subject_types=row.subject_types or [],
+        secret_present=bool(row.secret),
+        active=row.active,
+        created_at=row.created_at,
+    )
+
+
+def _to_dispatch_result(row: WebhookSubscription) -> WebhookSubscriptionForDispatch:
+    return WebhookSubscriptionForDispatch(
         id=row.id,
         tenant_id=row.tenant_id,
         target_url=row.target_url,
@@ -38,8 +52,8 @@ class WebhookSubscriptionRepository(BaseRepository[WebhookSubscription]):
 
     async def get_active_by_tenant(
         self, tenant_id: str
-    ) -> list[WebhookSubscriptionResult]:
-        """Return active subscriptions for tenant."""
+    ) -> list[WebhookSubscriptionForDispatch]:
+        """Return active subscriptions for tenant (includes secret for signing)."""
         result = await self.db.execute(
             select(WebhookSubscription).where(
                 WebhookSubscription.tenant_id == tenant_id,
@@ -47,7 +61,20 @@ class WebhookSubscriptionRepository(BaseRepository[WebhookSubscription]):
             )
         )
         rows = result.scalars().all()
-        return [_to_result(r) for r in rows]
+        return [_to_dispatch_result(r) for r in rows]
+
+    async def get_by_id_for_dispatch(
+        self, tenant_id: str, subscription_id: str
+    ) -> WebhookSubscriptionForDispatch | None:
+        """Return subscription with secret for dispatch/test, or None."""
+        result = await self.db.execute(
+            select(WebhookSubscription).where(
+                WebhookSubscription.id == subscription_id,
+                WebhookSubscription.tenant_id == tenant_id,
+            )
+        )
+        row = result.scalar_one_or_none()
+        return _to_dispatch_result(row) if row else None
 
     async def create(
         self,
@@ -65,7 +92,7 @@ class WebhookSubscriptionRepository(BaseRepository[WebhookSubscription]):
             active=True,
         )
         created = await super().create(row)
-        return _to_result(created)
+        return _to_result(created)  # read model: no secret, secret_present=True
 
     async def get_by_id(
         self, tenant_id: str, subscription_id: str
@@ -130,7 +157,7 @@ class WebhookSubscriptionRepository(BaseRepository[WebhookSubscription]):
         return _to_result(updated)
 
     async def delete(self, tenant_id: str, subscription_id: str) -> None:
-        """Delete subscription; no-op if not found."""
+        """Delete subscription; raises if not found."""
         result = await self.db.execute(
             select(WebhookSubscription).where(
                 WebhookSubscription.id == subscription_id,
@@ -138,5 +165,8 @@ class WebhookSubscriptionRepository(BaseRepository[WebhookSubscription]):
             )
         )
         row = result.scalar_one_or_none()
-        if row is not None:
-            await super().delete(row)
+        if row is None:
+            raise ResourceNotFoundException(
+                WebhookSubscription.__tablename__, subscription_id
+            )
+        await super().delete(row)

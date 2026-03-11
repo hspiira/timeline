@@ -13,6 +13,7 @@ from app.connectors.base import ConnectorEvent, ConnectorHealth, IConnector
 
 if TYPE_CHECKING:
     from app.application.use_cases.events import EventService
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +34,14 @@ class ConnectorRunner:
 
     def register(self, connector: IConnector) -> None:
         """Register a connector to run (call before start_all)."""
+        if any(c.connector_id == connector.connector_id for c in self._connectors):
+            raise ValueError(f"Duplicate connector_id: {connector.connector_id}")
         self._connectors.append(connector)
 
     async def start_all(self) -> None:
         """Start all registered connectors as background tasks."""
+        if self._tasks:
+            raise RuntimeError("ConnectorRunner is already running")
         for connector in self._connectors:
             task = asyncio.create_task(
                 self._run_connector(connector),
@@ -66,11 +71,13 @@ class ConnectorRunner:
             try:
                 await connector.start()
                 it: AsyncIterator[list[ConnectorEvent]] = connector.events()
-                async for batch in it:
-                    await self._ingest_batch(connector, batch)
-                return  # clean exit
+                try:
+                    async for batch in it:
+                        await self._ingest_batch(connector, batch)
+                    return  # clean exit
+                finally:
+                    await connector.stop()
             except asyncio.CancelledError:
-                await connector.stop()
                 raise
             except Exception:
                 logger.exception(
@@ -78,7 +85,6 @@ class ConnectorRunner:
                     connector.connector_id,
                     backoff_seconds,
                 )
-                await connector.stop()
                 await asyncio.sleep(backoff_seconds)
                 backoff_seconds = min(backoff_seconds * 2, max_backoff)
 

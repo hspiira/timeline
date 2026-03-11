@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from starlette.responses import StreamingResponse
 
 from app.api.v1.dependencies import (
-    check_event_rate_limit,
+    get_event_create_rate_limit,
     ensure_audit_logged,
     get_enrichment_context,
     get_event_repo,
@@ -110,7 +110,7 @@ async def create_event(
     enrichment_context: Annotated[
         EnrichmentContext, Depends(get_enrichment_context)
     ],
-    _rate: Annotated[None, Depends(check_event_rate_limit)] = None,
+    _rate: Annotated[None, Depends(get_event_create_rate_limit)] = None,
     _: Annotated[object, Depends(require_permission("event", "create"))] = None,
     _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):

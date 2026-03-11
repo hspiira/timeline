@@ -2,13 +2,21 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl, field_validator
+
+from app.application.validators.webhook_url import validate_webhook_target_url
+
+
+def _validate_target_url(v: str) -> str:
+    """Reject SSRF-unsafe webhook URLs (loopback, link-local, private)."""
+    validate_webhook_target_url(v)
+    return v
 
 
 class WebhookSubscriptionCreateRequest(BaseModel):
     """Request body for creating a webhook subscription."""
 
-    target_url: str = Field(..., description="URL to receive POST requests")
+    target_url: HttpUrl = Field(..., description="URL to receive POST requests")
     event_types: list[str] = Field(
         default_factory=list,
         description="Event types to deliver (empty = all)",
@@ -17,17 +25,34 @@ class WebhookSubscriptionCreateRequest(BaseModel):
         default_factory=list,
         description="Subject types to deliver (empty = all)",
     )
-    secret: str = Field(..., description="Secret for HMAC-SHA256 signature verification")
+    secret: str = Field(
+        ...,
+        min_length=16,
+        description="Secret for HMAC-SHA256 signature verification (min 16 chars)",
+    )
+
+    @field_validator("target_url")
+    @classmethod
+    def target_url_safe(cls, v: HttpUrl) -> HttpUrl:
+        _validate_target_url(str(v))
+        return v
 
 
 class WebhookSubscriptionUpdateRequest(BaseModel):
     """Request body for PATCH (all optional)."""
 
-    target_url: str | None = None
+    target_url: HttpUrl | None = None
     event_types: list[str] | None = None
     subject_types: list[str] | None = None
     secret: str | None = None
     active: bool | None = None
+
+    @field_validator("target_url")
+    @classmethod
+    def target_url_safe(cls, v: HttpUrl | None) -> HttpUrl | None:
+        if v is not None:
+            _validate_target_url(str(v))
+        return v
 
 
 class WebhookSubscriptionResponse(BaseModel):
@@ -38,6 +63,9 @@ class WebhookSubscriptionResponse(BaseModel):
     target_url: str
     event_types: list[str]
     subject_types: list[str]
+    secret_present: bool = Field(
+        ..., description="True if a signing secret is configured (value never returned)"
+    )
     active: bool
     created_at: datetime
 

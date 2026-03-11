@@ -76,6 +76,7 @@ def _event_result_to_entity(r: EventResult) -> EventEntity:
         source=r.source,
     )
 
+
 logger = get_logger(__name__)
 
 MAX_RETRIES = 3
@@ -110,6 +111,7 @@ class EventService:
         self.enrichers = enrichers or []
         self._webhook_dispatcher = webhook_dispatcher
         self._event_stream_broadcaster = event_stream_broadcaster
+        self._pending_webhook_tasks: set[asyncio.Task[Any]] = set()
 
     @property
     def workflow_engine(self) -> "IWorkflowEngine | None":
@@ -214,10 +216,10 @@ class EventService:
         if trigger_workflows and self.workflow_engine:
             await self._trigger_workflows(entity, tenant_id)
         if self._webhook_dispatcher:
-            asyncio.create_task(
-                self._webhook_dispatcher.dispatch(
-                    tenant_id, entity, subject.subject_type.value
-                )
+            self._spawn_webhook_dispatch(
+                tenant_id,
+                entity,
+                subject.subject_type.value,
             )
         if self._event_stream_broadcaster:
             self._event_stream_broadcaster.publish(
@@ -244,17 +246,11 @@ class EventService:
         seen_entities: list[EventEntity] = []
         pairs = {(e.subject_id, e.external_id) for e in events if e.external_id}
         if pairs:
-            already_seen = await self.event_repo.get_by_external_ids(
-                tenant_id, pairs
-            )
+            already_seen = await self.event_repo.get_by_external_ids(tenant_id, pairs)
             new_events = [
-                e
-                for e in events
-                if (e.subject_id, e.external_id) not in already_seen
+                e for e in events if (e.subject_id, e.external_id) not in already_seen
             ]
-            seen_entities = [
-                _event_result_to_entity(r) for r in already_seen.values()
-            ]
+            seen_entities = [_event_result_to_entity(r) for r in already_seen.values()]
             if not new_events:
                 return seen_entities
             events = new_events
@@ -387,10 +383,10 @@ class EventService:
             for ev in created:
                 subject = subject_by_id[ev.subject_id]
                 entity = _event_result_to_entity(ev)
-                asyncio.create_task(
-                    self._webhook_dispatcher.dispatch(
-                        tenant_id, entity, subject.subject_type.value
-                    )
+                self._spawn_webhook_dispatch(
+                    tenant_id,
+                    entity,
+                    subject.subject_type.value,
                 )
         if self._event_stream_broadcaster:
             for ev in created:
@@ -402,15 +398,53 @@ class EventService:
 
         return entities
 
-    async def _trigger_workflows(
-        self, event: EventEntity, tenant_id: str
-    ) -> list[Any]:
+    def _spawn_webhook_dispatch(
+        self,
+        tenant_id: str,
+        event: EventEntity,
+        subject_type: str,
+    ) -> None:
+        """Fire-and-forget webhook dispatch with tracking for errors."""
+        if not self._webhook_dispatcher:
+            return
+
+        task = asyncio.create_task(
+            self._webhook_dispatcher.dispatch(tenant_id, event, subject_type)
+        )
+        self._pending_webhook_tasks.add(task)
+
+        def _on_done(t: asyncio.Task[Any]) -> None:
+            self._pending_webhook_tasks.discard(t)
+            try:
+                exc = t.exception()
+            except Exception:
+                logger.exception(
+                    "Webhook dispatch task failed (error retrieving exception)",
+                )
+                return
+            if exc is not None:
+                logger.exception(
+                    "Webhook dispatch task failed for event %s",
+                    event.id,
+                    exc_info=exc,
+                )
+
+        task.add_done_callback(_on_done)
+
+    async def _trigger_workflows(self, event: EventEntity, tenant_id: str) -> list[Any]:
         if not self.workflow_engine:
             return []
         try:
             result = await self.workflow_engine.process_event_triggers(event, tenant_id)
             return result or []
-        except (AssertionError, AttributeError, IndexError, KeyError, NameError, TypeError):
+        except (
+            AssertionError,
+            AttributeError,
+            IndexError,
+            KeyError,
+            NameError,
+            TypeError,
+        ):
             # Programming errors: do not mask; re-raise so they surface in tests and logs.
             raise
         except Exception:

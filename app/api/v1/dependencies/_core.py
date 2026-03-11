@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.application.dtos.user import UserResult
 from app.application.services.enrichment import EnrichmentContext
 from app.application.services.authorization_service import AuthorizationService
+from app.application.services.rate_limiter import IRateLimiter
 from app.application.services.hash_service import HashService
 from app.application.services.permission_service import PermissionService
 from app.application.services.role_service import RoleService
@@ -656,7 +657,7 @@ async def check_event_rate_limit(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
 ) -> None:
     """Raise 429 if event create rate limit exceeded for this tenant. Wire on POST /events."""
-    limiter = getattr(request.app.state, "event_rate_limiter", None)
+    limiter: IRateLimiter | None = getattr(request.app.state, "event_rate_limiter", None)
     if limiter is None:
         return
     settings = get_settings()
@@ -685,7 +686,7 @@ async def get_event_bulk_rate_limit(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
 ) -> None:
     """Raise 429 if bulk event create rate limit exceeded for this tenant. Wire on POST /events/bulk."""
-    limiter = getattr(request.app.state, "event_rate_limiter", None)
+    limiter: IRateLimiter | None = getattr(request.app.state, "event_rate_limiter", None)
     if limiter is None:
         return
     settings = get_settings()
@@ -740,6 +741,7 @@ def require_permission(resource: str, action: str):
 
 # Named permission dependencies (composition root: routes use Depends(get_*))
 get_chain_anchor_read_permission = require_permission("chain_anchor", "read")
+get_system_read_permission = require_permission("system", "read")
 get_webhook_read_permission = require_permission("webhook", "read")
 get_webhook_write_permission = require_permission("webhook", "write")
 

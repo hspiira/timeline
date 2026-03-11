@@ -22,7 +22,11 @@ def register_connector_type(connector_type: str, cls: Type[IConnector]) -> None:
 
 def get_connector_class(connector_type: str) -> Type[IConnector] | None:
     """Return the connector class for the given type, or None if unknown."""
-    return _CONNECTOR_CLASSES.get(connector_type)
+    cls = _CONNECTOR_CLASSES.get(connector_type)
+    if cls is None:
+        _register_builtin_connectors()
+        cls = _CONNECTOR_CLASSES.get(connector_type)
+    return cls
 
 
 def _register_builtin_connectors() -> None:

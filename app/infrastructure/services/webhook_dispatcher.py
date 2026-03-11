@@ -11,7 +11,8 @@ from typing import TYPE_CHECKING, Any, Awaitable, Callable
 
 import httpx
 
-from app.application.dtos.webhook_subscription import WebhookSubscriptionResult
+from app.application.dtos.webhook_subscription import WebhookSubscriptionForDispatch
+from app.application.validators.webhook_url import validate_webhook_target_url
 
 if TYPE_CHECKING:
     from app.domain.entities.event import EventEntity
@@ -48,7 +49,7 @@ def _sign(secret: str, body: bytes) -> str:
 
 
 def _matches(
-    sub: WebhookSubscriptionResult,
+    sub: WebhookSubscriptionForDispatch,
     event_type: str,
     subject_type: str,
 ) -> bool:
@@ -66,12 +67,12 @@ class WebhookDispatcher:
     def __init__(
         self,
         get_subscriptions: Callable[
-            [str], Awaitable[list[WebhookSubscriptionResult]]
+            [str], Awaitable[list[WebhookSubscriptionForDispatch]]
         ],
         *,
         http_client: httpx.AsyncClient | None = None,
     ) -> None:
-        """get_subscriptions(tenant_id) -> list[WebhookSubscriptionResult] (async)."""
+        """get_subscriptions(tenant_id) -> list[WebhookSubscriptionForDispatch] (async)."""
         self._get_subscriptions = get_subscriptions
         self._http = http_client
 
@@ -97,7 +98,7 @@ class WebhookDispatcher:
             if self._http is None and client is not None:
                 await client.aclose()
 
-    async def send_test(self, sub: WebhookSubscriptionResult) -> bool:
+    async def send_test(self, sub: WebhookSubscriptionForDispatch) -> bool:
         """POST a test payload to the subscription URL; return True if 2xx."""
         payload = {
             "test": True,
@@ -116,10 +117,19 @@ class WebhookDispatcher:
     async def _deliver(
         self,
         client: httpx.AsyncClient,
-        sub: WebhookSubscriptionResult,
+        sub: WebhookSubscriptionForDispatch,
         body: bytes,
     ) -> bool:
         """POST to target_url with signature; retry with backoff. Returns True if 2xx."""
+        try:
+            validate_webhook_target_url(sub.target_url)
+        except ValueError as e:
+            logger.warning(
+                "Webhook delivery skipped (unsafe target_url): %s - %s",
+                sub.target_url,
+                e,
+            )
+            return False
         signature = _sign(sub.secret, body)
         headers = {
             "Content-Type": "application/json",
@@ -130,8 +140,7 @@ class WebhookDispatcher:
             try:
                 r = await client.post(sub.target_url, content=body, headers=headers)
                 r.raise_for_status()
-                return True
-            except Exception as e:
+            except (httpx.HTTPError, httpx.TimeoutException) as e:
                 last_error = e
                 logger.warning(
                     "Webhook delivery to %s failed (retry in %ss): %s",
@@ -141,9 +150,12 @@ class WebhookDispatcher:
                 )
                 if i < len(RETRY_DELAYS) - 1:
                     await asyncio.sleep(delay)
-        logger.exception(
+            else:
+                return True
+        logger.error(
             "Webhook delivery to %s failed after retries: %s",
             sub.target_url,
             last_error,
+            exc_info=last_error,
         )
         return False

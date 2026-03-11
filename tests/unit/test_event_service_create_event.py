@@ -31,6 +31,8 @@ def _event_result(
     event_type: str = "created",
     event_hash: str = "a" * 64,
     previous_hash: str | None = None,
+    external_id: str | None = None,
+    source: str | None = None,
 ) -> EventResult:
     return EventResult(
         id="ev1",
@@ -44,6 +46,9 @@ def _event_result(
         hash=event_hash,
         workflow_instance_id=None,
         correlation_id=None,
+        external_id=external_id,
+        source=source,
+        event_seq=1,
     )
 
 
@@ -143,6 +148,8 @@ async def test_create_event_idempotency_returns_existing(
     existing = _event_result(
         event_hash="a" * 64,
         previous_hash="b" * 64,
+        external_id="kafka-offset-123",
+        source="kafka:billing",
     )
     event_repo.get_by_subject_and_external_id = AsyncMock(return_value=existing)
     data = _event_create().model_copy(
@@ -153,8 +160,11 @@ async def test_create_event_idempotency_returns_existing(
 
     assert entity.id == "ev1"
     assert entity.chain.current_hash.value == "a" * 64
+    assert entity.external_id == "kafka-offset-123"
+    assert entity.source == "kafka:billing"
     event_repo.get_by_subject_and_external_id.assert_awaited_once_with(
         "sub1", "t1", "kafka-offset-123"
     )
     event_repo.lock_subject_for_update.assert_not_awaited()
     event_repo.create_event.assert_not_awaited()
+    event_repo.get_last_event.assert_not_awaited()

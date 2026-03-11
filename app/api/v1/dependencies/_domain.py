@@ -216,9 +216,9 @@ def build_event_service_for_connector(
     """
     from app.infrastructure.services import SystemAuditService
 
-    audit_svc = SystemAuditService(db, HashService())
-    event_repo = EventRepository(db)
     hash_service = HashService()
+    audit_svc = SystemAuditService(db, hash_service)
+    event_repo = EventRepository(db)
     subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=audit_svc)
     schema_repo = EventSchemaRepository(db, cache_service=None, audit_service=audit_svc)
     schema_validator = EventSchemaValidator(schema_repo)
@@ -807,7 +807,7 @@ async def get_webhook_subscription_repo_for_write(
     return WebhookSubscriptionRepository(db)
 
 
-def get_webhook_dispatcher(
+async def get_webhook_dispatcher(
     webhook_repo: Annotated[
         WebhookSubscriptionRepository, Depends(get_webhook_subscription_repo)
     ],

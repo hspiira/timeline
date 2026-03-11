@@ -34,10 +34,6 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Shared HTTP client for OAuth and other outbound calls (connection reuse).
     app.state.oauth_http_client = httpx.AsyncClient(timeout=30.0)
 
-    from app.application.services.rate_limiter import InMemoryRateLimiter
-
-    app.state.event_rate_limiter = InMemoryRateLimiter()
-
     from app.api.websocket import ConnectionManager
 
     app.state.ws_manager = ConnectionManager()
@@ -55,14 +51,19 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     if settings.redis_enabled:
         from app.infrastructure.cache.redis_cache import CacheService
         from app.infrastructure.messaging.redis_pubsub import run_sync_progress_broadcast
+        from app.infrastructure.services.redis_rate_limiter import RedisRateLimiter
 
         cache = CacheService()
         await cache.connect()
         app.state.cache = cache
+        app.state.event_rate_limiter = (
+            RedisRateLimiter(cache.redis) if cache.redis else None
+        )
         sync_broadcast_task = asyncio.create_task(run_sync_progress_broadcast(app))
         app.state.sync_progress_broadcast_task = sync_broadcast_task
     else:
         app.state.cache = None
+        app.state.event_rate_limiter = None
         app.state.sync_progress_broadcast_task = None
 
     if settings.chain_anchor_enabled:
@@ -98,13 +99,17 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
                 )
             # CDC, Kafka, file_watch: register when implemented
             app.state.connector_runner = runner
-            asyncio.create_task(runner.start_all(), name="connector_runner")
+            app.state.connector_runner_task = asyncio.create_task(
+                runner.start_all(), name="connector_runner"
+            )
             logger.info("Connector runner started")
         else:
             app.state.connector_runner = None
+            app.state.connector_runner_task = None
             logger.warning("Connectors enabled but database not configured; connector runner disabled")
     else:
         app.state.connector_runner = None
+        app.state.connector_runner_task = None
 
     if settings.telemetry_enabled:
         from app.shared.telemetry.telemetry import TelemetryConfig, set_telemetry
@@ -147,6 +152,16 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
         await connector_runner.stop_all()
         app.state.connector_runner = None
         logger.info("Connector runner stopped")
+
+    connector_runner_task = getattr(app.state, "connector_runner_task", None)
+    if connector_runner_task is not None:
+        connector_runner_task.cancel()
+        try:
+            await connector_runner_task
+        except asyncio.CancelledError:
+            pass
+        app.state.connector_runner_task = None
+        logger.info("Connector runner task stopped")
 
     sync_task = getattr(app.state, "sync_progress_broadcast_task", None)
     if sync_task is not None:

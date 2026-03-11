@@ -37,17 +37,18 @@ class CorrelationEnricher:
 
 
 class ActorEnricher:
-    """Inject actor_id and request_id into payload['_meta'] only if _meta is absent."""
+    """Inject actor_id and request_id into payload['_meta']; merge into existing _meta if present."""
 
     async def enrich(self, event: EventCreate, context: EnrichmentContext) -> EventCreate:
-        if "_meta" in event.payload:
+        existing_meta = event.payload.get("_meta", {})
+        if existing_meta and not isinstance(existing_meta, dict):
             return event
-        meta: dict = {}
+        meta = dict(existing_meta)
         if context.actor_id is not None:
-            meta["actor_id"] = context.actor_id
+            meta.setdefault("actor_id", context.actor_id)
         if context.request_id is not None:
-            meta["request_id"] = context.request_id
-        if not meta:
+            meta.setdefault("request_id", context.request_id)
+        if meta == existing_meta:
             return event
         payload = {**event.payload, "_meta": meta}
         return event.model_copy(update={"payload": payload})

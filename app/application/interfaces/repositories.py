@@ -38,10 +38,11 @@ if TYPE_CHECKING:
     from app.application.dtos.user import UserResult
     from app.application.dtos.chain_anchor import ChainAnchorResult
     from app.application.dtos.webhook_subscription import (
-    WebhookSubscriptionCreate,
-    WebhookSubscriptionResult,
-    WebhookSubscriptionUpdate,
-)
+        WebhookSubscriptionCreate,
+        WebhookSubscriptionForDispatch,
+        WebhookSubscriptionResult,
+        WebhookSubscriptionUpdate,
+    )
 
 
 # Event repository interface
@@ -993,8 +994,13 @@ class IWebhookSubscriptionRepository(Protocol):
 
     async def get_active_by_tenant(
         self, tenant_id: str
-    ) -> list["WebhookSubscriptionResult"]:
-        """Return active subscriptions for tenant (for dispatching)."""
+    ) -> list["WebhookSubscriptionForDispatch"]:
+        """Return active subscriptions for tenant (for dispatching; includes secret)."""
+
+    async def get_by_id_for_dispatch(
+        self, tenant_id: str, subscription_id: str
+    ) -> "WebhookSubscriptionForDispatch | None":
+        """Return subscription with secret for dispatch/test, or None."""
 
     async def create(
         self,

@@ -6,7 +6,21 @@ from datetime import datetime
 
 @dataclass
 class WebhookSubscriptionResult:
-    """Read model for a webhook subscription."""
+    """Read model for a webhook subscription (no plaintext secret)."""
+
+    id: str
+    tenant_id: str
+    target_url: str
+    event_types: list[str]
+    subject_types: list[str]
+    secret_present: bool
+    active: bool
+    created_at: datetime
+
+
+@dataclass
+class WebhookSubscriptionForDispatch:
+    """Subscription with secret for signing (dispatcher/test only)."""
 
     id: str
     tenant_id: str
