@@ -8,6 +8,8 @@ from app.connectors.base import (
     ConnectorEvent,
     ConnectorHealth,
     IConnector,
+    IConnectorHealth,
+    IConnectorLifecycle,
 )
 from app.connectors.runner import ConnectorRunner
 
@@ -15,5 +17,7 @@ __all__ = [
     "ConnectorEvent",
     "ConnectorHealth",
     "IConnector",
+    "IConnectorHealth",
+    "IConnectorLifecycle",
     "ConnectorRunner",
 ]

@@ -41,6 +41,7 @@ from app.application.use_cases.documents import (
     DocumentUploadService,
     RunDocumentRetentionUseCase,
 )
+from app.application.interfaces.post_create_hooks import IPostCreateHook
 from app.application.use_cases.events import EventService
 from app.application.use_cases.flows import (
     CreateFlowUseCase,
@@ -91,6 +92,11 @@ from app.infrastructure.persistence.repositories import (
     WorkflowRepository,
 )
 from app.infrastructure.services import SystemAuditService, WorkflowEngine
+from app.infrastructure.services.post_create_hooks import (
+    EventStreamBroadcastHook,
+    WebhookDispatchHook,
+    WorkflowTriggerHook,
+)
 from app.infrastructure.services.webhook_dispatcher import WebhookDispatcher
 from app.infrastructure.services.workflow_notification_service import (
     LogOnlyNotificationService,
@@ -101,18 +107,15 @@ from app.infrastructure.services.workflow_template_renderer import WorkflowTempl
 from . import _core
 
 # ---------------------------------------------------------------------------
-# Storage (shared by document)
+# Storage (shared by document; set on app.state in lifespan)
 # ---------------------------------------------------------------------------
 
-_cached_storage: StorageProtocol | None = None
-
-
-def _get_storage_service() -> StorageProtocol:
-    """Single cached storage service instance (lazy init)."""
-    global _cached_storage
-    if _cached_storage is None:
-        _cached_storage = StorageFactory.create_storage_service()
-    return _cached_storage
+def _get_storage_from_request(request: Request) -> StorageProtocol:
+    """Storage from app.state (set in lifespan); fallback to factory when missing (e.g. tests)."""
+    storage = getattr(request.app.state, "storage", None)
+    if storage is None:
+        return StorageFactory.create_storage_service()
+    return storage
 
 
 # ---------------------------------------------------------------------------
@@ -181,9 +184,9 @@ def build_event_service_for_session(
         subject_repo=stack.subject_repo,
         db=db,
         schema_validator=stack.schema_validator,
-        workflow_engine_provider=None,
         transition_validator=stack.transition_validator,
         subject_type_repo=stack.subject_type_repo,
+        post_create_hooks=[],
     )
 
 
@@ -207,10 +210,10 @@ async def get_event_service(
         subject_repo=stack.subject_repo,
         db=db,
         schema_validator=stack.schema_validator,
-        workflow_engine_provider=get_workflow_engine,
         transition_validator=stack.transition_validator,
         subject_type_repo=stack.subject_type_repo,
         enrichers=DEFAULT_API_ENRICHERS,
+        post_create_hooks=[WorkflowTriggerHook(get_workflow_engine)],
     )
     notification_service = LogOnlyNotificationService()
     recipient_resolver = WorkflowRecipientResolver(db)
@@ -248,9 +251,7 @@ def build_event_service_for_connector(
     audit_svc = SystemAuditService(db, HashService())
     stack = _build_event_service_stack(db, tenant_id, audit_svc)
 
-    webhook_dispatcher = None
-    event_stream_broadcaster = None
-    pending_webhook_tasks = None
+    post_create_hooks: list[IPostCreateHook] = []
     if app is not None:
         state = getattr(app, "state", None)
         if state is not None:
@@ -264,6 +265,10 @@ def build_event_service_for_connector(
                 http_client=oauth_http_client,
             )
             pending_webhook_tasks = getattr(state, "pending_webhook_tasks", None)
+            post_create_hooks = [
+                WebhookDispatchHook(webhook_dispatcher, pending_webhook_tasks),
+                EventStreamBroadcastHook(event_stream_broadcaster),
+            ]
 
     return EventService(
         event_repo=stack.event_repo,
@@ -271,12 +276,9 @@ def build_event_service_for_connector(
         subject_repo=stack.subject_repo,
         db=db,
         schema_validator=stack.schema_validator,
-        workflow_engine_provider=None,
         transition_validator=stack.transition_validator,
         subject_type_repo=stack.subject_type_repo,
-        webhook_dispatcher=webhook_dispatcher,
-        event_stream_broadcaster=event_stream_broadcaster,
-        pending_webhook_tasks=pending_webhook_tasks,
+        post_create_hooks=post_create_hooks,
     )
 
 
@@ -317,13 +319,14 @@ async def get_event_service_for_create(
         subject_repo=stack.subject_repo,
         db=db,
         schema_validator=stack.schema_validator,
-        workflow_engine_provider=get_workflow_engine,
         transition_validator=stack.transition_validator,
         subject_type_repo=stack.subject_type_repo,
         enrichers=DEFAULT_API_ENRICHERS,
-        webhook_dispatcher=webhook_dispatcher,
-        event_stream_broadcaster=event_stream_broadcaster,
-        pending_webhook_tasks=pending_webhook_tasks,
+        post_create_hooks=[
+            WorkflowTriggerHook(get_workflow_engine),
+            WebhookDispatchHook(webhook_dispatcher, pending_webhook_tasks),
+            EventStreamBroadcastHook(event_stream_broadcaster),
+        ],
     )
     notification_service = LogOnlyNotificationService()
     recipient_resolver = WorkflowRecipientResolver(db)
@@ -420,13 +423,14 @@ async def get_event_transition_rule_repo_for_write(
 # ---------------------------------------------------------------------------
 
 async def get_document_upload_service(
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
     tenant_id: Annotated[str, Depends(_core.get_tenant_id)],
     tenant_repo: Annotated[TenantRepository, Depends(_core.get_tenant_repo)],
     audit_svc: Annotated[SystemAuditService, Depends(_core.get_system_audit_service)],
 ) -> DocumentUploadService:
     """Build DocumentUploadService for upload."""
-    storage = _get_storage_service()
+    storage = _get_storage_from_request(request)
     document_repo = DocumentRepository(db, audit_service=audit_svc)
     subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=audit_svc)
     category_repo = DocumentCategoryRepository(
@@ -444,10 +448,11 @@ async def get_document_upload_service(
 
 
 async def get_document_query_service(
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> DocumentQueryService:
     """Build DocumentQueryService for metadata, download URL, and listing."""
-    storage = _get_storage_service()
+    storage = _get_storage_from_request(request)
     document_repo = DocumentRepository(db, audit_service=None)
     return DocumentQueryService(
         storage_service=storage,

@@ -38,6 +38,11 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     app.state.ws_manager = ConnectionManager()
     app.state.pending_webhook_tasks = set()
+
+    from app.infrastructure.external.storage.factory import StorageFactory
+
+    app.state.storage = StorageFactory.create_storage_service()
+
     app.state.verification_job_store = VerificationJobStore(
         max_age_seconds=settings.verification_job_max_age_seconds,
         grace_period_seconds=settings.verification_job_grace_period_seconds,

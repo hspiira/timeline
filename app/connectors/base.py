@@ -47,8 +47,8 @@ class ConnectorHealth:
     lag: int | None = None
 
 
-class IConnector(Protocol):
-    """Protocol for event connectors: start, stop, health, and event stream."""
+class IConnectorLifecycle(Protocol):
+    """Lifecycle and event stream only; use when health is not needed (ISP)."""
 
     @property
     def connector_id(self) -> str:
@@ -68,10 +68,23 @@ class IConnector(Protocol):
         """Release connection; call on shutdown or error."""
         ...
 
+    def events(self) -> AsyncIterator[list[ConnectorEvent]]:
+        """Yield batches of events; caller is responsible for ack/offset advancement."""
+        ...
+
+
+class IConnectorHealth(Protocol):
+    """Health reporting only; use for admin/operational endpoints (ISP)."""
+
+    @property
+    def connector_id(self) -> str:
+        """Unique identifier for this connector instance."""
+        ...
+
     async def health(self) -> ConnectorHealth:
         """Current health for this connector."""
         ...
 
-    def events(self) -> AsyncIterator[list[ConnectorEvent]]:
-        """Yield batches of events; caller is responsible for ack/offset advancement."""
-        ...
+
+class IConnector(IConnectorLifecycle, IConnectorHealth, Protocol):
+    """Full connector protocol: lifecycle + health. Compose when both are needed."""

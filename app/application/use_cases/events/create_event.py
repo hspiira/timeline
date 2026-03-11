@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING
 
 from sqlalchemy.exc import IntegrityError
 
 from app.application.dtos.event import EventCreate, EventResult, EventToPersist
 from app.application.services.enrichment import EnrichmentContext
 from app.application.dtos.subject_type import SubjectTypeResult
+from app.application.interfaces.post_create_hooks import IPostCreateHook, PostCreateContext
 from app.application.interfaces.repositories import (
     IEventRepository,
     ISubjectRepository,
@@ -33,29 +34,7 @@ if TYPE_CHECKING:
     from app.application.interfaces.services import (
         IEventSchemaValidator,
         IEventTransitionValidator,
-        IWorkflowEngine,
     )
-    from app.application.interfaces.event_stream import IEventStreamBroadcaster
-    from app.application.interfaces.webhook import IWebhookDispatcher
-
-
-def _event_result_to_sse_payload(r: EventResult) -> dict:
-    """Build JSON-serializable payload for SSE (event_time as ISO string)."""
-    return {
-        "id": r.id,
-        "tenant_id": r.tenant_id,
-        "subject_id": r.subject_id,
-        "event_type": r.event_type,
-        "schema_version": r.schema_version,
-        "event_time": r.event_time.isoformat(),
-        "payload": r.payload,
-        "previous_hash": r.previous_hash,
-        "hash": r.hash,
-        "workflow_instance_id": r.workflow_instance_id,
-        "correlation_id": r.correlation_id,
-        "external_id": r.external_id,
-        "source": r.source,
-    }
 
 
 def _event_result_to_entity(r: EventResult) -> EventEntity:
@@ -94,35 +73,20 @@ class EventService:
         *,
         db: "AsyncSession",
         schema_validator: IEventSchemaValidator | None = None,
-        workflow_engine_provider: Callable[[], IWorkflowEngine | None] | None = None,
         transition_validator: IEventTransitionValidator | None = None,
         subject_type_repo: "ISubjectTypeRepository | None" = None,
         enrichers: list[IEventEnricher] | None = None,
-        webhook_dispatcher: "IWebhookDispatcher | None" = None,
-        event_stream_broadcaster: "IEventStreamBroadcaster | None" = None,
-        pending_webhook_tasks: set[asyncio.Task[None]] | None = None,
+        post_create_hooks: list[IPostCreateHook] | None = None,
     ) -> None:
         self.event_repo = event_repo
         self.hash_service = hash_service
         self.subject_repo = subject_repo
         self.db = db
         self.schema_validator = schema_validator
-        self._workflow_engine_provider = workflow_engine_provider
         self.transition_validator = transition_validator
         self.subject_type_repo = subject_type_repo
         self.enrichers = enrichers or []
-        self._webhook_dispatcher = webhook_dispatcher
-        self._event_stream_broadcaster = event_stream_broadcaster
-        self._pending_webhook_tasks = (
-            pending_webhook_tasks if pending_webhook_tasks is not None else set()
-        )
-
-    @property
-    def workflow_engine(self) -> "IWorkflowEngine | None":
-        """Resolve workflow engine lazily to avoid circular init."""
-        if self._workflow_engine_provider is None:
-            return None
-        return self._workflow_engine_provider()
+        self._post_create_hooks = post_create_hooks or []
 
     async def create_event(
         self,
@@ -217,21 +181,15 @@ class EventService:
                 await asyncio.sleep(0.05 * (2**attempt))
 
         entity = _event_result_to_entity(created)
-        if trigger_workflows and self.workflow_engine:
-            await self._trigger_workflows(entity, tenant_id)
-        if self._webhook_dispatcher:
-            self._spawn_webhook_dispatch(
-                tenant_id,
-                entity,
-                subject.subject_type.value,
-            )
-        if self._event_stream_broadcaster:
-            await self._event_stream_broadcaster.publish(
-                tenant_id,
-                _event_result_to_sse_payload(created),
-                created.subject_id,
-            )
-
+        context = PostCreateContext(
+            tenant_id=tenant_id,
+            entity=entity,
+            event_result=created,
+            subject_type=subject.subject_type.value,
+            trigger_workflows=trigger_workflows,
+        )
+        for hook in self._post_create_hooks:
+            await hook.after_event(context)
         return entity
 
     async def create_events_bulk(
@@ -380,82 +338,15 @@ class EventService:
         if pairs:
             entities = seen_entities + entities
 
-        if trigger_workflows and self.workflow_engine:
-            for ev in entities:
-                await self._trigger_workflows(ev, tenant_id)
-        if self._webhook_dispatcher:
-            for ev in created:
-                subject = subject_by_id[ev.subject_id]
-                entity = _event_result_to_entity(ev)
-                self._spawn_webhook_dispatch(
-                    tenant_id,
-                    entity,
-                    subject.subject_type.value,
-                )
-        if self._event_stream_broadcaster:
-            for ev in created:
-                await self._event_stream_broadcaster.publish(
-                    tenant_id,
-                    _event_result_to_sse_payload(ev),
-                    ev.subject_id,
-                )
-
-        return entities
-
-    def _spawn_webhook_dispatch(
-        self,
-        tenant_id: str,
-        event: EventEntity,
-        subject_type: str,
-    ) -> None:
-        """Fire-and-forget webhook dispatch with tracking for errors."""
-        if not self._webhook_dispatcher:
-            return
-
-        task = asyncio.create_task(
-            self._webhook_dispatcher.dispatch(tenant_id, event, subject_type)
-        )
-        self._pending_webhook_tasks.add(task)
-
-        def _on_done(t: asyncio.Task[None]) -> None:
-            self._pending_webhook_tasks.discard(t)
-            try:
-                exc = t.exception()
-            except Exception:
-                logger.exception(
-                    "Webhook dispatch task failed (error retrieving exception)",
-                )
-                return
-            if exc is not None:
-                logger.exception(
-                    "Webhook dispatch task failed for event %s",
-                    event.id,
-                    exc_info=exc,
-                )
-
-        task.add_done_callback(_on_done)
-
-    async def _trigger_workflows(self, event: EventEntity, tenant_id: str) -> list[Any]:
-        if not self.workflow_engine:
-            return []
-        try:
-            result = await self.workflow_engine.process_event_triggers(event, tenant_id)
-            return result or []
-        except (
-            AssertionError,
-            AttributeError,
-            IndexError,
-            KeyError,
-            NameError,
-            TypeError,
-        ):
-            # Programming errors: do not mask; re-raise so they surface in tests and logs.
-            raise
-        except Exception:
-            # Runtime/infra failures (e.g. network, DB in workflow): log and do not fail event creation.
-            logger.exception(
-                "Workflow trigger failed for event %s (type: %s)",
-                event.id,
-                event.event_type.value,
+        for ev, entity in zip(created, entities):
+            subject = subject_by_id[ev.subject_id]
+            context = PostCreateContext(
+                tenant_id=tenant_id,
+                entity=entity,
+                event_result=ev,
+                subject_type=subject.subject_type.value,
+                trigger_workflows=trigger_workflows,
             )
-            return []
+            for hook in self._post_create_hooks:
+                await hook.after_event(context)
+        return entities

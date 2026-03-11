@@ -94,8 +94,8 @@ def event_service_mocks():
         subject_repo=subject_repo,
         db=db,
         schema_validator=None,
-        workflow_engine_provider=None,
         transition_validator=None,
+        post_create_hooks=[],
     )
     return svc, event_repo, subject_repo
 
