@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 from collections.abc import AsyncIterator
@@ -21,15 +20,12 @@ class RedisEventPublisher:
     def __init__(self, redis_client: Any) -> None:
         self._redis = redis_client
 
-    def publish(
+    async def publish(
         self, tenant_id: str, payload: dict, subject_id: str
     ) -> None:
-        """Fire-and-forget publish: schedule coroutine without awaiting."""
+        """Publish event payload to Redis channels for this tenant and subject."""
         body = json.dumps(payload)
-        asyncio.create_task(
-            self._publish_async(tenant_id, subject_id, body),
-            name="redis_event_publish",
-        )
+        await self._publish_async(tenant_id, subject_id, body)
 
     async def _publish_async(
         self, tenant_id: str, subject_id: str, body: str

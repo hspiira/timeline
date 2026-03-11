@@ -17,7 +17,7 @@ class InMemoryEventStreamBroadcaster(IEventStreamBroadcaster):
 
     Uses threading.Lock to protect _subs; publish() schedules put_nowait on each
     subscriber's event loop via call_soon_threadsafe so the queue is never mutated
-    from another thread. When replacing with Redis pub/sub, make publish async.
+    from another thread. Drops events for closed loops to avoid RuntimeError in publish path.
     """
 
     def __init__(self) -> None:
@@ -53,7 +53,7 @@ class InMemoryEventStreamBroadcaster(IEventStreamBroadcaster):
                     if not self._subs[key]:
                         del self._subs[key]
 
-    def publish(
+    async def publish(
         self,
         tenant_id: str,
         payload: dict,
@@ -67,12 +67,25 @@ class InMemoryEventStreamBroadcaster(IEventStreamBroadcaster):
             for key in [(tenant_id, None), (tenant_id, subject_id)]:
                 targets.extend(self._subs.get(key, []))
         for loop, queue in targets:
-            loop.call_soon_threadsafe(
-                InMemoryEventStreamBroadcaster._put_nowait_safely, queue, payload
-            )
+            InMemoryEventStreamBroadcaster._put_nowait_safely(loop, queue, payload)
 
     @staticmethod
     def _put_nowait_safely(
+        loop: asyncio.AbstractEventLoop,
+        queue: asyncio.Queue[dict[str, Any]],
+        payload: dict[str, Any],
+    ) -> None:
+        try:
+            if loop.is_closed():
+                return
+            loop.call_soon_threadsafe(
+                lambda: InMemoryEventStreamBroadcaster._put_nowait(queue, payload)
+            )
+        except RuntimeError:
+            pass
+
+    @staticmethod
+    def _put_nowait(
         queue: asyncio.Queue[dict[str, Any]],
         payload: dict[str, Any],
     ) -> None:

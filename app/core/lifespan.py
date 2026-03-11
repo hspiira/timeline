@@ -37,6 +37,7 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     from app.api.websocket import ConnectionManager
 
     app.state.ws_manager = ConnectionManager()
+    app.state.pending_webhook_tasks = set()
     app.state.verification_job_store = VerificationJobStore(
         max_age_seconds=settings.verification_job_max_age_seconds,
         grace_period_seconds=settings.verification_job_grace_period_seconds,
@@ -72,6 +73,10 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.event_rate_limiter = None
         app.state.sync_progress_broadcast_task = None
         app.state.event_stream_broadcaster = InMemoryEventStreamBroadcaster()
+
+    from app.projections import register_all_handlers
+
+    register_all_handlers()
 
     if settings.projection_engine_enabled:
         from app.core.projection_engine_job import run_projection_engine_job

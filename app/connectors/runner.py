@@ -92,11 +92,7 @@ class ConnectorRunner:
         self, connector: IConnector, batch: list[ConnectorEvent]
     ) -> None:
         """Map batch to EventCreate and call EventService.create_event per event."""
-        from app.application.use_cases.events import EventService
-
         async with self._event_service_factory(connector.tenant_id) as event_service:
-            if not isinstance(event_service, EventService):
-                raise TypeError("event_service_factory must yield EventService")
             for event in batch:
                 try:
                     create_data = EventCreate(

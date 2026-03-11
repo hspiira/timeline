@@ -673,14 +673,6 @@ async def check_event_rate_limit(
         )
 
 
-async def get_event_create_rate_limit(
-    request: Request,
-    tenant_id: Annotated[str, Depends(get_tenant_id)],
-) -> None:
-    """Alias for check_event_rate_limit. Raise 429 if event create rate limit exceeded for this tenant."""
-    await check_event_rate_limit(request, tenant_id)
-
-
 async def get_event_bulk_rate_limit(
     request: Request,
     tenant_id: Annotated[str, Depends(get_tenant_id)],

@@ -16,6 +16,7 @@ from app.application.interfaces.repositories import (
     ISubjectRepository,
 )
 from app.application.interfaces.services import IHashService
+from app.application.services.enrichment import IEventEnricher
 from app.domain.entities.event import EventEntity
 from app.domain.exceptions import (
     ChainForkError,
@@ -96,9 +97,10 @@ class EventService:
         workflow_engine_provider: Callable[[], IWorkflowEngine | None] | None = None,
         transition_validator: IEventTransitionValidator | None = None,
         subject_type_repo: "ISubjectTypeRepository | None" = None,
-        enrichers: list[Any] | None = None,
+        enrichers: list[IEventEnricher] | None = None,
         webhook_dispatcher: "IWebhookDispatcher | None" = None,
         event_stream_broadcaster: "IEventStreamBroadcaster | None" = None,
+        pending_webhook_tasks: set[asyncio.Task[None]] | None = None,
     ) -> None:
         self.event_repo = event_repo
         self.hash_service = hash_service
@@ -111,7 +113,9 @@ class EventService:
         self.enrichers = enrichers or []
         self._webhook_dispatcher = webhook_dispatcher
         self._event_stream_broadcaster = event_stream_broadcaster
-        self._pending_webhook_tasks: set[asyncio.Task[Any]] = set()
+        self._pending_webhook_tasks = (
+            pending_webhook_tasks if pending_webhook_tasks is not None else set()
+        )
 
     @property
     def workflow_engine(self) -> "IWorkflowEngine | None":
@@ -222,7 +226,7 @@ class EventService:
                 subject.subject_type.value,
             )
         if self._event_stream_broadcaster:
-            self._event_stream_broadcaster.publish(
+            await self._event_stream_broadcaster.publish(
                 tenant_id,
                 _event_result_to_sse_payload(created),
                 created.subject_id,
@@ -390,7 +394,7 @@ class EventService:
                 )
         if self._event_stream_broadcaster:
             for ev in created:
-                self._event_stream_broadcaster.publish(
+                await self._event_stream_broadcaster.publish(
                     tenant_id,
                     _event_result_to_sse_payload(ev),
                     ev.subject_id,
@@ -413,7 +417,7 @@ class EventService:
         )
         self._pending_webhook_tasks.add(task)
 
-        def _on_done(t: asyncio.Task[Any]) -> None:
+        def _on_done(t: asyncio.Task[None]) -> None:
             self._pending_webhook_tasks.discard(t)
             try:
                 exc = t.exception()

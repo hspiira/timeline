@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from app.api.v1.dependencies import get_system_read_permission
+from app.connectors.base import ConnectorStatus
 
 router = APIRouter()
 
@@ -16,7 +17,7 @@ def _health_payload(connectors: list, status: str) -> dict:
     for h in connectors:
         out.append({
             "connector_id": h.connector_id,
-            "status": h.status,
+            "status": h.status.value if isinstance(h.status, ConnectorStatus) else h.status,
             "last_event_at": h.last_event_at.isoformat() if h.last_event_at else None,
             "error": h.error,
             "lag": h.lag,
@@ -41,9 +42,9 @@ async def connectors_health(
     statuses = [h.status for h in health_list]
     if not statuses:
         return _health_payload(health_list, "ok")
-    if all(s == "running" for s in statuses):
+    if all(s == ConnectorStatus.RUNNING for s in statuses):
         return _health_payload(health_list, "ok")
-    if all(s == "stopped" for s in statuses):
+    if all(s == ConnectorStatus.STOPPED for s in statuses):
         return JSONResponse(
             content=_health_payload(health_list, "unavailable"),
             status_code=503,

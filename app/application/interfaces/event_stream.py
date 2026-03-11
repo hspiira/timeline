@@ -15,7 +15,7 @@ class IEventStreamBroadcaster(Protocol):
         """Subscribe to new events for tenant (and optionally one subject). Yields JSON-serializable event payloads."""
         ...
 
-    def publish(
+    async def publish(
         self,
         tenant_id: str,
         payload: dict,

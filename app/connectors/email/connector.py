@@ -7,7 +7,7 @@ import logging
 from collections.abc import AsyncIterator
 from datetime import datetime
 
-from app.connectors.base import ConnectorEvent, ConnectorHealth
+from app.connectors.base import ConnectorEvent, ConnectorHealth, ConnectorStatus
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ class EmailConnector:
 
     async def health(self) -> ConnectorHealth:
         """Return current health (running/stopped; no lag until real sync)."""
-        status = "running" if self._running else "stopped"
+        status = ConnectorStatus.RUNNING if self._running else ConnectorStatus.STOPPED
         return ConnectorHealth(
             connector_id=self._connector_id,
             status=status,

@@ -1,7 +1,5 @@
 """Projection API: definitions and state (Phase 5)."""
 
-import app.projections
-
 from datetime import datetime
 from typing import Annotated, Any
 

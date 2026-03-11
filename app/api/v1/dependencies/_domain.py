@@ -7,9 +7,10 @@ tenant resolution, and system audit.
 from __future__ import annotations
 
 from contextlib import aclosing
+from dataclasses import dataclass
 from typing import Annotated
 
-from fastapi import Depends, Request
+from fastapi import Depends, FastAPI, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.services.document_category_metadata_validator import (
@@ -118,6 +119,52 @@ def _get_storage_service() -> StorageProtocol:
 # Event
 # ---------------------------------------------------------------------------
 
+DEFAULT_API_ENRICHERS = [
+    CorrelationEnricher(),
+    ActorEnricher(),
+    SourceEnricher(),
+]
+
+
+@dataclass(frozen=True)
+class _EventServiceStack:
+    """Shared repo/validator stack for EventService (DRY across get_event_service, get_event_service_for_create, build_event_service_for_connector)."""
+
+    event_repo: EventRepository
+    hash_service: HashService
+    subject_repo: SubjectRepository
+    schema_validator: EventSchemaValidator
+    transition_validator: EventTransitionValidator
+    subject_type_repo: SubjectTypeRepository
+
+
+def _build_event_service_stack(
+    db: AsyncSession,
+    tenant_id: str,
+    audit_svc: SystemAuditService,
+) -> _EventServiceStack:
+    """Build shared EventService dependencies. Callers add workflow engine, enrichers, webhook, broadcaster as needed."""
+    event_repo = EventRepository(db)
+    hash_service = HashService()
+    subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=audit_svc)
+    schema_repo = EventSchemaRepository(db, cache_service=None, audit_service=audit_svc)
+    schema_validator = EventSchemaValidator(schema_repo)
+    transition_rule_repo = EventTransitionRuleRepository(db)
+    transition_validator = EventTransitionValidator(
+        rule_repo=transition_rule_repo,
+        event_repo=event_repo,
+    )
+    subject_type_repo = SubjectTypeRepository(db, audit_service=audit_svc)
+    return _EventServiceStack(
+        event_repo=event_repo,
+        hash_service=hash_service,
+        subject_repo=subject_repo,
+        schema_validator=schema_validator,
+        transition_validator=transition_validator,
+        subject_type_repo=subject_type_repo,
+    )
+
+
 def build_event_service_for_session(
     db: AsyncSession,
     tenant_id: str,
@@ -127,26 +174,16 @@ def build_event_service_for_session(
 
     Used when creating events in the same transaction (e.g. subject relationship service).
     """
-    event_repo = EventRepository(db)
-    hash_service = HashService()
-    subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=audit_svc)
-    schema_repo = EventSchemaRepository(db, cache_service=None, audit_service=audit_svc)
-    schema_validator = EventSchemaValidator(schema_repo)
-    transition_rule_repo = EventTransitionRuleRepository(db)
-    transition_validator = EventTransitionValidator(
-        rule_repo=transition_rule_repo,
-        event_repo=event_repo,
-    )
-    subject_type_repo = SubjectTypeRepository(db, audit_service=audit_svc)
+    stack = _build_event_service_stack(db, tenant_id, audit_svc)
     return EventService(
-        event_repo=event_repo,
-        hash_service=hash_service,
-        subject_repo=subject_repo,
+        event_repo=stack.event_repo,
+        hash_service=stack.hash_service,
+        subject_repo=stack.subject_repo,
         db=db,
-        schema_validator=schema_validator,
+        schema_validator=stack.schema_validator,
         workflow_engine_provider=None,
-        transition_validator=transition_validator,
-        subject_type_repo=subject_type_repo,
+        transition_validator=stack.transition_validator,
+        subject_type_repo=stack.subject_type_repo,
     )
 
 
@@ -156,38 +193,24 @@ async def get_event_service(
     audit_svc: Annotated[SystemAuditService, Depends(_core.get_system_audit_service)],
 ) -> EventService:
     """Build EventService with hash chaining, schema validation, and workflow engine."""
-    event_repo = EventRepository(db)
-    hash_service = HashService()
-    subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=audit_svc)
-    schema_repo = EventSchemaRepository(db, cache_service=None, audit_service=audit_svc)
-    schema_validator = EventSchemaValidator(schema_repo)
-    workflow_repo = WorkflowRepository(db, audit_service=audit_svc)
-    transition_rule_repo = EventTransitionRuleRepository(db)
-    transition_validator = EventTransitionValidator(
-        rule_repo=transition_rule_repo,
-        event_repo=event_repo,
-    )
+    stack = _build_event_service_stack(db, tenant_id, audit_svc)
+    # Mutable cell to break circular init: EventService needs engine, engine needs EventService.
     workflow_engine_holder: list[WorkflowEngine | None] = [None]
 
     def get_workflow_engine() -> WorkflowEngine | None:
         return workflow_engine_holder[0]
 
-    subject_type_repo = SubjectTypeRepository(db, audit_service=audit_svc)
-    default_enrichers = [
-        CorrelationEnricher(),
-        ActorEnricher(),
-        SourceEnricher(),
-    ]
+    workflow_repo = WorkflowRepository(db, audit_service=audit_svc)
     event_service = EventService(
-        event_repo=event_repo,
-        hash_service=hash_service,
-        subject_repo=subject_repo,
+        event_repo=stack.event_repo,
+        hash_service=stack.hash_service,
+        subject_repo=stack.subject_repo,
         db=db,
-        schema_validator=schema_validator,
+        schema_validator=stack.schema_validator,
         workflow_engine_provider=get_workflow_engine,
-        transition_validator=transition_validator,
-        subject_type_repo=subject_type_repo,
-        enrichers=default_enrichers,
+        transition_validator=stack.transition_validator,
+        subject_type_repo=stack.subject_type_repo,
+        enrichers=DEFAULT_API_ENRICHERS,
     )
     notification_service = LogOnlyNotificationService()
     recipient_resolver = WorkflowRecipientResolver(db)
@@ -211,7 +234,7 @@ async def get_event_service(
 def build_event_service_for_connector(
     db: AsyncSession,
     tenant_id: str,
-    app: object | None = None,
+    app: FastAPI | None = None,
 ) -> EventService:
     """Build EventService for connector/background use (no request context).
 
@@ -222,21 +245,12 @@ def build_event_service_for_connector(
     """
     from app.infrastructure.services import SystemAuditService
 
-    hash_service = HashService()
-    audit_svc = SystemAuditService(db, hash_service)
-    event_repo = EventRepository(db)
-    subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=audit_svc)
-    schema_repo = EventSchemaRepository(db, cache_service=None, audit_service=audit_svc)
-    schema_validator = EventSchemaValidator(schema_repo)
-    transition_rule_repo = EventTransitionRuleRepository(db)
-    transition_validator = EventTransitionValidator(
-        rule_repo=transition_rule_repo,
-        event_repo=event_repo,
-    )
-    subject_type_repo = SubjectTypeRepository(db, audit_service=audit_svc)
+    audit_svc = SystemAuditService(db, HashService())
+    stack = _build_event_service_stack(db, tenant_id, audit_svc)
 
     webhook_dispatcher = None
     event_stream_broadcaster = None
+    pending_webhook_tasks = None
     if app is not None:
         state = getattr(app, "state", None)
         if state is not None:
@@ -249,18 +263,20 @@ def build_event_service_for_connector(
                 webhook_repo.get_active_by_tenant,
                 http_client=oauth_http_client,
             )
+            pending_webhook_tasks = getattr(state, "pending_webhook_tasks", None)
 
     return EventService(
-        event_repo=event_repo,
-        hash_service=hash_service,
-        subject_repo=subject_repo,
+        event_repo=stack.event_repo,
+        hash_service=stack.hash_service,
+        subject_repo=stack.subject_repo,
         db=db,
-        schema_validator=schema_validator,
+        schema_validator=stack.schema_validator,
         workflow_engine_provider=None,
-        transition_validator=transition_validator,
-        subject_type_repo=subject_type_repo,
+        transition_validator=stack.transition_validator,
+        subject_type_repo=stack.subject_type_repo,
         webhook_dispatcher=webhook_dispatcher,
         event_stream_broadcaster=event_stream_broadcaster,
+        pending_webhook_tasks=pending_webhook_tasks,
     )
 
 
@@ -275,28 +291,14 @@ async def get_event_service_for_create(
     Uses get_db (no outer transaction) so each retry in create_event runs in
     a fresh transaction (session.begin()), not a savepoint.
     """
-    event_repo = EventRepository(db)
-    hash_service = HashService()
-    subject_repo = SubjectRepository(db, tenant_id=tenant_id, audit_service=audit_svc)
-    schema_repo = EventSchemaRepository(db, cache_service=None, audit_service=audit_svc)
-    schema_validator = EventSchemaValidator(schema_repo)
-    workflow_repo = WorkflowRepository(db, audit_service=audit_svc)
-    transition_rule_repo = EventTransitionRuleRepository(db)
-    transition_validator = EventTransitionValidator(
-        rule_repo=transition_rule_repo,
-        event_repo=event_repo,
-    )
+    stack = _build_event_service_stack(db, tenant_id, audit_svc)
+    # Mutable cell to break circular init: EventService needs engine, engine needs EventService.
     workflow_engine_holder: list[WorkflowEngine | None] = [None]
 
     def get_workflow_engine() -> WorkflowEngine | None:
         return workflow_engine_holder[0]
 
-    subject_type_repo = SubjectTypeRepository(db, audit_service=audit_svc)
-    default_enrichers_create = [
-        CorrelationEnricher(),
-        ActorEnricher(),
-        SourceEnricher(),
-    ]
+    workflow_repo = WorkflowRepository(db, audit_service=audit_svc)
     webhook_repo = WebhookSubscriptionRepository(db)
     oauth_http_client = getattr(request.app.state, "oauth_http_client", None)
     webhook_dispatcher = WebhookDispatcher(
@@ -306,18 +308,22 @@ async def get_event_service_for_create(
     event_stream_broadcaster = getattr(
         request.app.state, "event_stream_broadcaster", None
     )
+    pending_webhook_tasks = getattr(
+        request.app.state, "pending_webhook_tasks", None
+    )
     event_service = EventService(
-        event_repo=event_repo,
-        hash_service=hash_service,
-        subject_repo=subject_repo,
+        event_repo=stack.event_repo,
+        hash_service=stack.hash_service,
+        subject_repo=stack.subject_repo,
         db=db,
-        schema_validator=schema_validator,
+        schema_validator=stack.schema_validator,
         workflow_engine_provider=get_workflow_engine,
-        transition_validator=transition_validator,
-        subject_type_repo=subject_type_repo,
-        enrichers=default_enrichers_create,
+        transition_validator=stack.transition_validator,
+        subject_type_repo=stack.subject_type_repo,
+        enrichers=DEFAULT_API_ENRICHERS,
         webhook_dispatcher=webhook_dispatcher,
         event_stream_broadcaster=event_stream_broadcaster,
+        pending_webhook_tasks=pending_webhook_tasks,
     )
     notification_service = LogOnlyNotificationService()
     recipient_resolver = WorkflowRecipientResolver(db)
@@ -362,10 +368,11 @@ def get_verification_runner():
     """Callable that runs tenant verification with a fresh session (for background jobs)."""
     async def run_verification_for_tenant(tenant_id: str) -> ChainVerificationResult:
         async with aclosing(get_db()) as gen:
-            try:
-                session = await gen.__anext__()
-            except Exception as e:
-                raise RuntimeError("Failed to obtain database session") from e
+            session = None
+            async for session in gen:
+                break
+            if session is None:
+                raise RuntimeError("Failed to obtain database session")
             event_repo = EventRepository(session)
             settings = get_settings()
             svc = VerificationService(
@@ -656,7 +663,7 @@ async def get_subject_repo(
     return SubjectRepository(db, tenant_id=tenant_id, audit_service=None)
 
 
-async def get_get_subject_state_use_case(
+async def get_subject_state_use_case(
     db: Annotated[AsyncSession, Depends(get_db)],
     tenant_id: Annotated[str, Depends(_core.get_tenant_id)],
 ) -> GetSubjectStateUseCase:

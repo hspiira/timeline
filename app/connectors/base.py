@@ -8,10 +8,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, AsyncIterator, Literal, Protocol
+from enum import Enum
+from typing import Any, AsyncIterator, Protocol
 
-if TYPE_CHECKING:
-    pass
+
+class ConnectorStatus(str, Enum):
+    """Connector lifecycle status for health reporting."""
+
+    RUNNING = "running"
+    DEGRADED = "degraded"
+    STOPPED = "stopped"
 
 
 @dataclass
@@ -35,7 +41,7 @@ class ConnectorHealth:
     """Health status for one connector (admin/operational)."""
 
     connector_id: str
-    status: Literal["running", "degraded", "stopped"]
+    status: ConnectorStatus
     last_event_at: datetime | None
     error: str | None = None
     lag: int | None = None
