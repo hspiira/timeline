@@ -40,6 +40,9 @@ from app.infrastructure.persistence.repositories.oauth_state_repo import (
 from app.infrastructure.persistence.repositories.password_set_token_repo import (
     PasswordSetTokenStore,
 )
+from app.infrastructure.persistence.repositories.projection_repo import (
+    ProjectionRepository,
+)
 from app.infrastructure.persistence.repositories.permission_repo import (
     PermissionRepository,
 )
@@ -93,6 +96,7 @@ __all__ = [
     "OAuthStateRepository",
     "PasswordSetTokenStore",
     "PermissionRepository",
+    "ProjectionRepository",
     "RolePermissionRepository",
     "RoleRepository",
     "SearchRepository",

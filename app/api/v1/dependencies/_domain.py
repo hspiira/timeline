@@ -31,6 +31,10 @@ from app.application.services.verification_service import (
     VerificationService,
 )
 from app.application.use_cases.analytics import GetDashboardStatsUseCase
+from app.application.use_cases.projections import (
+    ProjectionManagementUseCase,
+    QueryProjectionUseCase,
+)
 from app.application.use_cases.documents import (
     DocumentQueryService,
     DocumentUploadService,
@@ -54,6 +58,7 @@ from app.application.use_cases.subjects import (
     SubjectService,
 )
 from app.core.config import get_settings
+from app.core.projections import get_registry
 from app.infrastructure.external.storage.factory import StorageFactory
 from app.infrastructure.external.storage.protocol import StorageProtocol
 from app.infrastructure.persistence.database import (
@@ -62,6 +67,7 @@ from app.infrastructure.persistence.database import (
 )
 from app.infrastructure.persistence.repositories import (
     ChainAnchorRepository,
+    ProjectionRepository,
     WebhookSubscriptionRepository,
     DocumentCategoryRepository,
     DocumentRepository,
@@ -814,6 +820,39 @@ async def get_webhook_dispatcher(
 ) -> WebhookDispatcher:
     """Webhook dispatcher for test delivery (uses repo to resolve subscriptions)."""
     return WebhookDispatcher(webhook_repo.get_active_by_tenant)
+
+
+async def get_projection_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ProjectionRepository:
+    """Projection repository for read operations."""
+    return ProjectionRepository(db)
+
+
+async def get_projection_repo_for_write(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> ProjectionRepository:
+    """Projection repository for create/deactivate/rebuild."""
+    return ProjectionRepository(db)
+
+
+async def get_projection_management_use_case(
+    repo: Annotated[ProjectionRepository, Depends(get_projection_repo_for_write)],
+) -> ProjectionManagementUseCase:
+    """Projection management use case (create, list, deactivate, rebuild)."""
+    return ProjectionManagementUseCase(projection_repo=repo)
+
+
+async def get_query_projection_use_case(
+    projection_repo: Annotated[ProjectionRepository, Depends(get_projection_repo)],
+    event_repo: Annotated[EventRepository, Depends(get_event_repo)],
+) -> QueryProjectionUseCase:
+    """Query projection use case (current state, as_of replay, list states)."""
+    return QueryProjectionUseCase(
+        projection_repo=projection_repo,
+        event_repo=event_repo,
+        registry=get_registry(),
+    )
 
 
 # ---------------------------------------------------------------------------

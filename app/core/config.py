@@ -142,6 +142,11 @@ class Settings(BaseSettings):
     rate_limit_events_per_minute_per_tenant: int = 10_000
     rate_limit_bulk_events_per_minute_per_tenant: int = 50_000
 
+    # Projection engine (Phase 5)
+    projection_engine_enabled: bool = False
+    projection_engine_interval_seconds: int = 5
+    projection_engine_batch_size: int = 1000
+
     # OpenTelemetry
     telemetry_enabled: bool = True
     telemetry_exporter: str = "console"

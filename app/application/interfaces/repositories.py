@@ -43,6 +43,10 @@ if TYPE_CHECKING:
         WebhookSubscriptionResult,
         WebhookSubscriptionUpdate,
     )
+    from app.application.dtos.projection import (
+        ProjectionDefinitionResult,
+        ProjectionStateResult,
+    )
 
 
 # Event repository interface
@@ -1033,3 +1037,76 @@ class IWebhookSubscriptionRepository(Protocol):
 
     async def delete(self, tenant_id: str, subscription_id: str) -> None:
         """Delete subscription; no-op if not found."""
+
+
+# Projection repository interface
+class IProjectionRepository(Protocol):
+    """Protocol for projection definition and state repository (Phase 5)."""
+
+    async def list_active(
+        self, tenant_id: str | None = None
+    ) -> list["ProjectionDefinitionResult"]:
+        """All active projection definitions, optionally filtered by tenant."""
+
+    async def list_by_tenant(
+        self, tenant_id: str
+    ) -> list["ProjectionDefinitionResult"]:
+        """All projection definitions for tenant (active and inactive)."""
+
+    async def get_by_name_version(
+        self, tenant_id: str, name: str, version: int
+    ) -> "ProjectionDefinitionResult | None":
+        """Return projection definition by tenant, name and version."""
+
+    async def create(
+        self,
+        tenant_id: str,
+        name: str,
+        version: int,
+        subject_type: str | None,
+    ) -> "ProjectionDefinitionResult":
+        """Create projection definition with last_event_seq=0."""
+
+    async def advance_watermark(self, projection_id: str, new_seq: int) -> None:
+        """Update last_event_seq for the projection definition."""
+
+    async def get_state(
+        self, projection_id: str, subject_id: str
+    ) -> "ProjectionStateResult | None":
+        """Return projection state for (projection_id, subject_id), or None."""
+
+    async def upsert_state(
+        self, projection_id: str, subject_id: str, state: dict
+    ) -> None:
+        """Insert or update projection state for (projection_id, subject_id)."""
+
+    async def list_states(
+        self, projection_id: str, skip: int = 0, limit: int = 100
+    ) -> list["ProjectionStateResult"]:
+        """List projection states for projection (paginated)."""
+
+    async def lock_for_advance(
+        self, projection_id: str
+    ) -> "ProjectionDefinitionResult | None":
+        """SELECT ... FOR UPDATE SKIP LOCKED on the definition row. Returns None if another worker has the lock."""
+
+    async def deactivate(
+        self, tenant_id: str, name: str, version: int
+    ) -> None:
+        """Set active=False for the projection definition (by tenant, name, version)."""
+
+    async def reset_watermark(
+        self, tenant_id: str, name: str, version: int
+    ) -> None:
+        """Set last_event_seq=0 for the projection (triggers full replay on next cycle)."""
+
+    async def count_states(self, projection_id: str) -> int:
+        """Return count of projection_state rows for this projection."""
+
+    async def get_top_by_field(
+        self,
+        projection_id: str,
+        field: str,
+        limit: int = 10,
+    ) -> list["ProjectionStateResult"]:
+        """Return top N states ordered by state->>field DESC (numeric)."""

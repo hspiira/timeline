@@ -23,6 +23,7 @@ from app.api.v1.endpoints import (
     naming_templates,
     oauth_providers,
     permissions,
+    projections as projections_endpoint,
     relationship_kinds,
     retention,
     roles,
@@ -55,6 +56,9 @@ api_router.include_router(
 )
 api_router.include_router(
     webhooks.router, prefix="/tenants", tags=["webhooks"]
+)
+api_router.include_router(
+    projections_endpoint.router, prefix="/tenants", tags=["projections"]
 )
 api_router.include_router(documents.router, prefix="/documents", tags=["documents"])
 api_router.include_router(

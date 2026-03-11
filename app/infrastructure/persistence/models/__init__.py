@@ -48,6 +48,10 @@ from app.infrastructure.persistence.models.tenant import Tenant
 from app.infrastructure.persistence.models.password_set_token import PasswordSetToken
 from app.infrastructure.persistence.models.user import User
 from app.infrastructure.persistence.models.workflow import Workflow, WorkflowExecution
+from app.infrastructure.persistence.models.projection import (
+    ProjectionDefinition,
+    ProjectionState,
+)
 from app.infrastructure.persistence.models.webhook_subscription import (
     WebhookSubscription,
 )
@@ -73,6 +77,8 @@ __all__ = [
     "EventTransitionRule",
     "Role",
     "Permission",
+    "ProjectionDefinition",
+    "ProjectionState",
     "RolePermission",
     "UserRole",
     "WebhookSubscription",

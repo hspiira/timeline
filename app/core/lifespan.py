@@ -46,8 +46,6 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
         InMemoryEventStreamBroadcaster,
     )
 
-    app.state.event_stream_broadcaster = InMemoryEventStreamBroadcaster()
-
     if settings.redis_enabled:
         from app.infrastructure.cache.redis_cache import CacheService
         from app.infrastructure.messaging.redis_pubsub import run_sync_progress_broadcast
@@ -59,12 +57,31 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.event_rate_limiter = (
             RedisRateLimiter(cache.redis) if cache.redis else None
         )
+        if cache.redis is not None:
+            from app.infrastructure.messaging.event_publisher import (
+                RedisEventPublisher,
+            )
+
+            app.state.event_stream_broadcaster = RedisEventPublisher(cache.redis)
+        else:
+            app.state.event_stream_broadcaster = InMemoryEventStreamBroadcaster()
         sync_broadcast_task = asyncio.create_task(run_sync_progress_broadcast(app))
         app.state.sync_progress_broadcast_task = sync_broadcast_task
     else:
         app.state.cache = None
         app.state.event_rate_limiter = None
         app.state.sync_progress_broadcast_task = None
+        app.state.event_stream_broadcaster = InMemoryEventStreamBroadcaster()
+
+    if settings.projection_engine_enabled:
+        from app.core.projection_engine_job import run_projection_engine_job
+
+        app.state.projection_engine_task = asyncio.create_task(
+            run_projection_engine_job(app), name="projection_engine"
+        )
+        logger.info("Projection engine started")
+    else:
+        app.state.projection_engine_task = None
 
     if settings.chain_anchor_enabled:
         from app.core.anchor_job import run_chain_anchor_job
@@ -146,6 +163,15 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
         except asyncio.CancelledError:
             pass
         logger.info("Chain anchor task stopped")
+
+    projection_engine_task = getattr(app.state, "projection_engine_task", None)
+    if projection_engine_task is not None:
+        projection_engine_task.cancel()
+        try:
+            await projection_engine_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("Projection engine task stopped")
 
     connector_runner = getattr(app.state, "connector_runner", None)
     if connector_runner is not None:
