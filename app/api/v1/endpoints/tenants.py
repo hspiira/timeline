@@ -17,6 +17,9 @@ from app.api.v1.dependencies import (
     require_permission,
 )
 from app.infrastructure.persistence.database import get_db_transactional
+from app.infrastructure.persistence.repositories import (
+    TenantIntegrityProfileHistoryRepository,
+)
 from app.application.dtos.user import UserResult
 from app.application.interfaces.repositories import ITenantRepository
 from app.application.services.tenant_creation_service import TenantCreationService
@@ -189,10 +192,11 @@ async def update_tenant_integrity(
     body: TenantIntegrityUpdateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo_for_write)],
-    history_repo=Depends(get_tenant_integrity_history_repo),
-    current_user: Annotated[UserResult, Depends(get_current_user)] = Depends(
-        get_current_user
-    ),
+    current_user: Annotated[UserResult, Depends(get_current_user)],
+    history_repo: Annotated[
+        TenantIntegrityProfileHistoryRepository,
+        Depends(get_tenant_integrity_history_repo),
+    ],
     _perm: Annotated[object, Depends(require_permission("tenant", "update"))] = None,
     _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):

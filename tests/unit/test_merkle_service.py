@@ -90,6 +90,15 @@ class _FakeMerkleRepo:
     ) -> SimpleNamespace | None:
         return self._by_key.get((epoch_id, depth, position))
 
+    def remove_node_for_testing(
+        self, epoch_id: str, depth: int, position: int
+    ) -> None:
+        """Remove a node so tests can simulate missing/corrupt tree (e.g. missing parent)."""
+        key = (epoch_id, depth, position)
+        node = self._by_key.pop(key, None)
+        if node is not None and node.event_seq is not None:
+            self._leaf_by_seq.pop((epoch_id, node.event_seq), None)
+
 
 def _recompute_root(leaf_hash: str, steps: list[MerkleProofStep]) -> str:
     """Recompute root from leaf hash and proof steps (same order as service)."""
@@ -242,9 +251,7 @@ class TestMerkleServiceGenerateProof:
 
         await merkle_service.build_and_store("t1", epoch)
         # Leaf 1 is at depth=2, position=0; its parent is depth=1, position=0.
-        key_to_remove = (epoch_id, 1, 0)
-        assert key_to_remove in merkle_repo._by_key
-        del merkle_repo._by_key[key_to_remove]
+        merkle_repo.remove_node_for_testing(epoch_id, 1, 0)
 
         with pytest.raises(LookupError) as exc_info:
             await merkle_service.generate_proof(epoch_id, 1)

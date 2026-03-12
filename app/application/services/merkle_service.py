@@ -122,6 +122,8 @@ class MerkleService:
                 sibling_hash = left_ch
                 is_left_sibling = True
             if sibling_hash is None:
+                # Should not occur under normal operation; indicates storage corruption
+                # (build_and_store always writes child hashes).
                 raise ValueError(
                     f"Merkle node at depth={parent_depth}, position={parent_pos} "
                     f"(epoch_id={epoch_id!r}) has missing child hash"

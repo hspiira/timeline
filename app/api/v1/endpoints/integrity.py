@@ -16,7 +16,7 @@ from app.api.v1.dependencies import (
 )
 from app.application.services.merkle_service import MerkleService
 from app.core.config import get_settings
-from app.domain.enums import IntegrityProfile
+from app.domain.enums import IntegrityEpochStatus, IntegrityProfile
 from app.infrastructure.persistence.database import get_db
 from app.infrastructure.persistence.repositories import (
     ChainRepairLogRepository,
@@ -144,20 +144,26 @@ async def get_merkle_proof_for_event(
                 status_code=400,
                 detail="Merkle proof is only available for LEGAL_GRADE epochs",
             )
-
-        merkle_service = MerkleService(event_repo=event_repo, merkle_repo=merkle_repo)
-        # Rebuild tree and derive root; this ensures consistency with stored merkle_root.
-        root_hash = await merkle_service.build_and_store(tenant_id, epoch)
-        if epoch.merkle_root and epoch.merkle_root != root_hash:
+        if epoch.status != IntegrityEpochStatus.SEALED:
             raise HTTPException(
-                status_code=500,
-                detail="Stored merkle_root does not match recomputed root",
+                status_code=400,
+                detail="Epoch not sealed; Merkle proof not available yet",
             )
 
-        # Simple proof: for now, return leaf hash and root only; steps are empty.
-        # A full Merkle path implementation can be added later without changing the schema.
+        merkle_service = MerkleService(event_repo=event_repo, merkle_repo=merkle_repo)
+        proof_steps = await merkle_service.generate_proof(epoch_id, row.event_seq)
+        if not proof_steps and epoch.merkle_root:
+            raise HTTPException(
+                status_code=500,
+                detail="Merkle tree incomplete for this epoch",
+            )
+
         leaf_hash = row.merkle_leaf_hash or row.hash
-        steps: list[MerkleProofStep] = []
+        root_hash = epoch.merkle_root or ""
+        steps = [
+            MerkleProofStep(sibling_hash=s.sibling_hash, is_left_sibling=s.is_left_sibling)
+            for s in proof_steps
+        ]
 
         return MerkleProofResponse(
             tenant_id=tenant_id,

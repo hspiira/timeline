@@ -375,6 +375,13 @@ async def get_tenant_integrity_history_repo(
     return TenantIntegrityProfileHistoryRepository(db)
 
 
+async def get_integrity_epoch_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> IntegrityEpochRepository:
+    """Integrity epoch repository for read operations (list epochs, get by id)."""
+    return IntegrityEpochRepository(db)
+
+
 async def get_chain_repair_service(
     db: Annotated[AsyncSession, Depends(get_db_transactional)],
 ) -> ChainRepairService:

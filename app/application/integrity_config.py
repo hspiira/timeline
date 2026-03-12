@@ -7,6 +7,9 @@ from dataclasses import dataclass
 
 from app.domain.enums import IntegrityProfile
 
+# Max seal attempts before marking epoch FAILED; used by sealing job and get_sealable_epochs filter.
+EPOCH_SEAL_MAX_RETRIES = 3
+
 
 @dataclass(frozen=True)
 class IntegrityProfileConfig:

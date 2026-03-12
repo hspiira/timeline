@@ -7,7 +7,10 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from app.application.integrity_config import INTEGRITY_PROFILE_CONFIG
+from app.application.integrity_config import (
+    EPOCH_SEAL_MAX_RETRIES,
+    INTEGRITY_PROFILE_CONFIG,
+)
 from app.application.services.merkle_service import MerkleService
 from app.domain.enums import IntegrityProfile, TsaAnchorType
 from app.infrastructure.external.tsa.client import TsaClient
@@ -24,7 +27,6 @@ from app.infrastructure.services.tsa_service import TsaService
 logger = logging.getLogger(__name__)
 
 SEAL_POLL_INTERVAL_SECONDS = 30
-EPOCH_SEAL_MAX_RETRIES = 3
 
 
 async def run_epoch_sealing_job(
@@ -159,23 +161,30 @@ async def run_epoch_sealing_job(
                                 profile_snapshot=next_profile,
                             )
                         except Exception:
-                            new_count = await epoch_repo.increment_seal_retry_count(
-                                epoch.id
-                            )
-                            if new_count >= EPOCH_SEAL_MAX_RETRIES:
-                                logger.error(
-                                    "Failed to seal epoch %s after %s attempts; marking as FAILED",
-                                    epoch.id,
-                                    new_count,
+                            try:
+                                new_count = await epoch_repo.increment_seal_retry_count(
+                                    epoch.id
                                 )
-                                await epoch_repo.mark_epoch_failed(epoch.id)
-                            else:
+                                if new_count >= EPOCH_SEAL_MAX_RETRIES:
+                                    logger.error(
+                                        "Failed to seal epoch %s after %s attempts; marking as FAILED",
+                                        epoch.id,
+                                        new_count,
+                                    )
+                                    await epoch_repo.mark_epoch_failed(epoch.id)
+                                else:
+                                    logger.exception(
+                                        "Failed to seal epoch %s (attempt %s); will retry",
+                                        epoch.id,
+                                        new_count,
+                                    )
+                            except Exception as persist_err:
                                 logger.exception(
-                                    "Failed to seal epoch %s (attempt %s); will retry",
+                                    "Failed to persist seal retry count or mark epoch FAILED for %s: %s",
                                     epoch.id,
-                                    new_count,
+                                    persist_err,
                                 )
-                            # Break so the transaction commits (increment persists); next poll will retry or skip.
+                            # Break so the transaction commits when increment succeeded; next poll retries or skip.
                             break
 
         except asyncio.CancelledError:

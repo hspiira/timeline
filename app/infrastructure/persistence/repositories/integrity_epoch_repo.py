@@ -6,7 +6,10 @@ from sqlalchemy import and_, desc, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.integrity import OpenEpochAssignment
-from app.application.integrity_config import INTEGRITY_PROFILE_CONFIG
+from app.application.integrity_config import (
+    EPOCH_SEAL_MAX_RETRIES,
+    INTEGRITY_PROFILE_CONFIG,
+)
 from app.domain.enums import IntegrityEpochStatus, IntegrityProfile
 from app.infrastructure.persistence.models import IntegrityEpoch
 from app.infrastructure.persistence.repositories.base import BaseRepository
@@ -103,7 +106,11 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
         return _epoch_to_assignment(created)
 
     async def get_sealable_epochs(self, limit: int = 50) -> list[IntegrityEpoch]:
-        """Return OPEN epochs that are due for sealing (time or event count). FOR UPDATE SKIP LOCKED."""
+        """Return OPEN epochs that are due for sealing (time or event count). FOR UPDATE SKIP LOCKED.
+
+        Excludes epochs that have already reached EPOCH_SEAL_MAX_RETRIES (defense-in-depth
+        in case status=FAILED is not yet committed).
+        """
         now = datetime.now(timezone.utc)
         due_conditions = []
         for profile in IntegrityProfile:
@@ -126,6 +133,7 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
             select(IntegrityEpoch)
             .where(
                 IntegrityEpoch.status == IntegrityEpochStatus.OPEN,
+                IntegrityEpoch.seal_retry_count < EPOCH_SEAL_MAX_RETRIES,
                 or_(*due_conditions),
             )
             .with_for_update(skip_locked=True)
