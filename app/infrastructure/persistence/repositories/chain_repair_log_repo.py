@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain.enums import ChainRepairStatus
 from app.infrastructure.persistence.models import ChainRepairLog
 from app.infrastructure.persistence.repositories.base import BaseRepository
 
@@ -52,12 +53,12 @@ class ChainRepairLogRepository(BaseRepository[ChainRepairLog]):
         self,
         repair_id: str,
         *,
-        status: str,
+        status: ChainRepairStatus,
         repair_approved_by: str | None = None,
         new_epoch_id: str | None = None,
     ) -> None:
         """Update repair_status and optional approver/new_epoch_id."""
-        values: dict[str, object] = {"repair_status": status}
+        values: dict[str, object] = {"repair_status": status.value}
         if repair_approved_by is not None:
             values["repair_approved_by"] = repair_approved_by
         if new_epoch_id is not None:

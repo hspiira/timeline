@@ -6,6 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from app.application.dtos.chain_anchor import ChainAnchorResult
+from app.domain.enums import ChainAnchorStatus
 from app.shared.utils.datetime import utc_now
 
 if TYPE_CHECKING:
@@ -57,9 +58,9 @@ class AnchorChainTipsUseCase:
 
         existing = await self._anchor_repo.get_by_tenant_and_tip(tenant_id, tip)
         if existing is not None:
-            if existing.status == "confirmed":
+            if existing.status == ChainAnchorStatus.CONFIRMED.value:
                 return existing
-            if existing.status == "pending" and _is_recent(existing):
+            if existing.status == ChainAnchorStatus.PENDING.value and _is_recent(existing):
                 return None  # in flight, skip
             # Stale pending or failed: reuse the row.
             await self._anchor_repo.update_to_pending(existing.id)

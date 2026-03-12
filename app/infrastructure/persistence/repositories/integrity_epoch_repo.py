@@ -2,12 +2,12 @@
 
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import and_, desc, func, or_, select, text
+from sqlalchemy import and_, desc, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.integrity import OpenEpochAssignment
 from app.application.integrity_config import INTEGRITY_PROFILE_CONFIG
-from app.domain.enums import IntegrityProfile
+from app.domain.enums import IntegrityEpochStatus, IntegrityProfile
 from app.infrastructure.persistence.models import IntegrityEpoch
 from app.infrastructure.persistence.repositories.base import BaseRepository
 
@@ -38,7 +38,7 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
             .where(
                 IntegrityEpoch.tenant_id == tenant_id,
                 IntegrityEpoch.subject_id == subject_id,
-                IntegrityEpoch.status == "OPEN",
+                IntegrityEpoch.status == IntegrityEpochStatus.OPEN,
             )
             .with_for_update()
         )
@@ -56,7 +56,7 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
             .where(
                 IntegrityEpoch.tenant_id == tenant_id,
                 IntegrityEpoch.subject_id == subject_id,
-                IntegrityEpoch.status == "SEALED",
+                IntegrityEpoch.status == IntegrityEpochStatus.SEALED,
             )
             .order_by(desc(IntegrityEpoch.epoch_number))
             .limit(1)
@@ -86,18 +86,18 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
         genesis_hash: str,
         profile_snapshot: str,
     ) -> OpenEpochAssignment:
-        """Create a new open epoch; first_event_seq=0 until first event is appended."""
+        """Create a new open epoch; first_event_seq is set when the first event is appended."""
         epoch = IntegrityEpoch(
             tenant_id=tenant_id,
             subject_id=subject_id,
             epoch_number=epoch_number,
             genesis_hash=genesis_hash,
-            first_event_seq=0,
+            first_event_seq=None,
             last_event_seq=None,
             event_count=0,
             opened_at=datetime.now(timezone.utc),
             profile_snapshot=profile_snapshot,
-            status="OPEN",
+            status=IntegrityEpochStatus.OPEN,
         )
         created = await self.create(epoch)
         return _epoch_to_assignment(created)
@@ -125,7 +125,7 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
         result = await self.db.execute(
             select(IntegrityEpoch)
             .where(
-                IntegrityEpoch.status == "OPEN",
+                IntegrityEpoch.status == IntegrityEpochStatus.OPEN,
                 or_(*due_conditions),
             )
             .with_for_update(skip_locked=True)
@@ -142,25 +142,17 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
         merkle_root: str | None = None,
     ) -> None:
         """Mark epoch as SEALED; set terminal_hash, sealed_at, optional tsa_anchor_id and merkle_root."""
+        values: dict[str, object] = {
+            "status": IntegrityEpochStatus.SEALED,
+            "terminal_hash": terminal_hash,
+            "sealed_at": datetime.now(timezone.utc),
+        }
+        if tsa_anchor_id is not None:
+            values["tsa_anchor_id"] = tsa_anchor_id
+        if merkle_root is not None:
+            values["merkle_root"] = merkle_root
         await self.db.execute(
-            text(
-                """
-UPDATE integrity_epoch
-SET status = 'SEALED',
-    terminal_hash = :terminal_hash,
-    sealed_at = :sealed_at,
-    tsa_anchor_id = COALESCE(:tsa_anchor_id, tsa_anchor_id),
-    merkle_root = COALESCE(:merkle_root, merkle_root)
-WHERE id = :epoch_id
-"""
-            ),
-            {
-                "epoch_id": epoch_id,
-                "terminal_hash": terminal_hash,
-                "sealed_at": datetime.now(timezone.utc),
-                "tsa_anchor_id": tsa_anchor_id,
-                "merkle_root": merkle_root,
-            },
+            update(IntegrityEpoch).where(IntegrityEpoch.id == epoch_id).values(**values)
         )
 
     async def increment_epoch_event(
@@ -172,28 +164,31 @@ WHERE id = :epoch_id
     ) -> None:
         """Increment event_count and set last_event_seq; if is_first, set first_event_seq."""
         if is_first:
-            await self.db.execute(
-                text(
-                    """
-UPDATE integrity_epoch
-SET first_event_seq = :last_event_seq,
-    last_event_seq = :last_event_seq,
-    event_count = 1
-WHERE id = :epoch_id
-"""
-                ),
-                {"epoch_id": epoch_id, "last_event_seq": last_event_seq},
+            stmt = (
+                update(IntegrityEpoch)
+                .where(IntegrityEpoch.id == epoch_id)
+                .values(
+                    first_event_seq=last_event_seq,
+                    last_event_seq=last_event_seq,
+                    event_count=1,
+                )
             )
         else:
-            await self.db.execute(
-                text(
-                    """
-UPDATE integrity_epoch
-SET event_count = event_count + 1,
-    last_event_seq = :last_event_seq
-WHERE id = :epoch_id
-"""
-                ),
-                {"epoch_id": epoch_id, "last_event_seq": last_event_seq},
+            stmt = (
+                update(IntegrityEpoch)
+                .where(IntegrityEpoch.id == epoch_id)
+                .values(
+                    event_count=IntegrityEpoch.event_count + 1,
+                    last_event_seq=last_event_seq,
+                )
             )
+        await self.db.execute(stmt)
+
+    async def mark_epoch_failed(self, epoch_id: str) -> None:
+        """Mark epoch as FAILED so it is skipped by get_sealable_epochs."""
+        await self.db.execute(
+            update(IntegrityEpoch)
+            .where(IntegrityEpoch.id == epoch_id)
+            .values(status=IntegrityEpochStatus.FAILED)
+        )
 

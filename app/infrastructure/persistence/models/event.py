@@ -8,6 +8,7 @@ from sqlalchemy import (
     CheckConstraint,
     Connection,
     DateTime,
+    Enum as SaEnum,
     ForeignKey,
     Index,
     Integer,
@@ -19,6 +20,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, Mapper, mapped_column
 from sqlalchemy.sql import func
 
+from app.domain.enums import EventIntegrityStatus
 from app.infrastructure.persistence.database import Base
 from app.infrastructure.persistence.models.mixins import CuidMixin, TenantMixin
 
@@ -42,8 +44,10 @@ class Event(CuidMixin, TenantMixin, Base):
     epoch_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("integrity_epoch.id"), nullable=True
     )
-    integrity_status: Mapped[str] = mapped_column(
-        String(20), nullable=False, server_default="VALID"
+    integrity_status: Mapped[EventIntegrityStatus] = mapped_column(
+        SaEnum(EventIntegrityStatus, create_constraint=False),
+        nullable=False,
+        server_default=EventIntegrityStatus.VALID.value,
     )
     tsa_anchor_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("tsa_anchor.id"), nullable=True
@@ -104,12 +108,14 @@ class Event(CuidMixin, TenantMixin, Base):
             "idx_events_integrity",
             "tenant_id",
             "integrity_status",
-            postgresql_where=text("integrity_status <> 'VALID'"),
+            postgresql_where=text(
+                "integrity_status <> 'Valid'"
+            ),
         ),
         CheckConstraint("created_at IS NOT NULL", name="ck_event_created_at_immutable"),
         CheckConstraint(
             "integrity_status IN "
-            "('VALID','CHAIN_BREAK','REPAIRED','ERASED','PENDING_ANCHOR')",
+            "('Valid','Chain Break','Repaired','Erased','Pending Anchor')",
             name="chk_event_integrity_status",
         ),
     )

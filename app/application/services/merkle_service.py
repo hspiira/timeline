@@ -39,7 +39,11 @@ class MerkleProofStep:
 
 
 class MerkleService:
-    """Builds and stores Merkle trees per epoch and generates proofs."""
+    """Builds and stores Merkle trees per epoch and generates proofs.
+
+    TODO: add generate_proof(epoch_id, event_seq) using stored MerkleNode levels
+    as described in docs/chain_integrity_architecture.md.
+    """
 
     def __init__(
         self,
@@ -104,16 +108,14 @@ class MerkleService:
             current_level = next_level
 
         root_hash = levels[-1][0][1]
-        depth_count = len(levels)
 
         for depth, level in enumerate(reversed(levels)):
-            actual_depth = depth
             for position, node_hash, left_child_hash, right_child_hash, event_seq in level:
-                is_root = actual_depth == 0
+                is_root = depth == 0
                 await self._merkle_repo.create_node(
                     epoch_id=epoch.id,
                     node_hash=node_hash,
-                    depth=actual_depth,
+                    depth=depth,
                     position=position,
                     is_root=is_root,
                     left_child_hash=left_child_hash,

@@ -76,12 +76,15 @@ class EpochService:
         """
         assignment = await self.get_or_create_open_epoch(tenant_id, subject_id)
         created, is_first = await append_fn(assignment)
-        if created.event_seq is not None:
-            await self._epoch_repo.increment_epoch_event(
-                assignment.epoch_id,
-                created.event_seq,
-                is_first=is_first,
+        if created.event_seq is None:
+            raise ValueError(
+                "append_fn returned EventResult with no event_seq; epoch not updated"
             )
+        await self._epoch_repo.increment_epoch_event(
+            assignment.epoch_id,
+            created.event_seq,
+            is_first=is_first,
+        )
         return assignment, created
 
     async def record_event_appended(
@@ -100,7 +103,7 @@ class EpochService:
     async def record_events_appended_bulk(
         self, entries: list[tuple[str, int, bool]]
     ) -> None:
-        """Record multiple event appends. Each entry is (epoch_id, event_seq, is_first)."""
+        """Record multiple event appends. Each entry is (epoch_id, event_seq, is_first). event_seq must be non-None."""
         for epoch_id, event_seq, is_first in entries:
             await self._epoch_repo.increment_epoch_event(
                 epoch_id, event_seq, is_first=is_first

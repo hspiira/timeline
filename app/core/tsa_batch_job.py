@@ -17,6 +17,7 @@ from fastapi import FastAPI
 
 from app.application.services.tsa_batch_queue import DEFAULT_TSA_BATCH_QUEUE, TsaBatchItem
 from app.core.config import get_settings
+from app.domain.enums import TsaAnchorType
 from app.infrastructure.external.tsa.client import TsaClient
 from app.infrastructure.external.tsa.config import TsaConfig
 from app.infrastructure.persistence.database import AsyncSessionLocal
@@ -94,7 +95,7 @@ async def run_tsa_batch_job(app: FastAPI) -> None:
                                 tsa_provider_url=settings.chain_anchor_tsa_url,
                             )
                             anchor_id = await tsa_service.anchor(
-                                tenant_id, batch_hash, "BATCH"
+                                tenant_id, batch_hash, TsaAnchorType.BATCH
                             )
                             event_ids = [it.event_id for it in sorted_items]
                             await event_repo.set_tsa_anchor_for_events(

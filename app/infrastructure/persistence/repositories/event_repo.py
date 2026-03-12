@@ -6,6 +6,7 @@ from sqlalchemy import asc, desc, func, select, text, tuple_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.event import EventCreate, EventResult, EventToPersist
+from app.domain.enums import EventIntegrityStatus
 from app.infrastructure.persistence.models.event import Event
 from app.infrastructure.persistence.repositories.base import BaseRepository
 
@@ -28,7 +29,11 @@ def _event_to_result(e: Event) -> EventResult:
         source=e.source,
         event_seq=e.event_seq,
         epoch_id=e.epoch_id,
-        integrity_status=e.integrity_status or "VALID",
+        integrity_status=(
+            e.integrity_status.value
+            if isinstance(e.integrity_status, EventIntegrityStatus)
+            else (e.integrity_status or EventIntegrityStatus.VALID.value)
+        ),
         tsa_anchor_id=e.tsa_anchor_id,
         merkle_leaf_hash=e.merkle_leaf_hash,
     )
@@ -142,7 +147,11 @@ class EventRepository(BaseRepository[Event]):
             external_id=data.external_id,
             source=data.source,
             epoch_id=epoch_id,
-            integrity_status=integrity_status,
+            integrity_status=(
+                EventIntegrityStatus(integrity_status)
+                if isinstance(integrity_status, str)
+                else integrity_status
+            ),
             merkle_leaf_hash=merkle_leaf_hash,
         )
         created = await self.create(event)
@@ -228,7 +237,10 @@ class EventRepository(BaseRepository[Event]):
         stmt = (
             update(Event)
             .where(Event.tenant_id == tenant_id, Event.id.in_(event_ids))
-            .values(tsa_anchor_id=tsa_anchor_id, integrity_status="VALID")
+            .values(
+                tsa_anchor_id=tsa_anchor_id,
+                integrity_status=EventIntegrityStatus.VALID,
+            )
         )
         await self.db.execute(stmt)
 
@@ -377,7 +389,7 @@ class EventRepository(BaseRepository[Event]):
                 external_id=e.external_id,
                 source=e.source,
                 epoch_id=e.epoch_id,
-                integrity_status=e.integrity_status,
+                integrity_status=EventIntegrityStatus(e.integrity_status),
                 merkle_leaf_hash=e.merkle_leaf_hash,
             )
             for e in events

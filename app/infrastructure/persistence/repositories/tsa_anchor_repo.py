@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain.enums import TsaAnchorType, TsaVerificationStatus
 from app.infrastructure.persistence.models import TsaAnchor
 from app.infrastructure.persistence.repositories.base import BaseRepository
 
@@ -18,7 +19,7 @@ class TsaAnchorRepository(BaseRepository[TsaAnchor]):
     async def create_anchor(
         self,
         tenant_id: str,
-        anchor_type: str,
+        anchor_type: TsaAnchorType | str,
         payload_hash: str,
         tsa_token: bytes,
         tsa_provider: str,
@@ -28,23 +29,24 @@ class TsaAnchorRepository(BaseRepository[TsaAnchor]):
         anchored_at: datetime | None = None,
     ) -> TsaAnchor:
         """Insert a TSA anchor row; returns the created ORM entity."""
+        at = anchor_type if isinstance(anchor_type, TsaAnchorType) else TsaAnchorType(anchor_type)
         anchor = TsaAnchor(
             tenant_id=tenant_id,
-            anchor_type=anchor_type,
+            anchor_type=at,
             payload_hash=payload_hash,
             tsa_token=tsa_token,
             tsa_provider=tsa_provider,
             tsa_serial=tsa_serial,
             anchored_at=anchored_at or datetime.now(timezone.utc),
             tsa_reported_time=tsa_reported_time,
-            verification_status="PENDING",
+            verification_status=TsaVerificationStatus.PENDING,
         )
         return await self.create(anchor)
 
     async def update_verification_status(
         self,
         anchor_id: str,
-        status: str,
+        status: TsaVerificationStatus | str,
         *,
         verified_at: datetime | None = None,
     ) -> TsaAnchor | None:
@@ -52,7 +54,9 @@ class TsaAnchorRepository(BaseRepository[TsaAnchor]):
         row = await self.get_by_id(anchor_id)
         if not row:
             return None
-        row.verification_status = status
+        row.verification_status = (
+            status if isinstance(status, TsaVerificationStatus) else TsaVerificationStatus(status)
+        )
         if verified_at is not None:
             row.verified_at = verified_at
         await self.db.flush()

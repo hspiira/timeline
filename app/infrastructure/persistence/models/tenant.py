@@ -21,7 +21,7 @@ class Tenant(CuidMixin, TimestampMixin, Base):
         String, nullable=False, default=TenantStatus.ACTIVE.value, index=True
     )
     integrity_profile: Mapped[str] = mapped_column(
-        String(20), nullable=False, server_default="STANDARD"
+        String(20), nullable=False, server_default="Standard"
     )
     profile_changed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
@@ -41,7 +41,7 @@ class Tenant(CuidMixin, TimestampMixin, Base):
             name="tenant_status_check",
         ),
         CheckConstraint(
-            "integrity_profile IN ('STANDARD','COMPLIANCE','LEGAL_GRADE')",
+            "integrity_profile IN ('Standard','Compliance','Legal Grade')",
             name="chk_integrity_profile",
         ),
     )

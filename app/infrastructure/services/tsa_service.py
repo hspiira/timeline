@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
+from app.domain.enums import TsaAnchorType, TsaVerificationStatus
 from app.infrastructure.external.tsa.client import (
     extract_gen_time_from_token,
     extract_serial_from_token,
@@ -34,7 +35,7 @@ class TsaService:
         self,
         tenant_id: str,
         payload_hash_hex: str,
-        anchor_type: str,
+        anchor_type: TsaAnchorType | str,
     ) -> str:
         """Submit payload_hash to TSA, store token in tsa_anchor; return anchor id."""
         digest = self._tsa_client.digest_for_chain_tip(payload_hash_hex)
@@ -61,7 +62,7 @@ class TsaService:
         ok = self._tsa_client.verify(anchor.tsa_token, digest)
         await self._repo.update_verification_status(
             anchor_id,
-            "VERIFIED" if ok else "FAILED",
+            TsaVerificationStatus.VERIFIED if ok else TsaVerificationStatus.FAILED,
             verified_at=datetime.now(timezone.utc),
         )
         return ok

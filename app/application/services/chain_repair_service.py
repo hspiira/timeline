@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol
 
-from app.domain.enums import IntegrityProfile
+from app.domain.enums import ChainRepairStatus, IntegrityProfile
 
 if TYPE_CHECKING:
     from app.application.interfaces.repositories import (
@@ -37,7 +37,7 @@ class IChainRepairLogRepository(Protocol):
         self,
         repair_id: str,
         *,
-        status: str,
+        status: ChainRepairStatus,
         repair_approved_by: str | None = None,
         new_epoch_id: str | None = None,
     ) -> None: ...
@@ -52,7 +52,7 @@ class ChainRepairRecord:
     epoch_id: str
     break_at_event_seq: int
     break_reason: str
-    repair_status: str
+    repair_status: ChainRepairStatus
     repair_initiated_by: str
     repair_approved_by: str | None
     approval_required: bool
@@ -150,7 +150,7 @@ class ChainRepairService:
             raise PermissionError("Approver must differ from initiator (four-eyes)")
         await self._repair_repo.update_status(
             repair_id,
-            status="APPROVED",
+            status=ChainRepairStatus.APPROVED,
             repair_approved_by=approver_id,
         )
 
@@ -179,7 +179,7 @@ class ChainRepairService:
             epoch_id=row.epoch_id,
             break_at_event_seq=row.break_at_event_seq,
             break_reason=row.break_reason,
-            repair_status=row.repair_status,
+            repair_status=ChainRepairStatus(row.repair_status),
             repair_initiated_by=row.repair_initiated_by,
             repair_approved_by=row.repair_approved_by,
             approval_required=row.approval_required,

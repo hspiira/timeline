@@ -27,7 +27,7 @@ def upgrade() -> None:
             "integrity_profile",
             sa.String(length=20),
             nullable=False,
-            server_default="STANDARD",
+            server_default="Standard",
         ),
     )
     op.add_column(
@@ -51,7 +51,7 @@ def upgrade() -> None:
     op.create_check_constraint(
         "chk_integrity_profile",
         "tenant",
-        "integrity_profile IN ('STANDARD','COMPLIANCE','LEGAL_GRADE')",
+        "integrity_profile IN ('Standard','Compliance','Legal Grade')",
     )
     op.execute(
         "COMMENT ON COLUMN tenant.integrity_profile IS "
@@ -86,7 +86,7 @@ def upgrade() -> None:
         sa.Column("effective_from_seq", sa.BigInteger(), nullable=False),
         sa.Column("cooling_off_ends_at", sa.DateTime(timezone=True), nullable=True),
         sa.CheckConstraint(
-            "new_profile IN ('STANDARD','COMPLIANCE','LEGAL_GRADE')",
+            "new_profile IN ('Standard','Compliance','Legal Grade')",
             name="chk_tip_new_profile",
         ),
     )
@@ -128,14 +128,14 @@ def upgrade() -> None:
             "verification_status",
             sa.String(length=20),
             nullable=False,
-            server_default="PENDING",
+            server_default="Pending",
         ),
         sa.CheckConstraint(
-            "anchor_type IN ('EPOCH','BATCH','EVENT')",
+            "anchor_type IN ('Epoch','Batch','Event')",
             name="chk_tsa_anchor_type",
         ),
         sa.CheckConstraint(
-            "verification_status IN ('PENDING','VERIFIED','FAILED')",
+            "verification_status IN ('Pending','Verified','Failed')",
             name="chk_tsa_verification_status",
         ),
     )
@@ -188,7 +188,7 @@ def upgrade() -> None:
             "status",
             sa.String(length=20),
             nullable=False,
-            server_default="OPEN",
+            server_default="Open",
         ),
         sa.UniqueConstraint(
             "tenant_id",
@@ -197,7 +197,7 @@ def upgrade() -> None:
             name="uq_epoch_number",
         ),
         sa.CheckConstraint(
-            "status IN ('OPEN','SEALED','BROKEN','REPAIRED')",
+            "status IN ('Open','Sealed','Broken','Repaired')",
             name="chk_epoch_status",
         ),
     )
@@ -206,14 +206,14 @@ def upgrade() -> None:
         "integrity_epoch",
         ["tenant_id", "subject_id"],
         unique=False,
-        postgresql_where=sa.text("status = 'OPEN'"),
+        postgresql_where=sa.text("status = 'Open'"),
     )
     op.create_index(
         "idx_epochs_seal",
         "integrity_epoch",
         ["sealed_at"],
         unique=False,
-        postgresql_where=sa.text("status = 'SEALED'"),
+        postgresql_where=sa.text("status = 'Sealed'"),
     )
 
     # 3.6 merkle_nodes
@@ -315,11 +315,11 @@ def upgrade() -> None:
             "repair_status",
             sa.String(length=30),
             nullable=False,
-            server_default="PENDING_APPROVAL",
+            server_default="Pending Approval",
         ),
         sa.CheckConstraint(
             "repair_status IN "
-            "('PENDING_APPROVAL','APPROVED','REJECTED','COMPLETED','FAILED')",
+            "('Pending Approval','Approved','Completed','Failed')",
             name="chk_chain_repair_status",
         ),
     )
@@ -341,7 +341,7 @@ def upgrade() -> None:
         ["tenant_id"],
         unique=False,
         postgresql_where=sa.text(
-            "repair_status IN ('PENDING_APPROVAL','APPROVED')"
+            "repair_status IN ('Pending Approval','Approved')"
         ),
     )
 
@@ -361,7 +361,7 @@ def upgrade() -> None:
             "integrity_status",
             sa.String(length=20),
             nullable=False,
-            server_default="VALID",
+            server_default="Valid",
         ),
     )
     op.add_column(
@@ -381,12 +381,12 @@ def upgrade() -> None:
         "chk_event_integrity_status",
         "event",
         "integrity_status IN "
-        "('VALID','CHAIN_BREAK','REPAIRED','ERASED','PENDING_ANCHOR')",
+        "('Valid','Chain Break','Repaired','Erased','Pending Anchor')",
     )
     op.create_index("idx_events_epoch", "event", ["epoch_id"], unique=False)
     op.execute(
         "CREATE INDEX idx_events_integrity ON event (tenant_id, integrity_status) "
-        "WHERE integrity_status <> 'VALID'"
+        "WHERE integrity_status <> 'Valid'"
     )
 
 

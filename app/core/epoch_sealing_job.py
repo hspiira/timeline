@@ -8,13 +8,23 @@ from collections.abc import Callable
 from typing import Any
 
 from app.application.integrity_config import INTEGRITY_PROFILE_CONFIG
-from app.domain.enums import IntegrityProfile
+from app.application.services.merkle_service import MerkleService
+from app.domain.enums import IntegrityProfile, TsaAnchorType
 from app.infrastructure.external.tsa.client import TsaClient
 from app.infrastructure.external.tsa.config import TsaConfig
+from app.infrastructure.persistence.repositories import (
+    EventRepository,
+    IntegrityEpochRepository,
+    MerkleNodeRepository,
+    TsaAnchorRepository,
+    TenantRepository,
+)
+from app.infrastructure.services.tsa_service import TsaService
 
 logger = logging.getLogger(__name__)
 
 SEAL_POLL_INTERVAL_SECONDS = 30
+EPOCH_SEAL_MAX_RETRIES = 3
 
 
 async def run_epoch_sealing_job(
@@ -42,15 +52,7 @@ async def run_epoch_sealing_job(
     )
     tsa_client = TsaClient(config=tsa_config, http_client=http_client)
 
-    from app.infrastructure.persistence.repositories import (
-        EventRepository,
-        IntegrityEpochRepository,
-        MerkleNodeRepository,
-        TsaAnchorRepository,
-        TenantRepository,
-    )
-    from app.infrastructure.services.tsa_service import TsaService
-    from app.application.services.merkle_service import MerkleService
+    failure_counts: dict[str, int] = {}
 
     while True:
         try:
@@ -125,7 +127,7 @@ async def run_epoch_sealing_job(
                                     tsa_anchor_id = await tsa_service.anchor(
                                         epoch.tenant_id,
                                         merkle_root or terminal_hash,
-                                        "EPOCH",
+                                        TsaAnchorType.EPOCH,
                                     )
                                 except Exception as e:
                                     logger.warning(
@@ -158,11 +160,24 @@ async def run_epoch_sealing_job(
                                 profile_snapshot=next_profile,
                             )
                         except Exception:
-                            logger.exception(
-                                "Failed to seal epoch %s",
-                                epoch.id,
-                            )
-                            raise
+                            failure_count = failure_counts.get(epoch.id, 0) + 1
+                            failure_counts[epoch.id] = failure_count
+                            if failure_count >= EPOCH_SEAL_MAX_RETRIES:
+                                logger.error(
+                                    "Failed to seal epoch %s after %s attempts; marking as FAILED",
+                                    epoch.id,
+                                    failure_count,
+                                )
+                                await epoch_repo.mark_epoch_failed(epoch.id)
+                                # Do not re-raise; move on to other epochs.
+                                failure_counts.pop(epoch.id, None)
+                            else:
+                                logger.exception(
+                                    "Failed to seal epoch %s (attempt %s); will retry",
+                                    epoch.id,
+                                    failure_count,
+                                )
+                                raise
 
         except asyncio.CancelledError:
             logger.info("Epoch sealing job cancelled, shutting down")

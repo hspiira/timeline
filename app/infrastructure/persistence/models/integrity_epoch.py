@@ -5,9 +5,10 @@ Represents a bounded segment of the hash chain per (tenant, subject).
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, DateTime, Enum as SaEnum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.domain.enums import IntegrityEpochStatus
 from app.infrastructure.persistence.database import Base
 from app.infrastructure.persistence.models.mixins import CuidMixin
 
@@ -41,5 +42,9 @@ class IntegrityEpoch(CuidMixin, Base):
     )
     merkle_root: Mapped[str | None] = mapped_column(String(64), nullable=True)
     profile_snapshot: Mapped[str] = mapped_column(String(20), nullable=False)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="OPEN")
+    status: Mapped[IntegrityEpochStatus] = mapped_column(
+        SaEnum(IntegrityEpochStatus, name="integrity_epoch_status", create_constraint=False),
+        nullable=False,
+        default=IntegrityEpochStatus.OPEN,
+    )
 

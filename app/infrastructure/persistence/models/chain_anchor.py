@@ -9,11 +9,20 @@ and leaf set at anchor time without changing current logic.
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, LargeBinary, String, Text
+from sqlalchemy import (
+    DateTime,
+    Enum as SaEnum,
+    ForeignKey,
+    Integer,
+    LargeBinary,
+    String,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
 
+from app.domain.enums import ChainAnchorStatus
 from app.infrastructure.persistence.database import Base
 from app.infrastructure.persistence.models.mixins import CuidMixin
 
@@ -42,8 +51,11 @@ class ChainAnchor(CuidMixin, Base):
     tsa_url: Mapped[str] = mapped_column(String, nullable=False)
     tsa_receipt: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     tsa_serial: Mapped[str | None] = mapped_column(String, nullable=True)
-    status: Mapped[str] = mapped_column(
-        String, nullable=False, index=True, server_default="pending"
+    status: Mapped[ChainAnchorStatus] = mapped_column(
+        SaEnum(ChainAnchorStatus, create_constraint=False),
+        nullable=False,
+        index=True,
+        server_default=ChainAnchorStatus.PENDING.value,
     )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

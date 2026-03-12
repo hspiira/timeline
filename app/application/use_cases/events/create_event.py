@@ -25,6 +25,7 @@ from app.application.services.tsa_batch_queue import (
     DEFAULT_TSA_BATCH_QUEUE,
 )
 from app.domain.entities.event import EventEntity
+from app.domain.enums import EventIntegrityStatus, IntegrityProfile
 from app.domain.exceptions import (
     ChainForkError,
     ResourceNotFoundException,
@@ -108,13 +109,14 @@ class EventService:
         prev_hash: str | None,
     ) -> tuple[EventResult, bool]:
         """Persist one event into the given epoch; used by with_open_epoch. Returns (created, is_first)."""
+        profile = IntegrityProfile(assignment.profile_snapshot)
         integrity_status = (
-            "VALID"
-            if assignment.profile_snapshot == "STANDARD"
-            else "PENDING_ANCHOR"
+            EventIntegrityStatus.VALID.value
+            if profile == IntegrityProfile.STANDARD
+            else EventIntegrityStatus.PENDING_ANCHOR.value
         )
         merkle_leaf_hash = (
-            event_hash if assignment.profile_snapshot == "LEGAL_GRADE" else None
+            event_hash if profile == IntegrityProfile.LEGAL_GRADE else None
         )
         created = await self.event_repo.create_event(
             tenant_id,
@@ -125,10 +127,7 @@ class EventService:
             integrity_status=integrity_status,
             merkle_leaf_hash=merkle_leaf_hash,
         )
-        if (
-            self._tsa_batch_queue
-            and assignment.profile_snapshot == "COMPLIANCE"
-        ):
+        if self._tsa_batch_queue and profile == IntegrityProfile.COMPLIANCE:
             await self._tsa_batch_queue.enqueue(
                 TsaBatchItem(
                     tenant_id=tenant_id,
@@ -375,7 +374,7 @@ class EventService:
                             previous_hash=prev_hash,
                         )
                         epoch_id: str | None = None
-                        integrity_status = "VALID"
+                        integrity_status = EventIntegrityStatus.VALID.value
                         merkle_leaf_hash: str | None = None
                         is_first = False
                         if self.epoch_service:
@@ -383,14 +382,15 @@ class EventService:
                             n = events_added_per_subject[event_data.subject_id]
                             is_first = assignment.event_count + n == 0
                             epoch_id = assignment.epoch_id
+                            prof = IntegrityProfile(assignment.profile_snapshot)
                             integrity_status = (
-                                "VALID"
-                                if assignment.profile_snapshot == "STANDARD"
-                                else "PENDING_ANCHOR"
+                                EventIntegrityStatus.VALID.value
+                                if prof == IntegrityProfile.STANDARD
+                                else EventIntegrityStatus.PENDING_ANCHOR.value
                             )
                             merkle_leaf_hash = (
                                 event_hash
-                                if assignment.profile_snapshot == "LEGAL_GRADE"
+                                if prof == IntegrityProfile.LEGAL_GRADE
                                 else None
                             )
                             epoch_meta.append((assignment.epoch_id, is_first))
@@ -432,7 +432,7 @@ class EventService:
                         for ev, (eid, first) in zip(created, epoch_meta):
                             # Enqueue COMPLIANCE events for TSA batch anchoring.
                             assignment = assignment_by_subject[ev.subject_id]
-                            if assignment.profile_snapshot == "COMPLIANCE":
+                            if IntegrityProfile(assignment.profile_snapshot) == IntegrityProfile.COMPLIANCE:
                                 await self._tsa_batch_queue.enqueue(
                                     TsaBatchItem(
                                         tenant_id=tenant_id,

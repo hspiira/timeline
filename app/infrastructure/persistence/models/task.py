@@ -2,9 +2,10 @@
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text
+from sqlalchemy import DateTime, Enum as SaEnum, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.domain.enums import TaskStatus
 from app.infrastructure.persistence.database import Base
 from app.infrastructure.persistence.models.mixins import MultiTenantModel
 
@@ -30,8 +31,11 @@ class Task(MultiTenantModel, Base):
     due_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    status: Mapped[str] = mapped_column(
-        String(32), nullable=False, default="open", server_default="open"
+    status: Mapped[TaskStatus] = mapped_column(
+        SaEnum(TaskStatus, create_constraint=False),
+        nullable=False,
+        default=TaskStatus.OPEN,
+        server_default=TaskStatus.OPEN.value,
     )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 

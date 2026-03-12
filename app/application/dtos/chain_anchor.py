@@ -16,7 +16,7 @@ class ChainAnchorResult:
     tsa_url: str
     tsa_receipt: bytes | None  # raw DER TimeStampToken; None when pending/failed
     tsa_serial: str | None
-    status: str  # pending | confirmed | failed
+    status: str  # PENDING | CONFIRMED | FAILED (ChainAnchorStatus values)
     error_message: str | None
     created_at: datetime
     # Option C readiness: event count and per-subject tips at anchor time (not populated yet).
