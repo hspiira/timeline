@@ -338,7 +338,8 @@ class EventService:
         if pairs:
             entities = seen_entities + entities
 
-        for ev, entity in zip(created, entities):
+        for ev in created:
+            entity = _event_result_to_entity(ev)
             subject = subject_by_id[ev.subject_id]
             context = PostCreateContext(
                 tenant_id=tenant_id,

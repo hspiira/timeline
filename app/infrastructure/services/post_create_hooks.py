@@ -5,8 +5,9 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
+from app.application.dtos.event import EventResult
 from app.application.interfaces.post_create_hooks import (
     IPostCreateHook,
     PostCreateContext,
@@ -38,15 +39,6 @@ class WorkflowTriggerHook:
             return
         try:
             await engine.process_event_triggers(context.entity, context.tenant_id)
-        except (
-            AssertionError,
-            AttributeError,
-            IndexError,
-            KeyError,
-            NameError,
-            TypeError,
-        ):
-            raise
         except Exception:
             logger.exception(
                 "Workflow trigger failed for event %s (type: %s)",
@@ -64,7 +56,13 @@ class WebhookDispatchHook:
         pending_tasks: set[asyncio.Task[None]] | None,
     ) -> None:
         self._dispatcher = dispatcher
-        self._pending_tasks = pending_tasks or set()
+        if pending_tasks is None:
+            logger.warning(
+                "WebhookDispatchHook: no app-level pending_tasks set; task lifecycle not tracked"
+            )
+            self._pending_tasks = set()
+        else:
+            self._pending_tasks = pending_tasks
 
     async def after_event(self, context: PostCreateContext) -> None:
         """Schedule webhook dispatch; add task to pending set for lifecycle tracking."""
@@ -98,7 +96,7 @@ class WebhookDispatchHook:
         task.add_done_callback(_on_done)
 
 
-def _event_result_to_sse_payload(r: Any) -> dict:
+def _event_result_to_sse_payload(r: EventResult) -> dict:
     """Build JSON-serializable payload for SSE (event_time as ISO string)."""
     return {
         "id": r.id,
@@ -130,9 +128,15 @@ class EventStreamBroadcastHook:
         """Publish event to stream broadcaster for SSE subscribers."""
         if not self._broadcaster:
             return
-        payload = _event_result_to_sse_payload(context.event_result)
-        await self._broadcaster.publish(
-            context.tenant_id,
-            payload,
-            context.event_result.subject_id,
-        )
+        try:
+            payload = _event_result_to_sse_payload(context.event_result)
+            await self._broadcaster.publish(
+                context.tenant_id,
+                payload,
+                context.event_result.subject_id,
+            )
+        except Exception:
+            logger.exception(
+                "Event stream broadcast failed for event %s",
+                context.event_result.id,
+            )
