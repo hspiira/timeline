@@ -3,7 +3,7 @@
 import hashlib
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 
 import httpx
 import rfc3161ng

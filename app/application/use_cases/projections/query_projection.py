@@ -56,16 +56,25 @@ class QueryProjectionUseCase:
         registration = self._registry.get(name, version)
         if not registration:
             return None
-        events = await self._event_repo.get_events_chronological(
-            subject_id=subject_id,
-            tenant_id=tenant_id,
-            as_of=as_of,
-            limit=10000,
-        )
         state: dict = {}
-        for event in events:
-            state = await registration.handler(state, event)
-        return state
+        batch_size = 500
+        after_event_id: str | None = None
+        while True:
+            events = await self._event_repo.get_events_chronological(
+                subject_id=subject_id,
+                tenant_id=tenant_id,
+                as_of=as_of,
+                after_event_id=after_event_id,
+                limit=batch_size,
+            )
+            if not events:
+                break
+            for event in events:
+                state = await registration.handler(state, event)
+            if len(events) < batch_size:
+                break
+            after_event_id = events[-1].id
+        return state if state else None
 
     async def list_all_states(
         self,

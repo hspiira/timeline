@@ -1,12 +1,13 @@
 """Repository for TenantIntegrityProfileHistory."""
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.persistence.models import TenantIntegrityProfileHistory
 from app.infrastructure.persistence.repositories.base import BaseRepository
+from app.shared.utils.datetime import utc_now
 
 
 class TenantIntegrityProfileHistoryRepository(
@@ -29,7 +30,7 @@ class TenantIntegrityProfileHistoryRepository(
         cooling_off_ends_at: datetime | None = None,
     ) -> TenantIntegrityProfileHistory:
         """Insert a new history row and return it."""
-        now = datetime.now(timezone.utc)
+        now = utc_now()
         obj = TenantIntegrityProfileHistory(
             tenant_id=tenant_id,
             previous_profile=previous_profile,

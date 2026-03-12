@@ -20,6 +20,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    """Add the ``seal_retry_count`` column to ``integrity_epoch``."""
     op.add_column(
         "integrity_epoch",
         sa.Column("seal_retry_count", sa.Integer(), nullable=False, server_default="0"),
@@ -27,4 +28,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Drop the ``seal_retry_count`` column from ``integrity_epoch``."""
     op.drop_column("integrity_epoch", "seal_retry_count")

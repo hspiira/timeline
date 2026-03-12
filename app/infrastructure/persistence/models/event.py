@@ -45,7 +45,12 @@ class Event(CuidMixin, TenantMixin, Base):
         String, ForeignKey("integrity_epoch.id"), nullable=True
     )
     integrity_status: Mapped[EventIntegrityStatus] = mapped_column(
-        SaEnum(EventIntegrityStatus, create_constraint=False),
+        SaEnum(
+            EventIntegrityStatus,
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+            native_enum=False,
+            create_constraint=False,
+        ),
         nullable=False,
         server_default=EventIntegrityStatus.VALID.value,
     )

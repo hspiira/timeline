@@ -6,10 +6,12 @@ Records chain break detections and repair workflows.
 from datetime import datetime
 
 from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, String, Text
+from sqlalchemy import Enum as SaEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.persistence.database import Base
 from app.infrastructure.persistence.models.mixins import CuidMixin
+from app.domain.enums import ChainRepairStatus
 
 
 class ChainRepairLog(CuidMixin, Base):
@@ -34,11 +36,15 @@ class ChainRepairLog(CuidMixin, Base):
     )
     break_at_event_seq: Mapped[int] = mapped_column(BigInteger, nullable=False)
     break_reason: Mapped[str] = mapped_column(Text, nullable=False)
-    repair_initiated_by: Mapped[str] = mapped_column(
-        String, ForeignKey("app_user.id"), nullable=False
+    repair_initiated_by: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey("app_user.id", ondelete="SET NULL"),
+        nullable=True,
     )
     repair_approved_by: Mapped[str | None] = mapped_column(
-        String, ForeignKey("app_user.id"), nullable=True
+        String,
+        ForeignKey("app_user.id", ondelete="SET NULL"),
+        nullable=True,
     )
     approval_required: Mapped[bool] = mapped_column(Boolean, nullable=False)
     repair_reference: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -48,7 +54,15 @@ class ChainRepairLog(CuidMixin, Base):
     new_epoch_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("integrity_epoch.id"), nullable=True
     )
-    repair_status: Mapped[str] = mapped_column(
-        String(30), nullable=False, default="PENDING_APPROVAL"
+    repair_status: Mapped[ChainRepairStatus] = mapped_column(
+        SaEnum(
+            ChainRepairStatus,
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+            native_enum=False,
+            create_constraint=False,
+        ),
+        nullable=False,
+        default=ChainRepairStatus.PENDING_APPROVAL,
+        server_default=ChainRepairStatus.PENDING_APPROVAL.value,
     )
 

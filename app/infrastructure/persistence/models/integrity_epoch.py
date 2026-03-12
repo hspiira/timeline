@@ -44,7 +44,13 @@ class IntegrityEpoch(CuidMixin, Base):
     seal_retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     profile_snapshot: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[IntegrityEpochStatus] = mapped_column(
-        SaEnum(IntegrityEpochStatus, name="integrity_epoch_status", create_constraint=False),
+        SaEnum(
+            IntegrityEpochStatus,
+            name="integrity_epoch_status",
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+            native_enum=False,
+            create_constraint=False,
+        ),
         nullable=False,
         default=IntegrityEpochStatus.OPEN,
     )

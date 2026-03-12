@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from sqlalchemy import Float, cast, func, select, update
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.application.dtos.projection import (
     ProjectionDefinitionResult,
@@ -54,6 +55,22 @@ class ProjectionRepository(BaseRepository[ProjectionDefinition]):
         q = select(ProjectionDefinition).where(ProjectionDefinition.active.is_(True))
         if tenant_id is not None:
             q = q.where(ProjectionDefinition.tenant_id == tenant_id)
+        result = await self.db.execute(q)
+        rows = result.scalars().all()
+        return [_definition_to_result(r) for r in rows]
+
+    async def list_active_for_advance(
+        self,
+        tenant_id: str | None = None,
+        limit: int | None = None,
+    ) -> list[ProjectionDefinitionResult]:
+        """Active projection definitions locked FOR UPDATE SKIP LOCKED for advancement."""
+        q = select(ProjectionDefinition).where(ProjectionDefinition.active.is_(True))
+        if tenant_id is not None:
+            q = q.where(ProjectionDefinition.tenant_id == tenant_id)
+        q = q.with_for_update(skip_locked=True)
+        if limit is not None:
+            q = q.limit(limit)
         result = await self.db.execute(q)
         rows = result.scalars().all()
         return [_definition_to_result(r) for r in rows]
@@ -129,28 +146,22 @@ class ProjectionRepository(BaseRepository[ProjectionDefinition]):
     async def upsert_state(
         self, projection_id: str, subject_id: str, state: dict
     ) -> None:
-        """Insert or update projection state for (projection_id, subject_id)."""
-        result = await self.db.execute(
-            select(ProjectionState).where(
-                ProjectionState.projection_id == projection_id,
-                ProjectionState.subject_id == subject_id,
-            )
+        """Insert or update projection state for (projection_id, subject_id). Uses PostgreSQL ON CONFLICT for atomicity."""
+        stmt = insert(ProjectionState).values(
+            id=generate_cuid(),
+            projection_id=projection_id,
+            subject_id=subject_id,
+            state=state,
         )
-        row = result.scalar_one_or_none()
-        if row:
-            row.state = state
-            await self.db.flush()
-            await self.db.refresh(row)
-        else:
-            new_id = generate_cuid()
-            obj = ProjectionState(
-                id=new_id,
-                projection_id=projection_id,
-                subject_id=subject_id,
-                state=state,
-            )
-            self.db.add(obj)
-            await self.db.flush()
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[ProjectionState.projection_id, ProjectionState.subject_id],
+            set_={
+                "state": state,
+                "updated_at": func.now(),
+            },
+        )
+        await self.db.execute(stmt)
+        await self.db.flush()
 
     async def list_states(
         self, projection_id: str, skip: int = 0, limit: int = 100
@@ -159,23 +170,12 @@ class ProjectionRepository(BaseRepository[ProjectionDefinition]):
         result = await self.db.execute(
             select(ProjectionState)
             .where(ProjectionState.projection_id == projection_id)
+            .order_by(ProjectionState.updated_at, ProjectionState.id)
             .offset(skip)
             .limit(limit)
         )
         rows = result.scalars().all()
         return [_state_to_result(r) for r in rows]
-
-    async def lock_for_advance(
-        self, projection_id: str
-    ) -> ProjectionDefinitionResult | None:
-        """SELECT ... FOR UPDATE SKIP LOCKED on the definition row. Returns None if locked by another worker."""
-        result = await self.db.execute(
-            select(ProjectionDefinition)
-            .where(ProjectionDefinition.id == projection_id)
-            .with_for_update(skip_locked=True)
-        )
-        row = result.scalar_one_or_none()
-        return _definition_to_result(row) if row else None
 
     async def deactivate(
         self, tenant_id: str, name: str, version: int

@@ -169,6 +169,7 @@ def upgrade() -> None:
         sa.Column("first_event_seq", sa.BigInteger(), nullable=False),
         sa.Column("last_event_seq", sa.BigInteger(), nullable=True),
         sa.Column("event_count", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("seal_retry_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column(
             "opened_at",
             sa.DateTime(timezone=True),
@@ -197,7 +198,7 @@ def upgrade() -> None:
             name="uq_epoch_number",
         ),
         sa.CheckConstraint(
-            "status IN ('Open','Sealed','Broken','Repaired')",
+            "status IN ('Open','Sealed','Broken','Repaired','Failed')",
             name="chk_epoch_status",
         ),
     )

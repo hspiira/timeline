@@ -52,9 +52,15 @@ class ChainAnchor(CuidMixin, Base):
     tsa_receipt: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     tsa_serial: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[ChainAnchorStatus] = mapped_column(
-        SaEnum(ChainAnchorStatus, create_constraint=False),
+        SaEnum(
+            ChainAnchorStatus,
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+            native_enum=False,
+            create_constraint=False,
+        ),
         nullable=False,
         index=True,
+        default=ChainAnchorStatus.PENDING,
         server_default=ChainAnchorStatus.PENDING.value,
     )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)

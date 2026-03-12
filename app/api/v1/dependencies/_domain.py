@@ -72,6 +72,7 @@ from app.infrastructure.persistence.database import (
 from app.infrastructure.persistence.repositories import (
     ChainAnchorRepository,
     ProjectionRepository,
+    MerkleNodeRepository,
     WebhookSubscriptionRepository,
     DocumentCategoryRepository,
     DocumentRepository,
@@ -850,6 +851,13 @@ async def get_chain_anchor_repo(
     return ChainAnchorRepository(db)
 
 
+async def get_merkle_node_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MerkleNodeRepository:
+    """Merkle node repository for read operations (proof lookup)."""
+    return MerkleNodeRepository(db)
+
+
 # ---------------------------------------------------------------------------
 # Webhook subscriptions
 # ---------------------------------------------------------------------------
@@ -895,7 +903,7 @@ async def get_projection_management_use_case(
     repo: Annotated[ProjectionRepository, Depends(get_projection_repo_for_write)],
 ) -> ProjectionManagementUseCase:
     """Projection management use case (create, list, deactivate, rebuild)."""
-    return ProjectionManagementUseCase(projection_repo=repo)
+    return ProjectionManagementUseCase(projection_repo=repo, registry=get_registry())
 
 
 async def get_query_projection_use_case(

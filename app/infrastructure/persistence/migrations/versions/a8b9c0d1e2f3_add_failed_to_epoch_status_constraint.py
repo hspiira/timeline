@@ -27,6 +27,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # Normalize any FAILED epochs to BROKEN before tightening the constraint.
+    op.execute("UPDATE integrity_epoch SET status = 'Broken' WHERE status = 'Failed'")
     op.drop_constraint("chk_epoch_status", "integrity_epoch", type_="check")
     op.create_check_constraint(
         "chk_epoch_status",

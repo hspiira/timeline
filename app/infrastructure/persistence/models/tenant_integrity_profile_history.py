@@ -28,8 +28,10 @@ class TenantIntegrityProfileHistory(CuidMixin, Base):
     changed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    changed_by_user_id: Mapped[str] = mapped_column(
-        String, ForeignKey("app_user.id"), nullable=False
+    changed_by_user_id: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey("app_user.id", ondelete="SET NULL"),
+        nullable=True,
     )
     change_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     effective_from_seq: Mapped[int] = mapped_column(BigInteger, nullable=False)

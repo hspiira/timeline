@@ -179,14 +179,22 @@ class ChainRepairService:
         )
         return self._to_record(row)
 
-    async def approve_repair(self, repair_id: str, approver_id: str) -> ChainRepairRecord:
-        """Approve a pending repair using four-eyes rule (approver ≠ initiator) and return updated record."""
+    async def approve_repair(
+        self,
+        repair_id: str,
+        approver_id: str,
+        tenant_id: str,
+    ) -> ChainRepairRecord:
+        """Approve a pending repair using four-eyes rule (approver ≠ initiator) and return updated record.
+
+        Tenant ownership is enforced before mutation to prevent cross-tenant approvals.
+        """
         repair = await self._repair_repo.get_by_id(repair_id)
-        if not repair:
+        if not repair or repair.tenant_id != tenant_id:
             raise ValueError(f"Repair id {repair_id!r} not found")
         if not repair.approval_required:
             # Nothing to do; implicitly approved.
-            return
+            return self._to_record(repair)
         if repair.repair_initiated_by == approver_id:
             raise PermissionError("Approver must differ from initiator (four-eyes)")
         await self._repair_repo.update_status(

@@ -105,9 +105,13 @@ async def run_tsa_batch_job(app: FastAPI) -> None:
                             )
                 except Exception:
                     logger.exception(
-                        "TSA batch anchoring failed for tenant_id=%s",
+                        "TSA batch anchoring failed for tenant_id=%s; re-queuing %s items",
                         tenant_id,
+                        len(tenant_items),
                     )
+                    # Re-enqueue failed tenant batch so it can be retried on the next cycle.
+                    for item in tenant_items:
+                        await DEFAULT_TSA_BATCH_QUEUE.enqueue(item)
         except asyncio.CancelledError:
             logger.info("TSA batch job cancelled, shutting down")
             raise

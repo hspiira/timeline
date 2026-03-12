@@ -28,7 +28,7 @@ class ChainRepairLogRepository(BaseRepository[ChainRepairLog]):
         repair_reference: str | None,
     ) -> ChainRepairLog:
         """Insert a new chain_repair_log row and return it."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(datetime.UTC)
         obj = ChainRepairLog(
             tenant_id=tenant_id,
             epoch_id=epoch_id,
@@ -38,7 +38,11 @@ class ChainRepairLogRepository(BaseRepository[ChainRepairLog]):
             repair_initiated_by=repair_initiated_by,
             approval_required=approval_required,
             repair_reference=repair_reference,
-            repair_status="PENDING_APPROVAL" if approval_required else "APPROVED",
+            repair_status=(
+                ChainRepairStatus.PENDING_APPROVAL.value
+                if approval_required
+                else ChainRepairStatus.APPROVED.value
+            ),
         )
         created = await self.create(obj)
         return created

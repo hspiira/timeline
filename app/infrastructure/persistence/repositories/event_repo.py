@@ -8,11 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.application.dtos.event import EventCreate, EventResult, EventToPersist
 from app.domain.enums import EventIntegrityStatus
 from app.infrastructure.persistence.models.event import Event
+from app.infrastructure.persistence.models.subject import Subject
 from app.infrastructure.persistence.repositories.base import BaseRepository
 
 
 def _event_to_result(e: Event) -> EventResult:
     """Map ORM Event to application EventResult."""
+    if e.integrity_status is None:
+        raise ValueError("Event.integrity_status must be populated before mapping")
     return EventResult(
         id=e.id,
         tenant_id=e.tenant_id,
@@ -32,7 +35,7 @@ def _event_to_result(e: Event) -> EventResult:
         integrity_status=(
             e.integrity_status.value
             if isinstance(e.integrity_status, EventIntegrityStatus)
-            else (e.integrity_status or EventIntegrityStatus.VALID.value)
+            else e.integrity_status
         ),
         tsa_anchor_id=e.tsa_anchor_id,
         merkle_leaf_hash=e.merkle_leaf_hash,
@@ -384,17 +387,20 @@ class EventRepository(BaseRepository[Event]):
         tenant_id: str,
         since_seq: int,
         limit: int = 1000,
+        subject_type: str | None = None,
     ) -> list[EventResult]:
         """Return events for tenant with event_seq > since_seq, ordered by event_seq asc (for projection engine watermark polling)."""
-        result = await self.db.execute(
-            select(Event)
-            .where(
-                Event.tenant_id == tenant_id,
-                Event.event_seq > since_seq,
-            )
-            .order_by(asc(Event.event_seq))
-            .limit(limit)
+        q = select(Event).where(
+            Event.tenant_id == tenant_id,
+            Event.event_seq > since_seq,
         )
+        if subject_type is not None:
+            q = (
+                q.join(Subject, Event.subject_id == Subject.id)
+                .where(Subject.subject_type == subject_type)
+            )
+        q = q.order_by(asc(Event.event_seq)).limit(limit)
+        result = await self.db.execute(q)
         events = [_event_to_result(e) for e in result.scalars().all()]
         for ev in events:
             if ev.event_seq is None:
@@ -467,7 +473,9 @@ class EventRepository(BaseRepository[Event]):
         ]
         self.db.add_all(objs)
         await self.db.flush()
-        # Refresh so server-generated event_seq is loaded (server_default=nextval).
-        for o in objs:
-            await self.db.refresh(o)
-        return [_event_to_result(o) for o in objs]
+        # Load server-generated event_seq values for all inserted rows in one query.
+        result = await self.db.execute(
+            select(Event).where(Event.id.in_([o.id for o in objs]))
+        )
+        events_by_id = {event.id: event for event in result.scalars().all()}
+        return [_event_to_result(events_by_id[o.id]) for o in objs]

@@ -3,7 +3,18 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, Integer, String, Text, text
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -15,6 +26,12 @@ class ProjectionDefinition(Base):
 
     __tablename__ = "projection_definition"
     __table_args__ = (
+        UniqueConstraint(
+            "tenant_id",
+            "name",
+            "version",
+            name="uq_projection_definition_tenant_name_version",
+        ),
         Index(
             "ix_projection_definition_tenant",
             "tenant_id",
@@ -43,6 +60,13 @@ class ProjectionState(Base):
     """Projection state per subject: JSONB state updated by projection engine."""
 
     __tablename__ = "projection_state"
+    __table_args__ = (
+        UniqueConstraint(
+            "projection_id",
+            "subject_id",
+            name="uq_projection_state_projection_subject",
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     projection_id: Mapped[str] = mapped_column(

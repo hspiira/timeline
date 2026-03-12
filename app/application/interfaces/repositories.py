@@ -124,6 +124,7 @@ class IEventRepository(Protocol):
         tenant_id: str,
         since_seq: int,
         limit: int = 1000,
+        subject_type: str | None = None,
     ) -> list[EventResult]:
         """Return events for tenant with event_seq > since_seq, ordered by event_seq asc."""
 
@@ -1143,6 +1144,13 @@ class IProjectionRepository(Protocol):
     ) -> list["ProjectionDefinitionResult"]:
         """All active projection definitions, optionally filtered by tenant."""
 
+    async def list_active_for_advance(
+        self,
+        tenant_id: str | None = None,
+        limit: int | None = None,
+    ) -> list["ProjectionDefinitionResult"]:
+        """Active projection definitions locked FOR UPDATE SKIP LOCKED for advancement."""
+
     async def list_by_tenant(
         self, tenant_id: str
     ) -> list["ProjectionDefinitionResult"]:
@@ -1179,11 +1187,6 @@ class IProjectionRepository(Protocol):
         self, projection_id: str, skip: int = 0, limit: int = 100
     ) -> list["ProjectionStateResult"]:
         """List projection states for projection (paginated)."""
-
-    async def lock_for_advance(
-        self, projection_id: str
-    ) -> "ProjectionDefinitionResult | None":
-        """SELECT ... FOR UPDATE SKIP LOCKED on the definition row. Returns None if another worker has the lock."""
 
     async def deactivate(
         self, tenant_id: str, name: str, version: int

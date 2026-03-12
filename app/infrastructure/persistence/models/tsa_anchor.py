@@ -26,7 +26,12 @@ class TsaAnchor(CuidMixin, Base):
         index=True,
     )
     anchor_type: Mapped[TsaAnchorType] = mapped_column(
-        SaEnum(TsaAnchorType, create_constraint=False),
+        SaEnum(
+            TsaAnchorType,
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+            native_enum=False,
+            create_constraint=False,
+        ),
         nullable=False,
     )
     payload_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
@@ -41,7 +46,12 @@ class TsaAnchor(CuidMixin, Base):
         DateTime(timezone=True), nullable=True
     )
     verification_status: Mapped[TsaVerificationStatus] = mapped_column(
-        SaEnum(TsaVerificationStatus, create_constraint=False),
+        SaEnum(
+            TsaVerificationStatus,
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+            native_enum=False,
+            create_constraint=False,
+        ),
         nullable=False,
         default=TsaVerificationStatus.PENDING,
     )

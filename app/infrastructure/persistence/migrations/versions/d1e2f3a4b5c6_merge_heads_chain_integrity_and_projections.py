@@ -9,8 +9,6 @@ No schema changes; establishes a single linear head.
 
 from collections.abc import Sequence
 
-from alembic import op
-
 revision: str = "d1e2f3a4b5c6"
 down_revision: str | Sequence[str] | None = (
     "a7b8c9d0e1f2",

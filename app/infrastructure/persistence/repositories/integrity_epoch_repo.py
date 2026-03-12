@@ -119,7 +119,7 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
             first_event_seq=None,
             last_event_seq=None,
             event_count=0,
-            opened_at=datetime.now(timezone.utc),
+            opened_at=datetime.now(datetime.UTC),
             profile_snapshot=profile_snapshot,
             status=IntegrityEpochStatus.OPEN,
         )

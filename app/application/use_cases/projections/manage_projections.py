@@ -5,16 +5,23 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from app.application.dtos.projection import ProjectionDefinitionResult
+from app.domain.exceptions import TimelineException
 
 if TYPE_CHECKING:
     from app.application.interfaces.repositories import IProjectionRepository
+    from app.core.projections import ProjectionRegistry
 
 
 class ProjectionManagementUseCase:
     """CRUD for projection definitions; engine picks up active definitions automatically."""
 
-    def __init__(self, projection_repo: "IProjectionRepository") -> None:
+    def __init__(
+        self,
+        projection_repo: "IProjectionRepository",
+        registry: "ProjectionRegistry",
+    ) -> None:
         self._repo = projection_repo
+        self._registry = registry
 
     async def create_projection(
         self,
@@ -24,6 +31,16 @@ class ProjectionManagementUseCase:
         subject_type: str | None = None,
     ) -> ProjectionDefinitionResult:
         """Create a projection definition (last_event_seq=0); engine will build it."""
+        registration = self._registry.get(name, version)
+        if registration is None:
+            raise TimelineException(
+                message=(
+                    f"Projection handler not registered for name={name!r}, "
+                    f"version={version}"
+                ),
+                error_code="PROJECTION_HANDLER_NOT_REGISTERED",
+                details={"name": name, "version": version},
+            )
         return await self._repo.create(
             tenant_id=tenant_id,
             name=name,

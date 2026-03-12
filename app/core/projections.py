@@ -32,7 +32,15 @@ class ProjectionRegistry:
         fn: Callable[..., Awaitable[dict[str, Any]]],
     ) -> None:
         """Register a projection handler."""
-        self._handlers[(name, version)] = ProjectionRegistration(
+        key = (name, version)
+        if key in self._handlers:
+            existing = self._handlers[key]
+            raise ValueError(
+                "Duplicate projection registration for "
+                f"{name!r}@v{version} (existing_subject_type="
+                f"{existing.subject_type!r}, new_subject_type={subject_type!r})"
+            )
+        self._handlers[key] = ProjectionRegistration(
             name=name,
             version=version,
             subject_type=subject_type,

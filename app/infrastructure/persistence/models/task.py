@@ -32,7 +32,12 @@ class Task(MultiTenantModel, Base):
         DateTime(timezone=True), nullable=True
     )
     status: Mapped[TaskStatus] = mapped_column(
-        SaEnum(TaskStatus, create_constraint=False),
+        SaEnum(
+            TaskStatus,
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+            native_enum=False,
+            create_constraint=False,
+        ),
         nullable=False,
         default=TaskStatus.OPEN,
         server_default=TaskStatus.OPEN.value,

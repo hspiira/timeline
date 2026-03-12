@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable
 
+from sqlalchemy.exc import IntegrityError
+
+from app.domain.exceptions import TenantNotFoundException, TimelineException
 from app.application.dtos.event import EventResult
 from app.application.dtos.integrity import OpenEpochAssignment
 
@@ -15,6 +18,9 @@ if TYPE_CHECKING:
 
 class EpochService:
     """Resolves or creates the open integrity epoch for a (tenant, subject) and returns assignment."""
+
+    # Maximum retries when allocating a new open epoch to handle concurrent creators.
+    EPOCH_ALLOCATION_MAX_RETRIES = 3
 
     def __init__(
         self,
@@ -35,30 +41,50 @@ class EpochService:
         consistently. This method is for read-only resolution or bulk flows that call
         record_events_appended_bulk after persisting.
         """
+        # Fast path: return existing open epoch if any (row-locked).
         existing = await self._epoch_repo.get_open_epoch_for_update(
             tenant_id, subject_id
         )
         if existing is not None:
             return existing
 
-        tenant = await self._tenant_repo.get_by_id(tenant_id)
-        if not tenant:
-            raise ValueError(f"Tenant not found: {tenant_id}")
-        profile_snapshot = tenant.integrity_profile.value
+        last_error: Exception | None = None
+        # No open epoch; allocate with limited retries to handle concurrent creators.
+        for _ in range(self.EPOCH_ALLOCATION_MAX_RETRIES):
+            tenant = await self._tenant_repo.get_by_id(tenant_id)
+            if not tenant:
+                raise TenantNotFoundException(tenant_id)
+            profile_snapshot = tenant.integrity_profile.value
 
-        next_number = await self._epoch_repo.get_next_epoch_number(
-            tenant_id, subject_id
-        )
-        genesis_hash = await self._epoch_repo.get_latest_sealed_terminal_hash(
-            tenant_id, subject_id
-        ) or "GENESIS"
+            next_number = await self._epoch_repo.get_next_epoch_number(
+                tenant_id, subject_id
+            )
+            genesis_hash = await self._epoch_repo.get_latest_sealed_terminal_hash(
+                tenant_id, subject_id
+            ) or "GENESIS"
 
-        return await self._epoch_repo.create_epoch(
-            tenant_id=tenant_id,
-            subject_id=subject_id,
-            epoch_number=next_number,
-            genesis_hash=genesis_hash,
-            profile_snapshot=profile_snapshot,
+            try:
+                return await self._epoch_repo.create_epoch(
+                    tenant_id=tenant_id,
+                    subject_id=subject_id,
+                    epoch_number=next_number,
+                    genesis_hash=genesis_hash,
+                    profile_snapshot=profile_snapshot,
+                )
+            except IntegrityError as exc:
+                # Likely a concurrent insert for the same (tenant, subject, epoch_number).
+                last_error = exc
+                existing = await self._epoch_repo.get_open_epoch_for_update(
+                    tenant_id, subject_id
+                )
+                if existing is not None:
+                    return existing
+
+        # Exhausted retries without finding/creating an open epoch; raise domain error.
+        raise TimelineException(
+            message="Failed to allocate open integrity epoch",
+            error_code="CHAIN_INTEGRITY_ERROR",
+            details={"tenant_id": tenant_id, "subject_id": subject_id, "cause": str(last_error)},
         )
 
     async def with_open_epoch(
@@ -77,8 +103,10 @@ class EpochService:
         assignment = await self.get_or_create_open_epoch(tenant_id, subject_id)
         created, is_first = await append_fn(assignment)
         if created.event_seq is None:
-            raise ValueError(
-                "append_fn returned EventResult with no event_seq; epoch not updated"
+            raise TimelineException(
+                message="append_fn returned EventResult with no event_seq; epoch not updated",
+                error_code="CHAIN_INTEGRITY_ERROR",
+                details={"tenant_id": tenant_id, "subject_id": subject_id},
             )
         await self._epoch_repo.increment_epoch_event(
             assignment.epoch_id,

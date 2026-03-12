@@ -153,9 +153,8 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
                 )
             # CDC, Kafka, file_watch: register when implemented
             app.state.connector_runner = runner
-            app.state.connector_runner_task = asyncio.create_task(
-                runner.start_all(), name="connector_runner"
-            )
+            await runner.start_all()
+            app.state.connector_runner_task = None
             logger.info("Connector runner started")
         else:
             app.state.connector_runner = None
@@ -233,16 +232,6 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
         await connector_runner.stop_all()
         app.state.connector_runner = None
         logger.info("Connector runner stopped")
-
-    connector_runner_task = getattr(app.state, "connector_runner_task", None)
-    if connector_runner_task is not None:
-        connector_runner_task.cancel()
-        try:
-            await connector_runner_task
-        except asyncio.CancelledError:
-            pass
-        app.state.connector_runner_task = None
-        logger.info("Connector runner task stopped")
 
     sync_task = getattr(app.state, "sync_progress_broadcast_task", None)
     if sync_task is not None:

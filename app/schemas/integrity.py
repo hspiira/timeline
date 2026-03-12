@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.domain.enums import (
     ChainRepairStatus,
@@ -96,6 +96,8 @@ class ChainRepairCreateRequest(BaseModel):
 
 class ChainRepairResponse(BaseModel):
     """Chain repair record returned from C7/C8 endpoints."""
+
+    model_config = ConfigDict(from_attributes=True)
 
     id: str
     tenant_id: str
