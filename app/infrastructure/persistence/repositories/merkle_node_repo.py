@@ -56,3 +56,28 @@ class MerkleNodeRepository(BaseRepository[MerkleNode]):
         )
         return list(result.scalars().all())
 
+    async def get_leaf_by_event_seq(
+        self, epoch_id: str, event_seq: int
+    ) -> MerkleNode | None:
+        """Return the leaf node for the given event sequence in the epoch."""
+        result = await self.db.execute(
+            select(MerkleNode).where(
+                MerkleNode.epoch_id == epoch_id,
+                MerkleNode.event_seq == event_seq,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def get_node(
+        self, epoch_id: str, depth: int, position: int
+    ) -> MerkleNode | None:
+        """Return the node at the given depth and position in the epoch tree."""
+        result = await self.db.execute(
+            select(MerkleNode).where(
+                MerkleNode.epoch_id == epoch_id,
+                MerkleNode.depth == depth,
+                MerkleNode.position == position,
+            )
+        )
+        return result.scalar_one_or_none()
+

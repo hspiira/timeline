@@ -28,7 +28,7 @@ class IntegrityEpoch(CuidMixin, Base):
     epoch_number: Mapped[int] = mapped_column(BigInteger, nullable=False)
     genesis_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     terminal_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    first_event_seq: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    first_event_seq: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     last_event_seq: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     event_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     opened_at: Mapped[datetime] = mapped_column(
@@ -41,6 +41,7 @@ class IntegrityEpoch(CuidMixin, Base):
         String, ForeignKey("tsa_anchor.id"), nullable=True
     )
     merkle_root: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    seal_retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     profile_snapshot: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[IntegrityEpochStatus] = mapped_column(
         SaEnum(IntegrityEpochStatus, name="integrity_epoch_status", create_constraint=False),

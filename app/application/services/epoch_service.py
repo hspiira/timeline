@@ -31,8 +31,8 @@ class EpochService:
     ) -> OpenEpochAssignment:
         """Return the open epoch for (tenant, subject), creating one if none exists.
 
-        Prefer with_open_epoch() when appending an event so record_event_appended is
-        guaranteed. This method is for read-only resolution or bulk flows that call
+        Prefer with_open_epoch() when appending an event so the epoch is updated
+        consistently. This method is for read-only resolution or bulk flows that call
         record_events_appended_bulk after persisting.
         """
         existing = await self._epoch_repo.get_open_epoch_for_update(
@@ -69,7 +69,7 @@ class EpochService:
             [OpenEpochAssignment], "Awaitable[tuple[EventResult, bool]]"
         ],
     ) -> tuple[OpenEpochAssignment, EventResult]:
-        """Get or create open epoch, run append_fn(assignment), then record_event_appended.
+        """Get or create open epoch, run append_fn(assignment), then record the append.
 
         Ensures increment_epoch_event is always called after a successful append.
         append_fn must persist the event and return (event_result, is_first).
@@ -87,13 +87,13 @@ class EpochService:
         )
         return assignment, created
 
-    async def record_event_appended(
+    async def _record_event_appended(
         self,
         epoch_id: str,
         event_seq: int,
         is_first: bool,
     ) -> None:
-        """Record that an event was appended to the epoch (call after persisting the event)."""
+        """Record that an event was appended (only for bulk path; use with_open_epoch for single appends)."""
         await self._epoch_repo.increment_epoch_event(
             epoch_id,
             event_seq,

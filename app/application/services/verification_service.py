@@ -96,14 +96,19 @@ class VerificationService:
         return all_events
 
     def _sort_events_chain_order(self, events: list[EventResult]) -> list[EventResult]:
-        """Sort events by chain order: event_seq ascending (tiebreak event_time)."""
-        return sorted(
-            events,
-            key=lambda e: (
-                e.event_seq if e.event_seq is not None else -1,
-                e.event_time,
-            ),
-        )
+        """Sort events by chain order: event_seq ascending (tiebreak event_time).
+
+        Events with event_seq=None are excluded so they do not sort before genesis
+        (which would cause false CHAIN_BREAK in verification).
+        """
+        with_seq = [e for e in events if e.event_seq is not None]
+        dropped = len(events) - len(with_seq)
+        if dropped:
+            logger.warning(
+                "Excluded %s event(s) with no event_seq from chain verification",
+                dropped,
+            )
+        return sorted(with_seq, key=lambda e: (e.event_seq, e.event_time))
 
     async def verify_subject_chain(
         self, subject_id: str, tenant_id: str

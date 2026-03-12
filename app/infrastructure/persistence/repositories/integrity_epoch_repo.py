@@ -141,11 +141,12 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
         tsa_anchor_id: str | None = None,
         merkle_root: str | None = None,
     ) -> None:
-        """Mark epoch as SEALED; set terminal_hash, sealed_at, optional tsa_anchor_id and merkle_root."""
+        """Mark epoch as SEALED; set terminal_hash, sealed_at, reset seal_retry_count."""
         values: dict[str, object] = {
             "status": IntegrityEpochStatus.SEALED,
             "terminal_hash": terminal_hash,
             "sealed_at": datetime.now(timezone.utc),
+            "seal_retry_count": 0,
         }
         if tsa_anchor_id is not None:
             values["tsa_anchor_id"] = tsa_anchor_id
@@ -170,7 +171,7 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
                 .values(
                     first_event_seq=last_event_seq,
                     last_event_seq=last_event_seq,
-                    event_count=1,
+                    event_count=IntegrityEpoch.event_count + 1,
                 )
             )
         else:
@@ -183,6 +184,18 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
                 )
             )
         await self.db.execute(stmt)
+
+    async def increment_seal_retry_count(self, epoch_id: str) -> int:
+        """Increment seal_retry_count for the epoch. Returns the new count (persisted across restarts)."""
+        stmt = (
+            update(IntegrityEpoch)
+            .where(IntegrityEpoch.id == epoch_id)
+            .values(seal_retry_count=IntegrityEpoch.seal_retry_count + 1)
+            .returning(IntegrityEpoch.seal_retry_count)
+        )
+        result = await self.db.execute(stmt)
+        value = result.scalar_one_or_none()
+        return int(value) if value is not None else 0
 
     async def mark_epoch_failed(self, epoch_id: str) -> None:
         """Mark epoch as FAILED so it is skipped by get_sealable_epochs."""

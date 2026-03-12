@@ -52,8 +52,6 @@ async def run_epoch_sealing_job(
     )
     tsa_client = TsaClient(config=tsa_config, http_client=http_client)
 
-    failure_counts: dict[str, int] = {}
-
     while True:
         try:
             if session_factory is None:
@@ -144,6 +142,7 @@ async def run_epoch_sealing_job(
                                 tsa_anchor_id=tsa_anchor_id,
                                 merkle_root=merkle_root,
                             )
+                            # seal_epoch resets seal_retry_count so no in-memory state to clear.
                             # Use current tenant profile for next epoch (not stale snapshot).
                             tenant = await tenant_repo.get_by_id(epoch.tenant_id)
                             next_profile = (
@@ -160,24 +159,24 @@ async def run_epoch_sealing_job(
                                 profile_snapshot=next_profile,
                             )
                         except Exception:
-                            failure_count = failure_counts.get(epoch.id, 0) + 1
-                            failure_counts[epoch.id] = failure_count
-                            if failure_count >= EPOCH_SEAL_MAX_RETRIES:
+                            new_count = await epoch_repo.increment_seal_retry_count(
+                                epoch.id
+                            )
+                            if new_count >= EPOCH_SEAL_MAX_RETRIES:
                                 logger.error(
                                     "Failed to seal epoch %s after %s attempts; marking as FAILED",
                                     epoch.id,
-                                    failure_count,
+                                    new_count,
                                 )
                                 await epoch_repo.mark_epoch_failed(epoch.id)
-                                # Do not re-raise; move on to other epochs.
-                                failure_counts.pop(epoch.id, None)
                             else:
                                 logger.exception(
                                     "Failed to seal epoch %s (attempt %s); will retry",
                                     epoch.id,
-                                    failure_count,
+                                    new_count,
                                 )
-                                raise
+                            # Break so the transaction commits (increment persists); next poll will retry or skip.
+                            break
 
         except asyncio.CancelledError:
             logger.info("Epoch sealing job cancelled, shutting down")

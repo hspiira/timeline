@@ -12,8 +12,21 @@ if TYPE_CHECKING:
     from app.application.interfaces.repositories import IEventRepository
 
 
+class MerkleNodeView(Protocol):
+    """Structural view of a Merkle node for proof traversal (depth, position, child hashes)."""
+
+    depth: int
+    position: int
+    left_child_hash: str | None
+    right_child_hash: str | None
+
+
+# (position, node_hash, left_child_hash, right_child_hash, event_seq|None) per level in build.
+NodeRow = tuple[int, str, str | None, str | None, int | None]
+
+
 class IMerkleNodeRepository(Protocol):
-    """Protocol for Merkle node persistence (create_node, delete_for_epoch)."""
+    """Protocol for Merkle node persistence and proof path lookup."""
 
     async def create_node(
         self,
@@ -28,6 +41,12 @@ class IMerkleNodeRepository(Protocol):
         event_seq: int | None = None,
     ) -> object: ...
     async def delete_for_epoch(self, epoch_id: str) -> None: ...
+    async def get_leaf_by_event_seq(
+        self, epoch_id: str, event_seq: int
+    ) -> MerkleNodeView | None: ...
+    async def get_node(
+        self, epoch_id: str, depth: int, position: int
+    ) -> MerkleNodeView | None: ...
 
 
 @dataclass(frozen=True)
@@ -41,8 +60,8 @@ class MerkleProofStep:
 class MerkleService:
     """Builds and stores Merkle trees per epoch and generates proofs.
 
-    TODO: add generate_proof(epoch_id, event_seq) using stored MerkleNode levels
-    as described in docs/chain_integrity_architecture.md.
+    Proof path is sibling hashes from leaf to root so a verifier can
+    recompute the root (see docs/chain_integrity_architecture.md).
     """
 
     def __init__(
@@ -52,6 +71,67 @@ class MerkleService:
     ) -> None:
         self._event_repo = event_repo
         self._merkle_repo = merkle_repo
+
+    async def generate_proof(
+        self, epoch_id: str, event_seq: int
+    ) -> list[MerkleProofStep]:
+        """Return sibling path from leaf to root for the given event in the epoch.
+
+        Verifier hashes leaf with sibling (order from is_left_sibling), then
+        repeats with each step to recompute the root.
+
+        Issues one DB round-trip per tree level (O(log N)); could be batched
+        with a single query over (depth, position) pairs for large trees.
+
+        Args:
+            epoch_id: Integrity epoch id.
+            event_seq: Event sequence number in that epoch.
+
+        Returns:
+            List of proof steps (sibling hash and side). Empty if no leaf for
+            event_seq or tree not built.
+
+        Raises:
+            LookupError: If a parent node is missing (incomplete tree).
+            ValueError: If a parent has missing child hash (data corruption).
+        """
+        leaf = await self._merkle_repo.get_leaf_by_event_seq(epoch_id, event_seq)
+        if leaf is None:
+            return []
+        # Stored tree: depth 0 = root, max depth = leaves (see build_and_store).
+        current_depth = leaf.depth
+        current_pos = leaf.position
+        path: list[MerkleProofStep] = []
+        while current_depth > 0:
+            parent_depth = current_depth - 1
+            parent_pos = current_pos // 2
+            parent = await self._merkle_repo.get_node(
+                epoch_id, parent_depth, parent_pos
+            )
+            if parent is None:
+                raise LookupError(
+                    f"Merkle tree incomplete: node missing at depth={parent_depth}, "
+                    f"position={parent_pos} (epoch_id={epoch_id!r})"
+                )
+            left_ch = parent.left_child_hash
+            right_ch = parent.right_child_hash
+            if current_pos % 2 == 0:
+                sibling_hash = right_ch
+                is_left_sibling = False
+            else:
+                sibling_hash = left_ch
+                is_left_sibling = True
+            if sibling_hash is None:
+                raise ValueError(
+                    f"Merkle node at depth={parent_depth}, position={parent_pos} "
+                    f"(epoch_id={epoch_id!r}) has missing child hash"
+                )
+            path.append(
+                MerkleProofStep(sibling_hash=sibling_hash, is_left_sibling=is_left_sibling)
+            )
+            current_depth = parent_depth
+            current_pos = parent_pos
+        return path
 
     async def build_and_store(self, tenant_id: str, epoch: object) -> str:
         """Build Merkle tree for all events in epoch and persist nodes (with child hashes).
@@ -85,8 +165,6 @@ class MerkleService:
 
         await self._merkle_repo.delete_for_epoch(epoch.id)
 
-        # Each element: (position, node_hash, left_child_hash, right_child_hash, event_seq|None).
-        NodeRow = tuple[int, str, str | None, str | None, int | None]
         current_level: list[NodeRow] = [
             (idx, h, None, None, leaves[idx][0]) for idx, (_, h) in enumerate(leaves)
         ]
