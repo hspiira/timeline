@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from app.application.dtos.tenant import TenantResult
     from app.application.dtos.user import UserResult
     from app.application.dtos.chain_anchor import ChainAnchorResult
+    from app.application.dtos.integrity import OpenEpochAssignment
     from app.application.dtos.webhook_subscription import (
         WebhookSubscriptionCreate,
         WebhookSubscriptionForDispatch,
@@ -80,8 +81,12 @@ class IEventRepository(Protocol):
         data: EventCreate,
         event_hash: str,
         previous_hash: str | None,
+        *,
+        epoch_id: str | None = None,
+        integrity_status: str = "VALID",
+        merkle_leaf_hash: str | None = None,
     ) -> EventResult:
-        """Create a new event with computed hash."""
+        """Create a new event with computed hash and optional integrity fields."""
 
     async def create_events_bulk(
         self,
@@ -641,6 +646,51 @@ class ITenantRepository(Protocol):
         status: TenantStatus | None = None,
     ) -> TenantResult | None:
         """Update tenant name and/or status; return updated result or None."""
+
+
+# Epoch repository interface (chain integrity)
+class IEpochRepository(Protocol):
+    """Protocol for integrity epoch repository (get-or-create open epoch, increment)."""
+
+    async def get_open_epoch_for_update(
+        self,
+        tenant_id: str,
+        subject_id: str,
+    ) -> "OpenEpochAssignment | None":
+        """Return the open epoch for (tenant, subject) with row lock, or None."""
+
+    async def get_latest_sealed_terminal_hash(
+        self,
+        tenant_id: str,
+        subject_id: str,
+    ) -> str | None:
+        """Return terminal_hash of the latest sealed epoch, or None (use GENESIS)."""
+
+    async def get_next_epoch_number(
+        self,
+        tenant_id: str,
+        subject_id: str,
+    ) -> int:
+        """Return the next epoch number (max+1 or 0) for (tenant, subject)."""
+
+    async def create_epoch(
+        self,
+        tenant_id: str,
+        subject_id: str,
+        epoch_number: int,
+        genesis_hash: str,
+        profile_snapshot: str,
+    ) -> "OpenEpochAssignment":
+        """Create a new open epoch; first_event_seq set to 0 until first event."""
+
+    async def increment_epoch_event(
+        self,
+        epoch_id: str,
+        last_event_seq: int,
+        *,
+        is_first: bool = False,
+    ) -> None:
+        """Increment event_count and set last_event_seq; if is_first, set first_event_seq."""
 
 
 # User repository interface

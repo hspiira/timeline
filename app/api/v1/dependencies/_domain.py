@@ -22,6 +22,7 @@ from app.application.services.enrichment import (
     SourceEnricher,
 )
 from app.application.services.event_schema_validator import EventSchemaValidator
+from app.application.services.epoch_service import EpochService
 from app.application.services.event_transition_validator import EventTransitionValidator
 from app.application.services.hash_service import HashService
 from app.application.services.subject_type_schema_validator import (
@@ -75,6 +76,7 @@ from app.infrastructure.persistence.repositories import (
     DocumentRepository,
     DocumentRequirementRepository,
     EventRepository,
+    IntegrityEpochRepository,
     EventSchemaRepository,
     EventTransitionRuleRepository,
     FlowRepository,
@@ -139,6 +141,7 @@ class _EventServiceStack:
     schema_validator: EventSchemaValidator
     transition_validator: EventTransitionValidator
     subject_type_repo: SubjectTypeRepository
+    epoch_service: EpochService
 
 
 def _build_event_service_stack(
@@ -158,6 +161,9 @@ def _build_event_service_stack(
         event_repo=event_repo,
     )
     subject_type_repo = SubjectTypeRepository(db, audit_service=audit_svc)
+    tenant_repo = TenantRepository(db, cache_service=None, audit_service=audit_svc)
+    epoch_repo = IntegrityEpochRepository(db)
+    epoch_service = EpochService(epoch_repo=epoch_repo, tenant_repo=tenant_repo)
     return _EventServiceStack(
         event_repo=event_repo,
         hash_service=hash_service,
@@ -165,6 +171,7 @@ def _build_event_service_stack(
         schema_validator=schema_validator,
         transition_validator=transition_validator,
         subject_type_repo=subject_type_repo,
+        epoch_service=epoch_service,
     )
 
 
@@ -187,6 +194,7 @@ def build_event_service_for_session(
         transition_validator=stack.transition_validator,
         subject_type_repo=stack.subject_type_repo,
         post_create_hooks=[],
+        epoch_service=stack.epoch_service,
     )
 
 
@@ -214,6 +222,7 @@ async def get_event_service(
         subject_type_repo=stack.subject_type_repo,
         enrichers=DEFAULT_API_ENRICHERS,
         post_create_hooks=[WorkflowTriggerHook(get_workflow_engine)],
+        epoch_service=stack.epoch_service,
     )
     notification_service = LogOnlyNotificationService()
     recipient_resolver = WorkflowRecipientResolver(db)
@@ -279,6 +288,7 @@ def build_event_service_for_connector(
         transition_validator=stack.transition_validator,
         subject_type_repo=stack.subject_type_repo,
         post_create_hooks=post_create_hooks,
+        epoch_service=stack.epoch_service,
     )
 
 
@@ -327,6 +337,7 @@ async def get_event_service_for_create(
             WebhookDispatchHook(webhook_dispatcher, pending_webhook_tasks),
             EventStreamBroadcastHook(event_stream_broadcaster),
         ],
+        epoch_service=stack.epoch_service,
     )
     notification_service = LogOnlyNotificationService()
     recipient_resolver = WorkflowRecipientResolver(db)

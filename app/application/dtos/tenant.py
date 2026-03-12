@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from app.domain.enums import TenantStatus
+from app.domain.enums import IntegrityProfile, TenantStatus
 
 
 @dataclass(frozen=True)
@@ -32,3 +32,5 @@ class TenantResult:
     code: str
     name: str
     status: TenantStatus
+    # Active integrity profile; defaults to STANDARD for older rows without explicit value.
+    integrity_profile: IntegrityProfile = IntegrityProfile.STANDARD

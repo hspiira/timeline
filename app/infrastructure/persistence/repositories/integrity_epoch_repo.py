@@ -1,0 +1,174 @@
+"""Integrity epoch repository implementation."""
+
+from datetime import datetime, timezone
+
+from sqlalchemy import desc, func, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.application.dtos.integrity import OpenEpochAssignment
+from app.application.dtos.event import EventResult
+from app.infrastructure.persistence.models import Event, IntegrityEpoch
+from app.infrastructure.persistence.repositories.base import BaseRepository
+
+
+def _epoch_to_assignment(e: IntegrityEpoch) -> OpenEpochAssignment:
+    """Map ORM epoch to OpenEpochAssignment."""
+    return OpenEpochAssignment(
+        epoch_id=e.id,
+        profile_snapshot=e.profile_snapshot,
+        event_count=e.event_count,
+    )
+
+
+class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
+    """Repository for integrity epochs."""
+
+    def __init__(self, db: AsyncSession) -> None:
+        super().__init__(db, IntegrityEpoch)
+
+    async def get_open_epoch_for_update(
+        self,
+        tenant_id: str,
+        subject_id: str,
+    ) -> OpenEpochAssignment | None:
+        """Return the open epoch for (tenant, subject) with a row lock, or None."""
+        result = await self.db.execute(
+            select(IntegrityEpoch)
+            .where(
+                IntegrityEpoch.tenant_id == tenant_id,
+                IntegrityEpoch.subject_id == subject_id,
+                IntegrityEpoch.status == "OPEN",
+            )
+            .with_for_update()
+        )
+        row = result.scalar_one_or_none()
+        return _epoch_to_assignment(row) if row else None
+
+    async def get_latest_sealed_terminal_hash(
+        self,
+        tenant_id: str,
+        subject_id: str,
+    ) -> str | None:
+        """Return terminal_hash of the latest sealed epoch, or None."""
+        result = await self.db.execute(
+            select(IntegrityEpoch.terminal_hash)
+            .where(
+                IntegrityEpoch.tenant_id == tenant_id,
+                IntegrityEpoch.subject_id == subject_id,
+                IntegrityEpoch.status == "SEALED",
+            )
+            .order_by(desc(IntegrityEpoch.epoch_number))
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
+    async def get_next_epoch_number(
+        self,
+        tenant_id: str,
+        subject_id: str,
+    ) -> int:
+        """Return the next epoch number (max+1 or 0) for (tenant, subject)."""
+        result = await self.db.execute(
+            select(func.coalesce(func.max(IntegrityEpoch.epoch_number), -1) + 1).where(
+                IntegrityEpoch.tenant_id == tenant_id,
+                IntegrityEpoch.subject_id == subject_id,
+            )
+        )
+        value = result.scalar() or 0
+        return int(value)
+
+    async def create_epoch(
+        self,
+        tenant_id: str,
+        subject_id: str,
+        epoch_number: int,
+        genesis_hash: str,
+        profile_snapshot: str,
+    ) -> OpenEpochAssignment:
+        """Create a new open epoch; first_event_seq=0 until first event is appended."""
+        epoch = IntegrityEpoch(
+            tenant_id=tenant_id,
+            subject_id=subject_id,
+            epoch_number=epoch_number,
+            genesis_hash=genesis_hash,
+            first_event_seq=0,
+            last_event_seq=None,
+            event_count=0,
+            opened_at=datetime.now(timezone.utc),
+            profile_snapshot=profile_snapshot,
+            status="OPEN",
+        )
+        created = await self.create(epoch)
+        return _epoch_to_assignment(created)
+
+    async def increment_epoch_event(
+        self,
+        epoch_id: str,
+        last_event_seq: int,
+        *,
+        is_first: bool = False,
+    ) -> None:
+        """Increment event_count and set last_event_seq; if is_first, set first_event_seq."""
+        if is_first:
+            await self.db.execute(
+                text(
+                    """
+UPDATE integrity_epoch
+SET first_event_seq = :last_event_seq,
+    last_event_seq = :last_event_seq,
+    event_count = 1
+WHERE id = :epoch_id
+"""
+                ),
+                {"epoch_id": epoch_id, "last_event_seq": last_event_seq},
+            )
+        else:
+            await self.db.execute(
+                text(
+                    """
+UPDATE integrity_epoch
+SET event_count = event_count + 1,
+    last_event_seq = :last_event_seq
+WHERE id = :epoch_id
+"""
+                ),
+                {"epoch_id": epoch_id, "last_event_seq": last_event_seq},
+            )
+
+    async def get_last_event_in_epoch(
+        self, epoch_id: str, tenant_id: str
+    ) -> EventResult | None:
+        """Return the last event in the given epoch for sealing logic."""
+        result = await self.db.execute(
+            select(Event)
+            .where(
+                Event.tenant_id == tenant_id,
+                Event.epoch_id == epoch_id,
+            )
+            .order_by(desc(Event.event_seq))
+            .limit(1)
+        )
+        row = result.scalar_one_or_none()
+        if not row:
+            return None
+        return EventResult(
+            id=row.id,
+            tenant_id=row.tenant_id,
+            subject_id=row.subject_id,
+            event_type=row.event_type,
+            schema_version=row.schema_version,
+            event_time=row.event_time,
+            payload=row.payload,
+            previous_hash=row.previous_hash,
+            hash=row.hash,
+            workflow_instance_id=row.workflow_instance_id,
+            correlation_id=row.correlation_id,
+            external_id=row.external_id,
+            source=row.source,
+            event_seq=row.event_seq,
+            epoch_id=row.epoch_id,
+            integrity_status=row.integrity_status or "VALID",
+            tsa_anchor_id=row.tsa_anchor_id,
+            merkle_leaf_hash=row.merkle_leaf_hash,
+        )
+

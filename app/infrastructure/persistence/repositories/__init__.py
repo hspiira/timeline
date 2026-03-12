@@ -21,6 +21,9 @@ from app.infrastructure.persistence.repositories.email_account_repo import (
     EmailAccountRepository,
 )
 from app.infrastructure.persistence.repositories.event_repo import EventRepository
+from app.infrastructure.persistence.repositories.integrity_epoch_repo import (
+    IntegrityEpochRepository,
+)
 from app.infrastructure.persistence.repositories.flow_repo import FlowRepository
 from app.infrastructure.persistence.repositories.naming_template_repo import (
     NamingTemplateRepository,
@@ -87,6 +90,7 @@ __all__ = [
     "DocumentRepository",
     "DocumentRequirementRepository",
     "EmailAccountRepository",
+    "IntegrityEpochRepository",
     "EventRepository",
     "FlowRepository",
     "EventSchemaRepository",

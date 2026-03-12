@@ -27,6 +27,10 @@ def _event_to_result(e: Event) -> EventResult:
         external_id=e.external_id,
         source=e.source,
         event_seq=e.event_seq,
+        epoch_id=e.epoch_id,
+        integrity_status=e.integrity_status or "VALID",
+        tsa_anchor_id=e.tsa_anchor_id,
+        merkle_leaf_hash=e.merkle_leaf_hash,
     )
 
 
@@ -119,6 +123,10 @@ class EventRepository(BaseRepository[Event]):
         data: EventCreate,
         event_hash: str,
         previous_hash: str | None,
+        *,
+        epoch_id: str | None = None,
+        integrity_status: str = "VALID",
+        merkle_leaf_hash: str | None = None,
     ) -> EventResult:
         event = Event(
             tenant_id=tenant_id,
@@ -133,6 +141,9 @@ class EventRepository(BaseRepository[Event]):
             correlation_id=data.correlation_id,
             external_id=data.external_id,
             source=data.source,
+            epoch_id=epoch_id,
+            integrity_status=integrity_status,
+            merkle_leaf_hash=merkle_leaf_hash,
         )
         created = await self.create(event)
         return _event_to_result(created)
@@ -320,6 +331,9 @@ class EventRepository(BaseRepository[Event]):
                 correlation_id=e.correlation_id,
                 external_id=e.external_id,
                 source=e.source,
+                epoch_id=e.epoch_id,
+                integrity_status=e.integrity_status,
+                merkle_leaf_hash=e.merkle_leaf_hash,
             )
             for e in events
         ]

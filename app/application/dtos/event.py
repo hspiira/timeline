@@ -52,6 +52,11 @@ class EventResult:
     # Monotonic insertion order (watermark); required for sequence-backed reads (get_events_since_seq).
     # None means missing mapping/backfill; consumers must reject before using as offset.
     event_seq: int | None = None
+    # Chain integrity (epoch, status, TSA, Merkle leaf).
+    epoch_id: str | None = None
+    integrity_status: str = "VALID"
+    tsa_anchor_id: str | None = None
+    merkle_leaf_hash: str | None = None
 
 
 @dataclass(frozen=True)
@@ -69,3 +74,7 @@ class EventToPersist:
     correlation_id: str | None = None
     external_id: str | None = None
     source: str | None = None
+    # Chain integrity (optional; set by EventService when epoch service is used).
+    epoch_id: str | None = None
+    integrity_status: str = "VALID"
+    merkle_leaf_hash: str | None = None

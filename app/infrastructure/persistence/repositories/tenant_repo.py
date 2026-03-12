@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.tenant import TenantResult
-from app.domain.enums import TenantStatus
+from app.domain.enums import IntegrityProfile, TenantStatus
 from app.domain.exceptions import TenantAlreadyExistsException
 from app.infrastructure.cache.cache_protocol import CacheProtocol
 from app.infrastructure.cache.keys import tenant_code_key, tenant_key
@@ -27,7 +27,11 @@ if TYPE_CHECKING:
 def _tenant_to_result(t: Tenant) -> TenantResult:
     """Map ORM Tenant to application TenantResult."""
     return TenantResult(
-        id=t.id, code=t.code, name=t.name, status=TenantStatus(t.status)
+        id=t.id,
+        code=t.code,
+        name=t.name,
+        status=TenantStatus(t.status),
+        integrity_profile=IntegrityProfile(t.integrity_profile),
     )
 
 
@@ -164,6 +168,7 @@ def _tenant_to_dict(tenant: Tenant) -> dict[str, Any]:
         "code": tenant.code,
         "name": tenant.name,
         "status": tenant.status,
+        "integrity_profile": tenant.integrity_profile,
         "created_at": tenant.created_at.isoformat() if tenant.created_at else None,
         "updated_at": tenant.updated_at.isoformat() if tenant.updated_at else None,
     }

@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy.exc import IntegrityError
 
 from app.application.dtos.event import EventCreate, EventResult, EventToPersist
+from app.application.dtos.integrity import OpenEpochAssignment
 from app.application.services.enrichment import EnrichmentContext
 from app.application.dtos.subject_type import SubjectTypeResult
 from app.application.interfaces.post_create_hooks import IPostCreateHook, PostCreateContext
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
         IEventSchemaValidator,
         IEventTransitionValidator,
     )
+    from app.application.services.epoch_service import EpochService
 
 
 def _event_result_to_entity(r: EventResult) -> EventEntity:
@@ -77,6 +79,7 @@ class EventService:
         subject_type_repo: "ISubjectTypeRepository | None" = None,
         enrichers: list[IEventEnricher] | None = None,
         post_create_hooks: list[IPostCreateHook] | None = None,
+        epoch_service: "EpochService | None" = None,
     ) -> None:
         self.event_repo = event_repo
         self.hash_service = hash_service
@@ -87,6 +90,7 @@ class EventService:
         self.subject_type_repo = subject_type_repo
         self.enrichers = enrichers or []
         self._post_create_hooks = post_create_hooks or []
+        self.epoch_service = epoch_service
 
     async def create_event(
         self,
@@ -168,9 +172,39 @@ class EventService:
                         previous_hash=prev_hash,
                     )
 
-                    created = await self.event_repo.create_event(
-                        tenant_id, data, event_hash, prev_hash
-                    )
+                    if self.epoch_service:
+                        assignment = await self.epoch_service.get_or_create_open_epoch(
+                            tenant_id, data.subject_id
+                        )
+                        integrity_status = (
+                            "VALID"
+                            if assignment.profile_snapshot == "STANDARD"
+                            else "PENDING_ANCHOR"
+                        )
+                        merkle_leaf_hash = (
+                            event_hash
+                            if assignment.profile_snapshot == "LEGAL_GRADE"
+                            else None
+                        )
+                        created = await self.event_repo.create_event(
+                            tenant_id,
+                            data,
+                            event_hash,
+                            prev_hash,
+                            epoch_id=assignment.epoch_id,
+                            integrity_status=integrity_status,
+                            merkle_leaf_hash=merkle_leaf_hash,
+                        )
+                        if created.event_seq is not None:
+                            await self.epoch_service.record_event_appended(
+                                assignment.epoch_id,
+                                created.event_seq,
+                                assignment.event_count == 0,
+                            )
+                    else:
+                        created = await self.event_repo.create_event(
+                            tenant_id, data, event_hash, prev_hash
+                        )
                 break
             except IntegrityError as exc:
                 if attempt == MAX_RETRIES - 1:
@@ -271,7 +305,20 @@ class EventService:
                         for sid in subject_ids
                     }
 
+                    assignment_by_subject: dict[str, OpenEpochAssignment] = {}
+                    if self.epoch_service:
+                        for sid in sorted(subject_ids):
+                            assignment_by_subject[sid] = (
+                                await self.epoch_service.get_or_create_open_epoch(
+                                    tenant_id, sid
+                                )
+                            )
+                    events_added_per_subject: dict[str, int] = {
+                        sid: 0 for sid in subject_ids
+                    }
+
                     to_persist: list[EventToPersist] = []
+                    epoch_meta: list[tuple[str, bool]] = []
                     for event_data in events:
                         prev_hash, prev_time = chain_state[event_data.subject_id]
                         EventEntity.validate_event_time_after_previous(
@@ -302,6 +349,27 @@ class EventService:
                             payload=event_data.payload,
                             previous_hash=prev_hash,
                         )
+                        epoch_id: str | None = None
+                        integrity_status = "VALID"
+                        merkle_leaf_hash: str | None = None
+                        is_first = False
+                        if self.epoch_service:
+                            assignment = assignment_by_subject[event_data.subject_id]
+                            n = events_added_per_subject[event_data.subject_id]
+                            is_first = assignment.event_count + n == 0
+                            epoch_id = assignment.epoch_id
+                            integrity_status = (
+                                "VALID"
+                                if assignment.profile_snapshot == "STANDARD"
+                                else "PENDING_ANCHOR"
+                            )
+                            merkle_leaf_hash = (
+                                event_hash
+                                if assignment.profile_snapshot == "LEGAL_GRADE"
+                                else None
+                            )
+                            epoch_meta.append((assignment.epoch_id, is_first))
+                            events_added_per_subject[event_data.subject_id] = n + 1
                         to_persist.append(
                             EventToPersist(
                                 subject_id=event_data.subject_id,
@@ -315,6 +383,9 @@ class EventService:
                                 correlation_id=event_data.correlation_id,
                                 external_id=event_data.external_id,
                                 source=event_data.source,
+                                epoch_id=epoch_id,
+                                integrity_status=integrity_status,
+                                merkle_leaf_hash=merkle_leaf_hash,
                             )
                         )
                         chain_state[event_data.subject_id] = (
@@ -325,6 +396,12 @@ class EventService:
                     created = await self.event_repo.create_events_bulk(
                         tenant_id, to_persist
                     )
+                    if self.epoch_service and epoch_meta:
+                        for ev, (eid, first) in zip(created, epoch_meta):
+                            if ev.event_seq is not None:
+                                await self.epoch_service.record_event_appended(
+                                    eid, ev.event_seq, first
+                                )
                 break
             except IntegrityError as exc:
                 if attempt == MAX_RETRIES - 1:
