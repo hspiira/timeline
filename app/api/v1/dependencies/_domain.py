@@ -32,6 +32,7 @@ from app.application.services.verification_service import (
     ChainVerificationResult,
     VerificationService,
 )
+from app.application.services.chain_repair_service import ChainRepairService
 from app.application.use_cases.analytics import GetDashboardStatsUseCase
 from app.application.use_cases.projections import (
     ProjectionManagementUseCase,
@@ -92,6 +93,8 @@ from app.infrastructure.persistence.repositories import (
     TenantRepository,
     WorkflowExecutionRepository,
     WorkflowRepository,
+    TenantIntegrityProfileHistoryRepository,
+    ChainRepairLogRepository,
 )
 from app.infrastructure.services import SystemAuditService, WorkflowEngine
 from app.infrastructure.services.post_create_hooks import (
@@ -363,6 +366,27 @@ async def get_event_repo(
 ) -> EventRepository:
     """Event repository for read operations (list, get by id)."""
     return EventRepository(db)
+
+
+async def get_tenant_integrity_history_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> TenantIntegrityProfileHistoryRepository:
+    """Tenant integrity profile history repository (read/write)."""
+    return TenantIntegrityProfileHistoryRepository(db)
+
+
+async def get_chain_repair_service(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> ChainRepairService:
+    """ChainRepairService built from event, epoch, and repair repositories."""
+    event_repo = EventRepository(db)
+    epoch_repo = IntegrityEpochRepository(db)
+    repair_repo = ChainRepairLogRepository(db)
+    return ChainRepairService(
+        event_repo=event_repo,
+        epoch_repo=epoch_repo,
+        repair_repo=repair_repo,
+    )
 
 
 async def get_verification_service(

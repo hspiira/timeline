@@ -78,6 +78,12 @@ from app.infrastructure.persistence.repositories.tsa_anchor_repo import (
 from app.infrastructure.persistence.repositories.merkle_node_repo import (
     MerkleNodeRepository,
 )
+from app.infrastructure.persistence.repositories.chain_repair_log_repo import (
+    ChainRepairLogRepository,
+)
+from app.infrastructure.persistence.repositories.tenant_integrity_profile_history_repo import (
+    TenantIntegrityProfileHistoryRepository,
+)
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
 from app.infrastructure.persistence.repositories.webhook_subscription_repo import (
     WebhookSubscriptionRepository,
@@ -118,8 +124,10 @@ __all__ = [
     "SubjectTypeRepository",
     "TaskRepository",
     "TenantRepository",
+    "ChainRepairLogRepository",
     "MerkleNodeRepository",
     "TsaAnchorRepository",
+    "TenantIntegrityProfileHistoryRepository",
     "UserRepository",
     "WebhookSubscriptionRepository",
     "WorkflowExecutionRepository",

@@ -20,6 +20,7 @@ from app.api.v1.endpoints import (
     events,
     flows,
     health,
+    integrity,
     naming_templates,
     oauth_providers,
     permissions,
@@ -53,6 +54,9 @@ api_router.include_router(connectors.router, prefix="/connectors", tags=["connec
 api_router.include_router(tenants.router, prefix="/tenants", tags=["tenants"])
 api_router.include_router(
     chain_anchors.router, prefix="/tenants", tags=["chain-anchors"]
+)
+api_router.include_router(
+    integrity.router, prefix="/tenants", tags=["integrity"]
 )
 api_router.include_router(
     webhooks.router, prefix="/tenants", tags=["webhooks"]

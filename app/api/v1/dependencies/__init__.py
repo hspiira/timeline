@@ -115,6 +115,8 @@ from app.api.v1.dependencies._domain import (
     get_workflow_execution_repo,
     get_workflow_repo,
     get_workflow_repo_for_write,
+    get_tenant_integrity_history_repo,
+    get_chain_repair_service,
 )
 
 __all__ = [
@@ -220,5 +222,7 @@ __all__ = [
     "get_workflow_execution_repo",
     "get_workflow_repo",
     "get_workflow_repo_for_write",
+    "get_tenant_integrity_history_repo",
+    "get_chain_repair_service",
     "require_permission",
 ]

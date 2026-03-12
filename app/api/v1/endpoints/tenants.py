@@ -7,11 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import (
     ensure_audit_logged,
+    get_current_user,
     get_tenant_creation_service,
     get_tenant_id,
     get_tenant_repo,
     get_tenant_repo_for_write,
     get_verified_tenant_id,
+    get_tenant_integrity_history_repo,
     require_permission,
 )
 from app.infrastructure.persistence.database import get_db_transactional
@@ -20,12 +22,15 @@ from app.application.interfaces.repositories import ITenantRepository
 from app.application.services.tenant_creation_service import TenantCreationService
 from app.core.config import get_settings
 from app.core.limiter import limit_create_tenant, limit_writes
-from app.domain.enums import TenantStatus
+from app.domain.enums import TenantStatus, IntegrityProfile
 from app.infrastructure.services.api_audit_log_service import ApiAuditLogService
 from app.shared.request_audit import get_audit_request_context, set_audit_payload
 from app.schemas.tenant import (
     TenantCreateRequest,
     TenantCreateResponse,
+    TenantIntegrityHistoryItem,
+    TenantIntegrityStatus,
+    TenantIntegrityUpdateRequest,
     TenantResponse,
     TenantStatusUpdate,
     TenantUpdate,
@@ -157,6 +162,105 @@ async def update_tenant(
         name=updated.name,
         status=updated.status,
     )
+
+
+@router.get("/integrity", response_model=TenantIntegrityStatus)
+async def get_tenant_integrity(
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo)],
+    history_repo=Depends(get_tenant_integrity_history_repo),
+    _: Annotated[object, Depends(require_permission("tenant", "read"))] = None,
+):
+    """Return current integrity profile and last change metadata for the current tenant."""
+    tenant = await tenant_repo.get_by_id(tenant_id)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    latest = await history_repo.get_latest_for_tenant(tenant_id)
+    return TenantIntegrityStatus(
+        profile=tenant.integrity_profile,
+        last_changed_at=latest.changed_at if latest else None,
+        cooling_off_ends_at=latest.cooling_off_ends_at if latest else None,
+    )
+
+
+@router.put("/integrity", response_model=TenantIntegrityStatus)
+async def update_tenant_integrity(
+    request: Request,
+    body: TenantIntegrityUpdateRequest,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    tenant_repo: Annotated[ITenantRepository, Depends(get_tenant_repo_for_write)],
+    history_repo=Depends(get_tenant_integrity_history_repo),
+    current_user: Annotated[UserResult, Depends(get_current_user)] = Depends(
+        get_current_user
+    ),
+    _perm: Annotated[object, Depends(require_permission("tenant", "update"))] = None,
+    _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
+):
+    """Change tenant integrity profile and record history."""
+    tenant = await tenant_repo.get_by_id(tenant_id)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    if tenant.integrity_profile == body.new_profile:
+        latest = await history_repo.get_latest_for_tenant(tenant_id)
+        return TenantIntegrityStatus(
+            profile=tenant.integrity_profile,
+            last_changed_at=latest.changed_at if latest else None,
+            cooling_off_ends_at=latest.cooling_off_ends_at if latest else None,
+        )
+
+    # For now, changes are effective immediately; effective_from_seq is set to 0.
+    previous_profile = tenant.integrity_profile
+    updated = await tenant_repo.update_tenant(
+        tenant_id, status=None, name=None
+    )  # ensure tenant exists; integrity_profile will be set directly below
+    orm_tenant = await tenant_repo.get_entity_by_id(tenant_id)
+    if orm_tenant is None:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    orm_tenant.integrity_profile = body.new_profile.value
+    await tenant_repo.update_without_audit(orm_tenant)
+
+    await history_repo.create_entry(
+        tenant_id=tenant_id,
+        previous_profile=previous_profile.value,
+        new_profile=body.new_profile.value,
+        changed_by_user_id=current_user.id,
+        change_reason=body.reason,
+        effective_from_seq=0,
+        cooling_off_ends_at=None,
+    )
+    latest = await history_repo.get_latest_for_tenant(tenant_id)
+    return TenantIntegrityStatus(
+        profile=body.new_profile,
+        last_changed_at=latest.changed_at if latest else None,
+        cooling_off_ends_at=latest.cooling_off_ends_at if latest else None,
+    )
+
+
+@router.get("/integrity/history", response_model=list[TenantIntegrityHistoryItem])
+async def get_tenant_integrity_history(
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    history_repo=Depends(get_tenant_integrity_history_repo),
+    _: Annotated[object, Depends(require_permission("tenant", "read"))] = None,
+):
+    """Return integrity profile change history for the current tenant (most recent first)."""
+    rows = await history_repo.list_for_tenant(tenant_id)
+    items: list[TenantIntegrityHistoryItem] = []
+    for row in rows:
+        items.append(
+            TenantIntegrityHistoryItem(
+                previous_profile=(
+                    IntegrityProfile(row.previous_profile)
+                    if row.previous_profile is not None
+                    else None
+                ),
+                new_profile=IntegrityProfile(row.new_profile),
+                changed_at=row.changed_at,
+                changed_by_user_id=row.changed_by_user_id,
+                change_reason=row.change_reason,
+                cooling_off_ends_at=row.cooling_off_ends_at,
+            )
+        )
+    return items
 
 
 @router.patch("/{tenant_id}/status", response_model=TenantResponse)
