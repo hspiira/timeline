@@ -5,12 +5,12 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.api._openapi import doc
 from app.api.v1.dependencies import (
     get_projection_management_use_case,
     get_projection_read_permission,
     get_projection_write_permission,
     get_query_projection_use_case,
-    get_tenant_id,
     get_verified_tenant_id,
 )
 from app.application.use_cases.projections import (
@@ -45,7 +45,7 @@ def _definition_to_response(r: Any) -> ProjectionDefinitionResponse:
     "/{tenant_id}/projections",
     response_model=ProjectionDefinitionResponse,
     status_code=201,
-    summary="Create projection definition",
+    **doc("projections.create"),
 )
 async def create_projection(
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
@@ -55,7 +55,6 @@ async def create_projection(
     ],
     _: Annotated[object, Depends(get_projection_write_permission)] = None,
 ) -> ProjectionDefinitionResponse:
-    """Create a projection definition; engine will build it automatically."""
     created = await use_case.create_projection(
         tenant_id=tenant_id,
         name=body.name,
@@ -68,7 +67,7 @@ async def create_projection(
 @router.get(
     "/{tenant_id}/projections",
     response_model=list[ProjectionDefinitionResponse],
-    summary="List projection definitions",
+    **doc("projections.list"),
 )
 async def list_projections(
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
@@ -77,7 +76,6 @@ async def list_projections(
     ],
     _: Annotated[object, Depends(get_projection_read_permission)] = None,
 ) -> list[ProjectionDefinitionResponse]:
-    """List all projection definitions for the tenant (active and inactive)."""
     definitions = await use_case.list_projections(tenant_id=tenant_id)
     return [_definition_to_response(d) for d in definitions]
 
@@ -85,7 +83,7 @@ async def list_projections(
 @router.delete(
     "/{tenant_id}/projections/{name}/{version}",
     status_code=204,
-    summary="Deactivate projection",
+    **doc("projections.deactivate"),
 )
 async def deactivate_projection(
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
@@ -96,7 +94,6 @@ async def deactivate_projection(
     ],
     _: Annotated[object, Depends(get_projection_write_permission)] = None,
 ) -> None:
-    """Set active=False; engine will skip this projection."""
     if version < 1:
         raise HTTPException(status_code=400, detail="version must be >= 1")
     await use_case.deactivate_projection(
@@ -107,7 +104,7 @@ async def deactivate_projection(
 @router.post(
     "/{tenant_id}/projections/{name}/{version}/rebuild",
     status_code=202,
-    summary="Rebuild projection",
+    **doc("projections.rebuild"),
 )
 async def rebuild_projection(
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
@@ -118,7 +115,6 @@ async def rebuild_projection(
     ],
     _: Annotated[object, Depends(get_projection_write_permission)] = None,
 ) -> None:
-    """Reset watermark to 0; engine will replay from genesis on next cycle."""
     if version < 1:
         raise HTTPException(status_code=400, detail="version must be >= 1")
     await use_case.rebuild_projection(
@@ -129,7 +125,7 @@ async def rebuild_projection(
 @router.get(
     "/{tenant_id}/projections/{name}/{version}/subjects/{subject_id}",
     response_model=ProjectionStateResponse,
-    summary="Get projection state for subject",
+    **doc("projections.get_state"),
 )
 async def get_projection_state(
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
@@ -142,10 +138,9 @@ async def get_projection_state(
     _: Annotated[object, Depends(get_projection_read_permission)] = None,
     as_of: datetime | None = Query(
         default=None,
-        description="Point-in-time state (replay); omit for current state",
+        description="Point-in-time state (replay); omit for current state.",
     ),
 ) -> ProjectionStateResponse:
-    """Return projection state for subject (current or as_of replay)."""
     if as_of is not None:
         state = await use_case.get_state_as_of(
             tenant_id=tenant_id,
@@ -169,7 +164,7 @@ async def get_projection_state(
 @router.get(
     "/{tenant_id}/projections/{name}/{version}/states",
     response_model=list[ProjectionStateListItem],
-    summary="List all projection states",
+    **doc("projections.list_states"),
 )
 async def list_projection_states(
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
@@ -182,7 +177,6 @@ async def list_projection_states(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ) -> list[ProjectionStateListItem]:
-    """List all subjects' current state for this projection (paginated)."""
     states = await use_case.list_all_states(
         tenant_id=tenant_id,
         name=name,

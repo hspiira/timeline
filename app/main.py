@@ -14,6 +14,7 @@ from scalar_fastapi import get_scalar_api_reference
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from app.api._openapi import TAGS_METADATA
 from app.api.v1 import api_router
 from app.core.config import get_settings
 from app.core.limiter import limiter
@@ -29,6 +30,7 @@ from app.middleware import (
 from app.pages import render_root_page
 
 
+
 def create_app() -> FastAPI:
     """Build and return the FastAPI application. Settings are resolved here (deferred from import)."""
     settings = get_settings()
@@ -39,6 +41,7 @@ def create_app() -> FastAPI:
         lifespan=create_lifespan,
         docs_url=None,
         redoc_url=None,
+        openapi_tags=TAGS_METADATA,
     )
 
     app.state.limiter = limiter
