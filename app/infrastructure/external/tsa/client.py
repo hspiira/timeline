@@ -3,6 +3,7 @@
 import hashlib
 import logging
 import os
+from datetime import datetime, timezone
 
 import httpx
 import rfc3161ng
@@ -27,6 +28,21 @@ def extract_serial_from_token(token_der: bytes) -> str | None:
         tst, _ = decoder.decode(token_der, asn1Spec=rfc3161ng.TimeStampToken())
         serial = tst.tst_info.getComponentByPosition(3)  # serialNumber
         return str(int(serial)) if serial is not None else None
+    except Exception:
+        return None
+
+
+def extract_gen_time_from_token(token_der: bytes) -> datetime | None:
+    """Extract TSTInfo genTime from a DER-encoded TimeStampToken as UTC datetime. Returns None on parse error."""
+    try:
+        tst, _ = decoder.decode(token_der, asn1Spec=rfc3161ng.TimeStampToken())
+        gen_time = tst.tst_info.getComponentByPosition(4)  # genTime (GeneralizedTime)
+        if gen_time is None:
+            return None
+        s = str(gen_time).strip()
+        if s.endswith("Z"):
+            s = s[:-1] + "+00:00"
+        return datetime.fromisoformat(s)
     except Exception:
         return None
 

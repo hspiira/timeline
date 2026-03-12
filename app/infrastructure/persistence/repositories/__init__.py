@@ -72,6 +72,9 @@ from app.infrastructure.persistence.repositories.subject_type_repo import (
 )
 from app.infrastructure.persistence.repositories.task_repo import TaskRepository
 from app.infrastructure.persistence.repositories.tenant_repo import TenantRepository
+from app.infrastructure.persistence.repositories.tsa_anchor_repo import (
+    TsaAnchorRepository,
+)
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
 from app.infrastructure.persistence.repositories.webhook_subscription_repo import (
     WebhookSubscriptionRepository,
@@ -112,6 +115,7 @@ __all__ = [
     "SubjectTypeRepository",
     "TaskRepository",
     "TenantRepository",
+    "TsaAnchorRepository",
     "UserRepository",
     "WebhookSubscriptionRepository",
     "WorkflowExecutionRepository",

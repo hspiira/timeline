@@ -1,12 +1,14 @@
 """Integrity epoch repository implementation."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import desc, func, select, text
+from sqlalchemy import and_, desc, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.integrity import OpenEpochAssignment
 from app.application.dtos.event import EventResult
+from app.application.integrity_config import INTEGRITY_PROFILE_CONFIG
+from app.domain.enums import IntegrityProfile
 from app.infrastructure.persistence.models import Event, IntegrityEpoch
 from app.infrastructure.persistence.repositories.base import BaseRepository
 
@@ -100,6 +102,67 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
         )
         created = await self.create(epoch)
         return _epoch_to_assignment(created)
+
+    async def get_sealable_epochs(self, limit: int = 50) -> list[IntegrityEpoch]:
+        """Return OPEN epochs that are due for sealing (time or event count). FOR UPDATE SKIP LOCKED."""
+        now = datetime.now(timezone.utc)
+        due_conditions = []
+        for profile in IntegrityProfile:
+            config = INTEGRITY_PROFILE_CONFIG.get(profile)
+            if not config:
+                continue
+            cutoff = now - timedelta(seconds=config.seal_seconds)
+            due_conditions.append(
+                and_(
+                    IntegrityEpoch.profile_snapshot == profile.value,
+                    or_(
+                        IntegrityEpoch.opened_at < cutoff,
+                        IntegrityEpoch.event_count >= config.seal_event_count,
+                    ),
+                )
+            )
+        if not due_conditions:
+            return []
+        result = await self.db.execute(
+            select(IntegrityEpoch)
+            .where(
+                IntegrityEpoch.status == "OPEN",
+                or_(*due_conditions),
+            )
+            .with_for_update(skip_locked=True)
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def seal_epoch(
+        self,
+        epoch_id: str,
+        terminal_hash: str,
+        *,
+        tsa_anchor_id: str | None = None,
+        merkle_root: str | None = None,
+    ) -> None:
+        """Mark epoch as SEALED; set terminal_hash, sealed_at, optional tsa_anchor_id and merkle_root."""
+        await self.db.execute(
+            text(
+                """
+UPDATE integrity_epoch
+SET status = 'SEALED',
+    terminal_hash = :terminal_hash,
+    sealed_at = :sealed_at,
+    tsa_anchor_id = COALESCE(:tsa_anchor_id, tsa_anchor_id),
+    merkle_root = COALESCE(:merkle_root, merkle_root)
+WHERE id = :epoch_id
+"""
+            ),
+            {
+                "epoch_id": epoch_id,
+                "terminal_hash": terminal_hash,
+                "sealed_at": datetime.now(timezone.utc),
+                "tsa_anchor_id": tsa_anchor_id,
+                "merkle_root": merkle_root,
+            },
+        )
 
     async def increment_epoch_event(
         self,

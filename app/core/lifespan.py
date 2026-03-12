@@ -101,6 +101,16 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     else:
         app.state.chain_anchor_task = None
 
+    if settings.epoch_sealing_enabled:
+        from app.core.epoch_sealing_job import run_epoch_sealing_job
+
+        app.state.epoch_sealing_task = asyncio.create_task(
+            run_epoch_sealing_job(app), name="epoch_sealing"
+        )
+        logger.info("Epoch sealing job started")
+    else:
+        app.state.epoch_sealing_task = None
+
     connectors_enabled = (
         settings.connector_cdc_postgres_enabled
         or settings.connector_kafka_enabled
@@ -173,6 +183,15 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
         except asyncio.CancelledError:
             pass
         logger.info("Chain anchor task stopped")
+
+    epoch_sealing_task = getattr(app.state, "epoch_sealing_task", None)
+    if epoch_sealing_task is not None:
+        epoch_sealing_task.cancel()
+        try:
+            await epoch_sealing_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("Epoch sealing task stopped")
 
     projection_engine_task = getattr(app.state, "projection_engine_task", None)
     if projection_engine_task is not None:

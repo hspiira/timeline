@@ -90,6 +90,8 @@ class Settings(BaseSettings):
     chain_anchor_tsa_url: str = "https://freetsa.org/tsr"
     chain_anchor_tsa_cert_path: str | None = None  # path to TSA root cert for prod verification
     chain_anchor_tsa_timeout_seconds: int = 10
+    # Integrity epoch sealing: seal due epochs and open next; TSA for COMPLIANCE/LEGAL_GRADE.
+    epoch_sealing_enabled: bool = False
 
     # Request / middleware
     request_timeout_seconds: int = 60

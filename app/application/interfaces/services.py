@@ -15,6 +15,22 @@ if TYPE_CHECKING:
     from app.domain.entities.event import EventEntity
 
 
+# TSA service interface (chain integrity: anchor payload hash, verify stored token)
+class ITSAService(Protocol):
+    """Protocol for RFC 3161 TSA anchoring used by epoch sealing and batch workers."""
+
+    async def anchor(
+        self,
+        tenant_id: str,
+        payload_hash_hex: str,
+        anchor_type: str,
+    ) -> str:
+        """Submit payload_hash to TSA, store token in tsa_anchor table; return anchor id."""
+
+    async def verify(self, anchor_id: str) -> bool:
+        """Verify stored TSA token against payload_hash; update verification_status. Return True if valid."""
+
+
 # Hash service interface
 class IHashService(Protocol):
     """Protocol for hash computation (event chain integrity)."""
