@@ -42,7 +42,14 @@ from app.infrastructure.persistence.models.subject_relationship import (
     SubjectRelationship,
 )
 from app.infrastructure.persistence.models.chain_anchor import ChainAnchor
+from app.infrastructure.persistence.models.chain_repair_log import ChainRepairLog
+from app.infrastructure.persistence.models.integrity_epoch import IntegrityEpoch
+from app.infrastructure.persistence.models.merkle_node import MerkleNode
 from app.infrastructure.persistence.models.subject_snapshot import SubjectSnapshot
+from app.infrastructure.persistence.models.tenant_integrity_profile_history import (
+    TenantIntegrityProfileHistory,
+)
+from app.infrastructure.persistence.models.tsa_anchor import TsaAnchor
 from app.infrastructure.persistence.models.task import Task
 from app.infrastructure.persistence.models.tenant import Tenant
 from app.infrastructure.persistence.models.password_set_token import PasswordSetToken
@@ -59,6 +66,9 @@ from app.infrastructure.persistence.models.webhook_subscription import (
 __all__ = [
     "AuditLog",
     "ChainAnchor",
+    "ChainRepairLog",
+    "IntegrityEpoch",
+    "MerkleNode",
     "PasswordSetToken",
     "Tenant",
     "User",
@@ -67,6 +77,8 @@ __all__ = [
     "SubjectRelationship",
     "SubjectSnapshot",
     "Task",
+    "TenantIntegrityProfileHistory",
+    "TsaAnchor",
     "Event",
     "Flow",
     "FlowSubject",

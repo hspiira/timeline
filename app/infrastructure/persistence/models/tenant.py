@@ -1,6 +1,8 @@
 """Tenant ORM model. Root entity for multi-tenant hierarchy (no tenant_id)."""
 
-from sqlalchemy import CheckConstraint, String
+from datetime import datetime
+
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domain.enums import TenantStatus
@@ -18,6 +20,15 @@ class Tenant(CuidMixin, TimestampMixin, Base):
     status: Mapped[str] = mapped_column(
         String, nullable=False, default=TenantStatus.ACTIVE.value, index=True
     )
+    integrity_profile: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="STANDARD"
+    )
+    profile_changed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+    profile_changed_by: Mapped[str | None] = mapped_column(
+        String, ForeignKey("app_user.id"), nullable=True
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -28,5 +39,9 @@ class Tenant(CuidMixin, TimestampMixin, Base):
                 )
             ),
             name="tenant_status_check",
+        ),
+        CheckConstraint(
+            "integrity_profile IN ('STANDARD','COMPLIANCE','LEGAL_GRADE')",
+            name="chk_integrity_profile",
         ),
     )

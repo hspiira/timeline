@@ -39,6 +39,16 @@ class Event(CuidMixin, TenantMixin, Base):
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     previous_hash: Mapped[str | None] = mapped_column(String)
     hash: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    epoch_id: Mapped[str | None] = mapped_column(
+        String, ForeignKey("integrity_epoch.id"), nullable=True
+    )
+    integrity_status: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="VALID"
+    )
+    tsa_anchor_id: Mapped[str | None] = mapped_column(
+        String, ForeignKey("tsa_anchor.id"), nullable=True
+    )
+    merkle_leaf_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     workflow_instance_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     correlation_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -89,7 +99,19 @@ class Event(CuidMixin, TenantMixin, Base):
             "id",
         ),
         Index("ix_event_tenant_event_seq", "tenant_id", "event_seq"),
+        Index("idx_events_epoch", "epoch_id"),
+        Index(
+            "idx_events_integrity",
+            "tenant_id",
+            "integrity_status",
+            postgresql_where=text("integrity_status <> 'VALID'"),
+        ),
         CheckConstraint("created_at IS NOT NULL", name="ck_event_created_at_immutable"),
+        CheckConstraint(
+            "integrity_status IN "
+            "('VALID','CHAIN_BREAK','REPAIRED','ERASED','PENDING_ANCHOR')",
+            name="chk_event_integrity_status",
+        ),
     )
 
 
