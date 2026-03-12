@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import asc, desc, func, select, text, tuple_
+from sqlalchemy import asc, desc, func, select, text, tuple_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.event import EventCreate, EventResult, EventToPersist
@@ -215,6 +215,22 @@ class EventRepository(BaseRepository[Event]):
             select(func.count(Event.id)).where(Event.tenant_id == tenant_id)
         )
         return result.scalar() or 0
+
+    async def set_tsa_anchor_for_events(
+        self,
+        tenant_id: str,
+        event_ids: list[str],
+        tsa_anchor_id: str,
+    ) -> None:
+        """Set tsa_anchor_id and mark integrity_status=VALID for given events."""
+        if not event_ids:
+            return
+        stmt = (
+            update(Event)
+            .where(Event.tenant_id == tenant_id, Event.id.in_(event_ids))
+            .values(tsa_anchor_id=tsa_anchor_id, integrity_status="VALID")
+        )
+        await self.db.execute(stmt)
 
     async def get_counts_by_type(self, tenant_id: str) -> dict[str, int]:
         """Return event counts per event_type for tenant."""

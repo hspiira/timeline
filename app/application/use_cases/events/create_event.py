@@ -19,6 +19,11 @@ from app.application.interfaces.repositories import (
 )
 from app.application.interfaces.services import IHashService
 from app.application.services.enrichment import IEventEnricher
+from app.application.services.tsa_batch_queue import (
+    TsaBatchQueue,
+    TsaBatchItem,
+    DEFAULT_TSA_BATCH_QUEUE,
+)
 from app.domain.entities.event import EventEntity
 from app.domain.exceptions import (
     ChainForkError,
@@ -80,6 +85,7 @@ class EventService:
         enrichers: list[IEventEnricher] | None = None,
         post_create_hooks: list[IPostCreateHook] | None = None,
         epoch_service: "EpochService | None" = None,
+        tsa_batch_queue: TsaBatchQueue | None = DEFAULT_TSA_BATCH_QUEUE,
     ) -> None:
         self.event_repo = event_repo
         self.hash_service = hash_service
@@ -91,6 +97,7 @@ class EventService:
         self.enrichers = enrichers or []
         self._post_create_hooks = post_create_hooks or []
         self.epoch_service = epoch_service
+        self._tsa_batch_queue = tsa_batch_queue
 
     async def create_event(
         self,
@@ -195,6 +202,17 @@ class EventService:
                             integrity_status=integrity_status,
                             merkle_leaf_hash=merkle_leaf_hash,
                         )
+                        if (
+                            self._tsa_batch_queue
+                            and assignment.profile_snapshot == "COMPLIANCE"
+                        ):
+                            await self._tsa_batch_queue.enqueue(
+                                TsaBatchItem(
+                                    tenant_id=tenant_id,
+                                    event_id=created.id,
+                                    payload_hash_hex=event_hash,
+                                )
+                            )
                         if created.event_seq is not None:
                             await self.epoch_service.record_event_appended(
                                 assignment.epoch_id,
@@ -401,6 +419,18 @@ class EventService:
                             if ev.event_seq is not None:
                                 await self.epoch_service.record_event_appended(
                                     eid, ev.event_seq, first
+                                )
+                    if self._tsa_batch_queue and self.epoch_service:
+                        for ev, (eid, first) in zip(created, epoch_meta):
+                            # Enqueue COMPLIANCE events for TSA batch anchoring.
+                            assignment = assignment_by_subject[ev.subject_id]
+                            if assignment.profile_snapshot == "COMPLIANCE":
+                                await self._tsa_batch_queue.enqueue(
+                                    TsaBatchItem(
+                                        tenant_id=tenant_id,
+                                        event_id=ev.id,
+                                        payload_hash_hex=ev.hash,
+                                    )
                                 )
                 break
             except IntegrityError as exc:

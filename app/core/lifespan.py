@@ -111,6 +111,16 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
     else:
         app.state.epoch_sealing_task = None
 
+    if settings.tsa_batch_enabled:
+        from app.core.tsa_batch_job import run_tsa_batch_job
+
+        app.state.tsa_batch_task = asyncio.create_task(
+            run_tsa_batch_job(app), name="tsa_batch"
+        )
+        logger.info("TSA batch job started")
+    else:
+        app.state.tsa_batch_task = None
+
     connectors_enabled = (
         settings.connector_cdc_postgres_enabled
         or settings.connector_kafka_enabled
@@ -183,6 +193,15 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
         except asyncio.CancelledError:
             pass
         logger.info("Chain anchor task stopped")
+
+    tsa_batch_task = getattr(app.state, "tsa_batch_task", None)
+    if tsa_batch_task is not None:
+        tsa_batch_task.cancel()
+        try:
+            await tsa_batch_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("TSA batch task stopped")
 
     epoch_sealing_task = getattr(app.state, "epoch_sealing_task", None)
     if epoch_sealing_task is not None:

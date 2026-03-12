@@ -92,6 +92,10 @@ class Settings(BaseSettings):
     chain_anchor_tsa_timeout_seconds: int = 10
     # Integrity epoch sealing: seal due epochs and open next; TSA for COMPLIANCE/LEGAL_GRADE.
     epoch_sealing_enabled: bool = False
+    # TSA batch anchoring (COMPLIANCE profile): background job drains queue and anchors batches.
+    tsa_batch_enabled: bool = False
+    tsa_batch_interval_seconds: int = 60
+    tsa_batch_max_events: int = 500
 
     # Request / middleware
     request_timeout_seconds: int = 60
