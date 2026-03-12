@@ -102,10 +102,17 @@ async def create_lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.chain_anchor_task = None
 
     if settings.epoch_sealing_enabled:
+        from app.infrastructure.persistence.database import AsyncSessionLocal
+
         from app.core.epoch_sealing_job import run_epoch_sealing_job
 
         app.state.epoch_sealing_task = asyncio.create_task(
-            run_epoch_sealing_job(app), name="epoch_sealing"
+            run_epoch_sealing_job(
+                app.state.oauth_http_client,
+                AsyncSessionLocal,
+                settings,
+            ),
+            name="epoch_sealing",
         )
         logger.info("Epoch sealing job started")
     else:

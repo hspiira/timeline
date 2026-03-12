@@ -6,10 +6,9 @@ from sqlalchemy import and_, desc, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.integrity import OpenEpochAssignment
-from app.application.dtos.event import EventResult
 from app.application.integrity_config import INTEGRITY_PROFILE_CONFIG
 from app.domain.enums import IntegrityProfile
-from app.infrastructure.persistence.models import Event, IntegrityEpoch
+from app.infrastructure.persistence.models import IntegrityEpoch
 from app.infrastructure.persistence.repositories.base import BaseRepository
 
 
@@ -197,41 +196,4 @@ WHERE id = :epoch_id
                 ),
                 {"epoch_id": epoch_id, "last_event_seq": last_event_seq},
             )
-
-    async def get_last_event_in_epoch(
-        self, epoch_id: str, tenant_id: str
-    ) -> EventResult | None:
-        """Return the last event in the given epoch for sealing logic."""
-        result = await self.db.execute(
-            select(Event)
-            .where(
-                Event.tenant_id == tenant_id,
-                Event.epoch_id == epoch_id,
-            )
-            .order_by(desc(Event.event_seq))
-            .limit(1)
-        )
-        row = result.scalar_one_or_none()
-        if not row:
-            return None
-        return EventResult(
-            id=row.id,
-            tenant_id=row.tenant_id,
-            subject_id=row.subject_id,
-            event_type=row.event_type,
-            schema_version=row.schema_version,
-            event_time=row.event_time,
-            payload=row.payload,
-            previous_hash=row.previous_hash,
-            hash=row.hash,
-            workflow_instance_id=row.workflow_instance_id,
-            correlation_id=row.correlation_id,
-            external_id=row.external_id,
-            source=row.source,
-            event_seq=row.event_seq,
-            epoch_id=row.epoch_id,
-            integrity_status=row.integrity_status or "VALID",
-            tsa_anchor_id=row.tsa_anchor_id,
-            merkle_leaf_hash=row.merkle_leaf_hash,
-        )
 

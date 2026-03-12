@@ -19,6 +19,31 @@ class MerkleNodeRepository(BaseRepository[MerkleNode]):
             self.model.__table__.delete().where(self.model.epoch_id == epoch_id)
         )
 
+    async def create_node(
+        self,
+        *,
+        epoch_id: str,
+        node_hash: str,
+        depth: int,
+        position: int,
+        is_root: bool,
+        left_child_hash: str | None = None,
+        right_child_hash: str | None = None,
+        event_seq: int | None = None,
+    ) -> MerkleNode:
+        """Insert a single Merkle node; the repository owns model construction."""
+        node = MerkleNode(
+            epoch_id=epoch_id,
+            node_hash=node_hash,
+            left_child_hash=left_child_hash,
+            right_child_hash=right_child_hash,
+            event_seq=event_seq,
+            depth=depth,
+            position=position,
+            is_root=is_root,
+        )
+        return await self.create(node)
+
     async def get_leaf_nodes(
         self,
         epoch_id: str,

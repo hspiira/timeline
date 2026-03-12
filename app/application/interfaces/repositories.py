@@ -127,6 +127,16 @@ class IEventRepository(Protocol):
     ) -> list[EventResult]:
         """Return events for tenant with event_seq > since_seq, ordered by event_seq asc. Used by projection engine for watermark polling."""
 
+    async def get_last_event_in_epoch(
+        self, epoch_id: str, tenant_id: str
+    ) -> EventResult | None:
+        """Return the last event in the given epoch (by event_seq) for sealing logic."""
+
+    async def get_events_for_epoch(
+        self, tenant_id: str, epoch_id: str
+    ) -> list[EventResult]:
+        """Return events for an epoch ordered by event_seq ascending (Merkle build)."""
+
     async def count_by_tenant(self, tenant_id: str) -> int:
         """Return total event count for tenant (for verification limit check)."""
 

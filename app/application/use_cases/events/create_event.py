@@ -99,6 +99,45 @@ class EventService:
         self.epoch_service = epoch_service
         self._tsa_batch_queue = tsa_batch_queue
 
+    async def _append_one_for_epoch(
+        self,
+        assignment: OpenEpochAssignment,
+        tenant_id: str,
+        data: EventCreate,
+        event_hash: str,
+        prev_hash: str | None,
+    ) -> tuple[EventResult, bool]:
+        """Persist one event into the given epoch; used by with_open_epoch. Returns (created, is_first)."""
+        integrity_status = (
+            "VALID"
+            if assignment.profile_snapshot == "STANDARD"
+            else "PENDING_ANCHOR"
+        )
+        merkle_leaf_hash = (
+            event_hash if assignment.profile_snapshot == "LEGAL_GRADE" else None
+        )
+        created = await self.event_repo.create_event(
+            tenant_id,
+            data,
+            event_hash,
+            prev_hash,
+            epoch_id=assignment.epoch_id,
+            integrity_status=integrity_status,
+            merkle_leaf_hash=merkle_leaf_hash,
+        )
+        if (
+            self._tsa_batch_queue
+            and assignment.profile_snapshot == "COMPLIANCE"
+        ):
+            await self._tsa_batch_queue.enqueue(
+                TsaBatchItem(
+                    tenant_id=tenant_id,
+                    event_id=created.id,
+                    payload_hash_hex=event_hash,
+                )
+            )
+        return created, assignment.event_count == 0
+
     async def create_event(
         self,
         tenant_id: str,
@@ -180,45 +219,13 @@ class EventService:
                     )
 
                     if self.epoch_service:
-                        assignment = await self.epoch_service.get_or_create_open_epoch(
-                            tenant_id, data.subject_id
-                        )
-                        integrity_status = (
-                            "VALID"
-                            if assignment.profile_snapshot == "STANDARD"
-                            else "PENDING_ANCHOR"
-                        )
-                        merkle_leaf_hash = (
-                            event_hash
-                            if assignment.profile_snapshot == "LEGAL_GRADE"
-                            else None
-                        )
-                        created = await self.event_repo.create_event(
+                        _, created = await self.epoch_service.with_open_epoch(
                             tenant_id,
-                            data,
-                            event_hash,
-                            prev_hash,
-                            epoch_id=assignment.epoch_id,
-                            integrity_status=integrity_status,
-                            merkle_leaf_hash=merkle_leaf_hash,
+                            data.subject_id,
+                            lambda a: self._append_one_for_epoch(
+                                a, tenant_id, data, event_hash, prev_hash
+                            ),
                         )
-                        if (
-                            self._tsa_batch_queue
-                            and assignment.profile_snapshot == "COMPLIANCE"
-                        ):
-                            await self._tsa_batch_queue.enqueue(
-                                TsaBatchItem(
-                                    tenant_id=tenant_id,
-                                    event_id=created.id,
-                                    payload_hash_hex=event_hash,
-                                )
-                            )
-                        if created.event_seq is not None:
-                            await self.epoch_service.record_event_appended(
-                                assignment.epoch_id,
-                                created.event_seq,
-                                assignment.event_count == 0,
-                            )
                     else:
                         created = await self.event_repo.create_event(
                             tenant_id, data, event_hash, prev_hash
@@ -415,11 +422,12 @@ class EventService:
                         tenant_id, to_persist
                     )
                     if self.epoch_service and epoch_meta:
-                        for ev, (eid, first) in zip(created, epoch_meta):
-                            if ev.event_seq is not None:
-                                await self.epoch_service.record_event_appended(
-                                    eid, ev.event_seq, first
-                                )
+                        entries = [
+                            (eid, ev.event_seq, first)
+                            for ev, (eid, first) in zip(created, epoch_meta)
+                            if ev.event_seq is not None
+                        ]
+                        await self.epoch_service.record_events_appended_bulk(entries)
                     if self._tsa_batch_queue and self.epoch_service:
                         for ev, (eid, first) in zip(created, epoch_meta):
                             # Enqueue COMPLIANCE events for TSA batch anchoring.

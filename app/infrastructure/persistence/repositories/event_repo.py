@@ -341,6 +341,22 @@ class EventRepository(BaseRepository[Event]):
         )
         return [_event_to_result(e) for e in result.scalars().all()]
 
+    async def get_last_event_in_epoch(
+        self, epoch_id: str, tenant_id: str
+    ) -> EventResult | None:
+        """Return the last event in the given epoch (by event_seq) for sealing logic."""
+        result = await self.db.execute(
+            select(Event)
+            .where(
+                Event.tenant_id == tenant_id,
+                Event.epoch_id == epoch_id,
+            )
+            .order_by(desc(Event.event_seq))
+            .limit(1)
+        )
+        row = result.scalar_one_or_none()
+        return _event_to_result(row) if row else None
+
     async def create_events_bulk(
         self, tenant_id: str, events: list[EventToPersist]
     ) -> list[EventResult]:

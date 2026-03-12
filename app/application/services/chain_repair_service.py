@@ -2,11 +2,45 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 from app.domain.enums import IntegrityProfile
+
+if TYPE_CHECKING:
+    from app.application.interfaces.repositories import (
+        IEventRepository,
+        IEpochRepository,
+    )
+
+logger = logging.getLogger(__name__)
+
+
+class IChainRepairLogRepository(Protocol):
+    """Protocol for chain_repair_log persistence (initiate, approve)."""
+
+    async def create_log(
+        self,
+        *,
+        tenant_id: str,
+        epoch_id: str,
+        break_at_event_seq: int,
+        break_reason: str,
+        repair_initiated_by: str,
+        approval_required: bool,
+        repair_reference: str | None,
+    ) -> Any: ...
+    async def get_by_id(self, repair_id: str) -> Any: ...
+    async def update_status(
+        self,
+        repair_id: str,
+        *,
+        status: str,
+        repair_approved_by: str | None = None,
+        new_epoch_id: str | None = None,
+    ) -> None: ...
 
 
 @dataclass(frozen=True)
@@ -33,11 +67,10 @@ class ChainRepairService:
     def __init__(
         self,
         *,
-        event_repo,
-        epoch_repo,
-        repair_repo,
+        event_repo: IEventRepository,
+        epoch_repo: IEpochRepository,
+        repair_repo: IChainRepairLogRepository,
     ) -> None:
-        # Informal repository types to avoid circular imports in application.interfaces.
         self._event_repo = event_repo
         self._epoch_repo = epoch_repo
         self._repair_repo = repair_repo
@@ -48,6 +81,9 @@ class ChainRepairService:
         On mismatch:
           - Set event.integrity_status = 'CHAIN_BREAK'
           - Set epoch.status = 'BROKEN'
+
+        Raises:
+            NotImplementedError: Storage-level flagging not yet implemented.
         """
         events = await self._event_repo.get_events_chronological(
             subject_id=subject_id,
@@ -59,14 +95,16 @@ class ChainRepairService:
         )
         if not events:
             return
-
         last_hash: str | None = None
         for ev in events:
             if last_hash is not None and ev.previous_hash != last_hash:
-                # First break detected; the storage-level update of integrity_status/epoch
-                # would be implemented in a dedicated infra method in a later phase.
-                # For now, this method is a no-op placeholder to avoid partial updates.
-                break
+                logger.warning(
+                    "detect_and_flag: chain break detected at subject_id=%s but flagging not implemented",
+                    subject_id,
+                )
+                raise NotImplementedError(
+                    "detect_and_flag: setting integrity_status='CHAIN_BREAK' and epoch status='BROKEN' not yet implemented"
+                )
             last_hash = ev.hash
 
     async def initiate_repair(
@@ -117,16 +155,21 @@ class ChainRepairService:
         )
 
     async def complete_repair(self, repair_id: str) -> None:
-        """Placeholder for full repair logic (rehash, CHAIN_REPAIR event, new epoch).
+        """Re-hash from break, append CHAIN_REPAIR event, open new epoch, set events to REPAIRED.
 
-        The complete algorithm is out of scope for this phase and will
-        be implemented alongside dedicated endpoints and workflows.
+        Raises:
+            NotImplementedError: Full repair algorithm not yet implemented.
         """
         repair = await self._repair_repo.get_by_id(repair_id)
         if not repair:
             raise ValueError(f"Repair id {repair_id!r} not found")
-        # For now, mark as FAILED to signal that automatic repair is not implemented.
-        await self._repair_repo.update_status(repair_id, status="FAILED")
+        logger.warning(
+            "complete_repair(repair_id=%s): not yet implemented; not writing to repair log",
+            repair_id,
+        )
+        raise NotImplementedError(
+            "complete_repair: re-hash from break, CHAIN_REPAIR event, and new epoch not yet implemented"
+        )
 
     @staticmethod
     def _to_record(row: Any) -> ChainRepairRecord:
