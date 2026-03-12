@@ -63,6 +63,8 @@ class ChainRepairLogRepository(BaseRepository[ChainRepairLog]):
             values["repair_approved_by"] = repair_approved_by
         if new_epoch_id is not None:
             values["new_epoch_id"] = new_epoch_id
+        if status is ChainRepairStatus.COMPLETED:
+            values["repair_completed_at"] = datetime.now(timezone.utc)
         stmt = update(ChainRepairLog).where(ChainRepairLog.id == repair_id).values(**values)
         await self.db.execute(stmt)
 

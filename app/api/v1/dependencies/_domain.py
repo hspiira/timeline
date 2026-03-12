@@ -393,6 +393,7 @@ async def get_chain_repair_service(
         event_repo=event_repo,
         epoch_repo=epoch_repo,
         repair_repo=repair_repo,
+        hash_service=HashService(),
     )
 
 

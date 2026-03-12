@@ -7,7 +7,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol
 
-from app.domain.enums import ChainRepairStatus, IntegrityProfile
+from app.application.interfaces.services import IHashService
+from app.domain.enums import (
+    ChainRepairStatus,
+    EventIntegrityStatus,
+    IntegrityProfile,
+)
+from app.shared.utils.datetime import utc_now
 
 if TYPE_CHECKING:
     from app.application.interfaces.repositories import (
@@ -16,6 +22,8 @@ if TYPE_CHECKING:
     )
 
 logger = logging.getLogger(__name__)
+
+CHAIN_REPAIR_EVENT_TYPE = "CHAIN_REPAIR"
 
 
 class IChainRepairLogRepository(Protocol):
@@ -41,6 +49,16 @@ class IChainRepairLogRepository(Protocol):
         repair_approved_by: str | None = None,
         new_epoch_id: str | None = None,
     ) -> None: ...
+
+
+@dataclass(frozen=True)
+class ChainBreakInfo:
+    """Information about the first detected chain break for a subject."""
+
+    event_id: str
+    break_at_event_seq: int
+    epoch_id: str | None
+    subject_id: str
 
 
 @dataclass(frozen=True)
@@ -70,42 +88,65 @@ class ChainRepairService:
         event_repo: IEventRepository,
         epoch_repo: IEpochRepository,
         repair_repo: IChainRepairLogRepository,
+        hash_service: IHashService,
     ) -> None:
         self._event_repo = event_repo
         self._epoch_repo = epoch_repo
         self._repair_repo = repair_repo
+        self._hash_service = hash_service
 
-    async def detect_and_flag(self, tenant_id: str, subject_id: str) -> None:
+    async def detect_and_flag(
+        self, tenant_id: str, subject_id: str
+    ) -> ChainBreakInfo | None:
         """Walk events, recompute chain, and flag the first break.
 
         On mismatch:
           - Set event.integrity_status = 'CHAIN_BREAK'
           - Set epoch.status = 'BROKEN'
 
-        Raises:
-            NotImplementedError: Storage-level flagging not yet implemented.
+        Returns:
+            ChainBreakInfo for the first break, or None if the chain is clean.
         """
-        events = await self._event_repo.get_events_chronological(
-            subject_id=subject_id,
-            tenant_id=tenant_id,
-            as_of=None,
-            after_event_id=None,
-            workflow_instance_id=None,
-            limit=100_000,
-        )
-        if not events:
-            return
+        batch_size = 500
         last_hash: str | None = None
-        for ev in events:
-            if last_hash is not None and ev.previous_hash != last_hash:
-                logger.warning(
-                    "detect_and_flag: chain break detected at subject_id=%s but flagging not implemented",
-                    subject_id,
-                )
-                raise NotImplementedError(
-                    "detect_and_flag: setting integrity_status='CHAIN_BREAK' and epoch status='BROKEN' not yet implemented"
-                )
-            last_hash = ev.hash
+        after_event_id: str | None = None
+
+        while True:
+            events = await self._event_repo.get_events_chronological(
+                subject_id=subject_id,
+                tenant_id=tenant_id,
+                as_of=None,
+                after_event_id=after_event_id,
+                workflow_instance_id=None,
+                limit=batch_size,
+            )
+            if not events:
+                return None
+
+            for ev in events:
+                if last_hash is not None and ev.previous_hash != last_hash:
+                    logger.warning(
+                        "detect_and_flag: chain break detected at subject_id=%s, event_seq=%s",
+                        subject_id,
+                        ev.event_seq,
+                    )
+                    await self._event_repo.mark_event_integrity_status(
+                        ev.id, EventIntegrityStatus.CHAIN_BREAK.value
+                    )
+                    epoch_id = ev.epoch_id
+                    if epoch_id is not None:
+                        await self._epoch_repo.mark_epoch_broken(epoch_id)
+                    return ChainBreakInfo(
+                        event_id=ev.id,
+                        break_at_event_seq=ev.event_seq or 0,
+                        epoch_id=epoch_id,
+                        subject_id=subject_id,
+                    )
+                last_hash = ev.hash
+
+            if len(events) < batch_size:
+                return None
+            after_event_id = events[-1].id
 
     async def initiate_repair(
         self,
@@ -159,22 +200,108 @@ class ChainRepairService:
             raise ValueError(f"Repair id {repair_id!r} not found after approve")
         return self._to_record(updated)
 
-    async def complete_repair(self, repair_id: str) -> None:
-        """Re-hash from break, append CHAIN_REPAIR event, open new epoch, set events to REPAIRED.
-
-        Raises:
-            NotImplementedError: Full repair algorithm not yet implemented.
-        """
+    async def complete_repair(self, repair_id: str) -> ChainRepairRecord:
+        """Re-hash from break, append CHAIN_REPAIR event, open new epoch, set events to REPAIRED."""
         repair = await self._repair_repo.get_by_id(repair_id)
         if not repair:
             raise ValueError(f"Repair id {repair_id!r} not found")
-        logger.warning(
-            "complete_repair(repair_id=%s): not yet implemented; not writing to repair log",
+
+        status = ChainRepairStatus(repair.repair_status)
+        if repair.approval_required and status is not ChainRepairStatus.APPROVED:
+            raise ValueError(
+                f"Repair id {repair_id!r} must be approved before completion"
+            )
+        if status is ChainRepairStatus.COMPLETED:
+            return self._to_record(repair)
+
+        # Load epoch to get subject and profile snapshot.
+        epoch = await self._epoch_repo.get_by_id(repair.epoch_id)
+        if not epoch:
+            raise ValueError(f"Epoch id {repair.epoch_id!r} not found for repair")
+        subject_id = epoch.subject_id
+
+        # 1. Determine last good hash before the break inside the original epoch.
+        if repair.break_at_event_seq <= (epoch.first_event_seq or repair.break_at_event_seq):
+            last_good_hash = epoch.genesis_hash
+        else:
+            last_good_hash = await self._event_repo.get_hash_at_seq(
+                repair.tenant_id,
+                epoch.id,
+                repair.break_at_event_seq - 1,
+            ) or epoch.genesis_hash
+
+        # 2. Create a new epoch starting from last_good_hash.
+        next_number = await self._epoch_repo.get_next_epoch_number(
+            repair.tenant_id, subject_id
+        )
+        new_epoch = await self._epoch_repo.create_epoch(
+            tenant_id=repair.tenant_id,
+            subject_id=subject_id,
+            epoch_number=next_number,
+            genesis_hash=last_good_hash,
+            profile_snapshot=epoch.profile_snapshot,
+        )
+
+        # 3. Append CHAIN_REPAIR administrative event as first event in new epoch.
+        repair_payload: dict[str, Any] = {
+            "repair_id": repair_id,
+            "break_at_event_seq": repair.break_at_event_seq,
+            "break_reason": repair.break_reason,
+            "repair_reference": repair.repair_reference,
+        }
+        event_time = utc_now()
+        event_hash = self._hash_service.compute_hash(
+            subject_id=subject_id,
+            event_type=CHAIN_REPAIR_EVENT_TYPE,
+            schema_version=1,
+            event_time=event_time,
+            payload=repair_payload,
+            previous_hash=last_good_hash,
+        )
+        from app.application.dtos.event import EventCreate  # local import to avoid cycles
+
+        event_create = EventCreate(
+            subject_id=subject_id,
+            event_type=CHAIN_REPAIR_EVENT_TYPE,
+            schema_version=1,
+            event_time=event_time,
+            payload=repair_payload,
+        )
+        chain_repair_event = await self._event_repo.create_event(
+            tenant_id=repair.tenant_id,
+            data=event_create,
+            event_hash=event_hash,
+            previous_hash=last_good_hash,
+            epoch_id=new_epoch.epoch_id,
+            integrity_status=EventIntegrityStatus.VALID.value,
+            merkle_leaf_hash=None,
+        )
+        if chain_repair_event.event_seq is None:
+            raise ValueError("CHAIN_REPAIR event missing event_seq")
+        await self._epoch_repo.increment_epoch_event(
+            new_epoch.epoch_id,
+            chain_repair_event.event_seq,
+            is_first=True,
+        )
+
+        # 4. Mark broken events as REPAIRED and original epoch as REPAIRED.
+        await self._event_repo.mark_events_repaired_from_seq(
+            repair.tenant_id,
+            subject_id,
+            repair.break_at_event_seq,
+        )
+        await self._epoch_repo.mark_epoch_repaired(repair.epoch_id)
+
+        # 5. Update repair log status to COMPLETED and point to new epoch.
+        await self._repair_repo.update_status(
             repair_id,
+            status=ChainRepairStatus.COMPLETED,
+            new_epoch_id=new_epoch.epoch_id,
         )
-        raise NotImplementedError(
-            "complete_repair: re-hash from break, CHAIN_REPAIR event, and new epoch not yet implemented"
-        )
+        updated = await self._repair_repo.get_by_id(repair_id)
+        if not updated:
+            raise ValueError(f"Repair id {repair_id!r} not found after completion")
+        return self._to_record(updated)
 
     async def get_repair(self, repair_id: str) -> ChainRepairRecord:
         """Return a single repair record by id."""

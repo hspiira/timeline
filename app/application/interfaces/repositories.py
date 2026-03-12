@@ -117,7 +117,7 @@ class IEventRepository(Protocol):
         workflow_instance_id: str | None = None,
         limit: int = 10000,
     ) -> list[EventResult]:
-        """Return events for subject in chronological order (oldest first). If as_of is set, only events with event_time <= as_of. If after_event_id is set, only events after that event (for snapshot replay). If workflow_instance_id is set, only events in that stream."""
+        """Return events for subject in chronological order (oldest first)."""
 
     async def get_events_since_seq(
         self,
@@ -125,7 +125,7 @@ class IEventRepository(Protocol):
         since_seq: int,
         limit: int = 1000,
     ) -> list[EventResult]:
-        """Return events for tenant with event_seq > since_seq, ordered by event_seq asc. Used by projection engine for watermark polling."""
+        """Return events for tenant with event_seq > since_seq, ordered by event_seq asc."""
 
     async def get_last_event_in_epoch(
         self, epoch_id: str, tenant_id: str
@@ -161,7 +161,33 @@ class IEventRepository(Protocol):
         """Return the hash of the latest event for the tenant (chain tip). None if no events."""
 
     async def get_distinct_tenant_ids(self) -> list[str]:
-        """Return distinct tenant_ids that have at least one event (for anchoring job). Deterministic order by tenant_id."""
+        """Return distinct tenant_ids that have at least one event (for anchoring job)."""
+
+    async def get_by_tenant_and_seq(
+        self, tenant_id: str, event_seq: int
+    ) -> EventResult | None:
+        """Return event by tenant and global event_seq, or None."""
+
+    async def mark_event_integrity_status(
+        self, event_id: str, status: str
+    ) -> None:
+        """Set integrity_status on a single event (e.g. CHAIN_BREAK)."""
+
+    async def mark_events_repaired_from_seq(
+        self,
+        tenant_id: str,
+        subject_id: str,
+        from_event_seq: int,
+    ) -> None:
+        """Set integrity_status='Repaired' for events at or after from_event_seq."""
+
+    async def get_hash_at_seq(
+        self,
+        tenant_id: str,
+        epoch_id: str,
+        event_seq: int,
+    ) -> str | None:
+        """Return event.hash for the given (tenant, epoch, event_seq), or None."""
 
 
 # Subject repository interface
@@ -701,6 +727,15 @@ class IEpochRepository(Protocol):
         is_first: bool = False,
     ) -> None:
         """Increment event_count and set last_event_seq; if is_first, set first_event_seq."""
+
+    async def mark_epoch_failed(self, epoch_id: str) -> None:
+        """Mark epoch as FAILED so it is skipped by get_sealable_epochs."""
+
+    async def mark_epoch_broken(self, epoch_id: str) -> None:
+        """Mark epoch as BROKEN when a chain break is detected."""
+
+    async def mark_epoch_repaired(self, epoch_id: str) -> None:
+        """Mark epoch as REPAIRED after a successful chain repair."""
 
 
 # User repository interface

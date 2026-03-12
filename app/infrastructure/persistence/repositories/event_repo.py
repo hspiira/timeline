@@ -135,6 +135,19 @@ class EventRepository(BaseRepository[Event]):
         rows = result.scalars().all()
         return {(e.subject_id, e.external_id): _event_to_result(e) for e in rows}
 
+    async def get_by_tenant_and_seq(
+        self, tenant_id: str, event_seq: int
+    ) -> EventResult | None:
+        """Return single event for tenant by global event_seq, or None."""
+        result = await self.db.execute(
+            select(Event).where(
+                Event.tenant_id == tenant_id,
+                Event.event_seq == event_seq,
+            )
+        )
+        row = result.scalar_one_or_none()
+        return _event_to_result(row) if row else None
+
     async def create_event(
         self,
         tenant_id: str,
@@ -256,6 +269,51 @@ class EventRepository(BaseRepository[Event]):
             )
         )
         await self.db.execute(stmt)
+
+    async def mark_event_integrity_status(
+        self, event_id: str, status: str
+    ) -> None:
+        """Set integrity_status on a single event using bulk UPDATE (no ORM updates)."""
+        stmt = (
+            update(Event)
+            .where(Event.id == event_id)
+            .values(integrity_status=EventIntegrityStatus(status))
+        )
+        await self.db.execute(stmt)
+
+    async def mark_events_repaired_from_seq(
+        self,
+        tenant_id: str,
+        subject_id: str,
+        from_event_seq: int,
+    ) -> None:
+        """Set integrity_status='Repaired' for events at or after from_event_seq."""
+        stmt = (
+            update(Event)
+            .where(
+                Event.tenant_id == tenant_id,
+                Event.subject_id == subject_id,
+                Event.event_seq >= from_event_seq,
+            )
+            .values(integrity_status=EventIntegrityStatus.REPAIRED)
+        )
+        await self.db.execute(stmt)
+
+    async def get_hash_at_seq(
+        self,
+        tenant_id: str,
+        epoch_id: str,
+        event_seq: int,
+    ) -> str | None:
+        """Return event.hash for the given (tenant, epoch, event_seq), or None."""
+        result = await self.db.execute(
+            select(Event.hash).where(
+                Event.tenant_id == tenant_id,
+                Event.epoch_id == epoch_id,
+                Event.event_seq == event_seq,
+            )
+        )
+        return result.scalar_one_or_none()
 
     async def get_counts_by_type(self, tenant_id: str) -> dict[str, int]:
         """Return event counts per event_type for tenant."""

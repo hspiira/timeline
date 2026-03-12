@@ -234,3 +234,19 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
             .values(status=IntegrityEpochStatus.FAILED)
         )
 
+    async def mark_epoch_broken(self, epoch_id: str) -> None:
+        """Mark epoch as BROKEN when a chain break is detected."""
+        await self.db.execute(
+            update(IntegrityEpoch)
+            .where(IntegrityEpoch.id == epoch_id)
+            .values(status=IntegrityEpochStatus.BROKEN)
+        )
+
+    async def mark_epoch_repaired(self, epoch_id: str) -> None:
+        """Mark epoch as REPAIRED after a successful chain repair."""
+        await self.db.execute(
+            update(IntegrityEpoch)
+            .where(IntegrityEpoch.id == epoch_id)
+            .values(status=IntegrityEpochStatus.REPAIRED)
+        )
+

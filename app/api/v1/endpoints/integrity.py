@@ -340,10 +340,25 @@ async def complete_chain_repair(
     chain_repair_svc=Depends(get_chain_repair_service),
     _: Annotated[object, Depends(require_permission("tenant", "update"))] = None,
 ):
-    """Complete a chain repair. Currently not implemented; returns 501."""
+    """Complete a chain repair by re-hashing from break and opening a new epoch."""
     try:
-        await chain_repair_svc.complete_repair(repair_id)
-    except NotImplementedError as e:
-        raise HTTPException(status_code=501, detail=str(e)) from e
-    # Once implemented, this should mirror get_chain_repair to return the updated record.
+        record = await chain_repair_svc.complete_repair(repair_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    if record.tenant_id != tenant_id:
+        raise HTTPException(status_code=404, detail="Repair not found")
+    return ChainRepairResponse(
+        id=record.id,
+        tenant_id=record.tenant_id,
+        epoch_id=record.epoch_id,
+        break_at_event_seq=record.break_at_event_seq,
+        break_reason=record.break_reason,
+        repair_status=record.repair_status,
+        repair_initiated_by=record.repair_initiated_by,
+        repair_approved_by=record.repair_approved_by,
+        approval_required=record.approval_required,
+        repair_reference=record.repair_reference,
+        repair_completed_at=record.repair_completed_at,
+        new_epoch_id=record.new_epoch_id,
+    )
 
