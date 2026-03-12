@@ -42,8 +42,11 @@ async def run_epoch_sealing_job(app: FastAPI) -> None:
     from app.infrastructure.persistence.repositories import (
         IntegrityEpochRepository,
         TsaAnchorRepository,
+        EventRepository,
+        MerkleNodeRepository,
     )
     from app.infrastructure.services.tsa_service import TsaService
+    from app.application.services.merkle_service import MerkleService
 
     while True:
         try:
@@ -57,6 +60,8 @@ async def run_epoch_sealing_job(app: FastAPI) -> None:
                 async with AsyncSessionLocal() as db:
                     async with db.begin():
                         epoch_repo = IntegrityEpochRepository(db)
+                        event_repo = EventRepository(db)
+                        merkle_repo = MerkleNodeRepository(db)
                         tsa_anchor_repo = TsaAnchorRepository(db)
                         tsa_service = TsaService(
                             tsa_client=tsa_client,
@@ -79,15 +84,33 @@ async def run_epoch_sealing_job(app: FastAPI) -> None:
                                 terminal_hash = epoch.genesis_hash or ""
                             else:
                                 terminal_hash = last_ev.hash
+
+                            merkle_root: str | None = None
                             tsa_anchor_id: str | None = None
                             config = INTEGRITY_PROFILE_CONFIG.get(
                                 IntegrityProfile(epoch.profile_snapshot)
                             )
+                            if config and config and config.merkle_enabled:
+                                merkle_service = MerkleService(
+                                    event_repo=event_repo,
+                                    merkle_repo=merkle_repo,
+                                )
+                                try:
+                                    merkle_root = await merkle_service.build_and_store(
+                                        epoch.tenant_id, epoch
+                                    )
+                                except Exception as e:
+                                    logger.warning(
+                                        "Merkle build failed for epoch %s: %s",
+                                        epoch.id,
+                                        e,
+                                        exc_info=True,
+                                    )
                             if config and config.tsa_enabled:
                                 try:
                                     tsa_anchor_id = await tsa_service.anchor(
                                         epoch.tenant_id,
-                                        terminal_hash,
+                                        merkle_root or terminal_hash,
                                         "EPOCH",
                                     )
                                 except Exception as e:
@@ -101,6 +124,7 @@ async def run_epoch_sealing_job(app: FastAPI) -> None:
                                 epoch.id,
                                 terminal_hash,
                                 tsa_anchor_id=tsa_anchor_id,
+                                merkle_root=merkle_root,
                             )
                             next_num = epoch.epoch_number + 1
                             await epoch_repo.create_epoch(

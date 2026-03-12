@@ -328,6 +328,19 @@ class EventRepository(BaseRepository[Event]):
         )
         return list(result.scalars().all())
 
+    async def get_events_for_epoch(
+        self,
+        tenant_id: str,
+        epoch_id: str,
+    ) -> list[EventResult]:
+        """Return events for an epoch ordered by event_seq ascending."""
+        result = await self.db.execute(
+            select(Event)
+            .where(Event.tenant_id == tenant_id, Event.epoch_id == epoch_id)
+            .order_by(asc(Event.event_seq))
+        )
+        return [_event_to_result(e) for e in result.scalars().all()]
+
     async def create_events_bulk(
         self, tenant_id: str, events: list[EventToPersist]
     ) -> list[EventResult]:

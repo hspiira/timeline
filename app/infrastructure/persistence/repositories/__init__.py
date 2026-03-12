@@ -75,6 +75,9 @@ from app.infrastructure.persistence.repositories.tenant_repo import TenantReposi
 from app.infrastructure.persistence.repositories.tsa_anchor_repo import (
     TsaAnchorRepository,
 )
+from app.infrastructure.persistence.repositories.merkle_node_repo import (
+    MerkleNodeRepository,
+)
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
 from app.infrastructure.persistence.repositories.webhook_subscription_repo import (
     WebhookSubscriptionRepository,
@@ -115,6 +118,7 @@ __all__ = [
     "SubjectTypeRepository",
     "TaskRepository",
     "TenantRepository",
+    "MerkleNodeRepository",
     "TsaAnchorRepository",
     "UserRepository",
     "WebhookSubscriptionRepository",
