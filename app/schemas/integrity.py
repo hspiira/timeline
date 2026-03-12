@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt
 
 from app.domain.enums import (
     ChainRepairStatus,
@@ -88,9 +88,9 @@ class MerkleProofResponse(BaseModel):
 class ChainRepairCreateRequest(BaseModel):
     """Request body for initiating a chain repair."""
 
-    epoch_id: str
-    break_at_event_seq: int
-    break_reason: str
+    epoch_id: str = Field(min_length=1)
+    break_at_event_seq: PositiveInt
+    break_reason: str = Field(min_length=1)
     repair_reference: str | None = None
 
 

@@ -8,6 +8,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol
 
+from app.domain.enums import TsaAnchorType
 from app.shared.enums import ActorType, AuditAction
 
 if TYPE_CHECKING:
@@ -23,7 +24,7 @@ class ITSAService(Protocol):
         self,
         tenant_id: str,
         payload_hash_hex: str,
-        anchor_type: str,
+        anchor_type: TsaAnchorType,
     ) -> str:
         """Submit payload_hash to TSA, store token in tsa_anchor table; return anchor id."""
 

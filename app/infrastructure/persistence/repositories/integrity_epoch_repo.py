@@ -1,6 +1,6 @@
 """Integrity epoch repository implementation."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from sqlalchemy import and_, desc, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +13,7 @@ from app.application.integrity_config import (
 from app.domain.enums import IntegrityEpochStatus, IntegrityProfile
 from app.infrastructure.persistence.models import IntegrityEpoch
 from app.infrastructure.persistence.repositories.base import BaseRepository
+from app.shared.utils.datetime import utc_now
 
 
 def _epoch_to_assignment(e: IntegrityEpoch) -> OpenEpochAssignment:
@@ -119,7 +120,7 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
             first_event_seq=None,
             last_event_seq=None,
             event_count=0,
-            opened_at=datetime.now(datetime.UTC),
+            opened_at=utc_now(),
             profile_snapshot=profile_snapshot,
             status=IntegrityEpochStatus.OPEN,
         )
@@ -132,7 +133,7 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
         Excludes epochs that have already reached EPOCH_SEAL_MAX_RETRIES (defense-in-depth
         in case status=FAILED is not yet committed).
         """
-        now = datetime.now(timezone.utc)
+        now = utc_now()
         due_conditions = []
         for profile in IntegrityProfile:
             config = INTEGRITY_PROFILE_CONFIG.get(profile)
@@ -174,7 +175,7 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
         values: dict[str, object] = {
             "status": IntegrityEpochStatus.SEALED,
             "terminal_hash": terminal_hash,
-            "sealed_at": datetime.now(timezone.utc),
+            "sealed_at": utc_now(),
             "seal_retry_count": 0,
         }
         if tsa_anchor_id is not None:

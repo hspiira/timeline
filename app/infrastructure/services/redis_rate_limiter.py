@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 import uuid
 
@@ -10,6 +11,8 @@ import redis.asyncio as redis
 from app.application.services.rate_limiter import IRateLimiter
 
 KEY_PREFIX = "rl:"
+
+logger = logging.getLogger(__name__)
 
 # Atomic sliding-window: remove expired, count, add if under limit.
 # ARGV: limit, window_end, window_seconds, member, score (now)
@@ -54,5 +57,12 @@ class RedisRateLimiter:
                 args=[limit, window_end, window_seconds, member, now],
             )
             return allowed in (1, "1")
-        except redis.RedisError:
-            return True
+        except redis.RedisError as err:
+            # Backend failure: log and fail closed so we don't silently disable protection.
+            logger.error(
+                "RedisRateLimiter backend error for key=%s: %s",
+                redis_key,
+                err,
+                exc_info=True,
+            )
+            return False

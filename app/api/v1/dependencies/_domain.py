@@ -97,7 +97,11 @@ from app.infrastructure.persistence.repositories import (
     TenantIntegrityProfileHistoryRepository,
     ChainRepairLogRepository,
 )
-from app.infrastructure.services import SystemAuditService, WorkflowEngine
+from app.infrastructure.services import (
+    InMemoryEventStreamBroadcaster,
+    SystemAuditService,
+    WorkflowEngine,
+)
 from app.infrastructure.services.post_create_hooks import (
     EventStreamBroadcastHook,
     WebhookDispatchHook,
@@ -372,7 +376,14 @@ async def get_event_repo(
 async def get_tenant_integrity_history_repo(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> TenantIntegrityProfileHistoryRepository:
-    """Tenant integrity profile history repository (read/write)."""
+    """Tenant integrity profile history repository for read operations."""
+    return TenantIntegrityProfileHistoryRepository(db)
+
+
+async def get_tenant_integrity_history_repo_for_write(
+    db: Annotated[AsyncSession, Depends(get_db_transactional)],
+) -> TenantIntegrityProfileHistoryRepository:
+    """Tenant integrity profile history repository for create (transactional)."""
     return TenantIntegrityProfileHistoryRepository(db)
 
 
@@ -877,12 +888,32 @@ async def get_webhook_subscription_repo_for_write(
 
 
 async def get_webhook_dispatcher(
+    request: Request,
     webhook_repo: Annotated[
         WebhookSubscriptionRepository, Depends(get_webhook_subscription_repo)
     ],
 ) -> WebhookDispatcher:
     """Webhook dispatcher for test delivery (uses repo to resolve subscriptions)."""
-    return WebhookDispatcher(webhook_repo.get_active_by_tenant)
+    oauth_http_client = getattr(request.app.state, "oauth_http_client", None)
+    return WebhookDispatcher(
+        webhook_repo.get_active_by_tenant,
+        http_client=oauth_http_client,
+    )
+
+
+async def get_event_stream_broadcaster() -> InMemoryEventStreamBroadcaster:
+    """Return the in-memory SSE broadcaster instance (singleton)."""
+    # Event stream broadcaster is constructed in lifespan and stored on app.state;
+    # for now, we expose the global singleton as the broadcaster dependency.
+    # This can be swapped out in tests.
+    from app.infrastructure.services.event_stream_broadcaster import (
+        InMemoryEventStreamBroadcaster as _Broadcaster,
+    )
+
+    # In production, lifespan wires this; here we ensure a singleton for DI/tests.
+    if not hasattr(get_event_stream_broadcaster, "_instance"):
+        setattr(get_event_stream_broadcaster, "_instance", _Broadcaster())
+    return getattr(get_event_stream_broadcaster, "_instance")
 
 
 async def get_projection_repo(

@@ -17,9 +17,9 @@ from app.application.dtos.webhook_subscription import (
     WebhookSubscriptionResult,
     WebhookSubscriptionUpdate,
 )
+from app.application.interfaces.repositories import IWebhookSubscriptionRepository
+from app.application.interfaces.webhook import IWebhookDispatcher
 from app.domain.exceptions import ResourceNotFoundException
-from app.infrastructure.persistence.repositories import WebhookSubscriptionRepository
-from app.infrastructure.services.webhook_dispatcher import WebhookDispatcher
 from app.schemas.webhook_subscription import (
     WebhookSubscriptionCreateRequest,
     WebhookSubscriptionCreateResponse,
@@ -55,7 +55,8 @@ async def create_webhook(
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
     body: WebhookSubscriptionCreateRequest,
     repo: Annotated[
-        WebhookSubscriptionRepository, Depends(get_webhook_subscription_repo_for_write)
+        IWebhookSubscriptionRepository,
+        Depends(get_webhook_subscription_repo_for_write),
     ],
     _: Annotated[object, Depends(get_webhook_write_permission)],
 ) -> WebhookSubscriptionCreateResponse:
@@ -88,7 +89,8 @@ async def create_webhook(
 async def list_webhooks(
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
     repo: Annotated[
-        WebhookSubscriptionRepository, Depends(get_webhook_subscription_repo)
+        IWebhookSubscriptionRepository,
+        Depends(get_webhook_subscription_repo),
     ],
     _: Annotated[object, Depends(get_webhook_read_permission)],
     skip: int = Query(0, ge=0),
@@ -107,9 +109,7 @@ async def list_webhooks(
 async def get_webhook(
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
     subscription_id: str,
-    repo: Annotated[
-        WebhookSubscriptionRepository, Depends(get_webhook_subscription_repo)
-    ],
+    repo: Annotated[IWebhookSubscriptionRepository, Depends(get_webhook_subscription_repo)],
     _: Annotated[object, Depends(get_webhook_read_permission)],
 ) -> WebhookSubscriptionResponse:
     """Get a webhook subscription by id."""
@@ -129,7 +129,8 @@ async def update_webhook(
     subscription_id: str,
     body: WebhookSubscriptionUpdateRequest,
     repo: Annotated[
-        WebhookSubscriptionRepository, Depends(get_webhook_subscription_repo_for_write)
+        IWebhookSubscriptionRepository,
+        Depends(get_webhook_subscription_repo_for_write),
     ],
     _: Annotated[object, Depends(get_webhook_write_permission)],
 ) -> WebhookSubscriptionResponse:
@@ -160,7 +161,8 @@ async def delete_webhook(
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
     subscription_id: str,
     repo: Annotated[
-        WebhookSubscriptionRepository, Depends(get_webhook_subscription_repo_for_write)
+        IWebhookSubscriptionRepository,
+        Depends(get_webhook_subscription_repo_for_write),
     ],
     _: Annotated[object, Depends(get_webhook_write_permission)],
 ) -> None:
@@ -176,10 +178,8 @@ async def delete_webhook(
 async def test_webhook(
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
     subscription_id: str,
-    repo: Annotated[
-        WebhookSubscriptionRepository, Depends(get_webhook_subscription_repo)
-    ],
-    dispatcher: Annotated[WebhookDispatcher, Depends(get_webhook_dispatcher)],
+    repo: Annotated[IWebhookSubscriptionRepository, Depends(get_webhook_subscription_repo)],
+    dispatcher: Annotated[IWebhookDispatcher, Depends(get_webhook_dispatcher)],
     _: Annotated[object, Depends(get_webhook_write_permission)],
 ) -> WebhookSubscriptionTestResponse:
     """POST a test payload to the subscription URL. Returns whether delivery succeeded (2xx)."""

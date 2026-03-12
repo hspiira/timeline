@@ -673,6 +673,18 @@ async def check_event_rate_limit(
         )
 
 
+async def get_event_rate_limit(
+    request: Request,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+) -> None:
+    """Dependency wrapper for single-event rate limiting (composition root).
+
+    Routes should depend on this provider via Depends(get_event_rate_limit)
+    instead of calling check_event_rate_limit directly.
+    """
+    await check_event_rate_limit(request=request, tenant_id=tenant_id)
+
+
 async def get_event_bulk_rate_limit(
     request: Request,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
@@ -704,6 +716,8 @@ async def get_enrichment_context(
     settings = get_settings()
     request_id = request.headers.get(settings.request_id_header)
     source_ip = request.client.host if request.client else None
+    if current_user is not None and current_user.tenant_id != tenant_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
     actor_id = current_user.id if current_user else None
     return EnrichmentContext(
         tenant_id=tenant_id,

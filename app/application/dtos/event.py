@@ -54,7 +54,7 @@ class EventResult:
     event_seq: int | None = None
     # Chain integrity (epoch, status, TSA, Merkle leaf).
     epoch_id: str | None = None
-    integrity_status: str = "VALID"
+    integrity_status: str | None = None
     tsa_anchor_id: str | None = None
     merkle_leaf_hash: str | None = None
 
@@ -76,5 +76,5 @@ class EventToPersist:
     source: str | None = None
     # Chain integrity (optional; set by EventService when epoch service is used).
     epoch_id: str | None = None
-    integrity_status: str = "VALID"
+    integrity_status: str | None = None
     merkle_leaf_hash: str | None = None

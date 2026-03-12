@@ -353,7 +353,10 @@ Re-submitting the same `(tenant_id, external_id)` pair returns the
 original event rather than creating a duplicate.
         """,
         tags=["Events"],
-        responses={**_STD_429, 400: {"description": "Payload failed registered schema validation."}},
+        responses={
+            **_STD_429,
+            422: {"description": "Payload failed registered schema validation."},
+        },
     ),
 
     "events.list": RouteDoc(

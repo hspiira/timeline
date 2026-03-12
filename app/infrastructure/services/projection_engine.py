@@ -55,17 +55,15 @@ class ProjectionEngine:
             tenant_id=None,
             limit=self._batch_size,
         )
-        results = await asyncio.gather(
-            *[self._advance_one(defn) for defn in definitions],
-            return_exceptions=True,
-        )
-        for defn, r in zip(definitions, results):
-            if isinstance(r, Exception):
+        for defn in definitions:
+            try:
+                await self._advance_one(defn)
+            except Exception as exc:
                 logger.exception(
                     "ProjectionEngine advance failed for %s/%s: %s",
                     defn.name,
                     defn.version,
-                    r,
+                    exc,
                 )
 
     async def _advance_one(
@@ -85,14 +83,17 @@ class ProjectionEngine:
         if not events:
             return
 
+        sequenced_events = [e for e in events if e.event_seq is not None]
+        if not sequenced_events:
+            logger.warning(
+                "Projection %s/%s fetched only null event_seq rows; watermark unchanged",
+                defn.name,
+                defn.version,
+            )
+            return
+
         by_subject: dict[str, list[EventResult]] = {}
-        for event in events:
-            if event.event_seq is None:
-                logger.warning(
-                    "Skipping event %s with null event_seq; cannot advance watermark",
-                    event.id,
-                )
-                continue
+        for event in sequenced_events:
             by_subject.setdefault(event.subject_id, []).append(event)
 
         for subject_id, subject_events in by_subject.items():
@@ -102,5 +103,5 @@ class ProjectionEngine:
                 state = await registration.handler(state, event)
             await self._projection_repo.upsert_state(defn.id, subject_id, state)
 
-        max_seq = max(e.event_seq for e in events if e.event_seq is not None)
-        await self._projection_repo.advance_watermark(defn.id, max_seq)
+        batch_max_seq = max(e.event_seq for e in sequenced_events)
+        await self._projection_repo.advance_watermark(defn.id, batch_max_seq)

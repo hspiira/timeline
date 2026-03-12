@@ -46,3 +46,20 @@ INTEGRITY_PROFILE_CONFIG: dict[IntegrityProfile, IntegrityProfileConfig] = {
     ),
 }
 
+
+_configured_profiles = set(INTEGRITY_PROFILE_CONFIG.keys())
+_defined_profiles = set(IntegrityProfile)
+if _configured_profiles != _defined_profiles:
+    missing = sorted(p.name for p in _defined_profiles - _configured_profiles)
+    extra = sorted(p.name for p in _configured_profiles - _defined_profiles)
+    details = []
+    if missing:
+        details.append(f"missing={','.join(missing)}")
+    if extra:
+        details.append(f"extra={','.join(extra)}")
+    joined = "; ".join(details) if details else "profile mapping mismatch"
+    raise RuntimeError(
+        "INTEGRITY_PROFILE_CONFIG must cover exactly all IntegrityProfile members; "
+        f"{joined}"
+    )
+

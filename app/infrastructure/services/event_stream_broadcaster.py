@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import AsyncIterator
 from typing import Any
 
 from app.application.interfaces.event_stream import IEventStreamBroadcaster
 
 QUEUE_MAXSIZE = 1000
+
+logger = logging.getLogger(__name__)
 
 
 class InMemoryEventStreamBroadcaster(IEventStreamBroadcaster):
@@ -63,4 +66,9 @@ class InMemoryEventStreamBroadcaster(IEventStreamBroadcaster):
             try:
                 queue.put_nowait(payload)
             except asyncio.QueueFull:
-                pass
+                logger.debug(
+                    "Dropping SSE event for tenant_id=%s subject_id=%s: subscriber queue full (queue=%r)",
+                    tenant_id,
+                    subject_id,
+                    queue,
+                )

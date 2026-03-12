@@ -41,9 +41,15 @@ async def connectors_health(
     health_list = await runner.all_health()
     statuses = [h.status for h in health_list]
     if not statuses:
-        return _health_payload(health_list, "ok")
+        return JSONResponse(
+            content=_health_payload(health_list, "ok"),
+            status_code=200,
+        )
     if all(s == ConnectorStatus.RUNNING for s in statuses):
-        return _health_payload(health_list, "ok")
+        return JSONResponse(
+            content=_health_payload(health_list, "ok"),
+            status_code=200,
+        )
     if all(s == ConnectorStatus.STOPPED for s in statuses):
         return JSONResponse(
             content=_health_payload(health_list, "unavailable"),

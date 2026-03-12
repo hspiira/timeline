@@ -1,7 +1,7 @@
 """Projection API: definitions and state (Phase 5)."""
 
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -13,6 +13,7 @@ from app.api.v1.dependencies import (
     get_query_projection_use_case,
     get_verified_tenant_id,
 )
+from app.application.dtos.projection import ProjectionDefinitionResult
 from app.application.use_cases.projections import (
     ProjectionManagementUseCase,
     QueryProjectionUseCase,
@@ -27,7 +28,9 @@ from app.schemas.projection import (
 router = APIRouter()
 
 
-def _definition_to_response(r: Any) -> ProjectionDefinitionResponse:
+def _definition_to_response(
+    r: ProjectionDefinitionResult,
+) -> ProjectionDefinitionResponse:
     """Map DTO to response schema."""
     return ProjectionDefinitionResponse(
         id=r.id,

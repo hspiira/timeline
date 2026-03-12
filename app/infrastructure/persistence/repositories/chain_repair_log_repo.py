@@ -1,13 +1,12 @@
 """Repository for chain_repair_log records."""
 
-from datetime import datetime, timezone
-
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.enums import ChainRepairStatus
 from app.infrastructure.persistence.models import ChainRepairLog
 from app.infrastructure.persistence.repositories.base import BaseRepository
+from app.shared.utils.datetime import utc_now
 
 
 class ChainRepairLogRepository(BaseRepository[ChainRepairLog]):
@@ -28,7 +27,7 @@ class ChainRepairLogRepository(BaseRepository[ChainRepairLog]):
         repair_reference: str | None,
     ) -> ChainRepairLog:
         """Insert a new chain_repair_log row and return it."""
-        now = datetime.now(datetime.UTC)
+        now = utc_now()
         obj = ChainRepairLog(
             tenant_id=tenant_id,
             epoch_id=epoch_id,
@@ -68,7 +67,7 @@ class ChainRepairLogRepository(BaseRepository[ChainRepairLog]):
         if new_epoch_id is not None:
             values["new_epoch_id"] = new_epoch_id
         if status is ChainRepairStatus.COMPLETED:
-            values["repair_completed_at"] = datetime.now(timezone.utc)
+            values["repair_completed_at"] = utc_now()
         stmt = update(ChainRepairLog).where(ChainRepairLog.id == repair_id).values(**values)
         await self.db.execute(stmt)
 

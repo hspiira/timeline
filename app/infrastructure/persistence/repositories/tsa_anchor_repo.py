@@ -1,12 +1,13 @@
 """TSA anchor repository. Stores RFC 3161 TimeStampTokens for integrity epochs/batches."""
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.enums import TsaAnchorType, TsaVerificationStatus
 from app.infrastructure.persistence.models import TsaAnchor
 from app.infrastructure.persistence.repositories.base import BaseRepository
+from app.shared.utils.datetime import utc_now
 
 
 class TsaAnchorRepository(BaseRepository[TsaAnchor]):
@@ -36,7 +37,7 @@ class TsaAnchorRepository(BaseRepository[TsaAnchor]):
             tsa_token=tsa_token,
             tsa_provider=tsa_provider,
             tsa_serial=tsa_serial,
-            anchored_at=anchored_at or datetime.now(timezone.utc),
+            anchored_at=anchored_at or utc_now(),
             tsa_reported_time=tsa_reported_time,
             verification_status=TsaVerificationStatus.PENDING,
         )

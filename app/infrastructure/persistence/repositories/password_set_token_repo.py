@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.persistence.models.password_set_token import PasswordSetToken
+from app.shared.utils.datetime import utc_now
 
 # Default TTL for set-password link (e.g. 24 hours)
 DEFAULT_TOKEN_TTL_SECONDS = 24 * 3600
@@ -34,7 +35,7 @@ class PasswordSetTokenStore:
         """Create a one-time token for user; return (raw_token, expires_at)."""
         raw = secrets.token_urlsafe(32)
         token_hash = self._hash_token(raw)
-        expires_at = datetime.now(timezone.utc) + timedelta(seconds=self._ttl_seconds)
+        expires_at = utc_now() + timedelta(seconds=self._ttl_seconds)
         row = PasswordSetToken(
             token_hash=token_hash,
             user_id=user_id,
@@ -48,7 +49,7 @@ class PasswordSetTokenStore:
     async def redeem(self, token: str) -> str | None:
         """If token is valid and not expired/used, mark used and return user_id; else None."""
         token_hash = self._hash_token(token)
-        now = datetime.now(timezone.utc)
+        now = utc_now()
         result = await self._session.execute(
             select(PasswordSetToken)
             .where(PasswordSetToken.token_hash == token_hash)

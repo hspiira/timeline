@@ -4,19 +4,20 @@ import asyncio
 import json
 import logging
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from starlette.responses import StreamingResponse
 
 from app.api.v1.dependencies import (
-    check_event_rate_limit,
     ensure_audit_logged,
     get_enrichment_context,
+    get_event_rate_limit,
     get_event_repo,
     get_event_service,
     get_event_service_for_create,
+    get_event_stream_broadcaster,
     get_tenant_id,
     get_verification_service,
     get_verification_runner,
@@ -107,10 +108,8 @@ async def create_event(
     body: EventCreate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     event_svc: Annotated[EventService, Depends(get_event_service_for_create)],
-    enrichment_context: Annotated[
-        EnrichmentContext, Depends(get_enrichment_context)
-    ],
-    _rate: Annotated[None, Depends(check_event_rate_limit)] = None,
+    enrichment_context: Annotated[EnrichmentContext, Depends(get_enrichment_context)],
+    _rate: Annotated[None, Depends(get_event_rate_limit)] = None,
     _: Annotated[object, Depends(require_permission("event", "create"))] = None,
     _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
@@ -167,20 +166,13 @@ async def list_events(
     summary="Stream new events (SSE)",
 )
 async def stream_events(
-    request: Request,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     subject_id: str | None = Query(None, description="Filter to this subject"),
+    broadcaster=Depends(get_event_stream_broadcaster),
     _: Annotated[object, Depends(require_permission("event", "read"))] = None,
 ):
     """Server-Sent Events stream of new events for the tenant (and optionally one subject). Requires event:read."""
-    broadcaster = getattr(request.app.state, "event_stream_broadcaster", None)
-    if broadcaster is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Event stream not available",
-        )
-
-    async def event_generator():
+    async def event_generator() -> AsyncIterator[str]:
         async for payload in broadcaster.subscribe(tenant_id, subject_id):
             yield f"data: {json.dumps(payload)}\n\n"
 
