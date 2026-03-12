@@ -41,7 +41,7 @@ def upgrade() -> None:
             "status",
             sa.String(),
             nullable=False,
-            server_default="pending",
+            server_default="Pending",
         ),
         sa.Column("error_message", sa.Text(), nullable=True),
         sa.Column(

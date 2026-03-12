@@ -21,6 +21,9 @@ from app.infrastructure.persistence.repositories.email_account_repo import (
     EmailAccountRepository,
 )
 from app.infrastructure.persistence.repositories.event_repo import EventRepository
+from app.infrastructure.persistence.repositories.integrity_epoch_repo import (
+    IntegrityEpochRepository,
+)
 from app.infrastructure.persistence.repositories.flow_repo import FlowRepository
 from app.infrastructure.persistence.repositories.naming_template_repo import (
     NamingTemplateRepository,
@@ -39,6 +42,9 @@ from app.infrastructure.persistence.repositories.oauth_state_repo import (
 )
 from app.infrastructure.persistence.repositories.password_set_token_repo import (
     PasswordSetTokenStore,
+)
+from app.infrastructure.persistence.repositories.projection_repo import (
+    ProjectionRepository,
 )
 from app.infrastructure.persistence.repositories.permission_repo import (
     PermissionRepository,
@@ -66,7 +72,22 @@ from app.infrastructure.persistence.repositories.subject_type_repo import (
 )
 from app.infrastructure.persistence.repositories.task_repo import TaskRepository
 from app.infrastructure.persistence.repositories.tenant_repo import TenantRepository
+from app.infrastructure.persistence.repositories.tsa_anchor_repo import (
+    TsaAnchorRepository,
+)
+from app.infrastructure.persistence.repositories.merkle_node_repo import (
+    MerkleNodeRepository,
+)
+from app.infrastructure.persistence.repositories.chain_repair_log_repo import (
+    ChainRepairLogRepository,
+)
+from app.infrastructure.persistence.repositories.tenant_integrity_profile_history_repo import (
+    TenantIntegrityProfileHistoryRepository,
+)
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
+from app.infrastructure.persistence.repositories.webhook_subscription_repo import (
+    WebhookSubscriptionRepository,
+)
 from app.infrastructure.persistence.repositories.workflow_repo import (
     WorkflowExecutionRepository,
     WorkflowRepository,
@@ -81,6 +102,7 @@ __all__ = [
     "DocumentRepository",
     "DocumentRequirementRepository",
     "EmailAccountRepository",
+    "IntegrityEpochRepository",
     "EventRepository",
     "FlowRepository",
     "EventSchemaRepository",
@@ -90,6 +112,7 @@ __all__ = [
     "OAuthStateRepository",
     "PasswordSetTokenStore",
     "PermissionRepository",
+    "ProjectionRepository",
     "RolePermissionRepository",
     "RoleRepository",
     "SearchRepository",
@@ -101,7 +124,12 @@ __all__ = [
     "SubjectTypeRepository",
     "TaskRepository",
     "TenantRepository",
+    "ChainRepairLogRepository",
+    "MerkleNodeRepository",
+    "TsaAnchorRepository",
+    "TenantIntegrityProfileHistoryRepository",
     "UserRepository",
+    "WebhookSubscriptionRepository",
     "WorkflowExecutionRepository",
     "WorkflowRepository",
 ]

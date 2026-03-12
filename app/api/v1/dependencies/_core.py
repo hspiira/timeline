@@ -16,7 +16,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.user import UserResult
+from app.application.services.enrichment import EnrichmentContext
 from app.application.services.authorization_service import AuthorizationService
+from app.application.services.rate_limiter import IRateLimiter
 from app.application.services.hash_service import HashService
 from app.application.services.permission_service import PermissionService
 from app.application.services.role_service import RoleService
@@ -650,6 +652,81 @@ async def get_current_user(
     return current_user
 
 
+async def check_event_rate_limit(
+    request: Request,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+) -> None:
+    """Raise 429 if event create rate limit exceeded for this tenant. Wire on POST /events."""
+    limiter: IRateLimiter | None = getattr(request.app.state, "event_rate_limiter", None)
+    if limiter is None:
+        return
+    settings = get_settings()
+    allowed = await limiter.check(
+        key=f"events:{tenant_id}",
+        limit=settings.rate_limit_events_per_minute_per_tenant,
+        window_seconds=60,
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail="Event rate limit exceeded",
+        )
+
+
+async def get_event_rate_limit(
+    request: Request,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+) -> None:
+    """Dependency wrapper for single-event rate limiting (composition root).
+
+    Routes should depend on this provider via Depends(get_event_rate_limit)
+    instead of calling check_event_rate_limit directly.
+    """
+    await check_event_rate_limit(request=request, tenant_id=tenant_id)
+
+
+async def get_event_bulk_rate_limit(
+    request: Request,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+) -> None:
+    """Raise 429 if bulk event create rate limit exceeded for this tenant. Wire on POST /events/bulk."""
+    limiter: IRateLimiter | None = getattr(request.app.state, "event_rate_limiter", None)
+    if limiter is None:
+        return
+    settings = get_settings()
+    key = f"event:bulk:{tenant_id}"
+    allowed = await limiter.check(
+        key,
+        settings.rate_limit_bulk_events_per_minute_per_tenant,
+        60,
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many bulk event creations for this tenant; try again later",
+        )
+
+
+async def get_enrichment_context(
+    request: Request,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    current_user: Annotated[UserResult | None, Depends(get_current_user_optional)],
+) -> EnrichmentContext:
+    """Build enrichment context from request (for API-originated events)."""
+    settings = get_settings()
+    request_id = request.headers.get(settings.request_id_header)
+    source_ip = request.client.host if request.client else None
+    if current_user is not None and current_user.tenant_id != tenant_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    actor_id = current_user.id if current_user else None
+    return EnrichmentContext(
+        tenant_id=tenant_id,
+        actor_id=actor_id,
+        request_id=request_id,
+        source_ip=source_ip,
+    )
+
+
 def require_permission(resource: str, action: str):
     """Dependency factory: require JWT auth and that the user has resource:action."""
 
@@ -670,6 +747,11 @@ def require_permission(resource: str, action: str):
 
 # Named permission dependencies (composition root: routes use Depends(get_*))
 get_chain_anchor_read_permission = require_permission("chain_anchor", "read")
+get_system_read_permission = require_permission("system", "read")
+get_webhook_read_permission = require_permission("webhook", "read")
+get_webhook_write_permission = require_permission("webhook", "write")
+get_projection_read_permission = require_permission("projection", "read")
+get_projection_write_permission = require_permission("projection", "write")
 
 
 # ---------------------------------------------------------------------------

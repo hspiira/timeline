@@ -30,6 +30,8 @@ class EventEntity:
     chain: EventChain
     workflow_instance_id: str | None = None
     correlation_id: str | None = None
+    external_id: str | None = None
+    source: str | None = None
 
     def __post_init__(self) -> None:
         self.validate()
@@ -78,8 +80,7 @@ class EventEntity:
             )
         if event_time_utc > now:
             raise ValidationException("Event time cannot be in the future", field="event_time")
-        if not self.payload:
-            raise ValidationException("Event payload cannot be empty", field="payload")
+        # Empty payload allowed for connector/CDC tombstone or delete events
 
     def is_genesis_event(self) -> bool:
         """Return whether this is the first event in the subject's timeline.

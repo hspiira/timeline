@@ -29,7 +29,7 @@ def upgrade() -> None:
         sa.Column("assigned_to_user_id", sa.String(), nullable=True),
         sa.Column("title", sa.String(length=500), nullable=False),
         sa.Column("due_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("status", sa.String(length=32), nullable=False, server_default="open"),
+        sa.Column("status", sa.String(length=32), nullable=False, server_default="Open"),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column(
             "created_at",
