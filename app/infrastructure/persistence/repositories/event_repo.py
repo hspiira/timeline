@@ -105,6 +105,19 @@ class EventRepository(BaseRepository[Event]):
         row = result.scalar_one_or_none()
         return _event_to_result(row) if row else None
 
+    async def get_by_tenant_and_seq(
+        self, tenant_id: str, event_seq: int
+    ) -> EventResult | None:
+        """Return single event for tenant by global event_seq, or None."""
+        result = await self.db.execute(
+            select(Event).where(
+                Event.tenant_id == tenant_id,
+                Event.event_seq == event_seq,
+            )
+        )
+        row = result.scalar_one_or_none()
+        return _event_to_result(row) if row else None
+
     async def get_by_external_ids(
         self, tenant_id: str, subject_external_pairs: set[tuple[str, str]]
     ) -> dict[tuple[str, str], EventResult]:

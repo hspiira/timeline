@@ -30,6 +30,27 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(db, IntegrityEpoch)
 
+    async def list_for_subject(
+        self,
+        tenant_id: str,
+        subject_id: str,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[IntegrityEpoch]:
+        """Return epochs for (tenant, subject) ordered by epoch_number ascending."""
+        result = await self.db.execute(
+            select(IntegrityEpoch)
+            .where(
+                IntegrityEpoch.tenant_id == tenant_id,
+                IntegrityEpoch.subject_id == subject_id,
+            )
+            .order_by(IntegrityEpoch.epoch_number.asc())
+            .offset(skip)
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
     async def get_open_epoch_for_update(
         self,
         tenant_id: str,

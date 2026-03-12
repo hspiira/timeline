@@ -30,9 +30,11 @@ from app.schemas.integrity import (
     ChainRepairCreateRequest,
     ChainRepairResponse,
     IntegrityEpochItem,
+    IntegrityVerificationDetail,
     IntegrityVerificationSummary,
     MerkleProofResponse,
     MerkleProofStep,
+    VerificationEventResult,
 )
 
 router = APIRouter()
@@ -47,15 +49,16 @@ async def list_integrity_epochs_for_subject(
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     epoch_repo: Annotated[IntegrityEpochRepository, Depends(get_integrity_epoch_repo)],
     _: Annotated[object, Depends(require_permission("tenant", "read"))] = None,
+    skip: int = 0,
+    limit: int = 100,
 ):
-    """List integrity epochs for a subject under the current tenant."""
-    result = await epoch_repo.db.execute(
-        IntegrityEpochRepository.model.__table__.select().where(
-            IntegrityEpochRepository.model.tenant_id == tenant_id,
-            IntegrityEpochRepository.model.subject_id == subject_id,
-        )
+    """List integrity epochs for a subject under the current tenant (paginated)."""
+    rows = await epoch_repo.list_for_subject(
+        tenant_id=tenant_id,
+        subject_id=subject_id,
+        skip=skip,
+        limit=limit,
     )
-    rows = result.fetchall()
     items: list[IntegrityEpochItem] = []
     for row in rows:
         profile = IntegrityProfile(row.profile_snapshot)
@@ -102,6 +105,47 @@ async def verify_subject_integrity(
 
 
 @router.get(
+    "/integrity/verify/{subject_id}/detail",
+    response_model=IntegrityVerificationDetail,
+)
+async def verify_subject_integrity_detail(
+    subject_id: str,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    verification_service=Depends(get_verification_service),
+    _: Annotated[object, Depends(require_permission("tenant", "read"))] = None,
+):
+    """Verify hash chain integrity for a subject and return per-event results."""
+    result = await verification_service.verify_subject_chain(
+        subject_id=subject_id,
+        tenant_id=tenant_id,
+    )
+    return IntegrityVerificationDetail(
+        subject_id=subject_id,
+        tenant_id=tenant_id,
+        total_events=result.total_events,
+        valid_events=result.valid_events,
+        invalid_events=result.invalid_events,
+        is_chain_valid=result.is_chain_valid,
+        verified_at=result.verified_at,
+        events=[
+            VerificationEventResult(
+                event_id=r.event_id,
+                event_type=r.event_type,
+                event_time=r.event_time,
+                sequence=r.sequence,
+                is_valid=r.is_valid,
+                error_type=r.error_type,
+                error_message=r.error_message,
+                expected_hash=r.expected_hash,
+                actual_hash=r.actual_hash,
+                previous_hash=r.previous_hash,
+            )
+            for r in result.event_results
+        ],
+    )
+
+
+@router.get(
     "/integrity/proof/{event_seq}",
     response_model=MerkleProofResponse,
 )
@@ -119,17 +163,11 @@ async def get_merkle_proof_for_event(
         tsa_anchor_repo = TsaAnchorRepository(session)
 
         # Find event by tenant and event_seq.
-        result = await event_repo.db.execute(
-            EventRepository.model.__table__.select().where(
-                EventRepository.model.tenant_id == tenant_id,
-                EventRepository.model.event_seq == event_seq,
-            )
-        )
-        row = result.fetchone()
-        if not row:
+        event = await event_repo.get_by_tenant_and_seq(tenant_id, event_seq)
+        if not event:
             raise HTTPException(status_code=404, detail="Event not found")
-        subject_id = row.subject_id
-        epoch_id = row.epoch_id
+        subject_id = event.subject_id
+        epoch_id = event.epoch_id
         if epoch_id is None:
             raise HTTPException(
                 status_code=400,
@@ -151,14 +189,14 @@ async def get_merkle_proof_for_event(
             )
 
         merkle_service = MerkleService(event_repo=event_repo, merkle_repo=merkle_repo)
-        proof_steps = await merkle_service.generate_proof(epoch_id, row.event_seq)
+        proof_steps = await merkle_service.generate_proof(epoch_id, event_seq)
         if not proof_steps and epoch.merkle_root:
             raise HTTPException(
                 status_code=500,
                 detail="Merkle tree incomplete for this epoch",
             )
 
-        leaf_hash = row.merkle_leaf_hash or row.hash
+        leaf_hash = event.merkle_leaf_hash or event.hash
         root_hash = epoch.merkle_root or ""
         steps = [
             MerkleProofStep(sibling_hash=s.sibling_hash, is_left_sibling=s.is_left_sibling)
@@ -233,31 +271,79 @@ async def approve_chain_repair(
 ):
     """Approve a chain repair request (four-eyes rule)."""
     try:
-        await chain_repair_svc.approve_repair(repair_id, approver_id=current_user.id)
+        record = await chain_repair_svc.approve_repair(
+            repair_id, approver_id=current_user.id
+        )
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e)) from e
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
-    # Reload record to return updated state.
-    async for session in get_db():
-        repo = ChainRepairLogRepository(session)
-        row = await repo.get_by_id(repair_id)
-        if not row or row.tenant_id != tenant_id:
-            raise HTTPException(status_code=404, detail="Repair not found")
-        record = chain_repair_svc._to_record(row)  # type: ignore[attr-defined]
-        return ChainRepairResponse(
-            id=record.id,
-            tenant_id=record.tenant_id,
-            epoch_id=record.epoch_id,
-            break_at_event_seq=record.break_at_event_seq,
-            break_reason=record.break_reason,
-            repair_status=record.repair_status,
-            repair_initiated_by=record.repair_initiated_by,
-            repair_approved_by=record.repair_approved_by,
-            approval_required=record.approval_required,
-            repair_reference=record.repair_reference,
-            repair_completed_at=record.repair_completed_at,
-            new_epoch_id=record.new_epoch_id,
-        )
+    if record.tenant_id != tenant_id:
+        raise HTTPException(status_code=404, detail="Repair not found")
+    return ChainRepairResponse(
+        id=record.id,
+        tenant_id=record.tenant_id,
+        epoch_id=record.epoch_id,
+        break_at_event_seq=record.break_at_event_seq,
+        break_reason=record.break_reason,
+        repair_status=record.repair_status,
+        repair_initiated_by=record.repair_initiated_by,
+        repair_approved_by=record.repair_approved_by,
+        approval_required=record.approval_required,
+        repair_reference=record.repair_reference,
+        repair_completed_at=record.repair_completed_at,
+        new_epoch_id=record.new_epoch_id,
+    )
+
+
+@router.get(
+    "/integrity/repair/{repair_id}",
+    response_model=ChainRepairResponse,
+)
+async def get_chain_repair(
+    repair_id: str,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    chain_repair_svc=Depends(get_chain_repair_service),
+    _: Annotated[object, Depends(require_permission("tenant", "read"))] = None,
+):
+    """Return a chain repair record by id."""
+    try:
+        record = await chain_repair_svc.get_repair(repair_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    if record.tenant_id != tenant_id:
+        raise HTTPException(status_code=404, detail="Repair not found")
+    return ChainRepairResponse(
+        id=record.id,
+        tenant_id=record.tenant_id,
+        epoch_id=record.epoch_id,
+        break_at_event_seq=record.break_at_event_seq,
+        break_reason=record.break_reason,
+        repair_status=record.repair_status,
+        repair_initiated_by=record.repair_initiated_by,
+        repair_approved_by=record.repair_approved_by,
+        approval_required=record.approval_required,
+        repair_reference=record.repair_reference,
+        repair_completed_at=record.repair_completed_at,
+        new_epoch_id=record.new_epoch_id,
+    )
+
+
+@router.post(
+    "/integrity/repair/{repair_id}/complete",
+    response_model=ChainRepairResponse,
+)
+async def complete_chain_repair(
+    repair_id: str,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    chain_repair_svc=Depends(get_chain_repair_service),
+    _: Annotated[object, Depends(require_permission("tenant", "update"))] = None,
+):
+    """Complete a chain repair. Currently not implemented; returns 501."""
+    try:
+        await chain_repair_svc.complete_repair(repair_id)
+    except NotImplementedError as e:
+        raise HTTPException(status_code=501, detail=str(e)) from e
+    # Once implemented, this should mirror get_chain_repair to return the updated record.
 

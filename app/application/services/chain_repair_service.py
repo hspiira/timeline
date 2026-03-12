@@ -138,8 +138,8 @@ class ChainRepairService:
         )
         return self._to_record(row)
 
-    async def approve_repair(self, repair_id: str, approver_id: str) -> None:
-        """Approve a pending repair using four-eyes rule (approver ≠ initiator)."""
+    async def approve_repair(self, repair_id: str, approver_id: str) -> ChainRepairRecord:
+        """Approve a pending repair using four-eyes rule (approver ≠ initiator) and return updated record."""
         repair = await self._repair_repo.get_by_id(repair_id)
         if not repair:
             raise ValueError(f"Repair id {repair_id!r} not found")
@@ -153,6 +153,11 @@ class ChainRepairService:
             status=ChainRepairStatus.APPROVED,
             repair_approved_by=approver_id,
         )
+        # Reload so caller sees updated status/approver.
+        updated = await self._repair_repo.get_by_id(repair_id)
+        if not updated:
+            raise ValueError(f"Repair id {repair_id!r} not found after approve")
+        return self._to_record(updated)
 
     async def complete_repair(self, repair_id: str) -> None:
         """Re-hash from break, append CHAIN_REPAIR event, open new epoch, set events to REPAIRED.
@@ -170,6 +175,13 @@ class ChainRepairService:
         raise NotImplementedError(
             "complete_repair: re-hash from break, CHAIN_REPAIR event, and new epoch not yet implemented"
         )
+
+    async def get_repair(self, repair_id: str) -> ChainRepairRecord:
+        """Return a single repair record by id."""
+        row = await self._repair_repo.get_by_id(repair_id)
+        if not row:
+            raise ValueError(f"Repair id {repair_id!r} not found")
+        return self._to_record(row)
 
     @staticmethod
     def _to_record(row: Any) -> ChainRepairRecord:

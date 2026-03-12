@@ -4,7 +4,11 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.domain.enums import IntegrityProfile
+from app.domain.enums import (
+    ChainRepairStatus,
+    IntegrityEpochStatus,
+    IntegrityProfile,
+)
 
 
 class IntegrityEpochItem(BaseModel):
@@ -12,7 +16,7 @@ class IntegrityEpochItem(BaseModel):
 
     id: str
     epoch_number: int
-    status: str
+    status: IntegrityEpochStatus
     event_count: int
     opened_at: datetime
     sealed_at: datetime | None = None
@@ -31,6 +35,34 @@ class IntegrityVerificationSummary(BaseModel):
     invalid_events: int
     is_chain_valid: bool
     verified_at: datetime
+
+
+class VerificationEventResult(BaseModel):
+    """Per-event verification result (hash mismatch or chain break)."""
+
+    event_id: str
+    event_type: str
+    event_time: datetime
+    sequence: int
+    is_valid: bool
+    error_type: str | None = None
+    error_message: str | None = None
+    expected_hash: str | None = None
+    actual_hash: str | None = None
+    previous_hash: str | None = None
+
+
+class IntegrityVerificationDetail(BaseModel):
+    """Full verification result for a subject including per-event results."""
+
+    subject_id: str
+    tenant_id: str
+    total_events: int
+    valid_events: int
+    invalid_events: int
+    is_chain_valid: bool
+    verified_at: datetime
+    events: list[VerificationEventResult]
 
 
 class MerkleProofStep(BaseModel):
@@ -70,7 +102,7 @@ class ChainRepairResponse(BaseModel):
     epoch_id: str
     break_at_event_seq: int
     break_reason: str
-    repair_status: str
+    repair_status: ChainRepairStatus
     repair_initiated_by: str
     repair_approved_by: str | None
     approval_required: bool
