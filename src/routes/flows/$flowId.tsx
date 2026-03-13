@@ -164,6 +164,38 @@ function FlowDetailPage() {
         </div>
       </div>
 
+      {/* Summary row: Subjects, Events, Document compliance */}
+      <div className="flex flex-wrap items-center gap-4 py-3 px-4 rounded-lg bg-muted/30 border border-border/50 mb-4">
+        <div className="flex items-center gap-2 text-sm">
+          <Users className="w-4 h-4 text-muted-foreground" />
+          <span className="text-muted-foreground">Subjects</span>
+          <span className="font-medium text-foreground">{subjectsLoading ? '…' : subjects.length}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <Calendar className="w-4 h-4 text-muted-foreground" />
+          <span className="text-muted-foreground">Events</span>
+          <span className="font-medium text-foreground">{eventsLoading ? '…' : events.length}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <FileCheck className="w-4 h-4 text-muted-foreground" />
+          <span className="text-muted-foreground">Document compliance</span>
+          {complianceLoading ? (
+            <span className="text-muted-foreground">…</span>
+          ) : compliance?.all_satisfied ? (
+            <span className="text-green-600 dark:text-green-400 font-medium">Satisfied</span>
+          ) : compliance ? (
+            <span className="text-amber-600 dark:text-amber-400 font-medium">Action needed</span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </div>
+      </div>
+      <p className="text-sm text-muted-foreground mb-6 max-w-2xl">
+        <strong>Subjects</strong> are saved on the server when you add or remove them; they link who this flow is about.{' '}
+        <strong>Events</strong> are recorded by the system (e.g. when automations run); completing a step in the UI only saves progress in this browser and does not create an event yet.{' '}
+        <strong>Document compliance</strong> is live and can block completing a step until requirements are met.
+      </p>
+
       <div className="space-y-8">
         {/* Workflow execution: steps */}
         {workflow && (
@@ -184,7 +216,7 @@ function FlowDetailPage() {
             <SubjectSelector
               value={addSubjectId}
               onChange={setAddSubjectId}
-              excludeSubjectId={subjects.map((s) => s.subject_id).find(Boolean) ?? undefined}
+              excludeSubjectIds={subjectIds}
             />
             <Button
               size="sm"
