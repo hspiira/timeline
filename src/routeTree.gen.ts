@@ -16,12 +16,14 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SubjectsIndexRouteImport } from './routes/subjects/index'
 import { Route as SearchIndexRouteImport } from './routes/search/index'
+import { Route as ProjectionsIndexRouteImport } from './routes/projections/index'
 import { Route as FlowsIndexRouteImport } from './routes/flows/index'
 import { Route as EventsIndexRouteImport } from './routes/events/index'
 import { Route as EmailAccountsIndexRouteImport } from './routes/email-accounts/index'
 import { Route as VerifyTenantRouteImport } from './routes/verify/tenant'
 import { Route as VerifySubjectIdRouteImport } from './routes/verify/$subjectId'
 import { Route as SubjectsSubjectIdRouteImport } from './routes/subjects/$subjectId'
+import { Route as ProjectionsNewRouteImport } from './routes/projections/new'
 import { Route as FlowsCreateRouteImport } from './routes/flows/create'
 import { Route as FlowsFlowIdRouteImport } from './routes/flows/$flowId'
 import { Route as EventsCreateRouteImport } from './routes/events/create'
@@ -38,13 +40,20 @@ import { Route as SettingsOauthProvidersIndexRouteImport } from './routes/settin
 import { Route as SettingsNamingTemplatesIndexRouteImport } from './routes/settings/naming-templates/index'
 import { Route as SettingsEventTransitionRulesIndexRouteImport } from './routes/settings/event-transition-rules/index'
 import { Route as SettingsDocumentCategoriesIndexRouteImport } from './routes/settings/document-categories/index'
+import { Route as SettingsConnectorsIndexRouteImport } from './routes/settings/connectors/index'
 import { Route as SettingsAuditLogIndexRouteImport } from './routes/settings/audit-log/index'
+import { Route as IntegrityRepairsIndexRouteImport } from './routes/integrity/repairs/index'
 import { Route as AdminRolesIndexRouteImport } from './routes/admin/roles/index'
 import { Route as AdminPermissionsIndexRouteImport } from './routes/admin/permissions/index'
+import { Route as SubjectsSubjectIdEpochsRouteImport } from './routes/subjects/$subjectId_/epochs'
 import { Route as SettingsWorkflowsCreateRouteImport } from './routes/settings/workflows/create'
 import { Route as SettingsWorkflowsBuilderRouteImport } from './routes/settings/workflows/builder'
+import { Route as ProjectionsNameVersionRouteImport } from './routes/projections/$name/$version'
+import { Route as IntegrityRepairsNewRouteImport } from './routes/integrity/repairs/new'
+import { Route as IntegrityRepairsRepairIdRouteImport } from './routes/integrity/repairs/$repairId'
 import { Route as EventsSubjectSubjectIdRouteImport } from './routes/events/subject.$subjectId'
 import { Route as EmailAccountsOauthCallbackRouteImport } from './routes/email-accounts/oauth/callback'
+import { Route as SubjectsSubjectIdProofEventSeqRouteImport } from './routes/subjects/$subjectId_/proof/$eventSeq'
 import { Route as SubjectsSubjectIdEventsEventIdRouteImport } from './routes/subjects/$subjectId_/events/$eventId'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -82,6 +91,11 @@ const SearchIndexRoute = SearchIndexRouteImport.update({
   path: '/search/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectionsIndexRoute = ProjectionsIndexRouteImport.update({
+  id: '/projections/',
+  path: '/projections/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FlowsIndexRoute = FlowsIndexRouteImport.update({
   id: '/flows/',
   path: '/flows/',
@@ -110,6 +124,11 @@ const VerifySubjectIdRoute = VerifySubjectIdRouteImport.update({
 const SubjectsSubjectIdRoute = SubjectsSubjectIdRouteImport.update({
   id: '/subjects/$subjectId',
   path: '/subjects/$subjectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectionsNewRoute = ProjectionsNewRouteImport.update({
+  id: '/projections/new',
+  path: '/projections/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FlowsCreateRoute = FlowsCreateRouteImport.update({
@@ -199,10 +218,20 @@ const SettingsDocumentCategoriesIndexRoute =
     path: '/document-categories/',
     getParentRoute: () => SettingsRoute,
   } as any)
+const SettingsConnectorsIndexRoute = SettingsConnectorsIndexRouteImport.update({
+  id: '/connectors/',
+  path: '/connectors/',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsAuditLogIndexRoute = SettingsAuditLogIndexRouteImport.update({
   id: '/audit-log/',
   path: '/audit-log/',
   getParentRoute: () => SettingsRoute,
+} as any)
+const IntegrityRepairsIndexRoute = IntegrityRepairsIndexRouteImport.update({
+  id: '/integrity/repairs/',
+  path: '/integrity/repairs/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRolesIndexRoute = AdminRolesIndexRouteImport.update({
   id: '/admin/roles/',
@@ -212,6 +241,11 @@ const AdminRolesIndexRoute = AdminRolesIndexRouteImport.update({
 const AdminPermissionsIndexRoute = AdminPermissionsIndexRouteImport.update({
   id: '/admin/permissions/',
   path: '/admin/permissions/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubjectsSubjectIdEpochsRoute = SubjectsSubjectIdEpochsRouteImport.update({
+  id: '/subjects/$subjectId_/epochs',
+  path: '/subjects/$subjectId/epochs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsWorkflowsCreateRoute = SettingsWorkflowsCreateRouteImport.update({
@@ -225,6 +259,22 @@ const SettingsWorkflowsBuilderRoute =
     path: '/workflows/builder',
     getParentRoute: () => SettingsRoute,
   } as any)
+const ProjectionsNameVersionRoute = ProjectionsNameVersionRouteImport.update({
+  id: '/projections/$name/$version',
+  path: '/projections/$name/$version',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrityRepairsNewRoute = IntegrityRepairsNewRouteImport.update({
+  id: '/integrity/repairs/new',
+  path: '/integrity/repairs/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrityRepairsRepairIdRoute =
+  IntegrityRepairsRepairIdRouteImport.update({
+    id: '/integrity/repairs/$repairId',
+    path: '/integrity/repairs/$repairId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const EventsSubjectSubjectIdRoute = EventsSubjectSubjectIdRouteImport.update({
   id: '/events/subject/$subjectId',
   path: '/events/subject/$subjectId',
@@ -234,6 +284,12 @@ const EmailAccountsOauthCallbackRoute =
   EmailAccountsOauthCallbackRouteImport.update({
     id: '/email-accounts/oauth/callback',
     path: '/email-accounts/oauth/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const SubjectsSubjectIdProofEventSeqRoute =
+  SubjectsSubjectIdProofEventSeqRouteImport.update({
+    id: '/subjects/$subjectId_/proof/$eventSeq',
+    path: '/subjects/$subjectId/proof/$eventSeq',
     getParentRoute: () => rootRouteImport,
   } as any)
 const SubjectsSubjectIdEventsEventIdRoute =
@@ -254,21 +310,29 @@ export interface FileRoutesByFullPath {
   '/events/create': typeof EventsCreateRoute
   '/flows/$flowId': typeof FlowsFlowIdRoute
   '/flows/create': typeof FlowsCreateRoute
+  '/projections/new': typeof ProjectionsNewRoute
   '/subjects/$subjectId': typeof SubjectsSubjectIdRoute
   '/verify/$subjectId': typeof VerifySubjectIdRoute
   '/verify/tenant': typeof VerifyTenantRoute
   '/email-accounts/': typeof EmailAccountsIndexRoute
   '/events/': typeof EventsIndexRoute
   '/flows/': typeof FlowsIndexRoute
+  '/projections/': typeof ProjectionsIndexRoute
   '/search/': typeof SearchIndexRoute
   '/subjects/': typeof SubjectsIndexRoute
   '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
+  '/integrity/repairs/$repairId': typeof IntegrityRepairsRepairIdRoute
+  '/integrity/repairs/new': typeof IntegrityRepairsNewRoute
+  '/projections/$name/$version': typeof ProjectionsNameVersionRoute
   '/settings/workflows/builder': typeof SettingsWorkflowsBuilderRoute
   '/settings/workflows/create': typeof SettingsWorkflowsCreateRoute
+  '/subjects/$subjectId/epochs': typeof SubjectsSubjectIdEpochsRoute
   '/admin/permissions/': typeof AdminPermissionsIndexRoute
   '/admin/roles/': typeof AdminRolesIndexRoute
+  '/integrity/repairs/': typeof IntegrityRepairsIndexRoute
   '/settings/audit-log/': typeof SettingsAuditLogIndexRoute
+  '/settings/connectors/': typeof SettingsConnectorsIndexRoute
   '/settings/document-categories/': typeof SettingsDocumentCategoriesIndexRoute
   '/settings/event-transition-rules/': typeof SettingsEventTransitionRulesIndexRoute
   '/settings/naming-templates/': typeof SettingsNamingTemplatesIndexRoute
@@ -281,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/settings/users/': typeof SettingsUsersIndexRoute
   '/settings/workflows/': typeof SettingsWorkflowsIndexRoute
   '/subjects/$subjectId/events/$eventId': typeof SubjectsSubjectIdEventsEventIdRoute
+  '/subjects/$subjectId/proof/$eventSeq': typeof SubjectsSubjectIdProofEventSeqRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -293,21 +358,29 @@ export interface FileRoutesByTo {
   '/events/create': typeof EventsCreateRoute
   '/flows/$flowId': typeof FlowsFlowIdRoute
   '/flows/create': typeof FlowsCreateRoute
+  '/projections/new': typeof ProjectionsNewRoute
   '/subjects/$subjectId': typeof SubjectsSubjectIdRoute
   '/verify/$subjectId': typeof VerifySubjectIdRoute
   '/verify/tenant': typeof VerifyTenantRoute
   '/email-accounts': typeof EmailAccountsIndexRoute
   '/events': typeof EventsIndexRoute
   '/flows': typeof FlowsIndexRoute
+  '/projections': typeof ProjectionsIndexRoute
   '/search': typeof SearchIndexRoute
   '/subjects': typeof SubjectsIndexRoute
   '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
+  '/integrity/repairs/$repairId': typeof IntegrityRepairsRepairIdRoute
+  '/integrity/repairs/new': typeof IntegrityRepairsNewRoute
+  '/projections/$name/$version': typeof ProjectionsNameVersionRoute
   '/settings/workflows/builder': typeof SettingsWorkflowsBuilderRoute
   '/settings/workflows/create': typeof SettingsWorkflowsCreateRoute
+  '/subjects/$subjectId/epochs': typeof SubjectsSubjectIdEpochsRoute
   '/admin/permissions': typeof AdminPermissionsIndexRoute
   '/admin/roles': typeof AdminRolesIndexRoute
+  '/integrity/repairs': typeof IntegrityRepairsIndexRoute
   '/settings/audit-log': typeof SettingsAuditLogIndexRoute
+  '/settings/connectors': typeof SettingsConnectorsIndexRoute
   '/settings/document-categories': typeof SettingsDocumentCategoriesIndexRoute
   '/settings/event-transition-rules': typeof SettingsEventTransitionRulesIndexRoute
   '/settings/naming-templates': typeof SettingsNamingTemplatesIndexRoute
@@ -320,6 +393,7 @@ export interface FileRoutesByTo {
   '/settings/users': typeof SettingsUsersIndexRoute
   '/settings/workflows': typeof SettingsWorkflowsIndexRoute
   '/subjects/$subjectId/events/$eventId': typeof SubjectsSubjectIdEventsEventIdRoute
+  '/subjects/$subjectId/proof/$eventSeq': typeof SubjectsSubjectIdProofEventSeqRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -333,21 +407,29 @@ export interface FileRoutesById {
   '/events/create': typeof EventsCreateRoute
   '/flows/$flowId': typeof FlowsFlowIdRoute
   '/flows/create': typeof FlowsCreateRoute
+  '/projections/new': typeof ProjectionsNewRoute
   '/subjects/$subjectId': typeof SubjectsSubjectIdRoute
   '/verify/$subjectId': typeof VerifySubjectIdRoute
   '/verify/tenant': typeof VerifyTenantRoute
   '/email-accounts/': typeof EmailAccountsIndexRoute
   '/events/': typeof EventsIndexRoute
   '/flows/': typeof FlowsIndexRoute
+  '/projections/': typeof ProjectionsIndexRoute
   '/search/': typeof SearchIndexRoute
   '/subjects/': typeof SubjectsIndexRoute
   '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
   '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
+  '/integrity/repairs/$repairId': typeof IntegrityRepairsRepairIdRoute
+  '/integrity/repairs/new': typeof IntegrityRepairsNewRoute
+  '/projections/$name/$version': typeof ProjectionsNameVersionRoute
   '/settings/workflows/builder': typeof SettingsWorkflowsBuilderRoute
   '/settings/workflows/create': typeof SettingsWorkflowsCreateRoute
+  '/subjects/$subjectId_/epochs': typeof SubjectsSubjectIdEpochsRoute
   '/admin/permissions/': typeof AdminPermissionsIndexRoute
   '/admin/roles/': typeof AdminRolesIndexRoute
+  '/integrity/repairs/': typeof IntegrityRepairsIndexRoute
   '/settings/audit-log/': typeof SettingsAuditLogIndexRoute
+  '/settings/connectors/': typeof SettingsConnectorsIndexRoute
   '/settings/document-categories/': typeof SettingsDocumentCategoriesIndexRoute
   '/settings/event-transition-rules/': typeof SettingsEventTransitionRulesIndexRoute
   '/settings/naming-templates/': typeof SettingsNamingTemplatesIndexRoute
@@ -360,6 +442,7 @@ export interface FileRoutesById {
   '/settings/users/': typeof SettingsUsersIndexRoute
   '/settings/workflows/': typeof SettingsWorkflowsIndexRoute
   '/subjects/$subjectId_/events/$eventId': typeof SubjectsSubjectIdEventsEventIdRoute
+  '/subjects/$subjectId_/proof/$eventSeq': typeof SubjectsSubjectIdProofEventSeqRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -374,21 +457,29 @@ export interface FileRouteTypes {
     | '/events/create'
     | '/flows/$flowId'
     | '/flows/create'
+    | '/projections/new'
     | '/subjects/$subjectId'
     | '/verify/$subjectId'
     | '/verify/tenant'
     | '/email-accounts/'
     | '/events/'
     | '/flows/'
+    | '/projections/'
     | '/search/'
     | '/subjects/'
     | '/email-accounts/oauth/callback'
     | '/events/subject/$subjectId'
+    | '/integrity/repairs/$repairId'
+    | '/integrity/repairs/new'
+    | '/projections/$name/$version'
     | '/settings/workflows/builder'
     | '/settings/workflows/create'
+    | '/subjects/$subjectId/epochs'
     | '/admin/permissions/'
     | '/admin/roles/'
+    | '/integrity/repairs/'
     | '/settings/audit-log/'
+    | '/settings/connectors/'
     | '/settings/document-categories/'
     | '/settings/event-transition-rules/'
     | '/settings/naming-templates/'
@@ -401,6 +492,7 @@ export interface FileRouteTypes {
     | '/settings/users/'
     | '/settings/workflows/'
     | '/subjects/$subjectId/events/$eventId'
+    | '/subjects/$subjectId/proof/$eventSeq'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -413,21 +505,29 @@ export interface FileRouteTypes {
     | '/events/create'
     | '/flows/$flowId'
     | '/flows/create'
+    | '/projections/new'
     | '/subjects/$subjectId'
     | '/verify/$subjectId'
     | '/verify/tenant'
     | '/email-accounts'
     | '/events'
     | '/flows'
+    | '/projections'
     | '/search'
     | '/subjects'
     | '/email-accounts/oauth/callback'
     | '/events/subject/$subjectId'
+    | '/integrity/repairs/$repairId'
+    | '/integrity/repairs/new'
+    | '/projections/$name/$version'
     | '/settings/workflows/builder'
     | '/settings/workflows/create'
+    | '/subjects/$subjectId/epochs'
     | '/admin/permissions'
     | '/admin/roles'
+    | '/integrity/repairs'
     | '/settings/audit-log'
+    | '/settings/connectors'
     | '/settings/document-categories'
     | '/settings/event-transition-rules'
     | '/settings/naming-templates'
@@ -440,6 +540,7 @@ export interface FileRouteTypes {
     | '/settings/users'
     | '/settings/workflows'
     | '/subjects/$subjectId/events/$eventId'
+    | '/subjects/$subjectId/proof/$eventSeq'
   id:
     | '__root__'
     | '/'
@@ -452,21 +553,29 @@ export interface FileRouteTypes {
     | '/events/create'
     | '/flows/$flowId'
     | '/flows/create'
+    | '/projections/new'
     | '/subjects/$subjectId'
     | '/verify/$subjectId'
     | '/verify/tenant'
     | '/email-accounts/'
     | '/events/'
     | '/flows/'
+    | '/projections/'
     | '/search/'
     | '/subjects/'
     | '/email-accounts/oauth/callback'
     | '/events/subject/$subjectId'
+    | '/integrity/repairs/$repairId'
+    | '/integrity/repairs/new'
+    | '/projections/$name/$version'
     | '/settings/workflows/builder'
     | '/settings/workflows/create'
+    | '/subjects/$subjectId_/epochs'
     | '/admin/permissions/'
     | '/admin/roles/'
+    | '/integrity/repairs/'
     | '/settings/audit-log/'
+    | '/settings/connectors/'
     | '/settings/document-categories/'
     | '/settings/event-transition-rules/'
     | '/settings/naming-templates/'
@@ -479,6 +588,7 @@ export interface FileRouteTypes {
     | '/settings/users/'
     | '/settings/workflows/'
     | '/subjects/$subjectId_/events/$eventId'
+    | '/subjects/$subjectId_/proof/$eventSeq'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -492,19 +602,27 @@ export interface RootRouteChildren {
   EventsCreateRoute: typeof EventsCreateRoute
   FlowsFlowIdRoute: typeof FlowsFlowIdRoute
   FlowsCreateRoute: typeof FlowsCreateRoute
+  ProjectionsNewRoute: typeof ProjectionsNewRoute
   SubjectsSubjectIdRoute: typeof SubjectsSubjectIdRoute
   VerifySubjectIdRoute: typeof VerifySubjectIdRoute
   VerifyTenantRoute: typeof VerifyTenantRoute
   EmailAccountsIndexRoute: typeof EmailAccountsIndexRoute
   EventsIndexRoute: typeof EventsIndexRoute
   FlowsIndexRoute: typeof FlowsIndexRoute
+  ProjectionsIndexRoute: typeof ProjectionsIndexRoute
   SearchIndexRoute: typeof SearchIndexRoute
   SubjectsIndexRoute: typeof SubjectsIndexRoute
   EmailAccountsOauthCallbackRoute: typeof EmailAccountsOauthCallbackRoute
   EventsSubjectSubjectIdRoute: typeof EventsSubjectSubjectIdRoute
+  IntegrityRepairsRepairIdRoute: typeof IntegrityRepairsRepairIdRoute
+  IntegrityRepairsNewRoute: typeof IntegrityRepairsNewRoute
+  ProjectionsNameVersionRoute: typeof ProjectionsNameVersionRoute
+  SubjectsSubjectIdEpochsRoute: typeof SubjectsSubjectIdEpochsRoute
   AdminPermissionsIndexRoute: typeof AdminPermissionsIndexRoute
   AdminRolesIndexRoute: typeof AdminRolesIndexRoute
+  IntegrityRepairsIndexRoute: typeof IntegrityRepairsIndexRoute
   SubjectsSubjectIdEventsEventIdRoute: typeof SubjectsSubjectIdEventsEventIdRoute
+  SubjectsSubjectIdProofEventSeqRoute: typeof SubjectsSubjectIdProofEventSeqRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -558,6 +676,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SearchIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projections/': {
+      id: '/projections/'
+      path: '/projections'
+      fullPath: '/projections/'
+      preLoaderRoute: typeof ProjectionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/flows/': {
       id: '/flows/'
       path: '/flows'
@@ -598,6 +723,13 @@ declare module '@tanstack/react-router' {
       path: '/subjects/$subjectId'
       fullPath: '/subjects/$subjectId'
       preLoaderRoute: typeof SubjectsSubjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projections/new': {
+      id: '/projections/new'
+      path: '/projections/new'
+      fullPath: '/projections/new'
+      preLoaderRoute: typeof ProjectionsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/flows/create': {
@@ -712,12 +844,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsDocumentCategoriesIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/connectors/': {
+      id: '/settings/connectors/'
+      path: '/connectors'
+      fullPath: '/settings/connectors/'
+      preLoaderRoute: typeof SettingsConnectorsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/audit-log/': {
       id: '/settings/audit-log/'
       path: '/audit-log'
       fullPath: '/settings/audit-log/'
       preLoaderRoute: typeof SettingsAuditLogIndexRouteImport
       parentRoute: typeof SettingsRoute
+    }
+    '/integrity/repairs/': {
+      id: '/integrity/repairs/'
+      path: '/integrity/repairs'
+      fullPath: '/integrity/repairs/'
+      preLoaderRoute: typeof IntegrityRepairsIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/roles/': {
       id: '/admin/roles/'
@@ -731,6 +877,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/permissions'
       fullPath: '/admin/permissions/'
       preLoaderRoute: typeof AdminPermissionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subjects/$subjectId_/epochs': {
+      id: '/subjects/$subjectId_/epochs'
+      path: '/subjects/$subjectId/epochs'
+      fullPath: '/subjects/$subjectId/epochs'
+      preLoaderRoute: typeof SubjectsSubjectIdEpochsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/workflows/create': {
@@ -747,6 +900,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsWorkflowsBuilderRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/projections/$name/$version': {
+      id: '/projections/$name/$version'
+      path: '/projections/$name/$version'
+      fullPath: '/projections/$name/$version'
+      preLoaderRoute: typeof ProjectionsNameVersionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrity/repairs/new': {
+      id: '/integrity/repairs/new'
+      path: '/integrity/repairs/new'
+      fullPath: '/integrity/repairs/new'
+      preLoaderRoute: typeof IntegrityRepairsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrity/repairs/$repairId': {
+      id: '/integrity/repairs/$repairId'
+      path: '/integrity/repairs/$repairId'
+      fullPath: '/integrity/repairs/$repairId'
+      preLoaderRoute: typeof IntegrityRepairsRepairIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/events/subject/$subjectId': {
       id: '/events/subject/$subjectId'
       path: '/events/subject/$subjectId'
@@ -759,6 +933,13 @@ declare module '@tanstack/react-router' {
       path: '/email-accounts/oauth/callback'
       fullPath: '/email-accounts/oauth/callback'
       preLoaderRoute: typeof EmailAccountsOauthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subjects/$subjectId_/proof/$eventSeq': {
+      id: '/subjects/$subjectId_/proof/$eventSeq'
+      path: '/subjects/$subjectId/proof/$eventSeq'
+      fullPath: '/subjects/$subjectId/proof/$eventSeq'
+      preLoaderRoute: typeof SubjectsSubjectIdProofEventSeqRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/subjects/$subjectId_/events/$eventId': {
@@ -775,6 +956,7 @@ interface SettingsRouteChildren {
   SettingsWorkflowsBuilderRoute: typeof SettingsWorkflowsBuilderRoute
   SettingsWorkflowsCreateRoute: typeof SettingsWorkflowsCreateRoute
   SettingsAuditLogIndexRoute: typeof SettingsAuditLogIndexRoute
+  SettingsConnectorsIndexRoute: typeof SettingsConnectorsIndexRoute
   SettingsDocumentCategoriesIndexRoute: typeof SettingsDocumentCategoriesIndexRoute
   SettingsEventTransitionRulesIndexRoute: typeof SettingsEventTransitionRulesIndexRoute
   SettingsNamingTemplatesIndexRoute: typeof SettingsNamingTemplatesIndexRoute
@@ -792,6 +974,7 @@ const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsWorkflowsBuilderRoute: SettingsWorkflowsBuilderRoute,
   SettingsWorkflowsCreateRoute: SettingsWorkflowsCreateRoute,
   SettingsAuditLogIndexRoute: SettingsAuditLogIndexRoute,
+  SettingsConnectorsIndexRoute: SettingsConnectorsIndexRoute,
   SettingsDocumentCategoriesIndexRoute: SettingsDocumentCategoriesIndexRoute,
   SettingsEventTransitionRulesIndexRoute:
     SettingsEventTransitionRulesIndexRoute,
@@ -821,19 +1004,27 @@ const rootRouteChildren: RootRouteChildren = {
   EventsCreateRoute: EventsCreateRoute,
   FlowsFlowIdRoute: FlowsFlowIdRoute,
   FlowsCreateRoute: FlowsCreateRoute,
+  ProjectionsNewRoute: ProjectionsNewRoute,
   SubjectsSubjectIdRoute: SubjectsSubjectIdRoute,
   VerifySubjectIdRoute: VerifySubjectIdRoute,
   VerifyTenantRoute: VerifyTenantRoute,
   EmailAccountsIndexRoute: EmailAccountsIndexRoute,
   EventsIndexRoute: EventsIndexRoute,
   FlowsIndexRoute: FlowsIndexRoute,
+  ProjectionsIndexRoute: ProjectionsIndexRoute,
   SearchIndexRoute: SearchIndexRoute,
   SubjectsIndexRoute: SubjectsIndexRoute,
   EmailAccountsOauthCallbackRoute: EmailAccountsOauthCallbackRoute,
   EventsSubjectSubjectIdRoute: EventsSubjectSubjectIdRoute,
+  IntegrityRepairsRepairIdRoute: IntegrityRepairsRepairIdRoute,
+  IntegrityRepairsNewRoute: IntegrityRepairsNewRoute,
+  ProjectionsNameVersionRoute: ProjectionsNameVersionRoute,
+  SubjectsSubjectIdEpochsRoute: SubjectsSubjectIdEpochsRoute,
   AdminPermissionsIndexRoute: AdminPermissionsIndexRoute,
   AdminRolesIndexRoute: AdminRolesIndexRoute,
+  IntegrityRepairsIndexRoute: IntegrityRepairsIndexRoute,
   SubjectsSubjectIdEventsEventIdRoute: SubjectsSubjectIdEventsEventIdRoute,
+  SubjectsSubjectIdProofEventSeqRoute: SubjectsSubjectIdProofEventSeqRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

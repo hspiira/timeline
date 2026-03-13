@@ -12,10 +12,40 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Health Check
-         * @description Return simple ok status for liveness.
+         * Liveness probe
+         * @description Returns `200 OK` if the process is running.
+         *
+         *     No dependencies are checked; no authentication required. Use this for
+         *     Kubernetes `livenessProbe` so the orchestrator can restart the pod if
+         *     the process has hung or crashed. A non-2xx response triggers a restart.
          */
         get: operations["health_check_api_v1_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/health/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Readiness probe
+         * @description Returns `200 OK` when the service is ready to accept traffic; otherwise `503`.
+         *
+         *     Readiness typically checks the database connection pool. When
+         *     `RLS_READINESS_CHECK` is enabled, it also verifies that the application role
+         *     does not bypass RLS and optionally that tenant isolation policies exist.
+         *     Use for Kubernetes `readinessProbe` so the pod is removed from load
+         *     balancing until it can serve requests. No authentication required.
+         */
+        get: operations["readiness_check_api_v1_health_ready_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -34,10 +64,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Register
-         * @description Register a new user with tenant_code (public endpoint). Resolves tenant by code.
-         *
-         *     Error responses are intentionally generic to avoid tenant enumeration.
+         * Register a user
+         * @description Register a new user with tenant_code (public). Resolves tenant by code. Errors are generic to avoid tenant enumeration.
          */
         post: operations["register_api_v1_auth_register_post"];
         delete?: never;
@@ -56,11 +84,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Set Initial Password
-         * @description Set initial admin password using one-time token (C2 tenant creation flow).
-         *
-         *     Token is from the set_password_url returned by POST /tenants when SET_PASSWORD_BASE_URL is set.
-         *     Requires PostgreSQL; returns 503 when database backend is not postgres.
+         * Set initial password
+         * @description Set initial admin password using one-time token from set_password_url (C2 tenant creation flow).
          */
         post: operations["set_initial_password_api_v1_auth_set_initial_password_post"];
         delete?: never;
@@ -79,10 +104,19 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Login
-         * @description Authenticate with tenant_code, username, and password; return JWT.
+         * Issue an API token
+         * @description Authenticate with tenant identifier, username, and password; return a JWT
+         *     access token.
          *
-         *     Tenant is identified by tenant_code (e.g. org slug).
+         *     **Request body:** Supply `tenant_code` (e.g. organisation slug), `username`,
+         *     and `password`. The tenant is resolved by code; the user is validated within
+         *     that tenant.
+         *
+         *     **Response:** A short-lived JWT in `access_token` with `token_type: "bearer"`.
+         *     Use it in the `Authorization: Bearer <token>` header for protected endpoints.
+         *
+         *     **Security:** Invalid credentials return `401` with a generic message to
+         *     avoid tenant or user enumeration. Rate limiting applies per tenant code.
          */
         post: operations["login_api_v1_auth_login_post"];
         delete?: never;
@@ -99,21 +133,19 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Me
-         * @description Return the currently authenticated user from JWT.
-         *
-         *     Requires Authorization: Bearer <token>.
+         * Get current user
+         * @description Return the currently authenticated user from JWT. Requires Authorization: Bearer.
          */
         get: operations["get_me_api_v1_auth_me_get"];
         /**
-         * Update Me
+         * Update current user
          * @description Update current user email and/or password. Requires Authorization.
          */
         put: operations["update_me_api_v1_auth_me_put"];
         post?: never;
         /**
-         * Delete Me
-         * @description Deactivate current user (soft delete). Requires Authorization.
+         * Deactivate current user
+         * @description Soft-delete (deactivate) current user. Requires Authorization.
          */
         delete: operations["delete_me_api_v1_auth_me_delete"];
         options?: never;
@@ -129,10 +161,58 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Dashboard
-         * @description Return dashboard stats for the tenant: counts by type and last 10 events.
+         * Dashboard stats
+         * @description Return dashboard statistics for the authenticated tenant.
+         *
+         *     Includes total counts for subjects, events, and documents; breakdowns by type;
+         *     and the last 10 events for quick overview. Use for admin dashboards and
+         *     monitoring. Requires `tenant:read` (or equivalent) permission.
          */
         get: operations["get_dashboard_api_v1_analytics_dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/projections/{name}/{version}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Projection summary
+         * @description Return aggregate summary for a named projection (by name and version): total
+         *     subject count in that projection's state store. Use to show projection scale.
+         *     Returns `404` when the projection definition is not found.
+         */
+        get: operations["get_projection_summary_api_v1_analytics_projections__name___version__summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/projections/{name}/{version}/top": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Top subjects by projection
+         * @description Return the top subjects for a projection by a state field (e.g. count or
+         *     score). Supports pagination and ordering. Use for leaderboards or
+         *     highlight lists. Returns `404` when the projection is not found.
+         */
+        get: operations["get_projection_top_api_v1_analytics_projections__name___version__top_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -149,8 +229,12 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Audit Log
-         * @description List audit log entries for the tenant (paginated, optional filters).
+         * List audit log
+         * @description List API audit log entries for the tenant with optional filters.
+         *
+         *     Supports pagination and filtering by resource type, user, and time range.
+         *     Entries record authenticated actions (create, update, delete, etc.) for
+         *     audit and compliance. Requires `audit:read` permission.
          */
         get: operations["list_audit_log_api_v1_audit_log_get"];
         put?: never;
@@ -169,16 +253,59 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Events
-         * @description List events for tenant; optionally filter by subject_id.
+         * List events
+         * @description List events for the tenant, optionally filtered to a single subject. Ordered by event sequence ascending.
          */
         get: operations["list_events_api_v1_events_get"];
         put?: never;
         /**
-         * Create Event
-         * @description Create a single event (hash chaining, optional schema validation, workflows).
+         * Ingest an event
+         * @description Write a single immutable event to the ledger.
+         *
+         *     Each event is SHA-256 hash-chained to the previous event for the
+         *     same `(tenant_id, subject_id)` pair.  The chain hash is computed and
+         *     stored server-side; clients cannot supply or override it.
+         *
+         *     **Schema validation** — if an `EventSchema` is registered for
+         *     `event_type`, the `payload` is validated against it before
+         *     persistence.  Validation failure returns `422`.
+         *
+         *     **Workflows** — if a `Flow` is configured to trigger on this
+         *     `event_type`, a workflow instance is created and its
+         *     `workflow_instance_id` is returned in the response.
+         *
+         *     **Idempotency** — supply `external_id` to make the write idempotent.
+         *     Re-submitting the same `(tenant_id, external_id)` pair returns the
+         *     original event rather than creating a duplicate.
          */
         post: operations["create_event_api_v1_events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream events (SSE)
+         * @description Open a Server-Sent Events stream of new events as they are ingested.
+         *
+         *     Optionally scope the stream to a single `subject_id` via query
+         *     parameter.  Each SSE `data:` frame is a JSON-serialised event
+         *     payload.
+         *
+         *     Clients should reconnect on disconnect using standard SSE retry
+         *     logic.  Requires `event:read` permission.
+         */
+        get: operations["stream_events_api_v1_events_stream_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -193,8 +320,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Count Events
-         * @description Get total event count for the tenant (for dashboard stats).
+         * Count events
+         * @description Return the total event count for the tenant. Useful for dashboard statistics.
          */
         get: operations["count_events_api_v1_events_count_get"];
         put?: never;
@@ -213,8 +340,12 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Verify Tenant Chains
-         * @description Verify cryptographic integrity of all event chains for current tenant (inline; use POST /verify/tenant/all/start for large tenants).
+         * Verify all tenant chains (inline)
+         * @description Verify the hash chain for every subject in the tenant synchronously.
+         *
+         *     For tenants with large event volumes, this will return `400` with a
+         *     suggestion to use the async background job instead.  The threshold is
+         *     configurable via `VERIFICATION_INLINE_LIMIT`.
          */
         get: operations["verify_tenant_chains_api_v1_events_verify_tenant_all_get"];
         put?: never;
@@ -235,8 +366,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Start Verification Job
-         * @description Start a background verification job for all tenant event chains (for large tenants). Poll GET /events/verify/tenant/jobs/{job_id} for status.
+         * Start background verification job
+         * @description Enqueue a background verification job for all tenant event chains.
+         *
+         *     Returns a `job_id` immediately.  Poll
+         *     `GET /events/verify/tenant/jobs/{job_id}` for status and results.
          */
         post: operations["start_verification_job_api_v1_events_verify_tenant_all_start_post"];
         delete?: never;
@@ -253,8 +387,12 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Verification Job Status
-         * @description Get status and result of a background verification job (tenant-scoped: only own tenant's jobs).
+         * Get verification job status
+         * @description Retrieve the status and (once complete) the full result of a
+         *     background verification job.
+         *
+         *     Jobs are tenant-scoped — a tenant can only retrieve its own jobs.
+         *     Possible `status` values: `pending`, `running`, `completed`, `failed`.
          */
         get: operations["get_verification_job_status_api_v1_events_verify_tenant_jobs__job_id__get"];
         put?: never;
@@ -273,8 +411,15 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Verify Subject Chain
-         * @description Verify cryptographic integrity of event chain for a subject.
+         * Verify a subject's chain
+         * @description Recompute and verify the SHA-256 hash chain for all events belonging
+         *     to `subject_id` within the tenant.
+         *
+         *     Returns per-event validity, the first failing sequence number (if
+         *     any), and an overall `is_chain_valid` flag.
+         *
+         *     For tenants with very large event volumes per subject, this call may
+         *     time out (`504`).  Use the background job endpoints instead.
          */
         get: operations["verify_subject_chain_api_v1_events_verify__subject_id__get"];
         put?: never;
@@ -293,10 +438,30 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Event
-         * @description Get event by id (tenant-scoped).
+         * Get an event
+         * @description Retrieve a single event by its ID (tenant-scoped).
          */
         get: operations["get_event_api_v1_events__event_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connectors/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Connector health status
+         * @description Return health for all registered connectors. 200 if all running, 207 if any degraded, 503 if all stopped. Admin/system permission.
+         */
+        get: operations["connectors_health_api_v1_connectors_health_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -313,20 +478,88 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Tenants
-         * @description Return the current tenant only (tenant:read grants access to own tenant; no cross-tenant enumeration).
+         * List current tenant
+         * @description Return the tenant for the authenticated context (single-item list).
+         *
+         *     Uses `X-Tenant-ID` from the request; returns that tenant's details when
+         *     the caller has `tenant:read`. There is no cross-tenant enumeration — only
+         *     the current tenant is returned. Returns `404` when the tenant is not found.
          */
         get: operations["list_tenants_api_v1_tenants_get"];
         put?: never;
         /**
-         * Create Tenant
-         * @description Create a new tenant with admin user and RBAC.
+         * Provision a tenant
+         * @description Create a new tenant with an initial admin user and default RBAC.
          *
-         *     This endpoint is protected by a shared secret header:
-         *     - Settings must define CREATE_TENANT_SECRET.
-         *     - Requests must include X-Create-Tenant-Secret matching that value.
+         *     **Authentication:** This endpoint is not protected by a normal bearer token.
+         *     Callers must supply the shared secret in the `X-Create-Tenant-Secret` header;
+         *     the server must have `CREATE_TENANT_SECRET` configured. If the secret is
+         *     missing or wrong, the server returns `401 Unauthorized`. If tenant creation
+         *     is not configured (no secret set), the server returns `503`.
+         *
+         *     **Idempotency:** Tenant identity is derived from the request body (e.g. `code`).
+         *     Submitting a duplicate identity returns `409 Conflict`.
+         *
+         *     **Response:** Includes `tenant_id`, admin credentials, and optionally a
+         *     `set_password_url` when `SET_PASSWORD_BASE_URL` is set, so the admin can
+         *     complete account setup.
          */
         post: operations["create_tenant_api_v1_tenants_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/integrity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get tenant integrity profile
+         * @description Return the current integrity profile and last change metadata for the tenant.
+         *
+         *     Includes profile (e.g. BASIC, LEGAL_GRADE), `last_changed_at`, and optional
+         *     `cooling_off_ends_at`. Requires `tenant:read`. Returns `404` when the tenant
+         *     does not exist.
+         */
+        get: operations["get_tenant_integrity_api_v1_tenants_integrity_get"];
+        /**
+         * Update tenant integrity profile
+         * @description Change the tenant's integrity profile and record the change in history.
+         *
+         *     Request body: `new_profile` and optional `reason`. Requires `tenant:update`.
+         *     Changes are effective immediately and audited. Returns `404` when the tenant
+         *     does not exist.
+         */
+        put: operations["update_tenant_integrity_api_v1_tenants_integrity_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/integrity/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List integrity profile history
+         * @description Return integrity profile change history for the current tenant, most recent first.
+         *
+         *     Each entry includes previous/new profile, changed_at, changed_by_user_id, and
+         *     reason. Requires `tenant:read`.
+         */
+        get: operations["get_tenant_integrity_history_api_v1_tenants_integrity_history_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -341,19 +574,38 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Tenant
-         * @description Get tenant by id. Path tenant_id must match X-Tenant-ID header.
+         * Get tenant details
+         * @description Return the tenant identified by the path `tenant_id`.
+         *
+         *     **Scoping:** The path `tenant_id` must match the `X-Tenant-ID` header.
+         *     Callers with `tenant:read` can only read their own tenant; there is no
+         *     cross-tenant enumeration. Returns `404` when the tenant does not exist
+         *     or the header does not match.
          */
         get: operations["get_tenant_api_v1_tenants__tenant_id__get"];
         /**
-         * Update Tenant
-         * @description Update tenant name and/or status. Path tenant_id must match X-Tenant-ID header.
+         * Update a tenant
+         * @description Update the tenant's display name and/or status.
+         *
+         *     **Scoping:** The path `tenant_id` must match the `X-Tenant-ID` header.
+         *     Requires `tenant:update`. Only the fields supplied in the request body
+         *     are changed; omitted fields are left unchanged.
+         *
+         *     **Audit:** Changes are logged for audit. Returns `404` when the tenant
+         *     does not exist or the header does not match.
          */
         put: operations["update_tenant_api_v1_tenants__tenant_id__put"];
         post?: never;
         /**
-         * Delete Tenant
-         * @description Soft-delete tenant. Path tenant_id must match X-Tenant-ID header.
+         * Delete a tenant
+         * @description Soft-delete the tenant by setting its status to `Archived`.
+         *
+         *     **Scoping:** The path `tenant_id` must match the `X-Tenant-ID` header.
+         *     Requires `tenant:delete`. Data is retained; the tenant is marked archived
+         *     so it can be excluded from normal operations. The action is logged for audit.
+         *
+         *     Returns `204 No Content` on success. Returns `404` when the tenant does
+         *     not exist or the header does not match.
          */
         delete: operations["delete_tenant_api_v1_tenants__tenant_id__delete"];
         options?: never;
@@ -375,10 +627,502 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Update Tenant Status
-         * @description Update tenant status. Path tenant_id must match X-Tenant-ID header.
+         * Update tenant status
+         * @description Update only the tenant's status (e.g. active, archived).
+         *
+         *     Path `tenant_id` must match `X-Tenant-ID`. Requires `tenant:update`. Audited.
+         *     Returns `404` when the tenant does not exist.
          */
         patch: operations["update_tenant_status_api_v1_tenants__tenant_id__status_patch"];
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenant_id}/chain-anchors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List chain anchors for tenant
+         * @description List RFC 3161 TSA chain anchors for the tenant, newest first.
+         *
+         *     Each item includes the chain tip hash, TSA URL and serial, status, and timestamps.
+         */
+        get: operations["list_chain_anchors_api_v1_tenants__tenant_id__chain_anchors_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenant_id}/chain-anchors/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get latest confirmed chain anchor
+         * @description Return the most recent confirmed TSA chain anchor for the tenant.
+         *
+         *     Includes the base64-encoded TSA receipt so clients can perform offline verification
+         *     against their own copy of the chain tip hash.
+         */
+        get: operations["get_latest_chain_anchor_api_v1_tenants__tenant_id__chain_anchors_latest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/integrity/epochs/{subject_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List integrity epochs for a subject
+         * @description List integrity epochs for a subject under the current tenant.
+         *
+         *     Returns epoch metadata including status, event count, Merkle root, and profile
+         *     snapshot used for sealing.
+         */
+        get: operations["list_integrity_epochs_for_subject_api_v1_tenants_integrity_epochs__subject_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/integrity/verify/{subject_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Verify subject integrity (summary)
+         * @description Verify hash-chain integrity for all events belonging to a subject in the tenant.
+         *
+         *     This endpoint checks only the SHA-256 event chain (no TSA or Merkle) and returns
+         *     aggregate counts and a boolean `is_chain_valid` flag.
+         */
+        get: operations["verify_subject_integrity_api_v1_tenants_integrity_verify__subject_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/integrity/verify/{subject_id}/detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Verify subject integrity (per-event detail)
+         * @description Verify hash-chain integrity for a subject and return per-event verification results.
+         *
+         *     Each event result includes sequence, expected vs actual hashes, and error details
+         *     when validation fails.
+         */
+        get: operations["verify_subject_integrity_detail_api_v1_tenants_integrity_verify__subject_id__detail_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/integrity/proof/{event_seq}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Merkle proof for an event
+         * @description Return the Merkle proof for a LEGAL_GRADE event identified by its global sequence
+         *     number (`event_seq`) within its integrity epoch.
+         *
+         *     The response includes:
+         *
+         *     - `leaf_hash` — the event's leaf hash (or event hash when leaf not stored)
+         *     - `root_hash` — the epoch Merkle root
+         *     - `steps` — ordered sibling hashes needed to recompute the root
+         *
+         *     Only available for sealed LEGAL_GRADE epochs; returns 400 otherwise.
+         */
+        get: operations["get_merkle_proof_for_event_api_v1_tenants_integrity_proof__event_seq__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/integrity/repair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Initiate chain repair
+         * @description Initiate a chain repair request for a specific epoch at a given break sequence.
+         *
+         *     Records the requested break point, reason, initiating user, and integrity profile
+         *     snapshot. Subsequent approve/complete endpoints drive the four-eyes repair workflow.
+         */
+        post: operations["initiate_chain_repair_api_v1_tenants_integrity_repair_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/integrity/repair/{repair_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve chain repair
+         * @description Approve a pending chain repair request (four-eyes rule).
+         *
+         *     Only a different user than the initiator may approve; permission and ownership
+         *     checks are enforced by the service.
+         */
+        post: operations["approve_chain_repair_api_v1_tenants_integrity_repair__repair_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/integrity/repair/{repair_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get chain repair record
+         * @description Return a chain repair record by id, scoped to the current tenant.
+         */
+        get: operations["get_chain_repair_api_v1_tenants_integrity_repair__repair_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/integrity/repair/{repair_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete chain repair
+         * @description Complete a chain repair by re-hashing from the break point and opening a new epoch.
+         *
+         *     Marks the affected epoch as repaired and ensures the new epoch begins from the
+         *     correct terminal hash.
+         */
+        post: operations["complete_chain_repair_api_v1_tenants_integrity_repair__repair_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenant_id}/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List webhook subscriptions
+         * @description List webhook subscriptions for the tenant with pagination. Use for admin
+         *     and monitoring. Requires webhook read permission.
+         */
+        get: operations["list_webhooks_api_v1_tenants__tenant_id__webhooks_get"];
+        put?: never;
+        /**
+         * Create webhook subscription
+         * @description Create a webhook subscription for the tenant. Supplies target_url,
+         *     event_types, subject_types, optional secret. Secret is returned only in
+         *     this response. Duplicate or invalid config may return `409`. Requires
+         *     webhook write permission.
+         */
+        post: operations["create_webhook_api_v1_tenants__tenant_id__webhooks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenant_id}/webhooks/{subscription_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get webhook subscription
+         * @description Get webhook subscription by ID (tenant-scoped). Secret is not returned.
+         *     Returns `404` when not found. Requires webhook read permission.
+         */
+        get: operations["get_webhook_api_v1_tenants__tenant_id__webhooks__subscription_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete webhook subscription
+         * @description Delete a webhook subscription by ID (tenant-scoped). Returns `404` when
+         *     not found. Requires webhook write permission.
+         */
+        delete: operations["delete_webhook_api_v1_tenants__tenant_id__webhooks__subscription_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update webhook subscription
+         * @description Partially update a webhook subscription (target_url, event_types,
+         *     subject_types, secret, active). Returns `404` when not found. Requires
+         *     webhook write permission.
+         */
+        patch: operations["update_webhook_api_v1_tenants__tenant_id__webhooks__subscription_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenant_id}/webhooks/{subscription_id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test webhook
+         * @description Send a test delivery to the subscription URL. Returns whether the
+         *     delivery succeeded (2xx). Returns `404` when the subscription does not
+         *     exist. Requires webhook write permission.
+         */
+        post: operations["test_webhook_api_v1_tenants__tenant_id__webhooks__subscription_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenant_id}/projections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List projection definitions
+         * @description Return all projection definitions registered for the authenticated
+         *     tenant, including those marked `active=False`.
+         *
+         *     This endpoint is read-only and does not trigger rebuilds or cause
+         *     the projection engine to advance any watermark.
+         */
+        get: operations["list_projections_api_v1_tenants__tenant_id__projections_get"];
+        put?: never;
+        /**
+         * Create a projection definition
+         * @description Register a new read-model projection over a subject's event stream.
+         *
+         *     A projection is a named reducer that Timeline evaluates continuously
+         *     against incoming events.  The engine discovers active definitions on
+         *     each worker cycle and advances their `last_event_seq` watermark by
+         *     applying new events through the registered handler, writing derived
+         *     state into the `projection_state` table.
+         *
+         *     **Idempotency:** `(tenant_id, name, version)` is a unique key.
+         *     Re-submitting the same triple returns `409 Conflict`.
+         *
+         *     **Watermark:** the engine always begins from `last_event_seq = 0`
+         *     on first creation, meaning the full subject history is replayed
+         *     before the projection is considered current.  Use
+         *     `POST /{tenant_id}/projections/{name}/{version}/rebuild` to reset
+         *     an existing projection to genesis.
+         */
+        post: operations["create_projection_api_v1_tenants__tenant_id__projections_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenant_id}/projections/{name}/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Deactivate a projection
+         * @description Set `active=False` on the projection identified by
+         *     `(tenant_id, name, version)`.
+         *
+         *     The projection engine skips deactivated definitions on subsequent
+         *     cycles:
+         *
+         *     - Existing rows in `projection_state` are preserved as-is.
+         *     - No new events are applied while the projection is inactive.
+         *     - Reactivation is not yet available via API; contact support or
+         *       set `active=True` directly in the projection management use case.
+         *
+         *     Use this to pause or retire a projection without discarding its
+         *     historical derived state.
+         */
+        delete: operations["deactivate_projection_api_v1_tenants__tenant_id__projections__name___version__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenant_id}/projections/{name}/{version}/rebuild": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rebuild a projection from genesis
+         * @description Reset the watermark (`last_event_seq`) to `0` for the projection
+         *     identified by `(tenant_id, name, version)`.
+         *
+         *     **This is an asynchronous operation.**  The call returns `202
+         *     Accepted` immediately.  On the next worker cycle the engine will:
+         *
+         *     1. Re-scan events for the relevant subjects starting from sequence 1.
+         *     2. Re-run the projection handler for each event in order.
+         *     3. Overwrite current rows in `projection_state` for this projection.
+         *
+         *     Use this when you change a projection handler's logic but keep the
+         *     same `(name, version)` and need all derived state recomputed.
+         *
+         *     To monitor progress, poll `GET /{tenant_id}/projections/{name}/{version}`
+         *     and inspect `last_event_seq`.
+         */
+        post: operations["rebuild_projection_api_v1_tenants__tenant_id__projections__name___version__rebuild_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenant_id}/projections/{name}/{version}/subjects/{subject_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get projection state for a subject
+         * @description Return the derived state of a named projection for a single subject.
+         *
+         *     **Current state (default)** — omit `as_of`.  Reads the latest row
+         *     from `projection_state`.  Fast path suitable for dashboards and APIs.
+         *
+         *     **Point-in-time replay** — supply `as_of` (ISO-8601 datetime).  The
+         *     endpoint loads events for `(tenant_id, subject_id)` up to the given
+         *     timestamp, replays them through the registered handler, and returns
+         *     the reconstructed state.  This path does *not* read from or write to
+         *     `projection_state`.
+         *
+         *     A `404` is returned when either the projection definition or the
+         *     subject's state row does not exist (for the current-state path), or
+         *     when the ProjectionRegistry has no handler registered for
+         *     `(name, version)` (for the replay path).
+         */
+        get: operations["get_projection_state_api_v1_tenants__tenant_id__projections__name___version__subjects__subject_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenant_id}/projections/{name}/{version}/states": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all subjects' projection state
+         * @description Return a paginated window of current projection state rows for the
+         *     definition identified by `(tenant_id, name, version)`.
+         *
+         *     Only *current* state is returned — there is no point-in-time replay
+         *     on this endpoint.  Use the single-subject endpoint with `as_of` for
+         *     that.
+         *
+         *     This is the natural backing endpoint for projection-powered list
+         *     views, for example *"all mortgage applications with their current
+         *     processing status"* without touching the raw event stream.
+         *
+         *     If the projection definition does not exist, an empty list is
+         *     returned (not a 404).
+         */
+        get: operations["list_projection_states_api_v1_tenants__tenant_id__projections__name___version__states_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/documents": {
@@ -389,17 +1133,20 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Documents
-         * @description List documents for a subject (tenant-scoped). subject_id is required.
+         * List documents
+         * @description List documents for a subject (tenant-scoped). Subject ID is required as a
+         *     query parameter. Use for document lists in UIs or integrations. Requires
+         *     `document:read`.
          */
         get: operations["list_documents_api_v1_documents_get"];
         put?: never;
         /**
-         * Upload Document
-         * @description Upload a document for a subject (storage + document record).
+         * Upload document
+         * @description Upload a new document for a subject (multipart: file + metadata).
          *
-         *     Optional metadata (JSON string) is validated against the document category's
-         *     metadata_schema when document_type matches a configured category with a schema.
+         *     Optional metadata (JSON) is validated against the document category's
+         *     metadata_schema when the document type matches a configured category.
+         *     Duplicate identity may return `409`. Requires `document:create`.
          */
         post: operations["upload_document_api_v1_documents_post"];
         delete?: never;
@@ -416,8 +1163,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Documents By Event
-         * @description List documents linked to an event (tenant-scoped).
+         * List documents by event
+         * @description List documents linked to a specific event (tenant-scoped).
+         *
+         *     Use to show attachments or evidence for an event. Returns `404` when the
+         *     event does not exist. Requires `document:read`.
          */
         get: operations["list_documents_by_event_api_v1_documents_event__event_id__get"];
         put?: never;
@@ -436,8 +1186,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Document Versions
-         * @description Get this document and its version chain (tenant-scoped).
+         * List document versions
+         * @description Get the document and its version chain (tenant-scoped).
+         *
+         *     Returns all versions with metadata. Use for version history UIs. Returns
+         *     `404` when the document does not exist. Requires `document:read`.
          */
         get: operations["get_document_versions_api_v1_documents__document_id__versions_get"];
         put?: never;
@@ -456,8 +1209,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Document Download Url
-         * @description Get temporary download URL for document (tenant-scoped). Defined before /{document_id} for route precedence.
+         * Get download URL
+         * @description Get a temporary signed URL to download document content.
+         *
+         *     URL expiry is configurable (e.g. 1–168 hours). Returns `404` when the
+         *     document does not exist. Requires `document:read`.
          */
         get: operations["get_document_download_url_api_v1_documents__document_id__download_url_get"];
         put?: never;
@@ -476,19 +1232,29 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Document
-         * @description Get document metadata by id (tenant-scoped).
+         * Get document
+         * @description Get document metadata by ID (tenant-scoped).
+         *
+         *     Does not return file content; use the download URL endpoint for that.
+         *     Returns `404` when the document is not found. Requires `document:read`.
          */
         get: operations["get_document_api_v1_documents__document_id__get"];
         /**
-         * Update Document
-         * @description Update document metadata (e.g. document_type). Tenant-scoped.
+         * Update document
+         * @description Update document metadata or upload a new version (tenant-scoped).
+         *
+         *     For metadata-only updates, send a JSON body; for new version, use
+         *     multipart as per upload. Returns `404` when the document does not exist.
+         *     Requires `document:update`.
          */
         put: operations["update_document_api_v1_documents__document_id__put"];
         post?: never;
         /**
-         * Delete Document
-         * @description Soft-delete document. Tenant-scoped.
+         * Delete document
+         * @description Delete a document by ID (tenant-scoped).
+         *
+         *     Typically soft-delete; storage and audit behaviour are implementation-defined.
+         *     Returns `404` when the document does not exist. Requires `document:delete`.
          */
         delete: operations["delete_document_api_v1_documents__document_id__delete"];
         options?: never;
@@ -504,14 +1270,21 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Document Categories
-         * @description List document categories for the tenant.
+         * List categories
+         * @description List document categories for the tenant with pagination.
+         *
+         *     Use to populate dropdowns or admin UIs. Requires `document_category:read`.
          */
         get: operations["list_document_categories_api_v1_document_categories_get"];
         put?: never;
         /**
-         * Create Document Category
-         * @description Create a document category (tenant-scoped).
+         * Create category
+         * @description Create a document category for the tenant.
+         *
+         *     Defines a category name, display name, optional description, metadata schema
+         *     (JSON Schema), default retention days, and active flag. Duplicate
+         *     `category_name` per tenant returns `409 Conflict`. Requires
+         *     `document_category:create`.
          */
         post: operations["create_document_category_api_v1_document_categories_post"];
         delete?: never;
@@ -528,22 +1301,33 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Document Category
-         * @description Get document category by id (tenant-scoped).
+         * Get category
+         * @description Get a document category by ID (tenant-scoped).
+         *
+         *     Returns full configuration including metadata schema and retention.
+         *     Returns `404` when the category is not found. Requires
+         *     `document_category:read`.
          */
         get: operations["get_document_category_api_v1_document_categories__category_id__get"];
         put?: never;
         post?: never;
         /**
-         * Delete Document Category
-         * @description Delete document category (tenant-scoped).
+         * Delete category
+         * @description Delete a document category by ID (tenant-scoped).
+         *
+         *     Existing documents may retain the category reference; behaviour is
+         *     implementation-defined. Returns `404` when the category does not exist.
+         *     Requires `document_category:delete`.
          */
         delete: operations["delete_document_category_api_v1_document_categories__category_id__delete"];
         options?: never;
         head?: never;
         /**
-         * Update Document Category
-         * @description Update document category (partial, tenant-scoped).
+         * Update category
+         * @description Update a document category (partial update, tenant-scoped).
+         *
+         *     Only supplied fields are changed. Returns `404` when the category does not
+         *     exist. Requires `document_category:update`.
          */
         patch: operations["update_document_category_api_v1_document_categories__category_id__patch"];
         trace?: never;
@@ -556,14 +1340,19 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Email Accounts
-         * @description List email accounts for tenant (paginated).
+         * List email accounts
+         * @description List email accounts for the tenant with pagination.
+         *
+         *     Use for admin UIs and connector overview. Requires `email_account:read`.
          */
         get: operations["list_email_accounts_api_v1_email_accounts_get"];
         put?: never;
         /**
-         * Create Email Account
-         * @description Create email account (credentials encrypted at rest).
+         * Create email account
+         * @description Register an email account for the tenant (e.g. Gmail, Outlook).
+         *
+         *     Credentials are encrypted at rest. Optionally link to an OAuth provider config.
+         *     Duplicate or invalid config may return `409`. Requires `email_account:create`.
          */
         post: operations["create_email_account_api_v1_email_accounts_post"];
         delete?: never;
@@ -580,22 +1369,28 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Email Account
-         * @description Get email account by id (tenant-scoped).
+         * Get email account
+         * @description Get email account by ID (tenant-scoped). Does not return plaintext
+         *     credentials. Returns `404` when the account is not found. Requires
+         *     `email_account:read`.
          */
         get: operations["get_email_account_api_v1_email_accounts__account_id__get"];
         put?: never;
         post?: never;
         /**
-         * Delete Email Account
-         * @description Delete email account (hard delete).
+         * Delete email account
+         * @description Delete an email account by ID (tenant-scoped). Stops sync and removes
+         *     stored credentials. Returns `404` when the account does not exist.
+         *     Requires `email_account:delete`.
          */
         delete: operations["delete_email_account_api_v1_email_accounts__account_id__delete"];
         options?: never;
         head?: never;
         /**
-         * Update Email Account
-         * @description Partially update email account.
+         * Update email account
+         * @description Update email account configuration (tenant-scoped). Credentials can be
+         *     rotated. Returns `404` when the account does not exist. Requires
+         *     `email_account:update`.
          */
         patch: operations["update_email_account_api_v1_email_accounts__account_id__patch"];
         trace?: never;
@@ -608,8 +1403,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Email Account Sync Status
+         * Get sync status
          * @description Return last sync time, status, and error for the email account.
+         *
+         *     Use for sync health and debugging. Returns `404` when the account does
+         *     not exist. Requires `email_account:read`.
          */
         get: operations["get_email_account_sync_status_api_v1_email_accounts__account_id__sync_status_get"];
         put?: never;
@@ -630,8 +1428,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Trigger Email Sync
-         * @description Trigger sync for the email account (in-process). Runs sync before returning 202.
+         * Trigger sync
+         * @description Trigger sync for the email account (in-process). Returns `202 Accepted`
+         *     when sync has been started. Use for on-demand sync. Returns `404` when
+         *     the account does not exist. Requires `email_account:update`.
          */
         post: operations["trigger_email_sync_api_v1_email_accounts__account_id__sync_post"];
         delete?: never;
@@ -650,8 +1450,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Trigger Email Sync Background
-         * @description Enqueue sync for the email account. Returns 202 immediately; sync runs after response.
+         * Trigger sync (background)
+         * @description Enqueue sync for the email account; returns `202` immediately while sync
+         *     runs in the background. Prefer this for large mailboxes. Returns `404`
+         *     when the account does not exist. Requires `email_account:update`.
          */
         post: operations["trigger_email_sync_background_api_v1_email_accounts__account_id__sync_background_post"];
         delete?: never;
@@ -670,11 +1472,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Email Account Webhook
-         * @description Provider callback (e.g. Gmail push).
+         * Email webhook
+         * @description Webhook endpoint for the email provider (e.g. push notifications).
          *
-         *     EMAIL_WEBHOOK_SECRET must be set, and callers must send
-         *     X-Webhook-Signature-256: sha256=<hmac_sha256(secret, body)>.
+         *     Request body and signature verification are provider-specific. Returns
+         *     `202` on acceptance. Used by the connector; not typically called by clients.
          */
         post: operations["email_account_webhook_api_v1_email_accounts__account_id__webhook_post"];
         delete?: never;
@@ -692,7 +1494,11 @@ export interface paths {
         };
         /**
          * Search
-         * @description Full-text search within tenant (subjects, events, documents metadata).
+         * @description Full-text search within the tenant (subjects, events, documents metadata).
+         *
+         *     Query parameter `q` is required; optional `scope` (all, subjects, events,
+         *     documents) and `limit` control results. Use for global search UIs and
+         *     integrations. Requires `subject:read` (or equivalent for the scope).
          */
         get: operations["search_api_v1_search_get"];
         put?: never;
@@ -711,14 +1517,28 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Subjects
-         * @description List subjects for tenant (optional type filter).
+         * List subjects
+         * @description Return a paginated list of subjects for the authenticated tenant.
+         *
+         *     Supports filtering by `subject_type` and optional search. Use for
+         *     admin UIs, reconciliation with external systems, or listing entities
+         *     that have an event stream. Ordered by creation or a specified sort.
          */
         get: operations["list_subjects_api_v1_subjects_get"];
         put?: never;
         /**
-         * Create Subject
-         * @description Create a subject (tenant-scoped).
+         * Create a subject
+         * @description Create a new subject in the tenant's registry.
+         *
+         *     Subjects are the entities whose event streams Timeline maintains. Each event
+         *     is associated with a `subject_id`; creating a subject allocates that identity
+         *     and optional metadata (type, external reference, display name, attributes).
+         *     Use this before appending events for a new entity, or when onboarding
+         *     external references that will receive connector-sourced events.
+         *
+         *     **Request body:** `subject_type`, optional `external_ref` (unique per tenant),
+         *     `display_name`, and `attributes`. Duplicate `(tenant_id, external_ref)` returns
+         *     `409 Conflict`.
          */
         post: operations["create_subject_api_v1_subjects_post"];
         delete?: never;
@@ -737,8 +1557,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Run Snapshot Job
-         * @description Run batch snapshot creation for the current tenant. Call from cron or scripts.
+         * Run snapshots
+         * @description Run on-demand snapshots for subjects (batch).
          */
         post: operations["run_snapshot_job_api_v1_subjects_snapshots_run_post"];
         delete?: never;
@@ -757,8 +1577,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Export Subject Data
-         * @description Export all data for the subject (GDPR): subject, events, document refs (no binary).
+         * Export subject
+         * @description Export subject data (events and metadata).
          */
         post: operations["export_subject_data_api_v1_subjects__subject_id__export_post"];
         delete?: never;
@@ -777,8 +1597,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Erase Subject Data
-         * @description Erase or anonymize subject data (GDPR). Body: {"strategy": "anonymize"|"delete"}.
+         * Erasure request
+         * @description Request erasure for a subject (GDPR-style).
          */
         post: operations["erase_subject_data_api_v1_subjects__subject_id__erasure_post"];
         delete?: never;
@@ -797,8 +1617,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Create Subject Snapshot
-         * @description Create or replace the subject snapshot (on-demand state checkpoint). Fails if subject has no events.
+         * Create subject snapshot
+         * @description Create or replace the subject snapshot (on-demand state checkpoint).
          */
         post: operations["create_subject_snapshot_api_v1_subjects__subject_id__snapshot_post"];
         delete?: never;
@@ -815,7 +1635,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Subject State
+         * Get subject state
          * @description Get derived state for subject (event replay). Optional as_of and workflow_instance_id.
          */
         get: operations["get_subject_state_api_v1_subjects__subject_id__state_get"];
@@ -835,18 +1655,18 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Subject Relationships
+         * List subject relationships
          * @description List relationships for a subject (tenant-scoped).
          */
         get: operations["list_subject_relationships_api_v1_subjects__subject_id__relationships_get"];
         put?: never;
         /**
-         * Add Subject Relationship
+         * Add subject relationship
          * @description Add a relationship from this subject to target (tenant-scoped).
          */
         post: operations["add_subject_relationship_api_v1_subjects__subject_id__relationships_post"];
         /**
-         * Remove Subject Relationship
+         * Remove subject relationship
          * @description Remove a relationship (tenant-scoped).
          */
         delete: operations["remove_subject_relationship_api_v1_subjects__subject_id__relationships_delete"];
@@ -863,22 +1683,33 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Subject
-         * @description Get subject by id (tenant-scoped).
+         * Get a subject
+         * @description Return a single subject by ID (tenant-scoped).
+         *
+         *     Includes type, external reference, display name, attributes, and timestamps.
+         *     Returns `404` when the subject does not exist or belongs to another tenant.
          */
         get: operations["get_subject_api_v1_subjects__subject_id__get"];
         put?: never;
         post?: never;
         /**
-         * Delete Subject
-         * @description Delete subject. Tenant-scoped.
+         * Delete a subject
+         * @description Soft-delete or remove a subject from the registry.
+         *
+         *     Exact behaviour (soft-delete vs. hard delete) is implementation-defined.
+         *     Existing events for this subject typically remain in the ledger for audit
+         *     and chain integrity. Returns `404` when the subject does not exist.
          */
         delete: operations["delete_subject_api_v1_subjects__subject_id__delete"];
         options?: never;
         head?: never;
         /**
-         * Update Subject
-         * @description Partial update (patch) of subject (e.g. external_ref, display_name, attributes). Tenant-scoped.
+         * Update a subject
+         * @description Update a subject's display name and/or attributes.
+         *
+         *     Only supplied fields are changed; omitted fields are left unchanged. The
+         *     subject's event stream and `subject_id` are immutable. Returns `404` when
+         *     the subject does not exist.
          */
         patch: operations["update_subject_api_v1_subjects__subject_id__patch"];
         trace?: never;
@@ -891,14 +1722,18 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Subject Types
-         * @description List subject types for the tenant.
+         * List subject types
+         * @description List subject types for the tenant with pagination. Use for subject
+         *     creation and admin. Requires `subject_type:read`.
          */
         get: operations["list_subject_types_api_v1_subject_types_get"];
         put?: never;
         /**
-         * Create Subject Type
-         * @description Create a subject type (tenant-scoped). created_by from authenticated user.
+         * Create subject type
+         * @description Create a subject type (tenant-scoped). Defines type_name, display_name,
+         *     description, schema, is_active, icon, color, has_timeline, allow_documents,
+         *     allowed_event_types. Duplicate type_name returns `409`. Requires
+         *     `subject_type:create`.
          */
         post: operations["create_subject_type_api_v1_subject_types_post"];
         delete?: never;
@@ -915,22 +1750,27 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Subject Type
-         * @description Get subject type by id (must belong to tenant).
+         * Get subject type
+         * @description Get subject type by ID (must belong to tenant). Returns `404` when not
+         *     found. Requires `subject_type:read`.
          */
         get: operations["get_subject_type_api_v1_subject_types__subject_type_id__get"];
         put?: never;
         post?: never;
         /**
-         * Delete Subject Type
-         * @description Delete subject type (tenant-scoped).
+         * Delete subject type
+         * @description Delete a subject type by ID (tenant-scoped). Existing subjects may retain
+         *     the type reference. Returns `404` when not found. Requires
+         *     `subject_type:delete`.
          */
         delete: operations["delete_subject_type_api_v1_subject_types__subject_type_id__delete"];
         options?: never;
         head?: never;
         /**
-         * Update Subject Type
-         * @description Update subject type (partial).
+         * Update subject type
+         * @description Update subject type (partial). Only provided fields are updated; explicit
+         *     null can clear optional fields. Returns `404` when not found. Requires
+         *     `subject_type:update`.
          */
         patch: operations["update_subject_type_api_v1_subject_types__subject_type_id__patch"];
         trace?: never;
@@ -943,14 +1783,17 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Relationship Kinds
-         * @description List relationship kinds for the tenant.
+         * List relationship kinds
+         * @description List relationship kinds for the tenant. Use for dropdowns and
+         *     relationship UIs. Requires `relationship_kind:read`.
          */
         get: operations["list_relationship_kinds_api_v1_relationship_kinds_get"];
         put?: never;
         /**
-         * Create Relationship Kind
-         * @description Create a relationship kind (tenant-scoped).
+         * Create relationship kind
+         * @description Create a relationship kind (tenant-scoped). Defines kind code, display_name,
+         *     description, optional payload_schema. Duplicate kind may return `409`.
+         *     Requires `relationship_kind:create`.
          */
         post: operations["create_relationship_kind_api_v1_relationship_kinds_post"];
         delete?: never;
@@ -967,22 +1810,26 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Relationship Kind
-         * @description Get relationship kind by id (must belong to tenant).
+         * Get relationship kind
+         * @description Get relationship kind by ID (tenant-scoped). Returns `404` when not found.
+         *     Requires `relationship_kind:read`.
          */
         get: operations["get_relationship_kind_api_v1_relationship_kinds__kind_id__get"];
         put?: never;
         post?: never;
         /**
-         * Delete Relationship Kind
-         * @description Delete relationship kind (tenant-scoped).
+         * Delete relationship kind
+         * @description Delete a relationship kind by ID (tenant-scoped). Existing relationships
+         *     may retain the kind reference. Returns `404` when not found. Requires
+         *     `relationship_kind:delete`.
          */
         delete: operations["delete_relationship_kind_api_v1_relationship_kinds__kind_id__delete"];
         options?: never;
         head?: never;
         /**
-         * Update Relationship Kind
-         * @description Update relationship kind (partial).
+         * Update relationship kind
+         * @description Update a relationship kind (partial, tenant-scoped). Returns `404` when
+         *     not found. Requires `relationship_kind:update`.
          */
         patch: operations["update_relationship_kind_api_v1_relationship_kinds__kind_id__patch"];
         trace?: never;
@@ -995,14 +1842,17 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Users
-         * @description List users for tenant (paginated).
+         * List users
+         * @description List users for the tenant with pagination. Use for admin and assignment
+         *     UIs. Requires `user:read`.
          */
         get: operations["list_users_api_v1_users_get"];
         put?: never;
         /**
-         * Create User
-         * @description Create a user (tenant-scoped).
+         * Create user
+         * @description Create a user (tenant-scoped). Supplies username, email, password.
+         *     Duplicate username or email may return `400` or `409`. Requires
+         *     `user:create`.
          */
         post: operations["create_user_api_v1_users_post"];
         delete?: never;
@@ -1019,8 +1869,9 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get User
-         * @description Get user by id (tenant-scoped).
+         * Get user
+         * @description Get user by ID (tenant-scoped). Returns `404` when not found. Requires
+         *     `user:read`.
          */
         get: operations["get_user_api_v1_users__user_id__get"];
         put?: never;
@@ -1039,8 +1890,9 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List My Roles
-         * @description List roles assigned to the current authenticated user.
+         * My roles
+         * @description List roles assigned to the current authenticated user. Use for UI and
+         *     permission checks. Requires `user_role:read`.
          */
         get: operations["list_my_roles_api_v1_users_me_roles_get"];
         put?: never;
@@ -1059,8 +1911,9 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List User Roles
-         * @description List roles assigned to a user (tenant-scoped). Returns 404 if user does not exist.
+         * User roles
+         * @description List roles assigned to a user (tenant-scoped). Returns `404` when the user
+         *     does not exist. Requires `user_role:read`.
          */
         get: operations["list_user_roles_api_v1_users__user_id__roles_get"];
         put?: never;
@@ -1081,13 +1934,16 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Assign Role To User
-         * @description Assign a role to a user (tenant-scoped). Admin role requires user_role:assign_admin; other roles require user_role:update.
+         * Assign role
+         * @description Assign a role to a user (tenant-scoped). Admin role requires
+         *     `user_role:assign_admin`; other roles require `user_role:update`. Returns
+         *     `404` when user or role does not exist. Requires appropriate permission.
          */
         post: operations["assign_role_to_user_api_v1_users__user_id__roles__role_id__post"];
         /**
-         * Remove Role From User
-         * @description Remove a role from a user (tenant-scoped). Admin role requires user_role:assign_admin; other roles require user_role:update.
+         * Remove role
+         * @description Remove a role from a user (tenant-scoped). Returns `404` when user or
+         *     role does not exist. Requires `user_role:update` (or assign_admin for admin).
          */
         delete: operations["remove_role_from_user_api_v1_users__user_id__roles__role_id__delete"];
         options?: never;
@@ -1103,14 +1959,16 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Roles
-         * @description List roles for tenant (paginated).
+         * List roles
+         * @description List roles for the tenant with pagination. Use for user-role assignment
+         *     and admin. Requires `role:read`.
          */
         get: operations["list_roles_api_v1_roles_get"];
         put?: never;
         /**
-         * Create Role
+         * Create role
          * @description Create a role (tenant-scoped). Optionally assign permissions by code.
+         *     Duplicate code may return `409`. Requires `role:create`.
          */
         post: operations["create_role_api_v1_roles_post"];
         delete?: never;
@@ -1127,19 +1985,22 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Role
-         * @description Get role by id (tenant-scoped).
+         * Get role
+         * @description Get role by ID (tenant-scoped). Returns `404` when not found. Requires
+         *     `role:read`.
          */
         get: operations["get_role_api_v1_roles__role_id__get"];
         /**
-         * Update Role
-         * @description Update role (name, description, is_active). Tenant-scoped.
+         * Update role
+         * @description Update role (name, description, is_active). System roles cannot be updated.
+         *     Returns `404` when not found. Requires `role:update`.
          */
         put: operations["update_role_api_v1_roles__role_id__put"];
         post?: never;
         /**
-         * Delete Role
-         * @description Deactivate role (soft delete). Tenant-scoped.
+         * Delete role
+         * @description Deactivate role (soft delete, tenant-scoped). Returns `404` when the role
+         *     does not exist. Requires `role:delete`.
          */
         delete: operations["delete_role_api_v1_roles__role_id__delete"];
         options?: never;
@@ -1157,8 +2018,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Assign Permission To Role
-         * @description Assign a permission to a role. Tenant-scoped. Permission must belong to the same tenant. Requires role:manage_permissions (admin-only by default).
+         * Add permission to role
+         * @description Assign a permission to a role (tenant-scoped). Permission must belong to
+         *     the same tenant. Duplicate assignment returns `400`. Requires
+         *     `role:manage_permissions` (often admin-only).
          */
         post: operations["assign_permission_to_role_api_v1_roles__role_id__permissions_post"];
         delete?: never;
@@ -1178,8 +2041,9 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Remove Permission From Role
-         * @description Remove a permission from a role. Tenant-scoped. Requires role:manage_permissions (admin-only by default).
+         * Remove permission from role
+         * @description Remove a permission from a role (tenant-scoped). Returns `404` when the
+         *     role or permission does not exist. Requires `role:manage_permissions`.
          */
         delete: operations["remove_permission_from_role_api_v1_roles__role_id__permissions__permission_id__delete"];
         options?: never;
@@ -1197,13 +2061,13 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Run Retention
+         * Run retention job
          * @description Run document retention for the current tenant.
          *
-         *     For each document category that has default_retention_days set, soft-deletes
-         *     documents whose document_type matches the category and whose created_at is
-         *     older than (now - default_retention_days). Returns a summary of how many
-         *     documents were soft-deleted per category.
+         *     For each document category with default_retention_days set, soft-deletes
+         *     documents whose document_type matches and whose created_at is older than
+         *     (now − default_retention_days). Returns a summary of how many documents
+         *     were soft-deleted per category. Requires `document:delete` (or equivalent).
          */
         post: operations["run_retention_api_v1_retention_run_post"];
         delete?: never;
@@ -1220,14 +2084,17 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Permissions
-         * @description List permissions for tenant (paginated).
+         * List permissions
+         * @description List permissions for the tenant with pagination. Use for role assignment
+         *     and admin. Requires `permission:read`.
          */
         get: operations["list_permissions_api_v1_permissions_get"];
         put?: never;
         /**
-         * Create Permission
-         * @description Create a permission (tenant-scoped).
+         * Create permission
+         * @description Create a permission (tenant-scoped). Defines code, resource, action, and
+         *     optional description. Duplicate code per tenant may return `409`. Requires
+         *     `permission:create`.
          */
         post: operations["create_permission_api_v1_permissions_post"];
         delete?: never;
@@ -1244,15 +2111,17 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Permission
-         * @description Get permission by id (tenant-scoped).
+         * Get permission
+         * @description Get permission by ID (tenant-scoped). Returns `404` when not found.
+         *     Requires `permission:read`.
          */
         get: operations["get_permission_api_v1_permissions__permission_id__get"];
         put?: never;
         post?: never;
         /**
-         * Delete Permission
-         * @description Delete permission. Tenant-scoped.
+         * Delete permission
+         * @description Delete a permission by ID (tenant-scoped). May fail if still assigned to
+         *     roles. Returns `404` when not found. Requires `permission:delete`.
          */
         delete: operations["delete_permission_api_v1_permissions__permission_id__delete"];
         options?: never;
@@ -1268,14 +2137,19 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List All Schemas
-         * @description List all event schema versions for the tenant (any event type).
+         * List event schemas
+         * @description List all event schema versions for the tenant (any event type) with
+         *     pagination. Use for admin and tooling. Requires `event_schema:read`.
          */
         get: operations["list_all_schemas_api_v1_event_schemas_get"];
         put?: never;
         /**
-         * Create Event Schema
-         * @description Create a new event schema version (tenant-scoped). created_by from authenticated user.
+         * Create event schema
+         * @description Create a new event schema version for an event type (tenant-scoped).
+         *
+         *     Supplies event_type, schema_definition (JSON Schema), is_active flag, and
+         *     optional allowed_subject_types. Duplicate or invalid definition may return
+         *     `400` or `409`. Requires `event_schema:create`.
          */
         post: operations["create_event_schema_api_v1_event_schemas_post"];
         delete?: never;
@@ -1292,8 +2166,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Schemas By Event Type
-         * @description List event schema versions for event_type (tenant-scoped).
+         * List schemas by event type
+         * @description List event schema versions for a given event type (tenant-scoped).
+         *
+         *     Returns all versions for that type. Requires `event_schema:read`.
          */
         get: operations["list_schemas_by_event_type_api_v1_event_schemas_event_type__event_type__get"];
         put?: never;
@@ -1312,8 +2188,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Active Schema For Event Type
-         * @description Get active event schema for event_type (tenant-scoped).
+         * Get active schema
+         * @description Get the active event schema for an event type (tenant-scoped).
+         *
+         *     Used by validators and clients to resolve the current schema. Returns `404`
+         *     when no active schema exists for that event type. Requires `event_schema:read`.
          */
         get: operations["get_active_schema_for_event_type_api_v1_event_schemas_event_type__event_type__active_get"];
         put?: never;
@@ -1332,8 +2211,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Schema By Version
-         * @description Get event schema by event_type and version (tenant-scoped).
+         * Get schema by version
+         * @description Get event schema by event type and version number (tenant-scoped).
+         *
+         *     Use for versioned validation or audit. Returns `404` when the version does
+         *     not exist. Requires `event_schema:read`.
          */
         get: operations["get_schema_by_version_api_v1_event_schemas_event_type__event_type__version__version__get"];
         put?: never;
@@ -1352,22 +2234,28 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Event Schema
-         * @description Get event schema by id (tenant-scoped).
+         * Get event schema
+         * @description Get event schema by ID (tenant-scoped). Returns full definition including
+         *     schema_definition and allowed_subject_types. Returns `404` when not found.
+         *     Requires `event_schema:read`.
          */
         get: operations["get_event_schema_api_v1_event_schemas__schema_id__get"];
         put?: never;
         post?: never;
         /**
-         * Delete Event Schema
-         * @description Delete event schema by id. Tenant-scoped.
+         * Delete event schema
+         * @description Delete an event schema by ID (tenant-scoped). Returns `404` when the
+         *     schema does not exist. Requires `event_schema:delete`.
          */
         delete: operations["delete_event_schema_api_v1_event_schemas__schema_id__delete"];
         options?: never;
         head?: never;
         /**
-         * Update Event Schema
-         * @description Update event schema (schema_definition, is_active, allowed_subject_types). Tenant-scoped.
+         * Update event schema
+         * @description Update an event schema (schema_definition, is_active, allowed_subject_types).
+         *
+         *     Tenant-scoped. Returns `404` when the schema does not exist. Requires
+         *     `event_schema:update`.
          */
         patch: operations["update_event_schema_api_v1_event_schemas__schema_id__patch"];
         trace?: never;
@@ -1380,14 +2268,19 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Event Transition Rules
-         * @description List all event transition rules for the tenant.
+         * List rules
+         * @description List event transition rules for the tenant. Use for admin UIs and
+         *     validation configuration.
          */
         get: operations["list_event_transition_rules_api_v1_event_transition_rules_get"];
         put?: never;
         /**
-         * Create Event Transition Rule
-         * @description Create an event transition rule (tenant-scoped). One rule per event_type.
+         * Create rule
+         * @description Create an event transition rule (tenant-scoped).
+         *
+         *     Defines allowed or disallowed transitions between event types or states.
+         *     Duplicate or invalid rule may return `409`. Requires
+         *     `event_transition_rule:create` (or equivalent).
          */
         post: operations["create_event_transition_rule_api_v1_event_transition_rules_post"];
         delete?: never;
@@ -1404,22 +2297,25 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Event Transition Rule
-         * @description Get event transition rule by id (tenant-scoped).
+         * Get rule
+         * @description Get event transition rule by ID (tenant-scoped). Returns full rule
+         *     definition. Returns `404` when not found.
          */
         get: operations["get_event_transition_rule_api_v1_event_transition_rules__rule_id__get"];
         put?: never;
         post?: never;
         /**
-         * Delete Event Transition Rule
-         * @description Delete event transition rule by id. Tenant-scoped.
+         * Delete rule
+         * @description Delete an event transition rule by ID (tenant-scoped). Returns `404`
+         *     when the rule does not exist.
          */
         delete: operations["delete_event_transition_rule_api_v1_event_transition_rules__rule_id__delete"];
         options?: never;
         head?: never;
         /**
-         * Update Event Transition Rule
-         * @description Update event transition rule (partial). Tenant-scoped.
+         * Update rule
+         * @description Update an event transition rule (tenant-scoped). Returns `404` when
+         *     the rule does not exist.
          */
         patch: operations["update_event_transition_rule_api_v1_event_transition_rules__rule_id__patch"];
         trace?: never;
@@ -1432,14 +2328,17 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Workflows
-         * @description List workflows for tenant (paginated).
+         * List workflows
+         * @description List workflows for the tenant with pagination. Use for admin and
+         *     configuration. Requires `workflow:read`.
          */
         get: operations["list_workflows_api_v1_workflows_get"];
         put?: never;
         /**
-         * Create Workflow
-         * @description Create a workflow (tenant-scoped).
+         * Create workflow
+         * @description Create a workflow (tenant-scoped). Defines name, description, trigger
+         *     conditions, execution order. Duplicate or invalid config may return `409`.
+         *     Requires `workflow:create`.
          */
         post: operations["create_workflow_api_v1_workflows_post"];
         delete?: never;
@@ -1456,8 +2355,9 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Workflow Executions
-         * @description Get execution history for a workflow. Tenant-scoped.
+         * List executions
+         * @description Get execution history for a workflow (tenant-scoped) with pagination.
+         *     Returns `404` when the workflow does not exist. Requires `workflow:read`.
          */
         get: operations["get_workflow_executions_api_v1_workflows__workflow_id__executions_get"];
         put?: never;
@@ -1476,8 +2376,9 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Execution
-         * @description Get workflow execution by id. Tenant-scoped.
+         * Get execution
+         * @description Get workflow execution by ID (tenant-scoped). Returns status and result.
+         *     Returns `404` when not found. Requires `workflow:read`.
          */
         get: operations["get_execution_api_v1_workflows_executions__execution_id__get"];
         put?: never;
@@ -1496,19 +2397,22 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Workflow
-         * @description Get workflow by id (tenant-scoped).
+         * Get workflow
+         * @description Get workflow by ID (tenant-scoped). Returns `404` when not found.
+         *     Requires `workflow:read`.
          */
         get: operations["get_workflow_api_v1_workflows__workflow_id__get"];
         /**
-         * Update Workflow
-         * @description Update workflow (tenant-scoped).
+         * Update workflow
+         * @description Update workflow (name, description, is_active, trigger_conditions, etc.).
+         *     Returns `404` when not found. Requires `workflow:update`.
          */
         put: operations["update_workflow_api_v1_workflows__workflow_id__put"];
         post?: never;
         /**
-         * Delete Workflow
-         * @description Soft-delete workflow. Tenant-scoped.
+         * Delete workflow
+         * @description Soft-delete workflow (tenant-scoped). Returns `404` when not found.
+         *     Requires `workflow:delete`.
          */
         delete: operations["delete_workflow_api_v1_workflows__workflow_id__delete"];
         options?: never;
@@ -1524,14 +2428,17 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Workflow Document Requirements
-         * @description List document requirements for a workflow (flow-level only).
+         * List document requirements
+         * @description List document requirements for a workflow (flow-level). Returns `404`
+         *     when the workflow does not exist. Requires `workflow:read`.
          */
         get: operations["list_workflow_document_requirements_api_v1_workflows__workflow_id__document_requirements_get"];
         put?: never;
         /**
-         * Create Workflow Document Requirement
-         * @description Add a document requirement to a workflow (flow-level).
+         * Add document requirement
+         * @description Add a document requirement to a workflow (flow-level). Defines document
+         *     category and min_count. Returns `404` when the workflow does not exist.
+         *     Requires `workflow:update`.
          */
         post: operations["create_workflow_document_requirement_api_v1_workflows__workflow_id__document_requirements_post"];
         delete?: never;
@@ -1551,8 +2458,9 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Delete Document Requirement
-         * @description Delete a document requirement.
+         * Remove document requirement
+         * @description Remove a document requirement from a workflow by requirement ID. Returns
+         *     `404` when the requirement does not exist. Requires `workflow:update`.
          */
         delete: operations["delete_document_requirement_api_v1_workflows_document_requirements__requirement_id__delete"];
         options?: never;
@@ -1568,14 +2476,17 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Flows
-         * @description List flows for tenant (paginated). Optional filter by workflow_id.
+         * List flows
+         * @description List flows for the tenant with pagination. Use for admin and case
+         *     selection. Requires `flow:read`.
          */
         get: operations["list_flows_api_v1_flows_get"];
         put?: never;
         /**
-         * Create Flow
-         * @description Create a flow (tenant-scoped). Optionally link subjects. Name validated against naming template if one exists for this workflow.
+         * Create flow
+         * @description Create a flow (tenant-scoped). Optionally link subjects. Name may be
+         *     validated against a naming template if configured. Duplicate identity
+         *     may return `409`. Requires `flow:create`.
          */
         post: operations["create_flow_api_v1_flows_post"];
         delete?: never;
@@ -1592,13 +2503,15 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Flow
-         * @description Get flow by id (tenant-scoped).
+         * Get flow
+         * @description Get flow by ID (tenant-scoped). Returns flow metadata and configuration.
+         *     Returns `404` when not found. Requires `flow:read`.
          */
         get: operations["get_flow_api_v1_flows__flow_id__get"];
         /**
-         * Update Flow
-         * @description Update flow name or hierarchy_values (tenant-scoped).
+         * Update flow
+         * @description Update flow metadata (tenant-scoped). Returns `404` when the flow does
+         *     not exist. Requires `flow:update`.
          */
         put: operations["update_flow_api_v1_flows__flow_id__put"];
         post?: never;
@@ -1616,14 +2529,16 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Flow Subjects
-         * @description List subjects linked to the flow.
+         * List flow subjects
+         * @description List subjects belonging to the flow (tenant-scoped). Returns `404` when
+         *     the flow does not exist. Requires `flow:read`.
          */
         get: operations["list_flow_subjects_api_v1_flows__flow_id__subjects_get"];
         put?: never;
         /**
-         * Add Subjects To Flow
-         * @description Add subjects to a flow.
+         * Add subject to flow
+         * @description Add one or more subjects to a flow (tenant-scoped). Returns `404` when
+         *     the flow does not exist. Requires `flow:update`.
          */
         post: operations["add_subjects_to_flow_api_v1_flows__flow_id__subjects_post"];
         delete?: never;
@@ -1643,8 +2558,9 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Remove Subject From Flow
-         * @description Remove a subject from a flow.
+         * Remove subject from flow
+         * @description Remove a subject from a flow (tenant-scoped). Returns `404` when the
+         *     flow or subject link does not exist. Requires `flow:update`.
          */
         delete: operations["remove_subject_from_flow_api_v1_flows__flow_id__subjects__subject_id__delete"];
         options?: never;
@@ -1660,8 +2576,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Flow Document Compliance
-         * @description Return required vs present documents for this flow (flow-level requirements only).
+         * Get flow document compliance
+         * @description Return required vs present documents for this flow (flow-level requirements).
+         *
+         *     Use to show compliance status and blocked reasons. Returns `404` when the
+         *     flow does not exist. Requires `flow:read`.
          */
         get: operations["get_flow_document_compliance_api_v1_flows__flow_id__document_compliance_get"];
         put?: never;
@@ -1680,8 +2599,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Flow Events
-         * @description List events for this flow (events where workflow_instance_id = flow_id).
+         * List flow events
+         * @description List events for subjects in the flow (tenant-scoped), with pagination.
+         *
+         *     Use for timeline UIs and exports. Returns `404` when the flow does not
+         *     exist. Requires `flow:read`.
          */
         get: operations["list_flow_events_api_v1_flows__flow_id__events_get"];
         put?: never;
@@ -1700,14 +2622,17 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Naming Templates
-         * @description List naming templates for tenant (paginated).
+         * List templates
+         * @description List naming templates for the tenant with pagination. Use for admin and
+         *     configuration. Requires `naming_template:read`.
          */
         get: operations["list_naming_templates_api_v1_naming_templates_get"];
         put?: never;
         /**
-         * Create Naming Template
-         * @description Create a naming template (tenant-scoped). High-rights only.
+         * Create template
+         * @description Create a naming template (tenant-scoped). Defines scope_type, scope_id,
+         *     template_string, and placeholders. Duplicate scope may return `409`.
+         *     Typically requires high-rights or `naming_template:create`.
          */
         post: operations["create_naming_template_api_v1_naming_templates_post"];
         delete?: never;
@@ -1724,19 +2649,22 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Naming Template
-         * @description Get naming template by id (tenant-scoped).
+         * Get template
+         * @description Get naming template by ID (tenant-scoped). Returns template_string and
+         *     placeholders. Returns `404` when not found. Requires `naming_template:read`.
          */
         get: operations["get_naming_template_api_v1_naming_templates__template_id__get"];
         /**
-         * Update Naming Template
-         * @description Update naming template (tenant-scoped).
+         * Update template
+         * @description Update a naming template (tenant-scoped). Returns `404` when the template
+         *     does not exist. Requires `naming_template:update`.
          */
         put: operations["update_naming_template_api_v1_naming_templates__template_id__put"];
         post?: never;
         /**
-         * Delete Naming Template
-         * @description Delete naming template (tenant-scoped).
+         * Delete template
+         * @description Delete a naming template by ID (tenant-scoped). Returns `404` when the
+         *     template does not exist. Requires `naming_template:delete`.
          */
         delete: operations["delete_naming_template_api_v1_naming_templates__template_id__delete"];
         options?: never;
@@ -1752,14 +2680,17 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Oauth Configs
-         * @description List OAuth provider configs for tenant.
+         * List OAuth configs
+         * @description List OAuth provider configs for the tenant with pagination. Use for
+         *     admin UIs. Requires `oauth_config:read`.
          */
         get: operations["list_oauth_configs_api_v1_oauth_providers_get"];
         put?: never;
         /**
-         * Create Oauth Config
-         * @description Create OAuth provider config (envelope-encrypted credentials).
+         * Create OAuth config
+         * @description Create an OAuth provider config (tenant-scoped). Supplies client_id,
+         *     client_secret, redirect_uri, scopes. Duplicate or invalid config may
+         *     return `409`. Requires `oauth_config:create`.
          */
         post: operations["create_oauth_config_api_v1_oauth_providers_post"];
         delete?: never;
@@ -1778,8 +2709,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Oauth Authorize
-         * @description Build OAuth authorization URL and return it; frontend redirects user there.
+         * Build authorize URL
+         * @description Build the OAuth authorization URL for the provider; frontend redirects
+         *     the user there. State and PKCE are handled by the server. Requires
+         *     `oauth_config:read`.
          */
         post: operations["oauth_authorize_api_v1_oauth_providers__provider__authorize_post"];
         delete?: never;
@@ -1796,8 +2729,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Oauth Callback
-         * @description Exchange code for tokens; verify state and return tokens. Tenant and provider must match state.
+         * OAuth callback
+         * @description Exchange authorization code for tokens; verify state and return tokens.
+         *
+         *     Tenant and provider must match state. Used after user authorizes in the
+         *     browser. Requires `oauth_config:read`.
          */
         get: operations["oauth_callback_api_v1_oauth_providers__provider__callback_get"];
         put?: never;
@@ -1816,8 +2752,9 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Oauth Providers Metadata
-         * @description Return list of supported OAuth providers (gmail, outlook, yahoo) and their endpoints.
+         * List provider metadata
+         * @description Return supported OAuth providers (e.g. gmail, outlook) and their
+         *     authorization/token endpoints. Use for dynamic client setup.
          */
         get: operations["list_oauth_providers_metadata_api_v1_oauth_providers_metadata_providers_get"];
         put?: never;
@@ -1836,8 +2773,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Active Oauth Config
-         * @description Get active OAuth provider config for tenant and provider type.
+         * Get active config
+         * @description Get the active OAuth provider config for the tenant and provider type.
+         *
+         *     Used to resolve which config to use for authorize/callback. Returns `404`
+         *     when no active config exists. Requires `oauth_config:read`.
          */
         get: operations["get_active_oauth_config_api_v1_oauth_providers_active_get"];
         put?: never;
@@ -1856,22 +2796,25 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Oauth Config
-         * @description Get OAuth provider config by id (tenant-scoped).
+         * Get OAuth config
+         * @description Get OAuth provider config by ID (tenant-scoped). Secrets are not
+         *     returned in full. Returns `404` when not found. Requires `oauth_config:read`.
          */
         get: operations["get_oauth_config_api_v1_oauth_providers__config_id__get"];
         put?: never;
         post?: never;
         /**
-         * Delete Oauth Config
-         * @description Soft-delete OAuth provider config.
+         * Delete OAuth config
+         * @description Delete an OAuth provider config by ID (tenant-scoped). Returns `404`
+         *     when the config does not exist. Requires `oauth_config:delete`.
          */
         delete: operations["delete_oauth_config_api_v1_oauth_providers__config_id__delete"];
         options?: never;
         head?: never;
         /**
-         * Update Oauth Config
-         * @description Partially update OAuth provider config (display_name, redirect_uri, scopes).
+         * Update OAuth config
+         * @description Update OAuth provider config (tenant-scoped). Returns `404` when the
+         *     config does not exist. Requires `oauth_config:update`.
          */
         patch: operations["update_oauth_config_api_v1_oauth_providers__config_id__patch"];
         trace?: never;
@@ -1886,8 +2829,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Rotate Oauth Config
-         * @description Rotate OAuth credentials: create new version with new client_id/client_secret.
+         * Rotate secret
+         * @description Rotate OAuth credentials: create new version with new client_id/
+         *     client_secret. Returns `404` when the config does not exist. Requires
+         *     `oauth_config:update`.
          */
         post: operations["rotate_oauth_config_api_v1_oauth_providers__config_id__rotate_post"];
         delete?: never;
@@ -1904,8 +2849,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Oauth Config Health
-         * @description Return health status for the OAuth provider config.
+         * OAuth config health
+         * @description Return health status for the OAuth provider config (e.g. token validity).
+         *
+         *     Use for monitoring and diagnostics. Returns `404` when the config does
+         *     not exist. Requires `oauth_config:read`.
          */
         get: operations["get_oauth_config_health_api_v1_oauth_providers__config_id__health_get"];
         put?: never;
@@ -1925,7 +2873,7 @@ export interface paths {
         };
         /**
          * Get Oauth Config Audit
-         * @description Return audit log entries for this OAuth config. Stub: returns empty list until audit retrieval is implemented (see TODO above).
+         * @description Return audit log entries for this OAuth config. Returns empty list; full audit retrieval planned for Phase 7.
          */
         get: operations["get_oauth_config_audit_api_v1_oauth_providers__config_id__audit_get"];
         put?: never;
@@ -1944,8 +2892,9 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Websocket Status
-         * @description Return WebSocket connection count for monitoring. Requires tenant read permission (e.g. admin).
+         * WebSocket status
+         * @description Return WebSocket connection count for monitoring. Use for health and
+         *     capacity dashboards. Requires tenant read permission (e.g. admin).
          */
         get: operations["websocket_status_api_v1_ws_status_get"];
         put?: never;
@@ -2056,6 +3005,116 @@ export interface components {
             metadata?: string | null;
         };
         /**
+         * ChainAnchorLatestResponse
+         * @description Latest confirmed anchor with base64-encoded receipt for offline verification.
+         */
+        ChainAnchorLatestResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Subject Id */
+            subject_id?: string | null;
+            /** Chain Tip Hash */
+            chain_tip_hash: string;
+            /** Anchored At */
+            anchored_at?: string | null;
+            /** Tsa Url */
+            tsa_url: string;
+            /** Tsa Serial */
+            tsa_serial?: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Tsa Receipt Base64
+             * @description Raw DER TimeStampToken, base64-encoded; null if not confirmed.
+             */
+            tsa_receipt_base64?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * ChainAnchorListItem
+         * @description Single anchor in list (no receipt blob).
+         */
+        ChainAnchorListItem: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Subject Id */
+            subject_id?: string | null;
+            /** Chain Tip Hash */
+            chain_tip_hash: string;
+            /** Anchored At */
+            anchored_at?: string | null;
+            /** Tsa Url */
+            tsa_url: string;
+            /** Tsa Serial */
+            tsa_serial?: string | null;
+            /** Status */
+            status: string;
+            /** Error Message */
+            error_message?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * ChainRepairCreateRequest
+         * @description Request body for initiating a chain repair.
+         */
+        ChainRepairCreateRequest: {
+            /** Epoch Id */
+            epoch_id: string;
+            /** Break At Event Seq */
+            break_at_event_seq: number;
+            /** Break Reason */
+            break_reason: string;
+            /** Repair Reference */
+            repair_reference?: string | null;
+        };
+        /**
+         * ChainRepairResponse
+         * @description Chain repair record returned from C7/C8 endpoints.
+         */
+        ChainRepairResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Epoch Id */
+            epoch_id: string;
+            /** Break At Event Seq */
+            break_at_event_seq: number;
+            /** Break Reason */
+            break_reason: string;
+            repair_status: components["schemas"]["ChainRepairStatus"];
+            /** Repair Initiated By */
+            repair_initiated_by: string;
+            /** Repair Approved By */
+            repair_approved_by: string | null;
+            /** Approval Required */
+            approval_required: boolean;
+            /** Repair Reference */
+            repair_reference: string | null;
+            /** Repair Completed At */
+            repair_completed_at: string | null;
+            /** New Epoch Id */
+            new_epoch_id: string | null;
+        };
+        /**
+         * ChainRepairStatus
+         * @description Chain repair workflow status.
+         * @enum {string}
+         */
+        ChainRepairStatus: "Pending Approval" | "Approved" | "Completed" | "Failed";
+        /**
          * ChainVerificationResponse
          * @description Result of verifying a subject or tenant event chain.
          */
@@ -2084,8 +3143,63 @@ export interface components {
             event_results: components["schemas"]["EventVerificationResult"][];
         };
         /**
+         * CreateEventAction
+         * @description Action: create a follow-up event.
+         */
+        CreateEventAction: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "create_event";
+            params?: components["schemas"]["CreateEventParams"];
+        };
+        /**
+         * CreateEventParams
+         * @description Params for create_event action.
+         */
+        CreateEventParams: {
+            /** Event Type */
+            event_type: string;
+            /**
+             * Schema Version
+             * @default 1
+             */
+            schema_version: number;
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * CreateTaskAction
+         * @description Action: create a task.
+         */
+        CreateTaskAction: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "create_task";
+            params: components["schemas"]["CreateTaskParams"];
+        };
+        /**
+         * CreateTaskParams
+         * @description Params for create_task action. title is required.
+         */
+        CreateTaskParams: {
+            /** Title */
+            title: string;
+            /** Assigned To Role */
+            assigned_to_role?: string | null;
+            /** Assigned To User Id */
+            assigned_to_user_id?: string | null;
+            /** Due At */
+            due_at?: string | null;
+        };
+        /**
          * DashboardStatsResponse
-         * @description Dashboard stats: counts by type and last N events.
+         * @description Dashboard stats: counts by type, last N events, and timeline-integrity guidance.
          */
         DashboardStatsResponse: {
             /** Total Subjects */
@@ -2104,6 +3218,11 @@ export interface components {
             total_documents: number;
             /** Recent Events */
             recent_events?: components["schemas"]["RecentEventItem"][];
+            /**
+             * Chain Verification Info
+             * @description Guidance for running event chain verification (timeline integrity).
+             */
+            chain_verification_info?: string | null;
         };
         /**
          * DocumentCategoryCreateRequest
@@ -2171,6 +3290,8 @@ export interface components {
             default_retention_days: number | null;
             /** Is Active */
             is_active: boolean;
+            /** Created By */
+            created_by?: string | null;
         };
         /**
          * DocumentCategoryUpdateRequest
@@ -2423,10 +3544,10 @@ export interface components {
             total: number;
         };
         /**
-         * EventCreateRequest
-         * @description Payload for creating an event. Schema version must match an active schema.
+         * EventCreate
+         * @description Payload for creating an event (request body and use-case input).
          */
-        EventCreateRequest: {
+        EventCreate: {
             /** Subject Id */
             subject_id: string;
             /** Event Type */
@@ -2446,6 +3567,10 @@ export interface components {
             workflow_instance_id?: string | null;
             /** Correlation Id */
             correlation_id?: string | null;
+            /** External Id */
+            external_id?: string | null;
+            /** Source */
+            source?: string | null;
         };
         /**
          * EventListResponse
@@ -2467,6 +3592,10 @@ export interface components {
             workflow_instance_id?: string | null;
             /** Correlation Id */
             correlation_id?: string | null;
+            /** External Id */
+            external_id?: string | null;
+            /** Source */
+            source?: string | null;
         };
         /**
          * EventResponse
@@ -2496,6 +3625,10 @@ export interface components {
             workflow_instance_id?: string | null;
             /** Correlation Id */
             correlation_id?: string | null;
+            /** External Id */
+            external_id?: string | null;
+            /** Source */
+            source?: string | null;
         };
         /**
          * EventSchemaCreateRequest
@@ -2822,6 +3955,93 @@ export interface components {
             status: string;
         };
         /**
+         * IntegrityEpochItem
+         * @description Integrity epoch summary for a subject.
+         */
+        IntegrityEpochItem: {
+            /** Id */
+            id: string;
+            /** Epoch Number */
+            epoch_number: number;
+            status: components["schemas"]["IntegrityEpochStatus"];
+            /** Event Count */
+            event_count: number;
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Sealed At */
+            sealed_at?: string | null;
+            /** Tsa Anchor Id */
+            tsa_anchor_id?: string | null;
+            /** Merkle Root */
+            merkle_root?: string | null;
+            profile_snapshot: components["schemas"]["IntegrityProfile"];
+        };
+        /**
+         * IntegrityEpochStatus
+         * @description Integrity epoch lifecycle status.
+         * @enum {string}
+         */
+        IntegrityEpochStatus: "Open" | "Sealed" | "Failed" | "Broken" | "Repaired";
+        /**
+         * IntegrityProfile
+         * @description Integrity profile for tenant-level chain guarantees.
+         *
+         *     Controls epoch sealing cadence, TSA anchoring, Merkle usage, and repair workflow strictness.
+         * @enum {string}
+         */
+        IntegrityProfile: "Standard" | "Compliance" | "Legal Grade";
+        /**
+         * IntegrityVerificationDetail
+         * @description Full verification result for a subject including per-event results.
+         */
+        IntegrityVerificationDetail: {
+            /** Subject Id */
+            subject_id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Total Events */
+            total_events: number;
+            /** Valid Events */
+            valid_events: number;
+            /** Invalid Events */
+            invalid_events: number;
+            /** Is Chain Valid */
+            is_chain_valid: boolean;
+            /**
+             * Verified At
+             * Format: date-time
+             */
+            verified_at: string;
+            /** Events */
+            events: components["schemas"]["VerificationEventResult"][];
+        };
+        /**
+         * IntegrityVerificationSummary
+         * @description Summary of chain verification for a subject.
+         */
+        IntegrityVerificationSummary: {
+            /** Subject Id */
+            subject_id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Total Events */
+            total_events: number;
+            /** Valid Events */
+            valid_events: number;
+            /** Invalid Events */
+            invalid_events: number;
+            /** Is Chain Valid */
+            is_chain_valid: boolean;
+            /**
+             * Verified At
+             * Format: date-time
+             */
+            verified_at: string;
+        };
+        /**
          * LoginRequest
          * @description Request body for login. Users identify tenant by code (e.g. org slug), not internal tenant_id.
          */
@@ -2838,6 +4058,38 @@ export interface components {
              * @description Password (min 8 characters)
              */
             password: string;
+        };
+        /**
+         * MerkleProofResponse
+         * @description Merkle proof for a LEGAL_GRADE event.
+         */
+        MerkleProofResponse: {
+            /** Tenant Id */
+            tenant_id: string;
+            /** Subject Id */
+            subject_id: string;
+            /** Epoch Id */
+            epoch_id: string;
+            /** Event Seq */
+            event_seq: number;
+            /** Leaf Hash */
+            leaf_hash: string;
+            /** Root Hash */
+            root_hash: string;
+            /** Tsa Anchor Id */
+            tsa_anchor_id?: string | null;
+            /** Steps */
+            steps: components["schemas"]["MerkleProofStep"][];
+        };
+        /**
+         * MerkleProofStep
+         * @description One step in Merkle proof path.
+         */
+        MerkleProofStep: {
+            /** Sibling Hash */
+            sibling_hash: string;
+            /** Is Left Sibling */
+            is_left_sibling: boolean;
         };
         /**
          * NamingTemplateCreateRequest
@@ -2886,6 +4138,32 @@ export interface components {
             placeholders?: {
                 [key: string]: unknown;
             }[] | null;
+        };
+        /**
+         * NotifyAction
+         * @description Action: send notification to a role.
+         */
+        NotifyAction: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "notify";
+            params: components["schemas"]["NotifyParams"];
+        };
+        /**
+         * NotifyParams
+         * @description Params for notify action. role and template are required.
+         */
+        NotifyParams: {
+            /** Role */
+            role: string;
+            /** Template */
+            template: string;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * OAuthAuthorizeResponse
@@ -3073,6 +4351,97 @@ export interface components {
             action: string;
             /** Description */
             description: string | null;
+        };
+        /**
+         * ProjectionDefinitionCreateRequest
+         * @description Request body for creating a projection definition.
+         */
+        ProjectionDefinitionCreateRequest: {
+            /**
+             * Name
+             * @description Projection name (must match a registered handler)
+             */
+            name: string;
+            /**
+             * Version
+             * @description Projection version (must match handler)
+             */
+            version: number;
+            /**
+             * Subject Type
+             * @description Subject type filter; null = all subject types
+             */
+            subject_type?: string | null;
+        };
+        /**
+         * ProjectionDefinitionResponse
+         * @description Projection definition in list/detail.
+         */
+        ProjectionDefinitionResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Name */
+            name: string;
+            /** Version */
+            version: number;
+            /** Subject Type */
+            subject_type: string | null;
+            /** Last Event Seq */
+            last_event_seq: number;
+            /** Active */
+            active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * ProjectionStateListItem
+         * @description Projection state in list (subject_id + state).
+         */
+        ProjectionStateListItem: {
+            /** Id */
+            id: string;
+            /** Projection Id */
+            projection_id: string;
+            /** Subject Id */
+            subject_id: string;
+            /** State */
+            state?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * ProjectionStateResponse
+         * @description Projection state for one subject.
+         */
+        ProjectionStateResponse: {
+            /** Subject Id */
+            subject_id: string;
+            /** State */
+            state?: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * ReadinessResponse
+         * @description Response for GET /health/ready when ready.
+         */
+        ReadinessResponse: {
+            /**
+             * Status
+             * @description Readiness status
+             * @default ok
+             */
+            status: string;
         };
         /**
          * RecentEventItem
@@ -3683,6 +5052,48 @@ export interface components {
             set_password_expires_at?: string | null;
         };
         /**
+         * TenantIntegrityHistoryItem
+         * @description Single integrity profile history entry.
+         */
+        TenantIntegrityHistoryItem: {
+            previous_profile: components["schemas"]["IntegrityProfile"] | null;
+            new_profile: components["schemas"]["IntegrityProfile"];
+            /**
+             * Changed At
+             * Format: date-time
+             */
+            changed_at: string;
+            /** Changed By User Id */
+            changed_by_user_id: string;
+            /** Change Reason */
+            change_reason?: string | null;
+            /** Cooling Off Ends At */
+            cooling_off_ends_at?: string | null;
+        };
+        /**
+         * TenantIntegrityStatus
+         * @description Current tenant integrity profile and last change metadata.
+         */
+        TenantIntegrityStatus: {
+            profile: components["schemas"]["IntegrityProfile"];
+            /** Last Changed At */
+            last_changed_at?: string | null;
+            /** Cooling Off Ends At */
+            cooling_off_ends_at?: string | null;
+        };
+        /**
+         * TenantIntegrityUpdateRequest
+         * @description Request body for updating tenant integrity profile.
+         */
+        TenantIntegrityUpdateRequest: {
+            new_profile: components["schemas"]["IntegrityProfile"];
+            /**
+             * Reason
+             * @description Optional reason for the profile change (stored in history).
+             */
+            reason?: string | null;
+        };
+        /**
          * TenantResponse
          * @description Tenant in list/get responses.
          */
@@ -3702,7 +5113,7 @@ export interface components {
          *     Determines whether a tenant can create events and accept API traffic.
          * @enum {string}
          */
-        TenantStatus: "active" | "suspended" | "archived";
+        TenantStatus: "Active" | "Suspended" | "Archived";
         /**
          * TenantStatusUpdate
          * @description Request body for PATCH /tenants/{id}/status.
@@ -3787,6 +5198,35 @@ export interface components {
             ctx?: Record<string, never>;
         };
         /**
+         * VerificationEventResult
+         * @description Per-event verification result (hash mismatch or chain break).
+         */
+        VerificationEventResult: {
+            /** Event Id */
+            event_id: string;
+            /** Event Type */
+            event_type: string;
+            /**
+             * Event Time
+             * Format: date-time
+             */
+            event_time: string;
+            /** Sequence */
+            sequence: number;
+            /** Is Valid */
+            is_valid: boolean;
+            /** Error Type */
+            error_type?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Expected Hash */
+            expected_hash?: string | null;
+            /** Actual Hash */
+            actual_hash?: string | null;
+            /** Previous Hash */
+            previous_hash?: string | null;
+        };
+        /**
          * VerificationJobStartedResponse
          * @description Response when a background verification job is started (202).
          */
@@ -3842,23 +5282,123 @@ export interface components {
             account_id: string;
         };
         /**
-         * WorkflowAction
-         * @description Single workflow action; requires type (e.g. create_event), optional params.
+         * WebhookSubscriptionCreateRequest
+         * @description Request body for creating a webhook subscription.
          */
-        WorkflowAction: {
+        WebhookSubscriptionCreateRequest: {
             /**
-             * Type
-             * @description Action type
+             * Target Url
+             * Format: uri
+             * @description URL to receive POST requests
              */
-            type: string;
-            /** Params */
-            params?: {
-                [key: string]: unknown;
-            } | null;
+            target_url: string;
+            /**
+             * Event Types
+             * @description Event types to deliver (empty = all)
+             */
+            event_types?: string[];
+            /**
+             * Subject Types
+             * @description Subject types to deliver (empty = all)
+             */
+            subject_types?: string[];
+            /**
+             * Secret
+             * @description Secret for HMAC-SHA256 signature verification (min 16 chars)
+             */
+            secret: string;
+        };
+        /**
+         * WebhookSubscriptionCreateResponse
+         * @description Response for create; includes secret once for client to verify signatures.
+         */
+        WebhookSubscriptionCreateResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Target Url */
+            target_url: string;
+            /** Event Types */
+            event_types: string[];
+            /** Subject Types */
+            subject_types: string[];
+            /**
+             * Secret Present
+             * @description True if a signing secret is configured (value never returned)
+             */
+            secret_present: boolean;
+            /** Active */
+            active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Secret
+             * @description Stored secret; only returned on create
+             */
+            secret: string;
+        };
+        /**
+         * WebhookSubscriptionResponse
+         * @description Webhook subscription in list/detail (secret never included).
+         */
+        WebhookSubscriptionResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Target Url */
+            target_url: string;
+            /** Event Types */
+            event_types: string[];
+            /** Subject Types */
+            subject_types: string[];
+            /**
+             * Secret Present
+             * @description True if a signing secret is configured (value never returned)
+             */
+            secret_present: boolean;
+            /** Active */
+            active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * WebhookSubscriptionTestResponse
+         * @description Response for test delivery.
+         */
+        WebhookSubscriptionTestResponse: {
+            /**
+             * Delivered
+             * @description True if target returned 2xx
+             */
+            delivered: boolean;
+        };
+        /**
+         * WebhookSubscriptionUpdateRequest
+         * @description Request body for PATCH (all optional).
+         */
+        WebhookSubscriptionUpdateRequest: {
+            /** Target Url */
+            target_url?: string | null;
+            /** Event Types */
+            event_types?: string[] | null;
+            /** Subject Types */
+            subject_types?: string[] | null;
+            /** Secret */
+            secret?: string | null;
+            /** Active */
+            active?: boolean | null;
         };
         /**
          * WorkflowCreateRequest
-         * @description Request body for creating a workflow.
+         * @description Request body for creating a workflow. Actions validated at parse time.
          */
         WorkflowCreateRequest: {
             /** Name */
@@ -3866,7 +5406,7 @@ export interface components {
             /** Trigger Event Type */
             trigger_event_type: string;
             /** Actions */
-            actions: components["schemas"]["WorkflowAction"][];
+            actions: (components["schemas"]["CreateEventAction"] | components["schemas"]["NotifyAction"] | components["schemas"]["CreateTaskAction"])[];
             /** Description */
             description?: string | null;
             /**
@@ -3982,7 +5522,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description Process is alive. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -3990,6 +5530,33 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
                 };
+            };
+        };
+    };
+    readiness_check_api_v1_health_ready_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Service is ready to accept traffic. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessResponse"];
+                };
+            };
+            /** @description Service not ready — e.g. database unavailable or RLS check failed. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4015,14 +5582,54 @@ export interface operations {
                     "application/json": components["schemas"]["UserResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4046,14 +5653,12 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request body or query parameter failed schema validation. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
+                content?: never;
             };
         };
     };
@@ -4070,23 +5675,41 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Successful Response */
+            /** @description Token issued successfully. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                     *       "token_type": "bearer"
+                     *     }
+                     */
                     "application/json": components["schemas"]["TokenResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4107,6 +5730,41 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["UserResponse"];
                 };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4132,14 +5790,40 @@ export interface operations {
                     "application/json": components["schemas"]["UserResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4154,6 +5838,55 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4178,6 +5911,190 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["DashboardStatsResponse"];
                 };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_projection_summary_api_v1_analytics_projections__name___version__summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_projection_top_api_v1_analytics_projections__name___version__top_get: {
+        parameters: {
+            query: {
+                field: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                name: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectionStateListItem"][];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4210,14 +6127,40 @@ export interface operations {
                     "application/json": components["schemas"]["AuditLogListResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4243,14 +6186,40 @@ export interface operations {
                     "application/json": components["schemas"]["EventListResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4263,7 +6232,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EventCreateRequest"];
+                "application/json": components["schemas"]["EventCreate"];
             };
         };
         responses: {
@@ -4276,14 +6245,119 @@ export interface operations {
                     "application/json": components["schemas"]["EventResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Payload failed registered schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rate limit exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Rate limit exceeded"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    stream_events_api_v1_events_stream_get: {
+        parameters: {
+            query?: {
+                /** @description Filter to this subject */
+                subject_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SSE stream opened; content-type: text/event-stream. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Event stream broadcaster not available. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4305,6 +6379,41 @@ export interface operations {
                     "application/json": components["schemas"]["EventCountResponse"];
                 };
             };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     verify_tenant_chains_api_v1_events_verify_tenant_all_get: {
@@ -4325,6 +6434,55 @@ export interface operations {
                     "application/json": components["schemas"]["ChainVerificationResponse"];
                 };
             };
+            /** @description Event volume too large for inline verification — use POST /verify/tenant/all/start. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Verification timed out — use POST /verify/tenant/all/start. */
+            408: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     start_verification_job_api_v1_events_verify_tenant_all_start_post: {
@@ -4336,7 +6494,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description Job accepted and queued. */
             202: {
                 headers: {
                     [name: string]: unknown;
@@ -4344,6 +6502,41 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["VerificationJobStartedResponse"];
                 };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4367,14 +6560,54 @@ export interface operations {
                     "application/json": components["schemas"]["VerificationJobStatusResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4398,14 +6631,54 @@ export interface operations {
                     "application/json": components["schemas"]["ChainVerificationResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Subject event count exceeds inline verification limit. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Verification timed out — use background job endpoint. */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4429,14 +6702,109 @@ export interface operations {
                     "application/json": components["schemas"]["EventResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    connectors_health_api_v1_connectors_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4457,6 +6825,55 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TenantResponse"][];
                 };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4482,14 +6899,251 @@ export interface operations {
                     "application/json": components["schemas"]["TenantCreateResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_tenant_integrity_api_v1_tenants_integrity_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantIntegrityStatus"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_tenant_integrity_api_v1_tenants_integrity_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TenantIntegrityUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantIntegrityStatus"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_tenant_integrity_history_api_v1_tenants_integrity_history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantIntegrityHistoryItem"][];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4513,14 +7167,54 @@ export interface operations {
                     "application/json": components["schemas"]["TenantResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4548,14 +7242,54 @@ export interface operations {
                     "application/json": components["schemas"]["TenantResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4577,14 +7311,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4612,14 +7386,1549 @@ export interface operations {
                     "application/json": components["schemas"]["TenantResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_chain_anchors_api_v1_tenants__tenant_id__chain_anchors_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainAnchorListItem"][];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_latest_chain_anchor_api_v1_tenants__tenant_id__chain_anchors_latest_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainAnchorLatestResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_integrity_epochs_for_subject_api_v1_tenants_integrity_epochs__subject_id__get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrityEpochItem"][];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    verify_subject_integrity_api_v1_tenants_integrity_verify__subject_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrityVerificationSummary"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    verify_subject_integrity_detail_api_v1_tenants_integrity_verify__subject_id__detail_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrityVerificationDetail"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_merkle_proof_for_event_api_v1_tenants_integrity_proof__event_seq__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_seq: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MerkleProofResponse"];
+                };
+            };
+            /** @description Epoch not LEGAL_GRADE / not sealed / event not in epoch. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Event or epoch not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Merkle tree incomplete or root missing for sealed epoch. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    initiate_chain_repair_api_v1_tenants_integrity_repair_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChainRepairCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainRepairResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Epoch not found or not in tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    approve_chain_repair_api_v1_tenants_integrity_repair__repair_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                repair_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainRepairResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Caller not allowed to approve this repair. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Repair not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_chain_repair_api_v1_tenants_integrity_repair__repair_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                repair_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainRepairResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    complete_chain_repair_api_v1_tenants_integrity_repair__repair_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                repair_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainRepairResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Repair not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_webhooks_api_v1_tenants__tenant_id__webhooks_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscriptionResponse"][];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    create_webhook_api_v1_tenants__tenant_id__webhooks_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookSubscriptionCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscriptionCreateResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_webhook_api_v1_tenants__tenant_id__webhooks__subscription_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subscription_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscriptionResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_webhook_api_v1_tenants__tenant_id__webhooks__subscription_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subscription_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_webhook_api_v1_tenants__tenant_id__webhooks__subscription_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subscription_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookSubscriptionUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscriptionResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    test_webhook_api_v1_tenants__tenant_id__webhooks__subscription_id__test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subscription_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscriptionTestResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_projections_api_v1_tenants__tenant_id__projections_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectionDefinitionResponse"][];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    create_projection_api_v1_tenants__tenant_id__projections_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectionDefinitionCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectionDefinitionResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rate limit exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Rate limit exceeded"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    deactivate_projection_api_v1_tenants__tenant_id__projections__name___version__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+                version: number;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    rebuild_projection_api_v1_tenants__tenant_id__projections__name___version__rebuild_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+                version: number;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rebuild accepted; worker will process on next cycle. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_projection_state_api_v1_tenants__tenant_id__projections__name___version__subjects__subject_id__get: {
+        parameters: {
+            query?: {
+                /** @description Point-in-time state (replay); omit for current state. */
+                as_of?: string | null;
+            };
+            header?: never;
+            path: {
+                name: string;
+                version: number;
+                subject_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectionStateResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_projection_states_api_v1_tenants__tenant_id__projections__name___version__states_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                name: string;
+                version: number;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectionStateListItem"][];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4643,14 +8952,40 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentListItem"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4676,14 +9011,54 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentUploadResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4707,14 +9082,40 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentListItem"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4738,14 +9139,54 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentVersionItem"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4771,14 +9212,54 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentDownloadUrlResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4802,14 +9283,54 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4837,14 +9358,54 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentVersionItem"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4866,14 +9427,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4898,14 +9499,40 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentCategoryListItem"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4931,14 +9558,54 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentCategoryResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4962,14 +9629,54 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentCategoryResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4991,14 +9698,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5026,14 +9773,54 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentCategoryResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5058,14 +9845,40 @@ export interface operations {
                     "application/json": components["schemas"]["EmailAccountResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5091,14 +9904,54 @@ export interface operations {
                     "application/json": components["schemas"]["EmailAccountResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5122,14 +9975,54 @@ export interface operations {
                     "application/json": components["schemas"]["EmailAccountResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5151,14 +10044,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5186,14 +10119,54 @@ export interface operations {
                     "application/json": components["schemas"]["EmailAccountResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5217,14 +10190,54 @@ export interface operations {
                     "application/json": components["schemas"]["EmailAccountSyncStatusResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5248,14 +10261,54 @@ export interface operations {
                     "application/json": components["schemas"]["EmailSyncAcceptedResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5279,14 +10332,54 @@ export interface operations {
                     "application/json": components["schemas"]["EmailSyncAcceptedResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5310,14 +10403,40 @@ export interface operations {
                     "application/json": components["schemas"]["WebhookAckResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5344,14 +10463,40 @@ export interface operations {
                     "application/json": components["schemas"]["SearchResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5377,14 +10522,40 @@ export interface operations {
                     "application/json": components["schemas"]["SubjectResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5410,14 +10581,54 @@ export interface operations {
                     "application/json": components["schemas"]["SubjectResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5442,14 +10653,40 @@ export interface operations {
                     "application/json": components["schemas"]["SnapshotRunResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5473,14 +10710,54 @@ export interface operations {
                     "application/json": components["schemas"]["ExportSubjectResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5506,14 +10783,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5537,14 +10854,54 @@ export interface operations {
                     "application/json": components["schemas"]["SubjectSnapshotResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5573,14 +10930,54 @@ export interface operations {
                     "application/json": components["schemas"]["SubjectStateResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5611,14 +11008,54 @@ export interface operations {
                     "application/json": components["schemas"]["SubjectRelationshipListItem"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5646,14 +11083,54 @@ export interface operations {
                     "application/json": components["schemas"]["SubjectRelationshipResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5680,14 +11157,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5711,14 +11228,54 @@ export interface operations {
                     "application/json": components["schemas"]["SubjectResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5740,14 +11297,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5775,14 +11372,54 @@ export interface operations {
                     "application/json": components["schemas"]["SubjectResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5807,14 +11444,40 @@ export interface operations {
                     "application/json": components["schemas"]["SubjectTypeListItem"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5840,14 +11503,54 @@ export interface operations {
                     "application/json": components["schemas"]["SubjectTypeResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5871,14 +11574,54 @@ export interface operations {
                     "application/json": components["schemas"]["SubjectTypeResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5900,14 +11643,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5935,14 +11718,54 @@ export interface operations {
                     "application/json": components["schemas"]["SubjectTypeResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5963,6 +11786,41 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RelationshipKindListItem"][];
                 };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5988,14 +11846,54 @@ export interface operations {
                     "application/json": components["schemas"]["RelationshipKindResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6019,14 +11917,54 @@ export interface operations {
                     "application/json": components["schemas"]["RelationshipKindResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6048,14 +11986,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6083,14 +12061,54 @@ export interface operations {
                     "application/json": components["schemas"]["RelationshipKindResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6115,14 +12133,40 @@ export interface operations {
                     "application/json": components["schemas"]["UserResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6148,14 +12192,54 @@ export interface operations {
                     "application/json": components["schemas"]["UserResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6179,14 +12263,54 @@ export interface operations {
                     "application/json": components["schemas"]["UserResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6207,6 +12331,41 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RoleResponse"][];
                 };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6230,14 +12389,54 @@ export interface operations {
                     "application/json": components["schemas"]["RoleResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6260,14 +12459,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6290,14 +12529,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6323,14 +12602,40 @@ export interface operations {
                     "application/json": components["schemas"]["RoleResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6356,14 +12661,54 @@ export interface operations {
                     "application/json": components["schemas"]["RoleResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6387,14 +12732,54 @@ export interface operations {
                     "application/json": components["schemas"]["RoleResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6422,14 +12807,54 @@ export interface operations {
                     "application/json": components["schemas"]["RoleResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6451,14 +12876,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6486,14 +12951,54 @@ export interface operations {
                     "application/json": components["schemas"]["RolePermissionAssignedResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6516,14 +13021,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6544,6 +13089,41 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RetentionRunResponse"];
                 };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6568,14 +13148,40 @@ export interface operations {
                     "application/json": components["schemas"]["PermissionResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6601,14 +13207,54 @@ export interface operations {
                     "application/json": components["schemas"]["PermissionResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6632,14 +13278,54 @@ export interface operations {
                     "application/json": components["schemas"]["PermissionResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6661,14 +13347,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6693,14 +13419,40 @@ export interface operations {
                     "application/json": components["schemas"]["EventSchemaListItem"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6726,14 +13478,54 @@ export interface operations {
                     "application/json": components["schemas"]["EventSchemaResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6757,14 +13549,40 @@ export interface operations {
                     "application/json": components["schemas"]["EventSchemaListItem"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6788,14 +13606,54 @@ export interface operations {
                     "application/json": components["schemas"]["EventSchemaResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6820,14 +13678,54 @@ export interface operations {
                     "application/json": components["schemas"]["EventSchemaResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6851,14 +13749,54 @@ export interface operations {
                     "application/json": components["schemas"]["EventSchemaResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6880,14 +13818,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6915,14 +13893,54 @@ export interface operations {
                     "application/json": components["schemas"]["EventSchemaResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6947,14 +13965,40 @@ export interface operations {
                     "application/json": components["schemas"]["EventTransitionRuleResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6980,14 +14024,54 @@ export interface operations {
                     "application/json": components["schemas"]["EventTransitionRuleResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7011,14 +14095,54 @@ export interface operations {
                     "application/json": components["schemas"]["EventTransitionRuleResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7040,14 +14164,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7075,14 +14239,54 @@ export interface operations {
                     "application/json": components["schemas"]["EventTransitionRuleResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7108,14 +14312,40 @@ export interface operations {
                     "application/json": components["schemas"]["WorkflowResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7141,14 +14371,54 @@ export interface operations {
                     "application/json": components["schemas"]["WorkflowResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7175,14 +14445,54 @@ export interface operations {
                     "application/json": components["schemas"]["WorkflowExecutionResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7206,14 +14516,54 @@ export interface operations {
                     "application/json": components["schemas"]["WorkflowExecutionResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7237,14 +14587,54 @@ export interface operations {
                     "application/json": components["schemas"]["WorkflowResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7272,14 +14662,54 @@ export interface operations {
                     "application/json": components["schemas"]["WorkflowResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7301,14 +14731,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7332,14 +14802,54 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentRequirementResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7367,14 +14877,54 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentRequirementResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7396,14 +14946,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7429,14 +15019,40 @@ export interface operations {
                     "application/json": components["schemas"]["FlowResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7462,14 +15078,54 @@ export interface operations {
                     "application/json": components["schemas"]["FlowResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7493,14 +15149,54 @@ export interface operations {
                     "application/json": components["schemas"]["FlowResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7528,14 +15224,54 @@ export interface operations {
                     "application/json": components["schemas"]["FlowResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7559,14 +15295,54 @@ export interface operations {
                     "application/json": components["schemas"]["FlowSubjectResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7594,14 +15370,54 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7624,14 +15440,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7655,14 +15511,54 @@ export interface operations {
                     "application/json": components["schemas"]["FlowDocumentComplianceResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7689,14 +15585,54 @@ export interface operations {
                     "application/json": components["schemas"]["EventResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7721,14 +15657,40 @@ export interface operations {
                     "application/json": components["schemas"]["NamingTemplateResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7754,14 +15716,54 @@ export interface operations {
                     "application/json": components["schemas"]["NamingTemplateResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7785,14 +15787,54 @@ export interface operations {
                     "application/json": components["schemas"]["NamingTemplateResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7820,14 +15862,54 @@ export interface operations {
                     "application/json": components["schemas"]["NamingTemplateResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7849,14 +15931,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7882,14 +16004,40 @@ export interface operations {
                     "application/json": components["schemas"]["OAuthConfigResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7915,14 +16063,54 @@ export interface operations {
                     "application/json": components["schemas"]["OAuthConfigResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Conflict — resource with that identity already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Already exists"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7948,14 +16136,40 @@ export interface operations {
                     "application/json": components["schemas"]["OAuthAuthorizeResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7982,14 +16196,40 @@ export interface operations {
                     "application/json": components["schemas"]["OAuthCallbackTokenResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -8010,6 +16250,41 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["OAuthProvidersMetadataResponse"];
                 };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -8033,14 +16308,54 @@ export interface operations {
                     "application/json": components["schemas"]["OAuthConfigResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -8064,14 +16379,54 @@ export interface operations {
                     "application/json": components["schemas"]["OAuthConfigResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -8093,14 +16448,54 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -8128,14 +16523,54 @@ export interface operations {
                     "application/json": components["schemas"]["OAuthConfigResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -8163,14 +16598,54 @@ export interface operations {
                     "application/json": components["schemas"]["OAuthConfigResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -8194,14 +16669,54 @@ export interface operations {
                     "application/json": components["schemas"]["OAuthHealthResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Missing or invalid bearer token. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not found"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -8253,6 +16768,41 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WebSocketStatusResponse"];
                 };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Not authenticated"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Token lacks the required scope for this tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Insufficient permissions"
+                     *     }
+                     */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Request body or query parameter failed schema validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

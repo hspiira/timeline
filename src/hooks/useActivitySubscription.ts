@@ -17,12 +17,21 @@ type SubscriptionEvent =
   | { type: 'error'; data: { message: string } }
 
 /**
- * WebSocket subscription hook for real-time activity updates
- *
- * In a production environment, this would connect to a WebSocket server
- * that broadcasts activity events in real-time.
- *
- * For now, it simulates real-time updates with polling as fallback.
+ * Build SSE stream URL for the events stream (roadmap: /api/v1/events/stream).
+ * EventSource does not support custom headers in the browser, so auth is passed as query param.
+ */
+function getEventsStreamUrl(): string | null {
+  const token = getAuthToken()
+  if (!token) return null
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+  const base = apiUrl.replace(/\/$/, '')
+  return `${base}/api/v1/events/stream?token=${encodeURIComponent(token)}`
+}
+
+/**
+ * SSE subscription hook for real-time activity updates.
+ * Connects to GET /api/v1/events/stream (roadmap: EventSource for SSE).
+ * Preserves reconnection with exponential backoff and the same callback API as before.
  */
 export function useActivitySubscription({
   enabled = true,
@@ -31,22 +40,17 @@ export function useActivitySubscription({
   onActivityRemoved,
   onError,
 }: UseActivitySubscriptionOptions = {}) {
-  const wsRef = useRef<WebSocket | null>(null)
+  const eventSourceRef = useRef<EventSource | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [isReconnecting, setIsReconnecting] = useState(false)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reconnectAttemptsRef = useRef(0)
   const MAX_RECONNECT_ATTEMPTS = 5
   const RECONNECT_INTERVAL = 3000
 
-  /**
-   * Handle incoming WebSocket messages
-   */
-  const handleMessage = useCallback(
-    (event: MessageEvent) => {
+  const dispatchEvent = useCallback(
+    (message: SubscriptionEvent) => {
       try {
-        const message: SubscriptionEvent = JSON.parse(event.data)
-
         switch (message.type) {
           case 'activity_created':
             onNewActivity?.(message.data)
@@ -62,7 +66,6 @@ export function useActivitySubscription({
             break
         }
       } catch (err) {
-        console.error('Failed to parse WebSocket message:', err)
         onError?.(err instanceof Error ? err : new Error('Unknown error'))
       }
     },
@@ -70,133 +73,113 @@ export function useActivitySubscription({
   )
 
   /**
-   * Connect to WebSocket server
+   * Handle SSE message: support both named events (event: activity_created + data: {...}) and
+   * generic message with data: { type, data }.
    */
-  const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      return
-    }
+  const handleSSEMessage = useCallback(
+    (event: MessageEvent) => {
+      try {
+        const raw = event.data
+        if (typeof raw !== 'string') return
+        const parsed = JSON.parse(raw) as Record<string, unknown>
+        const eventType = event.type as string
+        if (eventType !== 'message') {
+          if (eventType === 'activity_created') dispatchEvent({ type: 'activity_created', data: parsed as unknown as Activity })
+          else if (eventType === 'activity_updated') dispatchEvent({ type: 'activity_updated', data: parsed as unknown as Activity })
+          else if (eventType === 'activity_removed') dispatchEvent({ type: 'activity_removed', data: { id: (parsed?.id as string) ?? '' } })
+          else if (eventType === 'error') dispatchEvent({ type: 'error', data: { message: (parsed?.message as string) ?? 'Unknown error' } })
+          return
+        }
+        const msg = parsed as SubscriptionEvent
+        if (msg.type) dispatchEvent(msg)
+      } catch (err) {
+        console.error('Failed to parse SSE message:', err)
+        onError?.(err instanceof Error ? err : new Error('Unknown error'))
+      }
+    },
+    [dispatchEvent, onError]
+  )
 
-    const token = getAuthToken()
-    if (!token) {
-      console.warn('No auth token available for WebSocket connection')
+  const connect = useCallback(() => {
+    if (eventSourceRef.current?.readyState === EventSource.OPEN) return
+
+    const url = getEventsStreamUrl()
+    if (!url) {
+      console.warn('No auth token available for SSE connection')
       return
     }
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-      const wsProtocol = apiUrl.startsWith('https') ? 'wss:' : 'ws:'
-      const apiHost = new URL(apiUrl).host
-      const wsUrl = `${wsProtocol}//${apiHost}/api/v1/ws?token=${encodeURIComponent(token)}`
+      const es = new EventSource(url)
+      eventSourceRef.current = es
 
-      wsRef.current = new WebSocket(wsUrl)
-
-      wsRef.current.onopen = () => {
-        console.log('WebSocket connected')
+      es.onopen = () => {
+        console.log('SSE connected')
         setIsConnected(true)
         setIsReconnecting(false)
         reconnectAttemptsRef.current = 0
       }
 
-      wsRef.current.onmessage = handleMessage
+      es.onmessage = handleSSEMessage
+      es.addEventListener('activity_created', handleSSEMessage)
+      es.addEventListener('activity_updated', handleSSEMessage)
+      es.addEventListener('activity_removed', handleSSEMessage)
 
-      wsRef.current.onerror = (event) => {
-        console.error('WebSocket error:', event)
-        onError?.(new Error('WebSocket error occurred'))
-      }
-
-      wsRef.current.onclose = () => {
-        console.log('WebSocket closed')
+      es.onerror = () => {
         setIsConnected(false)
+        es.close()
+        eventSourceRef.current = null
         attemptReconnect()
       }
     } catch (err) {
-      console.error('Failed to create WebSocket:', err)
-      onError?.(err instanceof Error ? err : new Error('Failed to create WebSocket'))
+      console.error('Failed to create EventSource:', err)
+      onError?.(err instanceof Error ? err : new Error('Failed to create EventSource'))
       attemptReconnect()
     }
-  }, [handleMessage, onError])
+  }, [handleSSEMessage, onError])
 
-  /**
-   * Attempt to reconnect with exponential backoff
-   */
   const attemptReconnect = useCallback(() => {
     if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
-      console.warn(
-        `Max reconnection attempts (${MAX_RECONNECT_ATTEMPTS}) reached. Giving up.`
-      )
+      console.warn(`Max reconnection attempts (${MAX_RECONNECT_ATTEMPTS}) reached. Giving up.`)
       return
     }
-
     setIsReconnecting(true)
     reconnectAttemptsRef.current += 1
     const delay = RECONNECT_INTERVAL * Math.pow(2, reconnectAttemptsRef.current - 1)
-
     reconnectTimeoutRef.current = setTimeout(() => {
       console.log(`Attempting to reconnect (attempt ${reconnectAttemptsRef.current})...`)
       connect()
     }, delay)
   }, [connect])
 
-  /**
-   * Subscribe to specific activity types
-   */
   const subscribe = useCallback(
-    (filters?: {
-      actions?: string[]
-      resourceTypes?: string[]
-      userId?: string
-    }) => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(
-          JSON.stringify({
-            type: 'subscribe',
-            filters,
-          })
-        )
-      }
+    (_filters?: { actions?: string[]; resourceTypes?: string[]; userId?: string }) => {
+      // SSE does not support client-side subscribe; server decides what to stream.
     },
     []
   )
 
-  /**
-   * Unsubscribe from activity updates
-   */
   const unsubscribe = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(
-        JSON.stringify({
-          type: 'unsubscribe',
-        })
-      )
-    }
+    // No-op for SSE; disconnect closes the stream.
   }, [])
 
-  /**
-   * Disconnect from WebSocket
-   */
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current)
+      reconnectTimeoutRef.current = null
     }
-    if (wsRef.current) {
-      wsRef.current.close()
-      wsRef.current = null
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close()
+      eventSourceRef.current = null
     }
     setIsConnected(false)
     setIsReconnecting(false)
     reconnectAttemptsRef.current = 0
   }, [])
 
-  // Connect on mount, disconnect on unmount
   useEffect(() => {
-    if (enabled) {
-      connect()
-    }
-
-    return () => {
-      disconnect()
-    }
+    if (enabled) connect()
+    return () => disconnect()
   }, [enabled, connect, disconnect])
 
   return {

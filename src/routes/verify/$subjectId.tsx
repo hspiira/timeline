@@ -1,11 +1,11 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { timelineApi } from '@/lib/api-client'
 import { formatFullDateTime } from '@/lib/format-date'
-import { CheckCircle, AlertTriangle, AlertCircle, DownloadIcon } from 'lucide-react'
+import { CheckCircle, AlertTriangle, AlertCircle, DownloadIcon, Wrench, ChevronDown, ChevronRight, Boxes, FileCheck } from 'lucide-react'
 import { ChainVisualization } from '@/components/verify/ChainVisualization'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { SkeletonBreadcrumbs, Skeleton } from '@/components/ui/Skeleton'
@@ -19,14 +19,90 @@ export const Route = createFileRoute('/verify/$subjectId')({
   component: VerifyPage,
 })
 
-type ChainVerificationResponse = components['schemas']['ChainVerificationResponse']
+type IntegrityVerificationDetail = components['schemas']['IntegrityVerificationDetail']
+type VerificationEventResult = components['schemas']['VerificationEventResult']
+
+function VerificationTableRow({
+  event,
+  isExpanded,
+  onToggle,
+  onInitiateRepair,
+  onViewProof,
+}: {
+  event: VerificationEventResult
+  subjectId: string
+  isExpanded: boolean
+  onToggle: () => void
+  onInitiateRepair: () => void
+  onViewProof: () => void
+}) {
+  const hash = event.actual_hash || event.expected_hash || '—'
+  const hashShort = hash !== '—' ? `${hash.slice(0, 12)}…` : '—'
+  return (
+    <>
+      <tr
+        className={`border-b border-border/30 ${!event.is_valid ? 'bg-amber-50 dark:bg-amber-900/10' : ''}`}
+      >
+        <td className="py-1.5 pr-2 font-mono text-xs">{event.sequence}</td>
+        <td className="py-1.5 pr-2">{event.event_type}</td>
+        <td className="py-1.5 pr-2">
+          {event.is_valid ? (
+            <span className="text-green-600 dark:text-green-400">✓ Valid</span>
+          ) : (
+            <span className="text-red-600 dark:text-red-400">✗ BREAK</span>
+          )}
+        </td>
+        <td className="py-1.5 pr-2 font-mono text-xs">{hashShort}</td>
+        <td className="py-1.5 pr-2 text-muted-foreground">{event.error_type ?? '—'}</td>
+        <td className="py-1.5 pr-2">
+          <button
+            type="button"
+            onClick={onToggle}
+            className="p-0.5 rounded hover:bg-muted"
+            aria-expanded={isExpanded}
+          >
+            {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </button>
+        </td>
+      </tr>
+      {isExpanded && (
+        <tr className="border-b border-border/30 bg-muted/30">
+          <td colSpan={6} className="py-2 px-3 text-xs">
+            <div className="grid gap-1 font-mono">
+              {event.expected_hash != null && (
+                <div>Expected: <span className="font-mono break-all">{event.expected_hash}</span></div>
+              )}
+              {event.actual_hash != null && (
+                <div>Actual: <span className="font-mono break-all">{event.actual_hash}</span></div>
+              )}
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Button variant="outline" size="sm" className="w-fit" onClick={onViewProof}>
+                  <FileCheck className="w-3 h-3" />
+                  View Proof
+                </Button>
+                {!event.is_valid && (
+                  <Button variant="outline" size="sm" className="w-fit" onClick={onInitiateRepair}>
+                    <Wrench className="w-3 h-3" />
+                    Initiate Repair
+                  </Button>
+                )}
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  )
+}
 
 function VerifyPage() {
   const authState = useRequireAuth()
+  const navigate = useNavigate()
   const { subjectId } = Route.useParams()
+  const [expandedRow, setExpandedRow] = useState<number | null>(null)
 
   const fetchVerification = useCallback(
-    () => timelineApi.events.verify(subjectId),
+    () => timelineApi.integrity.verifySubjectDetail(subjectId),
     [subjectId]
   )
 
@@ -35,7 +111,7 @@ function VerifyPage() {
     error,
     loading,
     refetch,
-  } = useFetchWithError<ChainVerificationResponse>(fetchVerification, {
+  } = useFetchWithError<IntegrityVerificationDetail>(fetchVerification, {
     defaultErrorMessage: 'Failed to verify chain',
     enabled: !!authState.user && !!subjectId,
   })
@@ -57,7 +133,7 @@ function VerifyPage() {
         validEvents: verification.valid_events,
         invalidEvents: verification.invalid_events,
       },
-      eventResults: verification.event_results?.map((e) => ({
+      eventResults: verification.events?.map((e) => ({
         eventId: e.event_id,
         eventType: e.event_type,
         eventTime: e.event_time,
@@ -166,7 +242,7 @@ function VerifyPage() {
         <>
           {/* Header and Stats Row */}
           <div className="mb-3">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <h1 className="text-lg font-bold text-foreground">Chain Verification</h1>
               {verification.is_chain_valid ? (
                 <div className="flex items-center gap-1 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-none">
@@ -179,6 +255,24 @@ function VerifyPage() {
                   <span className="font-semibold text-red-900 dark:text-red-200 text-xs">Tampered Chain</span>
                 </div>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => navigate({ to: '/subjects/$subjectId/epochs', params: { subjectId } })}
+              >
+                <Boxes className="w-3.5 h-3.5" />
+                Epochs
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => navigate({ to: '/integrity/repairs/new', search: { subject_id: subjectId, break_seq: undefined } })}
+              >
+                <Wrench className="w-3.5 h-3.5" />
+                Initiate Repair
+              </Button>
             </div>
 
             {/* Compact Stats */}
@@ -195,27 +289,61 @@ function VerifyPage() {
             </p>
           </div>
 
-          {/* Chain Visualization */}
-          {verification.event_results && verification.event_results.length > 0 && (
+          {/* Verification table: Seq, Type, Status, Hash, Error (roadmap) */}
+          {verification.events && verification.events.length > 0 && (
+            <div className="bg-card/80 rounded-none border border-border/50 p-3 mb-3">
+              <h2 className="text-sm font-semibold text-foreground mb-2">Verification Detail</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-border/50 text-left text-muted-foreground font-medium">
+                      <th className="py-2 pr-2">Seq</th>
+                      <th className="py-2 pr-2">Type</th>
+                      <th className="py-2 pr-2">Status</th>
+                      <th className="py-2 pr-2">Hash</th>
+                      <th className="py-2 pr-2">Error</th>
+                      <th className="w-8" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {verification.events.map((event, index) => (
+                      <VerificationTableRow
+                        key={event.event_id}
+                        event={event}
+                        subjectId={subjectId}
+                        isExpanded={expandedRow === index}
+                        onToggle={() => setExpandedRow((i) => (i === index ? null : index))}
+                        onInitiateRepair={() => navigate({ to: '/integrity/repairs/new', search: { subject_id: subjectId, break_seq: String(event.sequence) } })}
+                        onViewProof={() => navigate({ to: '/subjects/$subjectId/proof/$eventSeq', params: { subjectId, eventSeq: String(event.sequence) } })}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Chain Visualization (existing component) */}
+          {verification.events && verification.events.length > 0 && (
             <div className="bg-card/80 rounded-none border border-border/50 p-3 mb-3">
               <h2 className="text-sm font-semibold text-foreground mb-2">Visual Chain Overview</h2>
               <ChainVisualization
-                events={verification.event_results?.map((event) => ({
-                    id: event.event_id,
-                    subject_id: verification.subject_id || subjectId,
-                    event_type: event.event_type,
-                    schema_version: 1,
-                    event_time: event.event_time,
-                    payload: {},
-                    hash: event.actual_hash || event.expected_hash || '',
-                    previous_hash: null,
-                    verified: event.is_valid,
-                    expected_hash: event.expected_hash || '',
-                    actual_hash: event.actual_hash || '',
-                  })) || []}
-                tamperedIndices={verification.event_results
-                  ?.map((event, index) => (!event.is_valid ? index : -1))
-                  .filter((i) => i !== -1) || []}
+                events={verification.events.map((event) => ({
+                  id: event.event_id,
+                  subject_id: verification.subject_id || subjectId,
+                  event_type: event.event_type,
+                  schema_version: 1,
+                  event_time: event.event_time,
+                  payload: {},
+                  hash: event.actual_hash || event.expected_hash || '',
+                  previous_hash: event.previous_hash ?? null,
+                  verified: event.is_valid,
+                  expected_hash: event.expected_hash || '',
+                  actual_hash: event.actual_hash || '',
+                }))}
+                tamperedIndices={verification.events
+                  .map((event, index) => (!event.is_valid ? index : -1))
+                  .filter((i) => i !== -1)}
               />
             </div>
           )}

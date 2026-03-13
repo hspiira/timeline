@@ -1,5 +1,5 @@
 import { Store } from '@tanstack/store'
-import { timelineApi, setAuthToken, getAuthToken, setTenantId } from './api-client'
+import { timelineApi, setAuthToken, getAuthToken, setTenantId, refreshAccessToken } from './api-client'
 import { getApiErrorDisplay } from './api-utils'
 import type { UserResponse } from '@/lib/types'
 
@@ -10,14 +10,10 @@ interface AuthState {
   error: string | null
 }
 
-const storedToken = getAuthToken()
 const initialState: AuthState = {
   user: null,
-  token: storedToken,
-  // When a token exists, we haven't rehydrated user yet — stay in loading so
-  // protected routes don't redirect to login before initAuth() runs (and thus
-  // preserve the current URL and avoid redirect-to-dashboard on refresh).
-  isLoading: !!storedToken,
+  token: null,
+  isLoading: false,
   error: null,
 }
 
@@ -38,7 +34,9 @@ export const authActions = {
         throw new Error(display.message)
       }
 
-      const { access_token } = response.data
+      const data = response.data
+      if (!data) throw new Error('Invalid credentials')
+      const { access_token } = data
       setAuthToken(access_token)
 
       const userResponse = await timelineApi.users.me() as {
@@ -128,8 +126,11 @@ export const authActions = {
   },
 
   async initAuth() {
-    const token = getAuthToken()
-
+    let token = getAuthToken()
+    if (!token && typeof window !== 'undefined') {
+      token = await refreshAccessToken()
+      if (token) setAuthToken(token)
+    }
     if (!token) {
       return
     }
@@ -139,7 +140,12 @@ export const authActions = {
       if (stored) setTenantId(stored)
     }
 
-    authStore.setState((state) => ({ ...state, isLoading: true }))
+    const state = authStore.state
+    if (state.user && state.token === token) {
+      return
+    }
+
+    authStore.setState((s) => ({ ...s, isLoading: true }))
 
     try {
       const response = await timelineApi.users.me()
@@ -156,14 +162,16 @@ export const authActions = {
         return
       }
 
-      setTenantId(response.data.tenant_id)
+      const userData = response.data
+      if (userData) setTenantId(userData.tenant_id)
 
-      authStore.setState({
-        user: response.data,
+      authStore.setState((prev) => ({
+        ...prev,
+        user: userData ?? null,
         token,
         isLoading: false,
         error: null,
-      })
+      }))
     } catch (error) {
       setAuthToken(null)
       setTenantId(null)

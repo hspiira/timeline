@@ -18,6 +18,7 @@ import { ThemeToggle } from '@/components/theme/theme-toggler'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import { SettingsButton } from '@/components/header/SettingsButton'
 import { GlobalSearch } from '@/components/header/GlobalSearch'
+import { TenantSelector } from '@/components/header/TenantSelector'
 import { ToastContainer } from '@/components/toast/ToastContainer'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { NotFound } from '@/components/ui/NotFound'
@@ -154,6 +155,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    <TenantSelector />
                     <span className="text-sm font-medium text-muted-foreground">
                       {authState.user.username}
                     </span>

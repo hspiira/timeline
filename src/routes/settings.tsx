@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useLocation, useNavigate } from '@tanstack/rea
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useHasAuditAccess } from '@/hooks/useHasAuditAccess'
-import { Shield, Database, Zap, Users, KeyRound, Layers, FolderOpen, ClipboardList, GitBranch, Link2, FileText } from 'lucide-react'
+import { Shield, Database, Zap, Users, KeyRound, Layers, FolderOpen, ClipboardList, GitBranch, Link2, FileText, Activity } from 'lucide-react'
 
 export const Route = createFileRoute('/settings')({
   beforeLoad: () => {
@@ -96,6 +96,12 @@ function SettingsLayout() {
       label: 'OAuth Providers',
       icon: KeyRound,
       description: 'Email OAuth credentials',
+    },
+    {
+      path: '/settings/connectors',
+      label: 'Connectors',
+      icon: Activity,
+      description: 'Connector health status',
     },
   ]
 

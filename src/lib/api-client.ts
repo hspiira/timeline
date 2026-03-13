@@ -3,35 +3,23 @@ import type { paths, components } from './timeline-api'
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-const client = createClient<paths>({
-  baseUrl: BASE_URL,
-})
-
 let authToken: string | null = null
 let tenantId: string | null = null
 
 if (typeof window !== 'undefined') {
-  authToken = localStorage.getItem('auth_token')
   tenantId = localStorage.getItem('tenant_id')
 }
 
+/**
+ * Access token is stored in memory only (no localStorage) for XSS safety.
+ * Refresh token is expected in an httpOnly cookie set by the backend on login.
+ * On 401, the client attempts POST /api/v1/auth/refresh with credentials: 'include'.
+ */
 export function setAuthToken(token: string | null) {
   authToken = token
-  if (typeof window !== 'undefined') {
-    if (token) {
-      localStorage.setItem('auth_token', token)
-    } else {
-      localStorage.removeItem('auth_token')
-    }
-  }
 }
 
 export function getAuthToken(): string | null {
-  // In the browser, always read from localStorage so refresh/navigation sees the token
-  // even if this module was first evaluated in a context where it wasn't set (e.g. SSR).
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('auth_token')
-  }
   return authToken
 }
 
@@ -49,6 +37,51 @@ export function setTenantId(id: string | null) {
 export function getTenantId(): string | null {
   return tenantId
 }
+
+/** Call backend refresh endpoint; returns new access_token or null. Backend must set refresh token in httpOnly cookie. */
+export async function refreshAccessToken(): Promise<string | null> {
+  const url = `${BASE_URL}/api/v1/auth/refresh`
+  const res = await fetch(url, { method: 'POST', credentials: 'include' })
+  if (!res.ok) return null
+  const data = (await res.json()) as { access_token?: string }
+  return data.access_token ?? null
+}
+
+/** Redirect to login and clear token (e.g. after failed refresh). */
+function redirectToLogin() {
+  setAuthToken(null)
+  if (typeof window !== 'undefined') {
+    const path = window.location.pathname
+    const search = path && path !== '/login' ? `?redirect=${encodeURIComponent(path)}` : ''
+    window.location.href = `/login${search}`
+  }
+}
+
+const baseFetch = typeof fetch !== 'undefined' ? fetch : globalThis.fetch
+const customFetch: typeof fetch = async (input, init) => {
+  const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input)
+  const isRefresh = url.includes('/api/v1/auth/refresh')
+  let res = await baseFetch(input, init)
+  if (res.status === 401 && !isRefresh && typeof window !== 'undefined') {
+    const newToken = await refreshAccessToken()
+    if (newToken) {
+      setAuthToken(newToken)
+      const req = input instanceof Request ? input : new Request(input, init)
+      const headers = new Headers(req.headers)
+      headers.set('Authorization', `Bearer ${newToken}`)
+      const tid = getTenantId()
+      if (tid) headers.set('X-Tenant-ID', tid)
+      res = await baseFetch(req.url, { ...init, headers })
+    }
+    if (res.status === 401) redirectToLogin()
+  }
+  return res
+}
+
+const client = createClient<paths>({
+  baseUrl: BASE_URL,
+  fetch: customFetch,
+})
 
 client.use({
   onRequest({ request }) {
@@ -395,7 +428,7 @@ export const timelineApi = {
         params: { path: { event_id: id } },
       }),
     count: () => client.GET('/api/v1/events/count'),
-    create: (data: components['schemas']['EventCreateRequest']) =>
+    create: (data: components['schemas']['EventCreate']) =>
       client.POST('/api/v1/events', { body: data }),
     verify: (subjectId: string) =>
       client.GET('/api/v1/events/verify/{subject_id}', {
@@ -675,6 +708,105 @@ export const timelineApi = {
       client.GET('/api/v1/email-accounts/{account_id}/sync-status', {
         params: { path: { account_id: id } },
       }),
+  },
+
+  integrity: {
+    listEpochs: (subjectId: string, params?: { skip?: number; limit?: number }) =>
+      client.GET('/api/v1/tenants/integrity/epochs/{subject_id}', {
+        params: { path: { subject_id: subjectId }, query: params },
+      }),
+    verifySubject: (subjectId: string) =>
+      client.GET('/api/v1/tenants/integrity/verify/{subject_id}', {
+        params: { path: { subject_id: subjectId } },
+      }),
+    verifySubjectDetail: (subjectId: string) =>
+      client.GET('/api/v1/tenants/integrity/verify/{subject_id}/detail', {
+        params: { path: { subject_id: subjectId } },
+      }),
+    getProof: (eventSeq: number) =>
+      client.GET('/api/v1/tenants/integrity/proof/{event_seq}', {
+        params: { path: { event_seq: eventSeq } },
+      }),
+    repair: {
+      initiate: (data: components['schemas']['ChainRepairCreateRequest']) =>
+        client.POST('/api/v1/tenants/integrity/repair', { body: data }),
+      get: (repairId: string) =>
+        client.GET('/api/v1/tenants/integrity/repair/{repair_id}', {
+          params: { path: { repair_id: repairId } },
+        }),
+      approve: (repairId: string) =>
+        client.POST('/api/v1/tenants/integrity/repair/{repair_id}/approve', {
+          params: { path: { repair_id: repairId } },
+        }),
+      complete: (repairId: string) =>
+        client.POST('/api/v1/tenants/integrity/repair/{repair_id}/complete', {
+          params: { path: { repair_id: repairId } },
+        }),
+    },
+  },
+
+  connectors: {
+    health: () => client.GET('/api/v1/connectors/health'),
+  },
+
+  projections: {
+    list: (tenantId: string) =>
+      client.GET('/api/v1/tenants/{tenant_id}/projections', {
+        params: { path: { tenant_id: tenantId } },
+      }),
+    create: (
+      tenantId: string,
+      data: components['schemas']['ProjectionDefinitionCreateRequest']
+    ) =>
+      client.POST('/api/v1/tenants/{tenant_id}/projections', {
+        params: { path: { tenant_id: tenantId } },
+        body: data,
+      }),
+    getState: (
+      tenantId: string,
+      name: string,
+      version: number,
+      subjectId: string,
+      params?: { as_of?: string | null }
+    ) =>
+      client.GET(
+        '/api/v1/tenants/{tenant_id}/projections/{name}/{version}/subjects/{subject_id}',
+        {
+          params: {
+            path: { tenant_id: tenantId, name, version, subject_id: subjectId },
+            query: params,
+          },
+        }
+      ),
+    listStates: (
+      tenantId: string,
+      name: string,
+      version: number,
+      params?: { skip?: number; limit?: number }
+    ) =>
+      client.GET(
+        '/api/v1/tenants/{tenant_id}/projections/{name}/{version}/states',
+        {
+          params: {
+            path: { tenant_id: tenantId, name, version },
+            query: params,
+          },
+        }
+      ),
+    deactivate: (tenantId: string, name: string, version: number) =>
+      client.DELETE(
+        '/api/v1/tenants/{tenant_id}/projections/{name}/{version}',
+        {
+          params: { path: { tenant_id: tenantId, name, version } },
+        }
+      ),
+    rebuild: (tenantId: string, name: string, version: number) =>
+      client.POST(
+        '/api/v1/tenants/{tenant_id}/projections/{name}/{version}/rebuild',
+        {
+          params: { path: { tenant_id: tenantId, name, version } },
+        }
+      ),
   },
 
   oauthProviders: {
