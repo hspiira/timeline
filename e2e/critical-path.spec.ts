@@ -22,8 +22,8 @@ test.describe('Critical path', () => {
 
     await page.goto('/login')
     await page.getByLabel(/organisation|workspace|tenant/i).fill(tenant)
-    await page.getByLabel(/email/i).fill(email)
-    await page.getByLabel(/password/i).fill(password)
+    await page.getByLabel(/username|email/i).fill(email)
+    await page.getByLabel(/^password$/i).fill(password)
     await page.getByRole('button', { name: /sign in|log in/i }).click()
 
     await expect(page).not.toHaveURL(/\/login/, { timeout: 15000 })
@@ -35,5 +35,13 @@ test.describe('Critical path', () => {
       await firstSubjectLink.click()
       await expect(page).toHaveURL(/\/subjects\/[^/]+/)
     }
+
+    // Verify: navigate to chain verification for tenant or subject
+    await page.goto('/verify/tenant')
+    await expect(page).toHaveURL(/\/verify\/tenant/)
+
+    // Repairs list (may be empty)
+    await page.goto('/integrity/repairs')
+    await expect(page).toHaveURL(/\/integrity\/repairs/)
   })
 })

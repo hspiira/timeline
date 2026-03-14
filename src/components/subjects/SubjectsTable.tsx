@@ -69,7 +69,7 @@ export function SubjectsTable({
             <Link
               to="/subjects/$subjectId"
               params={{ subjectId: subject.id }}
-              search={{ tab: 'events' }}
+              search={{ tab: 'events', event_id: undefined }}
               onClick={(e) => e.stopPropagation()}
               className="font-medium text-foreground truncate block hover:text-primary transition-colors min-w-0"
               title={subject.display_name?.trim() ? subject.id : undefined}
@@ -161,6 +161,7 @@ export function SubjectsTable({
         onRowClick={handleRowClick}
         getRowId={(row) => row.id}
         selectedRowId={selectedSubjectId}
+        getRowClassName={(row) => (row.integrityStatus === 'broken' ? 'bg-status-warn/10' : '')}
         variant="subjects"
         enablePagination
         pageSize={20}

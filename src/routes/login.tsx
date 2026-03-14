@@ -20,12 +20,13 @@ export const Route = createFileRoute('/login')({
   validateSearch: (search: Record<string, unknown>) => ({
     tenant: (search.tenant as string) || '',
     redirect: safeRedirectPath(search.redirect),
+    sessionExpired: search.session_expired === '1',
   }),
 })
 
 function LoginPage() {
   const navigate = useNavigate()
-  const { tenant, redirect } = Route.useSearch()
+  const { tenant, redirect, sessionExpired } = Route.useSearch()
   const authState = useStore(authStore)
   const [tenantCode, setTenantCode] = useState(tenant)
   const [username, setUsername] = useState('')
@@ -75,6 +76,12 @@ function LoginPage() {
             Sign In
           </h1>
 
+          {/* Session expired message */}
+          {sessionExpired && !authState.error && (
+            <div className="mb-4 p-3 bg-muted border border-border rounded-none text-sm text-muted-foreground">
+              Session expired. Please sign in again.
+            </div>
+          )}
           {/* Error Message */}
           {authState.error && (
             <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-none">
@@ -165,6 +172,31 @@ function LoginPage() {
             >
               {showLoading ? 'Signing in...' : 'Sign In'}
             </Button>
+
+            {/* Optional: enable when backend supports SSO */}
+            <div className="relative my-4">
+              <span className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </span>
+              <span className="relative flex justify-center text-xs text-muted-foreground">
+                or
+              </span>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled
+              title="SSO not configured"
+            >
+              Continue with SSO
+            </Button>
+
+            <p className="text-xs text-muted-foreground text-center">
+              <Link to="/forgot-password" className="hover:underline">
+                Forgot password?
+              </Link>
+            </p>
           </form>
 
           {/* Bottom links */}

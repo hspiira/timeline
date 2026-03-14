@@ -7,7 +7,7 @@ import { GitBranch, Plus, AlertCircle } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { FlowsTable } from '@/components/flows/FlowsTable'
 import { Button } from '@/components/ui/button'
-import { LoadingIcon } from '@/components/ui/icons'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
 
 export const Route = createFileRoute('/flows/')({
@@ -52,9 +52,16 @@ function FlowsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[300px] gap-3 text-muted-foreground">
-        <LoadingIcon />
-        <span>Loading flows...</span>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between mb-4">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-28" />
+        </div>
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-none border border-border/50" />
+          ))}
+        </div>
       </div>
     )
   }

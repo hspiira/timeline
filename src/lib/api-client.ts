@@ -48,11 +48,14 @@ export async function refreshAccessToken(): Promise<string | null> {
 }
 
 /** Redirect to login and clear token (e.g. after failed refresh). */
-function redirectToLogin() {
+function redirectToLogin(opts?: { sessionExpired?: boolean }) {
   setAuthToken(null)
   if (typeof window !== 'undefined') {
     const path = window.location.pathname
-    const search = path && path !== '/login' ? `?redirect=${encodeURIComponent(path)}` : ''
+    const params = new URLSearchParams()
+    if (path && path !== '/login') params.set('redirect', path)
+    if (opts?.sessionExpired) params.set('session_expired', '1')
+    const search = params.toString() ? `?${params.toString()}` : ''
     window.location.href = `/login${search}`
   }
 }
@@ -73,7 +76,7 @@ const customFetch: typeof fetch = async (input, init) => {
       if (tid) headers.set('X-Tenant-ID', tid)
       res = await baseFetch(req.url, { ...init, headers })
     }
-    if (res.status === 401) redirectToLogin()
+    if (res.status === 401) redirectToLogin({ sessionExpired: true })
   }
   return res
 }

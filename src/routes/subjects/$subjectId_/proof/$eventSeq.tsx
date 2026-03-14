@@ -69,9 +69,9 @@ function ProofPage() {
             { label: 'Proof' },
           ]}
         />
-        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
-          <span className="text-sm text-red-800 dark:text-red-200">{error ? String(error) : 'Proof not found'}</span>
+        <div className="p-3 bg-destructive/10 border border-destructive/50 rounded-none flex items-center gap-2 text-sm text-destructive">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          {error ? String(error) : 'Proof not found'}
         </div>
       </>
     )
@@ -115,7 +115,7 @@ function ProofPage() {
             ))}
             <div className="flex items-center gap-2 pt-2 border-t border-border/30">
               <span className="text-muted-foreground shrink-0">Root:</span>
-              <code className="break-all text-green-600 dark:text-green-400">{truncate(proof.root_hash, 24)}</code>
+              <code className="break-all text-status-ok">{truncate(proof.root_hash, 24)}</code>
             </div>
           </div>
         </div>

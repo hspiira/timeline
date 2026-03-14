@@ -24,7 +24,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
-import { LoadingIcon } from '@/components/ui/icons'
+import { Skeleton } from '@/components/ui/Skeleton'
 import type { SubjectWithMetadata } from '@/hooks/useSubjects'
 
 export const Route = createFileRoute('/subjects/')({
@@ -363,10 +363,11 @@ function SubjectsPage() {
 
         {/* Content */}
         {displayLoading && (
-          <div className="min-h-[300px] flex items-center justify-center">
-            <div className="flex items-center gap-3 text-muted-foreground">
-              <LoadingIcon />
-              <span>{search.trim() ? 'Searching...' : 'Loading subjects...'}</span>
+          <div className="min-h-[300px] space-y-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} className="h-32 rounded-none border border-border/50" />
+              ))}
             </div>
           </div>
         )}

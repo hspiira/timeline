@@ -136,7 +136,7 @@ export function EventsTimeline({
                             <Link
                               to="/subjects/$subjectId"
                               params={{ subjectId: event.subject_id }}
-                              search={{ tab: 'events' }}
+                              search={{ tab: 'events', event_id: undefined }}
                               className="text-xs truncate text-muted-foreground hover:text-[var(--dashboard-accent)] transition-colors"
                               title={subjectDisplayNames?.[event.subject_id] ? event.subject_id : undefined}
                               onClick={(e) => e.stopPropagation()}

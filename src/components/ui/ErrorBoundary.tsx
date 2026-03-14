@@ -10,6 +10,8 @@ import { Link } from '@tanstack/react-router'
 interface ErrorBoundaryProps {
   children: ReactNode
   fallback?: ReactNode
+  /** Called when user clicks Retry (e.g. invalidate queries and re-render). */
+  onRetry?: () => void
 }
 
 interface ErrorBoundaryState {
@@ -34,6 +36,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   handleReset = () => {
+    this.props.onRetry?.()
     this.setState({ hasError: false, error: null })
   }
 

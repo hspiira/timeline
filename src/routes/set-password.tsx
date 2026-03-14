@@ -101,7 +101,7 @@ function SetPasswordPage() {
   const goToLogin = () => {
     navigate({
       to: '/login',
-      search: { tenant: tenant || '', redirect: undefined },
+      search: { tenant: tenant || '', redirect: undefined, sessionExpired: false },
     })
   }
 
@@ -157,7 +157,7 @@ function SetPasswordPage() {
             </div>
             <h1 className="text-lg font-bold text-foreground mb-2">Invalid link</h1>
             <p className="text-sm text-muted-foreground mb-6">{error}</p>
-            <Link to="/login" search={{ tenant: '', redirect: '/' }}>
+            <Link to="/login" search={{ tenant: '', redirect: '/', sessionExpired: false }}>
               <Button variant="outline" className="w-full">
                 Go to Login
               </Button>

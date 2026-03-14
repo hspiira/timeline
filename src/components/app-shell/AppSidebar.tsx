@@ -2,6 +2,7 @@
 
 import { Link, useRouterState } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
+import { useStore } from '@tanstack/react-store'
 import {
   LayoutDashboard,
   Users,
@@ -19,6 +20,8 @@ import {
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { authStore } from '@/lib/auth-store'
+import { useHasSystemAccess } from '@/hooks/useHasSystemAccess'
 
 const SIDEBAR_COLLAPSED_KEY = 'sidebar-collapsed'
 
@@ -63,6 +66,8 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ className }: AppSidebarProps) {
+  const authState = useStore(authStore)
+  const hasSystemAccess = useHasSystemAccess(!!authState.user)
   const [collapsed, setCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false
     return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'
@@ -126,14 +131,16 @@ export function AppSidebar({ className }: AppSidebarProps) {
 
         <Separator orientation="horizontal" className="my-1" />
 
-        {/* System: Connectors, Flows, Email, Settings */}
+        {/* System: Connectors (gated), Flows, Email, Settings */}
         <div className={!collapsed ? 'px-2' : 'px-1'}>
           {!collapsed && (
             <p className="mb-1 px-2 text-xs font-semibold text-muted-foreground">System</p>
           )}
-          <NavLink to="/connectors" icon={Activity} collapsed={collapsed} title="Connectors">
-            Connectors
-          </NavLink>
+          {hasSystemAccess !== false && (
+            <NavLink to="/connectors" icon={Activity} collapsed={collapsed} title="Connectors">
+              Connectors
+            </NavLink>
+          )}
           <NavLink to="/flows" icon={GitBranch} collapsed={collapsed} title="Flows">
             Flows
           </NavLink>

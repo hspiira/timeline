@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { Calendar, Tag, AlertCircle, Boxes, FileText, Shield, ChevronLeft, ChevronRight, Upload, Download, Trash2, Database, Link2 } from 'lucide-react'
 import { useEventStream } from '@/hooks/useActivitySubscription'
@@ -40,12 +40,13 @@ export const Route = createFileRoute('/subjects/$subjectId')({
         : search.tab === 'relationships'
           ? 'relationships'
           : 'events') as Tab,
+    event_id: typeof search.event_id === 'string' ? search.event_id : undefined,
   }),
 })
 
 function SubjectDetailPage() {
   const { subjectId } = Route.useParams()
-  const { tab: activeTab } = Route.useSearch()
+  const { tab: activeTab, event_id: eventIdFromUrl } = Route.useSearch()
   const navigate = useNavigate()
   const authState = useStore(authStore)
   const [subject, setSubject] = useState<SubjectResponse | null>(null)
@@ -78,7 +79,7 @@ function SubjectDetailPage() {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authState.isLoading && !authState.user) {
-      navigate({ to: '/login', search: { tenant: '', redirect: undefined } })
+      navigate({ to: '/login', search: { tenant: '', redirect: undefined, sessionExpired: false } })
     }
   }, [authState.isLoading, authState.user, navigate])
 
@@ -98,6 +99,21 @@ function SubjectDetailPage() {
       fetchEvents()
     }
   }, [currentPage, subject])
+
+  // Deep-link: open event drawer when URL has event_id
+  useEffect(() => {
+    if (!eventIdFromUrl || !authState.user) return
+    const inPage = events.find((e) => e.id === eventIdFromUrl)
+    if (inPage) {
+      setEventDrawerEvent(inPage)
+      return
+    }
+    let cancelled = false
+    timelineApi.events.get(eventIdFromUrl).then(({ data }) => {
+      if (!cancelled && data) setEventDrawerEvent(data as EventResponse)
+    })
+    return () => { cancelled = true }
+  }, [eventIdFromUrl, authState.user, events])
 
   // Fetch derived state when State tab is active (and when asOf changes)
   useEffect(() => {
@@ -395,12 +411,23 @@ function SubjectDetailPage() {
       )}
 
       {/* Event detail drawer (Sheet) — from timeline click; full-page route still available for shareable links */}
-      <Sheet open={!!eventDrawerEvent} onOpenChange={(open) => !open && setEventDrawerEvent(null)}>
+      <Sheet
+        open={!!eventDrawerEvent}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEventDrawerEvent(null)
+            navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: activeTab, event_id: undefined } })
+          }
+        }}
+      >
         <SheetContent side="right" className="w-full max-w-lg overflow-y-auto p-0">
           {eventDrawerEvent && (
             <EventDetailPanel
               event={eventDrawerEvent}
-              onClose={() => setEventDrawerEvent(null)}
+              onClose={() => {
+                setEventDrawerEvent(null)
+                navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: activeTab, event_id: undefined } })
+              }}
               className="border-0 min-h-full"
             />
           )}
@@ -491,7 +518,7 @@ function SubjectDetailPage() {
       {/* Tabs — persisted in URL so reload keeps tab */}
       <div className="flex gap-1 mb-3 border-b border-border/40">
         <button
-          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'events' } })}
+          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'events', event_id: undefined } })}
           className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-none flex items-center gap-2 ${
             activeTab === 'events'
               ? 'bg-muted/40 border-primary text-foreground'
@@ -502,7 +529,7 @@ function SubjectDetailPage() {
           Event Chain
         </button>
         <button
-          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'documents' } })}
+          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'documents', event_id: undefined } })}
           className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-none flex items-center gap-2 ${
             activeTab === 'documents'
               ? 'bg-muted/40 border-primary text-foreground'
@@ -513,7 +540,7 @@ function SubjectDetailPage() {
           Documents
         </button>
         <button
-          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'state' } })}
+          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'state', event_id: undefined } })}
           className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-none flex items-center gap-2 ${
             activeTab === 'state'
               ? 'bg-muted/40 border-primary text-foreground'
@@ -524,7 +551,7 @@ function SubjectDetailPage() {
           State
         </button>
         <button
-          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'relationships' } })}
+          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'relationships', event_id: undefined } })}
           className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-none flex items-center gap-2 ${
             activeTab === 'relationships'
               ? 'bg-muted/40 border-primary text-foreground'
@@ -539,15 +566,24 @@ function SubjectDetailPage() {
       {/* Content */}
       {activeTab === 'events' && (
         <div>
-          {isConnected && (
-            <div className="mb-2 flex items-center gap-1.5 text-status-ok text-xs font-medium">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-ok opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-status-ok" />
-              </span>
-              LIVE
-            </div>
-          )}
+          <div className="mb-2 flex items-center justify-between gap-2 flex-wrap">
+            {isConnected && (
+              <div className="flex items-center gap-1.5 text-status-ok text-xs font-medium">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-ok opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-status-ok" />
+                </span>
+                LIVE
+              </div>
+            )}
+            <Link
+              to="/subjects/$subjectId/epochs"
+              params={{ subjectId }}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              View all epochs →
+            </Link>
+          </div>
           {events.length === 0 ? (
             <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/30">
               <EmptyState
@@ -567,7 +603,10 @@ function SubjectDetailPage() {
                 documentCounts={documentCounts}
                 totalEvents={totalEvents}
                 pageOffset={currentPage * PAGE_SIZE}
-                onEventClick={(ev) => setEventDrawerEvent(ev)}
+                onEventClick={(ev) => {
+                setEventDrawerEvent(ev)
+                navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'events', event_id: ev.id } })
+              }}
               />
 
               {/* Pagination Controls */}

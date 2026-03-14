@@ -79,7 +79,7 @@ function RegisterTenantPage() {
     if (createdTenant) {
       navigate({
         to: '/login',
-        search: { tenant: createdTenant.tenant_code, redirect: undefined },
+        search: { tenant: createdTenant.tenant_code, redirect: undefined, sessionExpired: false },
       })
     }
   }
@@ -280,7 +280,7 @@ function RegisterTenantPage() {
               Already have an account?{' '}
               <Link
                 to="/login"
-                search={{ tenant: '', redirect: '/' }}
+                search={{ tenant: '', redirect: '/', sessionExpired: false }}
                 className="text-foreground font-medium hover:underline"
               >
                 Sign in

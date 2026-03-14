@@ -34,6 +34,7 @@ function NewRepairPage() {
     break_seq ? `Hash mismatch detected on event seq ${break_seq}` : ''
   )
   const [repairReference, setRepairReference] = useState('')
+  const [requiresLegalReference, setRequiresLegalReference] = useState(false)
 
   const { data: epochs = [] } = useQuery({
     queryKey: ['integrity', 'epochs', subject_id ?? ''],
@@ -76,8 +77,11 @@ function NewRepairPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!epochId.trim() || !breakReason.trim()) return
+    if (requiresLegalReference && !repairReference.trim()) return
     createMutation.mutate()
   }
+
+  const referenceError = requiresLegalReference && !repairReference.trim()
 
   const canProceedStep1 = epochId.trim() && breakReason.trim() && breakAtEventSeq >= 0
 
@@ -192,7 +196,7 @@ function NewRepairPage() {
                 <Button type="button" onClick={() => canProceedStep1 && setStep(2)} disabled={!canProceedStep1}>
                   Next: Initiate
                 </Button>
-                <Button type="button" variant="outline" onClick={() => navigate({ to: '/integrity/repairs' })}>
+                <Button type="button" variant="outline" onClick={() => navigate({ to: '/integrity/repairs', search: { subject_id: undefined, break_seq: undefined } })}>
                   Cancel
                 </Button>
               </div>
@@ -205,19 +209,36 @@ function NewRepairPage() {
                 Epoch: {epochId.slice(0, 20)}… · Break at seq: {breakAtEventSeq} · {breakReason.slice(0, 60)}{breakReason.length > 60 ? '…' : ''}
               </div>
 
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="checkbox"
+                  id="legal-grade"
+                  checked={requiresLegalReference}
+                  onChange={(e) => setRequiresLegalReference(e.target.checked)}
+                  className="rounded border-border"
+                />
+                <label htmlFor="legal-grade" className="text-sm font-medium text-foreground">
+                  Requires legal reference (LEGAL_GRADE)
+                </label>
+              </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Reference (for LEGAL_GRADE)</label>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Reference {requiresLegalReference && '*'}
+                </label>
                 <input
                   type="text"
                   value={repairReference}
                   onChange={(e) => setRepairReference(e.target.value)}
                   placeholder="e.g. INC-2024-001"
-                  className="w-full px-3 py-2 rounded-none border border-border bg-background text-foreground text-sm"
+                  className={`w-full px-3 py-2 rounded-none border bg-background text-foreground text-sm ${referenceError ? 'border-destructive' : 'border-border'}`}
                 />
+                {referenceError && (
+                  <p className="mt-1 text-xs text-destructive">Reference is required for LEGAL_GRADE repairs.</p>
+                )}
               </div>
 
               {errorMessage && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none flex items-center gap-2 text-sm text-red-800 dark:text-red-200">
+                <div className="p-3 bg-destructive/10 border border-destructive/50 rounded-none flex items-center gap-2 text-sm text-destructive">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   {errorMessage}
                 </div>
@@ -229,10 +250,10 @@ function NewRepairPage() {
                 <Button type="button" variant="outline" onClick={() => setStep(1)}>
                   Back
                 </Button>
-                <Button type="submit" disabled={createMutation.isPending || !epochId.trim() || !breakReason.trim()}>
+                <Button type="submit" disabled={createMutation.isPending || !epochId.trim() || !breakReason.trim() || referenceError}>
                   Initiate Repair
                 </Button>
-                <Button type="button" variant="outline" onClick={() => navigate({ to: '/integrity/repairs' })}>
+                <Button type="button" variant="outline" onClick={() => navigate({ to: '/integrity/repairs', search: { subject_id: undefined, break_seq: undefined } })}>
                   Cancel
                 </Button>
               </div>

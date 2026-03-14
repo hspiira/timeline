@@ -8,6 +8,7 @@ import {
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { useStore } from '@tanstack/react-store'
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { LogOut, Bell } from 'lucide-react'
 
@@ -65,6 +66,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 function RootDocument({ children }: { children: React.ReactNode }) {
   const authState = useStore(authStore)
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   // Initialize auth on mount
   useEffect(() => {
@@ -110,6 +112,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                     type="button"
                     className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-none transition-colors"
                     aria-label="Notifications"
+                    title="Notifications (coming soon)"
                   >
                     <Bell className="w-5 h-5" />
                   </button>
@@ -131,13 +134,19 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 <AppSidebar />
                 <main className="flex-1 min-h-0 overflow-y-auto bg-background">
                   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    {children}
+                    <ErrorBoundary
+                      onRetry={() => queryClient.invalidateQueries()}
+                    >
+                      {children}
+                    </ErrorBoundary>
                   </div>
                 </main>
               </div>
             </div>
           ) : (
-            children
+            <ErrorBoundary onRetry={() => queryClient.invalidateQueries()}>
+              {children}
+            </ErrorBoundary>
           )}
 
           <ToastContainer />

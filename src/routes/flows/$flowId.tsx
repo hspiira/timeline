@@ -274,7 +274,7 @@ function FlowDetailPage() {
                       <Link
                         to="/subjects/$subjectId"
                         params={{ subjectId: s.subject_id }}
-                        search={{ tab: 'events' }}
+                        search={{ tab: 'events', event_id: undefined }}
                         className="text-primary hover:underline font-medium block truncate"
                       >
                         {primaryLabel}
@@ -294,7 +294,7 @@ function FlowDetailPage() {
                       <Link
                         to="/subjects/$subjectId"
                         params={{ subjectId: s.subject_id }}
-                        search={{ tab: 'events' }}
+                        search={{ tab: 'events', event_id: undefined }}
                         className="text-muted-foreground hover:text-foreground"
                         title="Open subject"
                       >

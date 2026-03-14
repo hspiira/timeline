@@ -77,6 +77,8 @@ export interface DataTableProps<TData> {
   getRowId?: (row: TData) => string
   /** When set, the row with this id is shown as selected (persistent highlight) */
   selectedRowId?: string | null
+  /** Optional extra class for each row (e.g. highlight broken integrity) */
+  getRowClassName?: (row: TData) => string
   /** Make header sticky when scrolling */
   sticky?: boolean
   /** Apply responsive text sizing (text-xs sm:text-sm) */
@@ -142,6 +144,7 @@ export function DataTable<TData>({
   onRowClick,
   getRowId,
   selectedRowId = null,
+  getRowClassName,
   sticky = true,
   responsiveText = true,
   enablePagination = false,
@@ -262,7 +265,7 @@ export function DataTable<TData>({
                   onClick={() => onRowClick?.(row.original)}
                   className={`transition-colors ${!isSubjectsVariant && scheme.rowBorder} ${
                     onRowClick ? `cursor-pointer ${scheme.hoverBg}` : ''
-                  } ${isSubjectsVariant ? 'border-b border-border/40 last:border-b-0' : ''} ${onRowClick && responsiveText && !isSubjectsVariant ? 'focus-within:bg-muted/30' : ''} ${isSelected ? selectedRowBg : ''}`}
+                  } ${isSubjectsVariant ? 'border-b border-border/40 last:border-b-0' : ''} ${onRowClick && responsiveText && !isSubjectsVariant ? 'focus-within:bg-muted/30' : ''} ${isSelected ? selectedRowBg : ''} ${getRowClassName?.(row.original) ?? ''}`}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td

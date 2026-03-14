@@ -20,7 +20,7 @@ interface SubjectRelationshipsTabProps {
 
 export function SubjectRelationshipsTab({
   subjectId,
-  subjectDisplayName,
+  subjectDisplayName: _subjectDisplayName,
 }: SubjectRelationshipsTabProps) {
   const [relationships, setRelationships] = useState<SubjectRelationshipListItem[]>([])
   const [kinds, setKinds] = useState<RelationshipKindListItem[]>([])
@@ -212,7 +212,7 @@ export function SubjectRelationshipsTab({
                       <Link
                         to="/subjects/$subjectId"
                         params={{ subjectId: otherId }}
-                        search={{ tab: 'events' }}
+                        search={{ tab: 'events', event_id: undefined }}
                         className="text-sm font-mono text-[var(--dashboard-accent)] hover:underline truncate"
                       >
                         {otherId}

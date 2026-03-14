@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { Plus, Activity, Calendar, Table2, List, FileStack, Search, Filter, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
-import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
+import { Plus, Calendar, Table2, List, FileStack, Search, Filter, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { ErrorIcon } from '@/components/ui/icons'
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { useStore } from '@tanstack/react-store'
 import { authStore } from '@/lib/auth-store'
@@ -15,6 +15,7 @@ import {
   EventsLoadingSentinel,
 } from '@/components/events'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -101,7 +102,7 @@ function EventsPage() {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authState.isLoading && !authState.user) {
-      navigate({ to: '/login', search: { tenant: '', redirect: undefined } })
+      navigate({ to: '/login', search: { tenant: '', redirect: undefined, sessionExpired: false } })
     }
   }, [authState.isLoading, authState.user, navigate])
 
@@ -154,12 +155,17 @@ function EventsPage() {
     })
   }, [events, filterEventType, searchQuery, subjectDisplayNames])
 
-  if (authState.isLoading) {
+  if (authState.isLoading || loading) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] bg-background flex items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Activity className="w-4 h-4 animate-pulse" />
-          <span className="text-sm">Loading...</span>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between mb-3">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <Skeleton key={i} className="h-12 w-full rounded-none border border-border/50" />
+          ))}
         </div>
       </div>
     )
@@ -167,17 +173,6 @@ function EventsPage() {
 
   if (!authState.user) {
     return null
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-[calc(100vh-4rem)] bg-background flex items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <LoadingIcon />
-          <span className="text-sm">Loading events...</span>
-        </div>
-      </div>
-    )
   }
 
   if (error) {

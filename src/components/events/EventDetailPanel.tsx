@@ -74,7 +74,7 @@ export function EventDetailPanel({ event, onClose, className }: EventDetailPanel
             <Link
               to="/subjects/$subjectId"
               params={{ subjectId: event.subject_id }}
-              search={{ tab: 'events' }}
+              search={{ tab: 'events', event_id: undefined }}
               className="text-sm font-mono text-[var(--dashboard-accent)] hover:underline break-all"
             >
               {event.subject_id}

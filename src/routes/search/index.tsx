@@ -39,7 +39,7 @@ function ResultLink({ item }: { item: SearchResultItem }) {
       <Link
         to="/subjects/$subjectId"
         params={{ subjectId: item.id }}
-        search={{ tab: 'events' }}
+        search={{ tab: 'events', event_id: undefined }}
         className="text-primary hover:underline font-medium"
       >
         {item.display_title}
@@ -62,7 +62,7 @@ function ResultLink({ item }: { item: SearchResultItem }) {
       <Link
         to="/subjects/$subjectId"
         params={{ subjectId: item.subject_id }}
-        search={{ tab: 'events' }}
+        search={{ tab: 'events', event_id: undefined }}
         className="text-primary hover:underline font-medium"
       >
         {item.display_title}

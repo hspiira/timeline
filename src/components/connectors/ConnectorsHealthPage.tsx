@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { timelineApi } from '@/lib/api-client'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, RefreshCw } from 'lucide-react'
+import { AlertCircle, RefreshCw, ShieldAlert } from 'lucide-react'
 
 export type ConnectorHealthItem = {
   connector_id?: string
@@ -40,6 +41,11 @@ export function ConnectorsHealthPage() {
     queryKey: ['connectors', 'health'],
     queryFn: async () => {
       const res = await timelineApi.connectors.health()
+      if (res.response?.status === 403) {
+        const e = new Error('No permission') as Error & { is403?: boolean }
+        e.is403 = true
+        throw e
+      }
       if (res.error) throw new Error('Failed to load connector health')
       const body = res.data as { connectors?: unknown[]; status?: string } | undefined
       return { connectors: body?.connectors ?? [], status: body?.status ?? 'unknown' }
@@ -48,6 +54,7 @@ export function ConnectorsHealthPage() {
   })
 
   const items = (data?.connectors ?? []) as ConnectorHealthItem[]
+  const is403 = error && typeof error === 'object' && 'is403' in error && (error as Error & { is403?: boolean }).is403
 
   return (
     <div className="space-y-4">
@@ -58,15 +65,26 @@ export function ConnectorsHealthPage() {
             Status of registered connectors. Auto-refreshes every 15s.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-          <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        {!is403 && (
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        )}
       </div>
 
       {isLoading && <Skeleton className="h-24 w-full" />}
-      {error && (
-        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none flex items-center gap-2 text-sm text-red-800 dark:text-red-200">
+      {is403 && (
+        <div className="p-4 rounded-none border border-border bg-card/80 flex flex-col items-center gap-3 text-center">
+          <ShieldAlert className="w-10 h-10 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">You don’t have permission to view connector health.</p>
+          <Link to="/">
+            <Button variant="outline" size="sm">Back to Dashboard</Button>
+          </Link>
+        </div>
+      )}
+      {error && !is403 && (
+        <div className="p-3 bg-destructive/10 border border-destructive/50 rounded-none flex items-center gap-2 text-sm text-destructive">
           <AlertCircle className="w-4 h-4 shrink-0" />
           {String(error)}
         </div>

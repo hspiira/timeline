@@ -73,6 +73,8 @@ function RepairDetailPage() {
     mutationFn: () => timelineApi.integrity.repair.complete(repairId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['integrity', 'repair', repairId] })
+      queryClient.invalidateQueries({ queryKey: ['integrity'] })
+      queryClient.invalidateQueries({ queryKey: ['events'] })
     },
   })
 
@@ -99,9 +101,9 @@ function RepairDetailPage() {
     return (
       <>
         <Breadcrumbs items={[{ label: 'Chain Repairs', href: '/integrity/repairs' }, { label: 'Detail' }]} />
-        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
-          <span className="text-sm text-red-800 dark:text-red-200">{error ? String(error) : 'Repair not found'}</span>
+        <div className="p-3 bg-destructive/10 border border-destructive/50 rounded-none flex items-center gap-2 text-sm text-destructive">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          {error ? String(error) : 'Repair not found'}
         </div>
       </>
     )
@@ -178,13 +180,13 @@ function RepairDetailPage() {
       </div>
 
       {repair.approval_required && repair.repair_status === 'Pending Approval' && isInitiator && (
-        <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-none text-sm text-amber-800 dark:text-amber-200 mb-4">
+        <div className="p-3 bg-status-warn/10 border border-status-warn/50 rounded-none text-sm text-muted-foreground mb-4">
           Approval required. You cannot approve your own repair. Logged in as: {authState.user.username}
         </div>
       )}
 
       {approveError && (
-        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none text-sm text-red-800 dark:text-red-200 mb-4">
+        <div className="p-3 bg-destructive/10 border border-destructive/50 rounded-none text-sm text-destructive mb-4">
           {approveError}
         </div>
       )}

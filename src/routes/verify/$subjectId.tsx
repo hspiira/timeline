@@ -45,15 +45,15 @@ function VerificationTableRow({
   return (
     <>
       <tr
-        className={`border-b border-border/30 ${!event.is_valid ? 'bg-amber-50 dark:bg-amber-900/10' : ''}`}
+        className={`border-b border-border/30 ${!event.is_valid ? 'bg-status-warn/10' : ''}`}
       >
         <td className="py-1.5 pr-2 font-mono text-xs">{event.sequence}</td>
         <td className="py-1.5 pr-2">{event.event_type}</td>
         <td className="py-1.5 pr-2">
           {event.is_valid ? (
-            <span className="text-green-600 dark:text-green-400">✓ Valid</span>
+            <span className="text-status-ok">✓ Valid</span>
           ) : (
-            <span className="text-red-600 dark:text-red-400">✗ BREAK</span>
+            <span className="text-status-error">✗ BREAK</span>
           )}
         </td>
         <td className="py-1.5 pr-2 font-mono text-xs">{hashShort}</td>
