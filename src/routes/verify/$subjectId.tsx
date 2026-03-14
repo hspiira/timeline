@@ -368,6 +368,29 @@ function VerifyPage() {
             </p>
           </div>
 
+          {/* First break callout — roadmap: chain break location indicator */}
+          {verification.events && verification.events.length > 0 && (() => {
+            const firstInvalid = verification.events.find((e) => e.is_valid === false)
+            return firstInvalid ? (
+              <div className="mb-3 p-3 rounded-none border border-status-error/50 bg-status-error/10 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-status-error shrink-0" />
+                <span className="text-sm text-foreground">
+                  First break at event seq{' '}
+                  <Link
+                    to="/subjects/$subjectId/proof/$eventSeq"
+                    params={{ subjectId, eventSeq: String(firstInvalid.sequence) }}
+                    className="font-mono font-semibold text-primary hover:underline"
+                  >
+                    {firstInvalid.sequence}
+                  </Link>
+                  {firstInvalid.event_id && (
+                    <span className="text-muted-foreground"> (event_id: {firstInvalid.event_id})</span>
+                  )}
+                </span>
+              </div>
+            ) : null
+          })()}
+
           {/* Verification table: Seq, Type, Status, Hash, Error (roadmap) */}
           {verification.events && verification.events.length > 0 && (
             <div className="bg-card/80 rounded-none border border-border/50 p-3 mb-3">

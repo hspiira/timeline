@@ -42,6 +42,7 @@ export function useSubjects({ filterType, search: _search }: UseSubjectsProps = 
         return []
       }
 
+      // Integrity from list when backend adds chain_status to GET /subjects response; until then from verify API per subject.
       // Fetch event counts and integrity status per subject in parallel
       const subjectsWithMetadata = await Promise.all(
         data.map(async (subject: SubjectResponse): Promise<SubjectWithMetadata> => {

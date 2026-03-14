@@ -3,6 +3,7 @@ import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { Calendar, Tag, AlertCircle, Boxes, FileText, Shield, ChevronLeft, ChevronRight, Upload, Download, Trash2, Database, Link2 } from 'lucide-react'
 import { useEventStream } from '@/hooks/useActivitySubscription'
 import { useEffect, useState, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useStore } from '@tanstack/react-store'
 import { timelineApi } from '@/lib/api-client'
 import { authStore } from '@/lib/auth-store'
@@ -24,10 +25,16 @@ import { useHasSubjectErasureAccess } from '@/hooks/useHasSubjectErasureAccess'
 import { SubjectRelationshipsTab } from '@/components/subjects/SubjectRelationshipsTab'
 import { useEventTypes } from '@/hooks/useEventTypes'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
+import { StatusBadge } from '@/components/ui/StatusBadge'
+import { formatFullDateTime } from '@/lib/format-date'
+import type { components } from '@/lib/timeline-api'
+
+type IntegrityEpochItem = components['schemas']['IntegrityEpochItem']
 
 const PAGE_SIZE = 10
+const INTEGRITY_TAB_EPOCHS_LIMIT = 5
 
-type Tab = 'events' | 'documents' | 'state' | 'relationships'
+type Tab = 'events' | 'documents' | 'state' | 'relationships' | 'integrity'
 
 export const Route = createFileRoute('/subjects/$subjectId')({
   beforeLoad: () => {
@@ -41,7 +48,9 @@ export const Route = createFileRoute('/subjects/$subjectId')({
         ? 'state'
         : search.tab === 'relationships'
           ? 'relationships'
-          : 'events') as Tab,
+          : search.tab === 'integrity'
+            ? 'integrity'
+            : 'events') as Tab,
     event_id: typeof search.event_id === 'string' ? search.event_id : undefined,
     event_type: typeof search.event_type === 'string' ? search.event_type : '',
     from: typeof search.from === 'string' ? search.from : '',
@@ -310,6 +319,16 @@ export function SubjectDetailPage() {
     },
   })
 
+  const { data: integrityEpochs = [], isLoading: integrityEpochsLoading } = useQuery({
+    queryKey: ['integrity', 'epochs', subjectId],
+    queryFn: async () => {
+      const res = await timelineApi.integrity.listEpochs(subjectId)
+      if (res.error || !res.data) throw new Error('Failed to load epochs')
+      return res.data as IntegrityEpochItem[]
+    },
+    enabled: !!authState.user && !!subjectId && activeTab === 'integrity',
+  })
+
   const handleExport = async () => {
     setExportError(null)
     setExportLoading(true)
@@ -397,7 +416,7 @@ export function SubjectDetailPage() {
         <SkeletonBreadcrumbs />
 
         {/* Skeleton Header */}
-        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/30 mb-4">
+        <div className="bg-card/80 rounded-none p-4 border border-border/30 mb-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
               <Skeleton className="h-8 w-1/2 mb-2" />
@@ -418,7 +437,7 @@ export function SubjectDetailPage() {
         </div>
 
         {/* Skeleton Timeline */}
-        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/30">
+        <div className="bg-card/80 rounded-none p-4 border border-border/30">
           <Skeleton className="h-5 w-32 mb-4" />
           <SkeletonEventTimeline />
         </div>
@@ -506,7 +525,7 @@ export function SubjectDetailPage() {
       />
 
       {/* Subject Header */}
-      <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/30 mb-4">
+      <div className="bg-card/80 rounded-none p-4 border border-border/30 mb-4">
         <div className="flex items-start justify-between mb-3">
           <div>
             <h1 className="text-2xl font-bold text-foreground mb-1">
@@ -623,6 +642,17 @@ export function SubjectDetailPage() {
         >
           <Link2 className="w-4 h-4" />
           Relationships
+        </button>
+        <button
+          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: searchFor({ tab: 'integrity', event_id: undefined }) })}
+          className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-none flex items-center gap-2 ${
+            activeTab === 'integrity'
+              ? 'bg-muted/40 border-primary text-foreground'
+              : 'bg-transparent border-transparent text-foreground/60 hover:bg-muted/20'
+          }`}
+        >
+          <Shield className="w-4 h-4" />
+          Integrity
         </button>
       </div>
 
@@ -778,7 +808,7 @@ export function SubjectDetailPage() {
           </div>
 
           {events.length === 0 ? (
-            <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/30">
+            <div className="bg-card/80 rounded-none p-4 border border-border/30">
               <EmptyState
                 icon={Boxes}
                 title="No events recorded"
@@ -804,7 +834,7 @@ export function SubjectDetailPage() {
 
               {/* Pagination Controls */}
               {(totalPages !== null ? totalPages > 1 : currentPage > 0 || hasMorePages) && (
-                <div className="flex items-center justify-between mt-4 px-4 py-3 bg-card/80 backdrop-blur-sm rounded-none border border-border/30">
+                <div className="flex items-center justify-between mt-4 px-4 py-3 bg-card/80 rounded-none border border-border/30">
                   <div className="text-xs text-muted-foreground">
                     {totalEvents >= 0
                       ? `Showing ${currentPage * PAGE_SIZE + 1} - ${Math.min((currentPage + 1) * PAGE_SIZE, totalEvents)} of ${totalEvents} events`
@@ -853,7 +883,7 @@ export function SubjectDetailPage() {
           <div className="relative space-y-6 p-1">
             {(subjectDocumentCount === null || subjectDocumentCount === 0) && (
               <section
-                className="rounded-none border border-border/40 bg-card/90 backdrop-blur-sm overflow-hidden animate-in fade-in slide-in-from-top-1 duration-250"
+                className="rounded-none border border-border/40 bg-card/90 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-250"
                 style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}
               >
                 <div className="border-l-2 border-primary/80 bg-muted/20 dark:bg-muted/10 px-4 py-3 flex items-center gap-2">
@@ -879,7 +909,7 @@ export function SubjectDetailPage() {
 
             {(subjectDocumentCount ?? 0) > 0 && (
               <section
-                className="rounded-none border border-border/40 bg-card/90 backdrop-blur-sm overflow-hidden animate-in fade-in slide-in-from-bottom-1 duration-250"
+                className="rounded-none border border-border/40 bg-card/90 overflow-hidden animate-in fade-in slide-in-from-bottom-1 duration-250"
                 style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}
               >
                 <div className="border-l-2 border-border/50 bg-muted/15 dark:bg-muted/10 px-4 py-3 flex items-center justify-between gap-2">
@@ -937,7 +967,7 @@ export function SubjectDetailPage() {
 
       {/* State tab — derived state from event replay */}
       {activeTab === 'state' && (
-        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/30">
+        <div className="bg-card/80 rounded-none p-4 border border-border/30">
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <label className="text-sm text-muted-foreground">
               As of (optional)
@@ -1004,6 +1034,67 @@ export function SubjectDetailPage() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">Could not load derived state.</p>
+          )}
+        </div>
+      )}
+
+      {/* Integrity tab — epoch summary and link to full epochs */}
+      {activeTab === 'integrity' && (
+        <div className="bg-card/80 rounded-none p-4 border border-border/30">
+          <h2 className="text-sm font-semibold text-foreground mb-2">Integrity epochs</h2>
+          <p className="text-xs text-muted-foreground mb-3">
+            Per-epoch status for this subject. Use Verify Chain for full per-event verification.
+          </p>
+          {integrityEpochsLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <LoadingIcon size="sm" />
+              <span className="text-sm">Loading epochs…</span>
+            </div>
+          ) : integrityEpochs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No epochs for this subject.</p>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-border/50 text-left text-muted-foreground font-medium">
+                      <th className="py-2 pr-2">#</th>
+                      <th className="py-2 pr-2">Status</th>
+                      <th className="py-2 pr-2">Events</th>
+                      <th className="py-2 pr-2">Opened</th>
+                      <th className="py-2 pr-2">Sealed</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {integrityEpochs.slice(0, INTEGRITY_TAB_EPOCHS_LIMIT).map((epoch: IntegrityEpochItem) => (
+                      <tr key={epoch.id} className="border-b border-border/30 hover:bg-muted/20">
+                        <td className="py-2 pr-2 font-mono">{epoch.epoch_number}</td>
+                        <td className="py-2 pr-2">
+                          <StatusBadge
+                              status={
+                                epoch.status === 'Broken' ? 'broken' : epoch.status === 'Sealed' || epoch.status === 'Repaired' ? 'valid' : 'unknown'
+                              }
+                              label={epoch.status}
+                            />
+                        </td>
+                        <td className="py-2 pr-2">{epoch.event_count}</td>
+                        <td className="py-2 pr-2 text-muted-foreground">{formatFullDateTime(epoch.opened_at)}</td>
+                        <td className="py-2 pr-2 text-muted-foreground">
+                          {epoch.sealed_at ? formatFullDateTime(epoch.sealed_at) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Link
+                to="/subjects/$subjectId/epochs"
+                params={{ subjectId }}
+                className="inline-block mt-3 text-xs font-medium text-primary hover:underline"
+              >
+                View all epochs →
+              </Link>
+            </>
           )}
         </div>
       )}

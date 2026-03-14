@@ -125,6 +125,12 @@ export const authActions = {
     })
   },
 
+  /**
+   * Restore session on app load (e.g. after page reload).
+   * If there is no in-memory token, calls POST /api/v1/auth/refresh with credentials: 'include'
+   * (httpOnly cookie) to get a new access token. Then fetches user via me().
+   * Backend must set refresh token cookie on login for this to work.
+   */
   async initAuth() {
     let token = getAuthToken()
     if (!token && typeof window !== 'undefined') {

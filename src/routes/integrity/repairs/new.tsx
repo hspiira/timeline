@@ -5,10 +5,13 @@ import { timelineApi } from '@/lib/api-client'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { AlertCircle, ChevronRight, FileWarning } from 'lucide-react'
 import { getApiErrorDisplay } from '@/lib/api-utils'
 import { cn } from '@/lib/utils'
+import type { components } from '@/lib/timeline-api'
+
+type IntegrityVerificationDetail = components['schemas']['IntegrityVerificationDetail']
 
 export const Route = createFileRoute('/integrity/repairs/new')({
   beforeLoad: () => {
@@ -35,6 +38,30 @@ function NewRepairPage() {
   )
   const [repairReference, setRepairReference] = useState('')
   const [requiresLegalReference, setRequiresLegalReference] = useState(false)
+  const [detectedBreakSeq, setDetectedBreakSeq] = useState<number | null>(null)
+  const prefillFromVerifyDone = useRef(false)
+
+  const { data: verification } = useQuery({
+    queryKey: ['integrity', 'verify-detail', subject_id ?? ''],
+    queryFn: async (): Promise<IntegrityVerificationDetail | null> => {
+      if (!subject_id) return null
+      const res = await timelineApi.integrity.verifySubjectDetail(subject_id)
+      if (res.error || !res.data) return null
+      return res.data as IntegrityVerificationDetail
+    },
+    enabled: !!subject_id && break_seq == null,
+  })
+
+  useEffect(() => {
+    if (prefillFromVerifyDone.current || break_seq != null || !verification?.events?.length) return
+    const firstInvalid = verification.events.find((e) => e.is_valid === false)
+    if (firstInvalid != null) {
+      setBreakAtEventSeq(firstInvalid.sequence)
+      setBreakReason(`Hash mismatch detected on event seq ${firstInvalid.sequence}`)
+      setDetectedBreakSeq(firstInvalid.sequence)
+      prefillFromVerifyDone.current = true
+    }
+  }, [verification, break_seq])
 
   const { data: epochs = [] } = useQuery({
     queryKey: ['integrity', 'epochs', subject_id ?? ''],
@@ -132,6 +159,9 @@ function NewRepairPage() {
               <p className="text-muted-foreground mt-0.5">
                 Subject: {subject_id.slice(0, 12)}…{subject_id.length > 12 ? '' : ''}
                 {break_seq != null && ` · Break at seq: ${break_seq}`}
+                {detectedBreakSeq != null && break_seq == null && (
+                  <> · Detected first break at seq {detectedBreakSeq} (override below if needed)</>
+                )}
               </p>
             </div>
           </div>

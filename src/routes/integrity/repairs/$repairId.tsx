@@ -83,6 +83,13 @@ function RepairDetailPage() {
   const canApprove = repair && repair.repair_status === 'Pending Approval' && !isInitiator
   const canComplete = repair && repair.repair_status === 'Approved'
 
+  const completeError = completeMutation.error
+    ? getApiErrorDisplay(
+        { error: completeMutation.error as { detail?: string }, status: (completeMutation.error as { response?: { status?: number } })?.response?.status },
+        'Complete failed'
+      ).message
+    : null
+
   if (!authState.user) return null
 
   if (isLoading) {
@@ -149,9 +156,15 @@ function RepairDetailPage() {
         })}
       </div>
 
-      {/* Read-only fields */}
+      {/* Read-only fields — all ChainRepairResponse fields; link to subject/verify when backend adds subject_id to response */}
       <div className="bg-card/80 rounded-none border border-border/50 p-4 mb-4 space-y-2 text-sm">
         <div className="grid grid-cols-2 gap-2">
+          <span className="text-muted-foreground">Repair ID</span>
+          <span className="font-mono">{repair.id}</span>
+          <span className="text-muted-foreground">Tenant</span>
+          <span className="font-mono">{repair.tenant_id}</span>
+          <span className="text-muted-foreground">Status</span>
+          <span>{repair.repair_status}</span>
           <span className="text-muted-foreground">Epoch</span>
           <span className="font-mono">{repair.epoch_id}</span>
           <span className="text-muted-foreground">Break at seq</span>
@@ -164,6 +177,8 @@ function RepairDetailPage() {
           <span>{repair.repair_initiated_by}</span>
           <span className="text-muted-foreground">Approved by</span>
           <span>{repair.repair_approved_by ?? '—'}</span>
+          <span className="text-muted-foreground">Approval required</span>
+          <span>{repair.approval_required ? 'Yes' : 'No'}</span>
           {repair.repair_completed_at && (
             <>
               <span className="text-muted-foreground">Completed at</span>
@@ -188,6 +203,12 @@ function RepairDetailPage() {
       {approveError && (
         <div className="p-3 bg-destructive/10 border border-destructive/50 rounded-none text-sm text-destructive mb-4">
           {approveError}
+        </div>
+      )}
+
+      {completeError && (
+        <div className="p-3 bg-destructive/10 border border-destructive/50 rounded-none text-sm text-destructive mb-4">
+          {completeError}
         </div>
       )}
 

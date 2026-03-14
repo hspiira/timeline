@@ -51,7 +51,7 @@ function ProjectionStatePage() {
     enabled: !!tenantId && !Number.isNaN(versionNum),
   })
 
-  // system_latest_seq is optional from the API; not in OpenAPI ProjectionDefinitionResponse yet.
+  // system_latest_seq is optional from the API; not in OpenAPI ProjectionDefinitionResponse yet (see roadmap-progress-review).
   const projection = projections.find(
     (p) => p.name === name && p.version === versionNum
   ) as (ProjectionDefinitionResponse & { system_latest_seq?: number }) | undefined
@@ -99,6 +99,7 @@ function ProjectionStatePage() {
       if (status === 202) {
         setRebuildMessage('Rebuild started. Watermark will reset and catch up; refresh or revisit to see progress.')
         await queryClient.invalidateQueries({ queryKey: ['projections', tenantId ?? ''] })
+        await queryClient.invalidateQueries({ queryKey: ['projection-state'] })
       } else {
         setRebuildMessage(res.error ? String(res.error) : 'Rebuild request failed.')
       }

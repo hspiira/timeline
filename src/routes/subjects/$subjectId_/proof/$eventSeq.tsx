@@ -30,7 +30,13 @@ function ProofPage() {
     queryKey: ['integrity', 'proof', eventSeqNum],
     queryFn: async () => {
       const res = await timelineApi.integrity.getProof(eventSeqNum)
-      if (res.error || !res.data) throw new Error('Failed to load proof')
+      if (res.error || !res.data) {
+        const status = (res as { response?: { status?: number } }).response?.status
+        if (status === 400) {
+          throw new Error('Proof not available: event is not in a sealed LEGAL_GRADE epoch.')
+        }
+        throw new Error('Failed to load proof')
+      }
       return res.data as MerkleProofResponse
     },
     enabled: !!authState.user && !Number.isNaN(eventSeqNum),

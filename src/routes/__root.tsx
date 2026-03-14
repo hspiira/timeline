@@ -113,7 +113,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           {/* Header - only show on non-auth pages */}
           {authState.user ? (
             <div className="flex flex-col h-screen overflow-hidden">
-              <header className="z-40 flex h-16 shrink-0 items-center gap-4 border-b bg-background/80 backdrop-blur-md px-4 sm:px-6 lg:px-8 w-full">
+              <header className="z-40 flex h-16 shrink-0 items-center gap-4 border-b bg-background/80 backdrop-blur-md dark:bg-background dark:backdrop-blur-none px-4 sm:px-6 lg:px-8 w-full">
                 <Link to="/" className="flex items-center gap-2 group shrink-0">
                   <img src="/logo.svg" alt="Timeline" className="w-8 h-8 transition-transform group-hover:scale-110" />
                   <span className="text-xl font-bold text-foreground hidden sm:inline">

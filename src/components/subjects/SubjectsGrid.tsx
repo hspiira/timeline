@@ -57,7 +57,7 @@ export function SubjectsGrid({
           <div
             key={subject.id}
             onClick={() => handleSubjectClick(subject.id)}
-            className={`bg-card/80 backdrop-blur-sm rounded-none border transition-all cursor-pointer overflow-hidden group hover:border-border/40 ${
+            className={`bg-card/80 rounded-none border transition-all cursor-pointer overflow-hidden group hover:border-border/40 ${
               (subject.integrityStatus ?? '') === 'broken' ? 'border-status-warn/50 bg-status-warn/5' : 'border-border/25'
             }`}
             style={
