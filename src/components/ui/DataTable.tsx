@@ -4,6 +4,7 @@ import {
   useReactTable,
   type ColumnDef,
 } from '@tanstack/react-table'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { useState, useMemo, useRef, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { Button } from './button'
@@ -96,6 +97,16 @@ export interface DataTableProps<TData> {
    *  - Extra compact: 'py-1 px-2'
    */
   rowPadding?: string
+  /** When true and data.length > virtualScrollThreshold, render table body with virtual scroll */
+  enableVirtualization?: boolean
+  /** Minimum rows to enable virtual scroll (default: 50) */
+  virtualScrollThreshold?: number
+  /** Height of the scrollable body in px or CSS value (default: 400) */
+  virtualScrollHeight?: number | string
+  /** Estimated row height in px for virtualizer (default: 48) */
+  virtualScrollRowHeight?: number
+  /** CSS grid-template-columns for virtualized body so cells align with header (default for subjects variant) */
+  virtualScrollGridColumns?: string
 }
 
 interface ColorScheme {
@@ -134,6 +145,8 @@ const colorSchemes: Record<string, ColorScheme> = {
   },
 }
 
+const SUBJECTS_VIRTUAL_GRID_COLUMNS = 'minmax(180px,2fr) minmax(80px,1fr) 90px 70px minmax(90px,1fr) minmax(140px,1fr) 44px'
+
 export function DataTable<TData>({
   data,
   columns,
@@ -151,41 +164,59 @@ export function DataTable<TData>({
   pageSize: initialPageSize = 10,
   compact = false,
   rowPadding,
+  enableVirtualization = false,
+  virtualScrollThreshold = 50,
+  virtualScrollHeight = 400,
+  virtualScrollRowHeight = 48,
+  virtualScrollGridColumns,
 }: DataTableProps<TData>) {
   const [pageIndex, setPageIndex] = useState(0)
   const [pageSize, setPageSize] = useState(initialPageSize)
   const selectedRowRef = useRef<HTMLTableRowElement | null>(null)
+  const selectedVirtualRowRef = useRef<HTMLDivElement | null>(null)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
   const pageSizeOptions = [5, 10, 20, 50]
+
+  const useVirtual =
+    enableVirtualization && data.length > virtualScrollThreshold
 
   // Apply compact padding if not explicitly specified
   const effectiveRowPadding = rowPadding ?? (compact ? 'py-1 sm:py-2 px-2 sm:px-3' : variant === 'subjects' ? 'py-2 px-4' : 'py-2 sm:py-3 px-2 sm:px-4')
   const effectiveHeaderPadding = variant === 'subjects' ? 'py-2 px-4' : (compact ? 'py-1.5 sm:py-2 px-2 sm:px-3' : 'py-2 sm:py-3 px-2 sm:px-4')
 
-  // Apply pagination to data
-  const paginatedData = useMemo(() => {
-    if (!enablePagination) return data
+  // When virtualizing, table uses full data; otherwise apply pagination
+  const tableData = useMemo(() => {
+    if (useVirtual || !enablePagination) return data
     const start = pageIndex * pageSize
     return data.slice(start, start + pageSize)
-  }, [data, pageIndex, pageSize, enablePagination])
+  }, [data, pageIndex, pageSize, enablePagination, useVirtual])
 
   const table = useReactTable({
-    data: paginatedData,
+    data: tableData,
     columns,
     getCoreRowModel: getCoreRowModel(),
   })
 
-  // Scroll selected row into view when selection changes (must run unconditionally for hook order)
+  const virtualizer = useVirtualizer({
+    count: useVirtual ? data.length : 0,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => virtualScrollRowHeight,
+    overscan: 8,
+  })
+
+  // Scroll selected row into view when selection changes (table row or virtualized row)
   useEffect(() => {
-    if (selectedRowId && selectedRowRef.current) {
-      selectedRowRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    const el = selectedRowRef.current ?? selectedVirtualRowRef.current
+    if (selectedRowId && el) {
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     }
   }, [selectedRowId])
 
   const scheme = colorSchemes[variant]
 
   // Calculate pagination info
-  const totalPages = Math.ceil(data.length / pageSize)
+  const totalPages = Math.max(1, Math.ceil(data.length / pageSize))
   const hasPreviousPage = pageIndex > 0
   const hasNextPage = pageIndex < totalPages - 1
 
@@ -201,7 +232,7 @@ export function DataTable<TData>({
   }
 
   const rows = table.getRowModel().rows
-  const hasData = !isEmpty && rows.length > 0
+  const hasData = !isEmpty && (useVirtual ? data.length > 0 : rows.length > 0)
 
   if (!hasData) {
     return (
@@ -230,6 +261,87 @@ export function DataTable<TData>({
 
   const isSubjectsVariant = variant === 'subjects'
   const selectedRowBg = 'bg-muted/70'
+
+  const gridColumns =
+    virtualScrollGridColumns ??
+    (variant === 'subjects' ? SUBJECTS_VIRTUAL_GRID_COLUMNS : `repeat(${columns.length}, 1fr)`)
+
+  if (useVirtual) {
+    const virtualItems = virtualizer.getVirtualItems()
+    const totalSize = virtualizer.getTotalSize()
+    const scrollHeight =
+      typeof virtualScrollHeight === 'number' ? `${virtualScrollHeight}px` : virtualScrollHeight
+
+    return (
+      <div className={`overflow-hidden ${isSubjectsVariant ? 'rounded-none bg-card/80 backdrop-blur-sm' : `rounded-none border ${scheme.border}`}`}>
+        <div className="overflow-x-auto">
+          <table className={`w-full min-w-max ${isSubjectsVariant ? 'text-sm' : 'text-xs sm:text-sm'}`} style={{ tableLayout: 'fixed' }}>
+            <thead className={`${scheme.header} ${!isSubjectsVariant ? `border-b ${scheme.border}` : ''} ${sticky ? 'sticky top-0 z-10 bg-card/95 backdrop-blur-sm' : ''}`}>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className={`text-left ${effectiveHeaderPadding} ${scheme.headerText} whitespace-nowrap ${!isSubjectsVariant ? 'font-semibold' : ''}`}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+          </table>
+          <div
+            ref={scrollContainerRef}
+            className="overflow-y-auto overflow-x-auto"
+            style={{ height: scrollHeight }}
+          >
+            <div style={{ height: totalSize, position: 'relative' }}>
+              {virtualItems.map((virtualItem) => {
+                const row = rows[virtualItem.index]
+                if (!row) return null
+                const rowId = getRowId?.(row.original)
+                const isSelected = selectedRowId != null && rowId != null && selectedRowId === rowId
+                return (
+                  <div
+                    key={virtualItem.key}
+                    role="row"
+                    ref={isSelected ? selectedVirtualRowRef : undefined}
+                    onClick={() => onRowClick?.(row.original)}
+                    className={`grid transition-colors ${scheme.hoverBg} ${isSubjectsVariant ? 'border-b border-border/40' : scheme.rowBorder} ${onRowClick ? 'cursor-pointer' : ''} ${isSelected ? selectedRowBg : ''} ${getRowClassName?.(row.original) ?? ''}`}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      minWidth: 'max-content',
+                      transform: `translateY(${virtualItem.start}px)`,
+                      gridTemplateColumns: gridColumns,
+                    }}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <div
+                        key={cell.id}
+                        role="gridcell"
+                        className={`${effectiveRowPadding} ${responsiveText ? 'text-xs sm:text-sm' : ''} min-w-0 truncate`}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`overflow-hidden ${isSubjectsVariant ? 'rounded-none bg-card/80 backdrop-blur-sm' : `rounded-none border ${scheme.border}`}`}>

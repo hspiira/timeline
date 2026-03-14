@@ -81,6 +81,7 @@ function ProjectionsPage() {
                   <td className="py-2 px-3">{p.version}</td>
                   <td className="py-2 px-3 font-mono">{p.last_event_seq}</td>
                   <td className="py-2 px-3 text-muted-foreground text-xs">
+                    {/* system_latest_seq is optional from the API; not in OpenAPI ProjectionDefinitionResponse yet. Add to backend spec and run generate:api to type it. */}
                     {typeof (p as unknown as { system_latest_seq?: number }).system_latest_seq === 'number'
                       ? (() => {
                           const q = p as unknown as { last_event_seq: number; system_latest_seq: number }

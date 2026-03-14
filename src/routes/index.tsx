@@ -4,9 +4,10 @@ import { useStore } from '@tanstack/react-store'
 import { useQuery } from '@tanstack/react-query'
 import { authStore } from '@/lib/auth-store'
 import { LandingPage } from '@/components/landing/LandingPage'
-import { StatsGrid } from '@/components/dashboard/StatsGrid'
+import { StatsGrid, type StatsGridProps } from '@/components/dashboard/StatsGrid'
 import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard'
 import { useEventStream } from '@/hooks/useActivitySubscription'
+import { useHasSystemAccess } from '@/hooks/useHasSystemAccess'
 import { Loader2, AlertCircle, RefreshCw, Activity, Shield, Circle } from 'lucide-react'
 import { timelineApi, getAuthToken, getTenantId, getApiBaseUrl } from '@/lib/api-client'
 import { getApiErrorDisplay } from '@/lib/api-utils'
@@ -127,6 +128,7 @@ function ChainIntegrityCard() {
 
 function HomePage() {
   const authState = useStore(authStore)
+  const hasSystemAccess = useHasSystemAccess(!!authState.user)
 
   const [data, setData] = useState<DashboardData>({
     stats: null,
@@ -348,65 +350,73 @@ function HomePage() {
             </div>
           ) : (
           <StatsGrid
-            totalSubjects={totalSubjects}
-            totalEvents={totalEvents}
-            eventsToday={eventsToday}
-            activeConnectors={activeConnectors}
-            totalConnectors={connectorList.length}
-            openRepairs={openRepairs}
-            subjectsByType={data.stats?.subjects_by_type}
-            eventsByType={data.stats?.events_by_type}
+            {...({
+              totalSubjects,
+              totalEvents,
+              eventsToday,
+              activeConnectors,
+              totalConnectors: connectorList.length,
+              openRepairs,
+              subjectsByType: data.stats?.subjects_by_type,
+              eventsByType: data.stats?.events_by_type,
+              showConnectorStat: hasSystemAccess !== false,
+            } satisfies StatsGridProps)}
           />
           )}
         </div>
 
-        {/* Integrity summary + Connector strip */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="lg:col-span-4">
+        {/* Integrity summary + Connector strip (Connectors card gated by hasSystemAccess) */}
+        <div className={cn(
+          'grid grid-cols-1 gap-4 md:gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500',
+          hasSystemAccess !== false ? 'lg:grid-cols-12' : ''
+        )}>
+          <div className={hasSystemAccess !== false ? 'lg:col-span-4' : 'lg:col-span-12'}>
             <ChainIntegrityCard />
           </div>
-          <div className="lg:col-span-8">
-            <div className="rounded-none border border-border bg-card p-4">
-              <h2 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                <Activity className="w-4 h-4 text-muted-foreground" />
-                Connectors
-                <span className="text-xs font-normal text-muted-foreground">
-                  {activeConnectors} of {connectorList.length} running
-                </span>
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {connectorList.length === 0 ? (
-                  <span className="text-sm text-muted-foreground">No connector data</span>
-                ) : (
-                  connectorList.map((c, i) => {
-                    const status = (c.status ?? 'unknown').toLowerCase()
-                    const isOk = status === 'running' || status === 'ok'
-                    const isWarn = status === 'degraded'
-                    return (
-                      <div
-                        key={c.connector_id ?? i}
-                        className={cn(
-                          'inline-flex items-center gap-1.5 px-2 py-1 rounded-none border text-xs',
-                          isOk && 'border-status-ok/50 bg-status-ok/10 text-status-ok',
-                          isWarn && 'border-status-warn/50 bg-status-warn/10 text-status-warn',
-                          !isOk && !isWarn && 'border-status-error/50 bg-status-error/10 text-status-error'
-                        )}
-                      >
-                        <Circle className="w-2 h-2 fill-current" />
-                        <span>{c.connector_id ?? `Connector ${i + 1}`}</span>
-                      </div>
-                    )
-                  })
-                )}
+          {hasSystemAccess !== false && (
+            <div className="lg:col-span-8">
+              <div className="rounded-none border border-border bg-card p-4">
+                <h2 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-muted-foreground" />
+                  Connectors
+                  <span className="text-xs font-normal text-muted-foreground">
+                    {activeConnectors} of {connectorList.length} running
+                  </span>
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {connectorList.length === 0 ? (
+                    <span className="text-sm text-muted-foreground">No connector data</span>
+                  ) : (
+                    connectorList.map((c, i) => {
+                      const status = (c.status ?? 'unknown').toLowerCase()
+                      const isOk = status === 'running' || status === 'ok'
+                      const isWarn = status === 'degraded'
+                      return (
+                        <div
+                          key={c.connector_id ?? i}
+                          className={cn(
+                            'inline-flex items-center gap-1.5 px-2 py-1 rounded-none border text-xs',
+                            isOk && 'border-status-ok/50 bg-status-ok/10 text-status-ok',
+                            isWarn && 'border-status-warn/50 bg-status-warn/10 text-status-warn',
+                            !isOk && !isWarn && 'border-status-error/50 bg-status-error/10 text-status-error'
+                          )}
+                        >
+                          <Circle className="w-2 h-2 fill-current" />
+                          <span>{c.connector_id ?? `Connector ${i + 1}`}</span>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+                <Link
+                  to="/connectors"
+                  className="inline-block mt-2 text-xs font-medium text-primary hover:underline"
+                >
+                  View connector health →
+                </Link>
               </div>
-              <Link
-                to="/connectors"
-                className="inline-block mt-2 text-xs font-medium text-primary hover:underline"
-              >
-                View connector health →
-              </Link>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Real-time event feed */}

@@ -49,7 +49,7 @@ export const Route = createFileRoute('/subjects/$subjectId')({
   }),
 })
 
-function SubjectDetailPage() {
+export function SubjectDetailPage() {
   const { subjectId } = Route.useParams()
   const { tab: activeTab, event_id: eventIdFromUrl, event_type: searchEventType, from: searchFrom, to: searchTo } = Route.useSearch()
   const navigate = useNavigate()
@@ -974,6 +974,11 @@ function SubjectDetailPage() {
               </Button>
             )}
           </div>
+          {asOf && (
+            <p className="text-xs text-muted-foreground mb-2" title={asOf}>
+              Sent as UTC: {asOf}
+            </p>
+          )}
           {derivedStateLoading ? (
             <div className="flex items-center gap-2 text-muted-foreground">
               <LoadingIcon size="sm" />

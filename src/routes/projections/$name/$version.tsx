@@ -1,6 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { timelineApi } from '@/lib/api-client'
 import { getTenantId } from '@/lib/api-client'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
@@ -8,7 +8,8 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
-import { AlertCircle, History } from 'lucide-react'
+import { AlertCircle, History, Wrench } from 'lucide-react'
+import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/projections/$name/$version')({
   beforeLoad: () => {
@@ -20,19 +21,54 @@ export const Route = createFileRoute('/projections/$name/$version')({
   component: ProjectionStatePage,
 })
 
+type ProjectionDefinitionResponse = components['schemas']['ProjectionDefinitionResponse']
+
 function ProjectionStatePage() {
   useRequireAuth()
+  const queryClient = useQueryClient()
   const { name, version } = Route.useParams()
   const { subject_id } = Route.useSearch()
   const [subjectId, setSubjectId] = useState(subject_id ?? '')
   const [viewMode, setViewMode] = useState<'json' | 'table'>('json')
   const [asOf, setAsOf] = useState('')
   const [replayAsOf, setReplayAsOf] = useState<string | null>(null)
+  const [rebuildMessage, setRebuildMessage] = useState<string | null>(null)
+  const [rebuildLoading, setRebuildLoading] = useState(false)
   const tenantId = getTenantId()
 
   const versionNum = Number(version)
   const effectiveSubjectId = subject_id || subjectId
   const asOfParam = replayAsOf || undefined
+
+  const { data: projections = [], isLoading: projectionsLoading } = useQuery({
+    queryKey: ['projections', tenantId ?? ''],
+    queryFn: async () => {
+      if (!tenantId) return []
+      const res = await timelineApi.projections.list(tenantId)
+      if (res.error || !res.data) return []
+      return res.data
+    },
+    enabled: !!tenantId && !Number.isNaN(versionNum),
+  })
+
+  // system_latest_seq is optional from the API; not in OpenAPI ProjectionDefinitionResponse yet.
+  const projection = projections.find(
+    (p) => p.name === name && p.version === versionNum
+  ) as (ProjectionDefinitionResponse & { system_latest_seq?: number }) | undefined
+
+  // Normalize as-of to ISO (same as subject State tab) so API gets a well-defined value
+  const asOfDisplay =
+    replayAsOf != null && replayAsOf !== ''
+      ? (() => {
+          const d = new Date(replayAsOf)
+          const y = d.getFullYear()
+          const m = String(d.getMonth() + 1).padStart(2, '0')
+          const day = String(d.getDate()).padStart(2, '0')
+          const h = String(d.getHours()).padStart(2, '0')
+          const min = String(d.getMinutes()).padStart(2, '0')
+          return `${y}-${m}-${day}T${h}:${min}`
+        })()
+      : asOf
 
   const { data: stateData, isLoading, error } = useQuery({
     queryKey: ['projection-state', tenantId ?? '', name, versionNum, effectiveSubjectId, asOfParam],
@@ -53,6 +89,34 @@ function ProjectionStatePage() {
 
   const stateObj = stateData?.state as Record<string, unknown> | undefined
 
+  const handleRebuild = async () => {
+    if (!tenantId || Number.isNaN(versionNum)) return
+    setRebuildLoading(true)
+    setRebuildMessage(null)
+    try {
+      const res = await timelineApi.projections.rebuild(tenantId, name, versionNum)
+      const status = res.response?.status
+      if (status === 202) {
+        setRebuildMessage('Rebuild started. Watermark will reset and catch up; refresh or revisit to see progress.')
+        await queryClient.invalidateQueries({ queryKey: ['projections', tenantId ?? ''] })
+      } else {
+        setRebuildMessage(res.error ? String(res.error) : 'Rebuild request failed.')
+      }
+    } catch (err) {
+      setRebuildMessage(err instanceof Error ? err.message : 'Rebuild failed.')
+    } finally {
+      setRebuildLoading(false)
+    }
+  }
+
+  const lagText =
+    projection && typeof projection.system_latest_seq === 'number'
+      ? (() => {
+          const lag = projection.system_latest_seq - projection.last_event_seq
+          return lag <= 0 ? 'Up to date' : `${lag} events behind`
+        })()
+      : null
+
   if (!tenantId) {
     return (
       <div className="p-4 text-sm text-muted-foreground">Select a tenant.</div>
@@ -72,6 +136,42 @@ function ProjectionStatePage() {
           {name} <span className="text-muted-foreground font-normal">v{version}</span>
         </h1>
       </div>
+
+      {projectionsLoading && (
+        <div className="mb-4">
+          <Skeleton className="h-6 w-48" />
+        </div>
+      )}
+      {!projectionsLoading && projection && (
+        <div className="mb-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+          <span>
+            Watermark (seq): <span className="font-mono text-foreground">{projection.last_event_seq}</span>
+          </span>
+          <span>
+            Lag: {lagText ?? '—'}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRebuild}
+            disabled={rebuildLoading}
+          >
+            <Wrench className="w-3.5 h-3.5" />
+            Rebuild from genesis
+          </Button>
+          {rebuildMessage && (
+            <span className="text-xs text-foreground/80">{rebuildMessage}</span>
+          )}
+        </div>
+      )}
+      {!projectionsLoading && projections.length > 0 && !projection && (
+        <p className="mb-4 text-sm text-muted-foreground">
+          Projection not found.{' '}
+          <Link to="/projections" className="text-primary hover:underline">
+            Back to Projections
+          </Link>
+        </p>
+      )}
 
       {!subject_id && (
         <div className="mb-4 flex gap-2 items-center">
@@ -99,11 +199,15 @@ function ProjectionStatePage() {
             <div className="flex gap-2 items-center">
               <input
                 type="datetime-local"
-                value={asOf}
+                value={asOfDisplay}
                 onChange={(e) => setAsOf(e.target.value)}
                 className="px-3 py-2 rounded-none border border-border bg-background text-foreground text-sm"
               />
-              <Button variant="outline" size="sm" onClick={() => setReplayAsOf(asOf || null)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReplayAsOf(asOf ? new Date(asOf).toISOString() : null)}
+              >
                 Replay
               </Button>
               {replayAsOf && (
@@ -132,7 +236,7 @@ function ProjectionStatePage() {
 
           {isLoading && <Skeleton className="h-40 w-full" />}
           {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none flex items-center gap-2 text-sm">
+            <div className="p-3 bg-destructive/10 border border-destructive/50 rounded-none flex items-center gap-2 text-sm text-destructive">
               <AlertCircle className="w-4 h-4 shrink-0" />
               {String(error)}
             </div>
@@ -140,7 +244,7 @@ function ProjectionStatePage() {
           {stateData && stateObj && (
             <div className="bg-card/80 rounded-none border border-border/50 p-4">
               {replayAsOf && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
+                <p className="text-xs text-muted-foreground mb-2">
                   Showing state as of {replayAsOf} (read-only replay)
                 </p>
               )}

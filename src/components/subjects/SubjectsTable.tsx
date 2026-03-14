@@ -153,6 +153,8 @@ export function SubjectsTable({
     setSelectedSubjectId((prev) => (prev === subject.id ? null : subject.id))
   }
 
+  const useVirtualScroll = data.length > 50
+
   return (
     <div className="overflow-hidden">
       <DataTable<SubjectWithMetadata>
@@ -163,9 +165,12 @@ export function SubjectsTable({
         selectedRowId={selectedSubjectId}
         getRowClassName={(row) => (row.integrityStatus === 'broken' ? 'bg-status-warn/10' : '')}
         variant="subjects"
-        enablePagination
+        enablePagination={!useVirtualScroll}
         pageSize={20}
         isEmpty={data.length === 0}
+        enableVirtualization={useVirtualScroll}
+        virtualScrollThreshold={50}
+        virtualScrollHeight="min(400px, 60vh)"
       />
     </div>
   )

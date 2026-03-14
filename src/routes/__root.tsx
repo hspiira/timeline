@@ -13,6 +13,7 @@ import { useEffect } from 'react'
 import { LogOut, Bell } from 'lucide-react'
 
 import TanStackQueryDevtools from '@/integrations/tanstack-query/devtools'
+import { getApiBaseUrl } from '@/lib/api-client'
 import { authStore, authActions } from '@/lib/auth-store'
 import { ThemeToggle } from '@/components/theme/theme-toggler'
 import { ThemeProvider } from '@/components/theme/theme-provider'
@@ -34,31 +35,45 @@ interface MyRouterContext {
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   notFoundComponent: () => <NotFound fullPage />,
-  head: () => ({
-    meta: [
-      {
-        charSet: 'utf-8',
-      },
-      {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
-      },
-      {
-        title: 'Timeline',
-      },
-    ],
-    links: [
-      {
-        rel: 'stylesheet',
-        href: appCss,
-      },
-      {
-        rel: 'icon',
-        type: 'image/svg+xml',
-        href: '/logo.svg',
-      },
-    ],
-  }),
+  head: () => {
+    const apiOrigin = new URL(getApiBaseUrl()).origin
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data:",
+      `connect-src 'self' ${apiOrigin}`,
+    ].join('; ')
+    return {
+      meta: [
+        {
+          charSet: 'utf-8',
+        },
+        {
+          name: 'viewport',
+          content: 'width=device-width, initial-scale=1',
+        },
+        {
+          title: 'Timeline',
+        },
+        {
+          httpEquiv: 'Content-Security-Policy',
+          content: csp,
+        },
+      ],
+      links: [
+        {
+          rel: 'stylesheet',
+          href: appCss,
+        },
+        {
+          rel: 'icon',
+          type: 'image/svg+xml',
+          href: '/logo.svg',
+        },
+      ],
+    }
+  },
 
   shellComponent: RootDocument,
 })

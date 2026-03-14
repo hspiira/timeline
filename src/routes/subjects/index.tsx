@@ -14,6 +14,7 @@ import { useStore } from '@tanstack/react-store'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { timelineApi } from '@/lib/api-client'
 import { authStore } from '@/lib/auth-store'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useSubjects } from '@/hooks/useSubjects'
 import { useToast } from '@/hooks/useToast'
 import { SubjectsTable } from '@/components/subjects/SubjectsTable'
@@ -45,6 +46,7 @@ function SubjectsPage() {
   const [filterType, setFilterType] = useState<string>('')
   const [filterIntegrity, setFilterIntegrity] = useState<string>('') // '' = All, valid, broken, unknown
   const [search, setSearch] = useState('')
+  const searchDebounced = useDebouncedValue(search, 300)
   // Always start with 'grid' so SSR and first client render match; read localStorage after mount
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [hasMounted, setHasMounted] = useState(false)
@@ -65,25 +67,25 @@ function SubjectsPage() {
   // Get filtered subjects (list; no search param sent to list API)
   const { subjects, isLoading, isError, error } = useSubjects({ filterType })
 
-  // Search API: when user has typed a query, search subjects
+  // Search API: debounced so we don't hit the API on every keystroke
   const searchQuery = useQuery({
-    queryKey: ['search', 'subjects', search.trim()],
+    queryKey: ['search', 'subjects', searchDebounced.trim()],
     queryFn: async () => {
       const { data, error: searchError } = await timelineApi.search.query({
-        q: search.trim(),
+        q: searchDebounced.trim(),
         scope: 'subjects',
         limit: 100,
       })
       if (searchError) throw new Error('Search failed')
       return data?.results ?? []
     },
-    enabled: search.trim().length > 0,
+    enabled: searchDebounced.trim().length > 0,
   })
 
   // Display: when search is active use search results (mapped to SubjectWithMetadata-like); otherwise use list; then filter by integrity
   const displaySubjects = useMemo(() => {
     let list: SubjectWithMetadata[]
-    if (search.trim().length > 0) {
+    if (searchDebounced.trim().length > 0) {
       if (!searchQuery.data) return []
       list = (searchQuery.data as Array<{ resource_type?: string; id: string; display_title?: string; snippet?: string | null }>)
         .filter((r) => r.resource_type === 'subject')
@@ -103,11 +105,11 @@ function SubjectsPage() {
     }
     if (!filterIntegrity) return list
     return list.filter((s) => (s.integrityStatus ?? 'unknown') === filterIntegrity)
-  }, [search, searchQuery.data, subjects, filterIntegrity])
+  }, [searchDebounced, searchQuery.data, subjects, filterIntegrity])
 
-  const displayLoading = search.trim().length > 0 ? searchQuery.isLoading : isLoading
-  const displayError = search.trim().length > 0 ? searchQuery.error : error
-  const displayIsError = search.trim().length > 0 ? searchQuery.isError : isError
+  const displayLoading = searchDebounced.trim().length > 0 ? searchQuery.isLoading : isLoading
+  const displayError = searchDebounced.trim().length > 0 ? searchQuery.error : error
+  const displayIsError = searchDebounced.trim().length > 0 ? searchQuery.isError : isError
 
   // Subject type options: from Subject types API only (Settings → Subject types). Used for filter and create modal.
   const subjectTypeOptions = useMemo(

@@ -16,7 +16,12 @@ const config = defineConfig({
       projects: ['./tsconfig.json'],
     }),
     tailwindcss(),
-    tanstackStart(),
+    tanstackStart({
+      router: {
+        // Enable route-level code splitting. Start's types omit this; runtime may still apply it.
+        autoCodeSplitting: true,
+      } as { entry?: string; basepath?: string },
+    }),
     viteReact(),
     ...(process.env.ANALYZE === '1'
       ? [

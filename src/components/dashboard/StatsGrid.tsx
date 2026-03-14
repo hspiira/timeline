@@ -1,7 +1,8 @@
 import { Users, Calendar, Activity, Wrench } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { StatCard } from '../shared/StatCard'
 
-interface StatsGridProps {
+export interface StatsGridProps {
   totalSubjects: number
   totalEvents: number
   eventsToday: number
@@ -12,6 +13,8 @@ interface StatsGridProps {
   eventsByType?: Record<string, number>
   /** When true, only render the three supporting stats in a vertical column (hero is shown elsewhere) */
   sidebar?: boolean
+  /** When false, hide the Active connectors stat (e.g. when user has no connector access) */
+  showConnectorStat?: boolean
 }
 
 export function StatsGrid({
@@ -22,6 +25,7 @@ export function StatsGrid({
   totalConnectors,
   openRepairs,
   sidebar = false,
+  showConnectorStat = true,
 }: StatsGridProps) {
   if (sidebar) {
     return (
@@ -33,13 +37,15 @@ export function StatsGrid({
           icon={Users}
           variant="compact"
         />
-        <StatCard
-          label="Active connectors"
-          value={activeConnectors}
-          subtitle={`${totalConnectors} total`}
-          icon={Activity}
-          variant="compact"
-        />
+        {showConnectorStat && (
+          <StatCard
+            label="Active connectors"
+            value={activeConnectors}
+            subtitle={`${totalConnectors} total`}
+            icon={Activity}
+            variant="compact"
+          />
+        )}
         <StatCard
           label="Open repairs"
           value={openRepairs}
@@ -51,8 +57,20 @@ export function StatsGrid({
     )
   }
 
+  const connectorCard = showConnectorStat ? (
+    <StatCard
+      label="Active connectors"
+      value={activeConnectors}
+      subtitle={`${activeConnectors} / ${totalConnectors} running`}
+      icon={Activity}
+    />
+  ) : null
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+    <div className={cn(
+      'grid gap-4 md:gap-6',
+      showConnectorStat ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2 lg:grid-cols-3'
+    )}>
       <StatCard
         label="Total events"
         value={totalEvents}
@@ -65,12 +83,7 @@ export function StatsGrid({
         subtitle="In tenant"
         icon={Users}
       />
-      <StatCard
-        label="Active connectors"
-        value={activeConnectors}
-        subtitle={`${activeConnectors} / ${totalConnectors} running`}
-        icon={Activity}
-      />
+      {connectorCard}
       <StatCard
         label="Open repairs"
         value={openRepairs}
