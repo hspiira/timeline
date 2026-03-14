@@ -8,9 +8,13 @@ interface UseSubjectsProps {
   search?: string
 }
 
+export type IntegrityStatus = 'valid' | 'broken' | 'unknown'
+
 export interface SubjectWithMetadata extends SubjectResponse {
   eventCount: number
   lastEventDate?: string
+  /** Chain integrity status from verify API; undefined until fetched */
+  integrityStatus?: IntegrityStatus
 }
 
 export function useSubjects({ filterType, search: _search }: UseSubjectsProps = {}) {
@@ -38,33 +42,31 @@ export function useSubjects({ filterType, search: _search }: UseSubjectsProps = 
         return []
       }
 
-      // Fetch event counts for each subject in parallel
+      // Fetch event counts and integrity status per subject in parallel
       const subjectsWithMetadata = await Promise.all(
         data.map(async (subject: SubjectResponse): Promise<SubjectWithMetadata> => {
-          try {
-            const { data: eventsResponse } = await timelineApi.events.list(subject.id)
+          const [eventsResult, verifyResult] = await Promise.all([
+            timelineApi.events.list(subject.id),
+            timelineApi.integrity.verifySubject(subject.id).catch(() => ({ data: null, error: true })),
+          ])
 
-            // events.list returns a flat array of EventListResponse
-            let eventCount = 0
-            let lastEventDate: string | undefined
+          let eventCount = 0
+          let lastEventDate: string | undefined
+          if (eventsResult.data && eventsResult.data.length > 0) {
+            eventCount = eventsResult.data.length
+            lastEventDate = eventsResult.data[0].event_time
+          }
 
-            if (eventsResponse && eventsResponse.length > 0) {
-              eventCount = eventsResponse.length
-              // Events are sorted by date descending, so first item is most recent
-              lastEventDate = eventsResponse[0].event_time
-            }
+          let integrityStatus: SubjectWithMetadata['integrityStatus'] = 'unknown'
+          if (!verifyResult.error && verifyResult.data && 'is_chain_valid' in verifyResult.data) {
+            integrityStatus = (verifyResult.data as { is_chain_valid: boolean }).is_chain_valid ? 'valid' : 'broken'
+          }
 
-            return {
-              ...subject,
-              eventCount,
-              lastEventDate,
-            }
-          } catch {
-            // If fetching events fails, just return subject with 0 count
-            return {
-              ...subject,
-              eventCount: 0,
-            }
+          return {
+            ...subject,
+            eventCount,
+            lastEventDate,
+            integrityStatus,
           }
         })
       )

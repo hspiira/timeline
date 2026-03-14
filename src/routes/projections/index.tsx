@@ -65,6 +65,7 @@ function ProjectionsPage() {
                 <th className="py-2 px-3">Name</th>
                 <th className="py-2 px-3">Version</th>
                 <th className="py-2 px-3">Watermark (seq)</th>
+                <th className="py-2 px-3">Lag</th>
                 <th className="py-2 px-3">Subject type</th>
                 <th className="py-2 px-3">Active</th>
                 <th className="py-2 px-3 w-24" />
@@ -79,6 +80,15 @@ function ProjectionsPage() {
                   <td className="py-2 px-3 font-medium">{p.name}</td>
                   <td className="py-2 px-3">{p.version}</td>
                   <td className="py-2 px-3 font-mono">{p.last_event_seq}</td>
+                  <td className="py-2 px-3 text-muted-foreground text-xs">
+                    {typeof (p as unknown as { system_latest_seq?: number }).system_latest_seq === 'number'
+                      ? (() => {
+                          const q = p as unknown as { last_event_seq: number; system_latest_seq: number }
+                          const lag = q.system_latest_seq - q.last_event_seq
+                          return lag <= 0 ? 'Up to date' : `${lag} events behind`
+                        })()
+                      : '—'}
+                  </td>
                   <td className="py-2 px-3 text-muted-foreground">{p.subject_type ?? '—'}</td>
                   <td className="py-2 px-3">{p.active ? 'Yes' : 'No'}</td>
                   <td className="py-2 px-3">

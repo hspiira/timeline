@@ -57,6 +57,15 @@ code {
   --sidebar-ring: oklch(0.40 0 0);
   --dashboard-accent: oklch(0.55 0.12 195);
   --dashboard-accent-muted: oklch(0.92 0.04 195);
+  /* Semantic status (integrity badges, connector status) */
+  --status-ok: oklch(0.55 0.15 145);
+  --status-ok-foreground: oklch(0.99 0 0);
+  --status-warn: oklch(0.65 0.15 70);
+  --status-warn-foreground: oklch(0.20 0.05 70);
+  --status-error: oklch(0.55 0.22 27);
+  --status-error-foreground: oklch(0.99 0 0);
+  --status-repair: oklch(0.55 0.15 270);
+  --status-repair-foreground: oklch(0.99 0 0);
 }
 
 .dark {
@@ -94,6 +103,14 @@ code {
   --sidebar-ring: oklch(0.50 0 0);
   --dashboard-accent: oklch(0.70 0.10 195);
   --dashboard-accent-muted: oklch(0.22 0.04 195);
+  --status-ok: oklch(0.60 0.18 145);
+  --status-ok-foreground: oklch(0.99 0 0);
+  --status-warn: oklch(0.70 0.16 70);
+  --status-warn-foreground: oklch(0.15 0.05 70);
+  --status-error: oklch(0.55 0.22 27);
+  --status-error-foreground: oklch(0.99 0 0);
+  --status-repair: oklch(0.60 0.18 270);
+  --status-repair-foreground: oklch(0.99 0 0);
 }
 
 .font-display {
@@ -140,6 +157,14 @@ code {
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-status-ok: var(--status-ok);
+  --color-status-ok-foreground: var(--status-ok-foreground);
+  --color-status-warn: var(--status-warn);
+  --color-status-warn-foreground: var(--status-warn-foreground);
+  --color-status-error: var(--status-error);
+  --color-status-error-foreground: var(--status-error-foreground);
+  --color-status-repair: var(--status-repair);
+  --color-status-repair-foreground: var(--status-repair-foreground);
 }
 
 @layer base {

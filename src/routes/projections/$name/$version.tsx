@@ -91,10 +91,10 @@ function ProjectionStatePage() {
           <div className="mb-4 p-3 bg-muted/30 rounded-none border border-border/50">
             <h2 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
               <History className="w-4 h-4" />
-              Point-in-time replay (read-only)
+              As-of (time-travel) — read-only
             </h2>
             <p className="text-xs text-muted-foreground mb-2">
-              Enter an ISO-8601 datetime to view state as of that time. This does not modify live state.
+              View state as of a specific time. Enter an ISO-8601 datetime. This does not modify live state.
             </p>
             <div className="flex gap-2 items-center">
               <input

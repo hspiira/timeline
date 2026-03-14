@@ -1,16 +1,20 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useEffect, useCallback, useState } from 'react'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useFetchWithError } from '@/hooks/useFetchWithError'
+import { useQuery } from '@tanstack/react-query'
 import { timelineApi } from '@/lib/api-client'
 import { formatFullDateTime } from '@/lib/format-date'
 import { CheckCircle, AlertTriangle, AlertCircle, DownloadIcon, Wrench, ChevronDown, ChevronRight, Boxes, FileCheck } from 'lucide-react'
 import { ChainVisualization } from '@/components/verify/ChainVisualization'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { SkeletonBreadcrumbs, Skeleton } from '@/components/ui/Skeleton'
 import type { components } from '@/lib/timeline-api'
 import { Button } from '@/components/ui/button'
+
+type IntegrityEpochItem = components['schemas']['IntegrityEpochItem']
 
 export const Route = createFileRoute('/verify/$subjectId')({
   beforeLoad: () => {
@@ -100,6 +104,16 @@ function VerifyPage() {
   const navigate = useNavigate()
   const { subjectId } = Route.useParams()
   const [expandedRow, setExpandedRow] = useState<number | null>(null)
+
+  const { data: epochs = [] } = useQuery({
+    queryKey: ['integrity', 'epochs', subjectId],
+    queryFn: async () => {
+      const res = await timelineApi.integrity.listEpochs(subjectId)
+      if (res.error || !res.data) return []
+      return res.data as IntegrityEpochItem[]
+    },
+    enabled: !!authState.user && !!subjectId,
+  })
 
   const fetchVerification = useCallback(
     () => timelineApi.integrity.verifySubjectDetail(subjectId),
@@ -240,6 +254,49 @@ function VerifyPage() {
 
       {verification && (
         <>
+          {/* Epoch-level integrity dashboard */}
+          {epochs.length > 0 && (
+            <div className="bg-card/80 rounded-none border border-border/50 p-3 mb-3">
+              <h2 className="text-sm font-semibold text-foreground mb-2">Epochs</h2>
+              <p className="text-xs text-muted-foreground mb-2">Per-epoch status and event counts. Use the detail table below for full chain verification.</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-border/50 text-left text-muted-foreground font-medium">
+                      <th className="py-2 pr-2">#</th>
+                      <th className="py-2 pr-2">Status</th>
+                      <th className="py-2 pr-2">Events</th>
+                      <th className="py-2 pr-2">Opened</th>
+                      <th className="py-2 pr-2">Sealed</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {epochs.map((epoch: IntegrityEpochItem) => (
+                      <tr key={epoch.id} className="border-b border-border/30 hover:bg-muted/20">
+                        <td className="py-2 pr-2 font-mono">{epoch.epoch_number}</td>
+                        <td className="py-2 pr-2">
+                          <StatusBadge status={epoch.status} label={epoch.status} />
+                        </td>
+                        <td className="py-2 pr-2">{epoch.event_count}</td>
+                        <td className="py-2 pr-2 text-muted-foreground">{formatFullDateTime(epoch.opened_at)}</td>
+                        <td className="py-2 pr-2 text-muted-foreground">
+                          {epoch.sealed_at ? formatFullDateTime(epoch.sealed_at) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Link
+                to="/subjects/$subjectId/epochs"
+                params={{ subjectId }}
+                className="inline-block mt-2 text-xs font-medium text-primary hover:underline"
+              >
+                Open full epochs view →
+              </Link>
+            </div>
+          )}
+
           {/* Header and Stats Row */}
           <div className="mb-3">
             <div className="flex items-center gap-2 mb-2 flex-wrap">

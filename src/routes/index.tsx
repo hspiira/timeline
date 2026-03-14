@@ -1,26 +1,23 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useStore } from '@tanstack/react-store'
+import { useQuery } from '@tanstack/react-query'
 import { authStore } from '@/lib/auth-store'
 import { LandingPage } from '@/components/landing/LandingPage'
-import { WeekDataCard } from '@/components/dashboard/WeekDataCard'
-import { TodayTodosCard } from '@/components/dashboard/TodayTodosCard'
-import { HelpCenterCard } from '@/components/dashboard/HelpCenterCard'
-import { CommonAppsCard } from '@/components/dashboard/CommonAppsCard'
-import { EmployeeDataCard } from '@/components/dashboard/EmployeeDataCard'
-import { UrgentTasksCard } from '@/components/dashboard/UrgentTasksCard'
-import { AnnouncementsCard } from '@/components/dashboard/AnnouncementsCard'
-import { TurnoverChartCard } from '@/components/dashboard/TurnoverChartCard'
-import { LatestTurnoverCard } from '@/components/dashboard/LatestTurnoverCard'
+import { StatsGrid } from '@/components/dashboard/StatsGrid'
 import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard'
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
+import { useEventStream } from '@/hooks/useActivitySubscription'
+import { Loader2, AlertCircle, RefreshCw, Activity, Shield, Circle } from 'lucide-react'
 import { timelineApi } from '@/lib/api-client'
 import { getApiErrorDisplay } from '@/lib/api-utils'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import type { components } from '@/lib/timeline-api'
 import type { WorkflowResponse } from '@/lib/types'
+import { cn } from '@/lib/utils'
 
 type DashboardStatsResponse = components['schemas']['DashboardStatsResponse']
+
+type ConnectorHealthItem = { connector_id?: string; status?: string; last_event_at?: string; error?: string; lag?: number }
 
 export const Route = createFileRoute('/')({
   beforeLoad: () => {
@@ -46,8 +43,29 @@ function HomePage() {
     stats: null,
     workflows: [],
   })
-  const [_loading, setLoading] = useState(true)
+  const [, setLoading] = useState(true)
   const [errors, setErrors] = useState<FetchError[]>([])
+
+  const { isConnected } = useEventStream({
+    enabled: !!authState.user,
+    onNewActivity: () => fetchDashboard(),
+  })
+
+  const { data: connectorsData } = useQuery({
+    queryKey: ['connectors', 'health'],
+    queryFn: async () => {
+      const res = await timelineApi.connectors.health()
+      if (res.error) return { connectors: [] as ConnectorHealthItem[], status: 'unknown' }
+      const body = res.data as { connectors?: unknown[]; status?: string }
+      return { connectors: body?.connectors ?? [], status: body?.status ?? 'unknown' }
+    },
+    enabled: !!authState.user,
+    refetchInterval: 15_000,
+  })
+  const connectorList = (connectorsData?.connectors ?? []) as ConnectorHealthItem[]
+  const activeConnectors = connectorList.filter(
+    (c) => c.status === 'running' || c.status === 'ok'
+  ).length
 
   const eventsToday = useMemo(() => {
     const recent = data.stats?.recent_events ?? []
@@ -162,15 +180,9 @@ function HomePage() {
     return 'Good evening'
   }, [])
 
-  const todayEvents = useMemo(() => {
-    const recent = data.stats?.recent_events ?? []
-    const today = new Date().toDateString()
-    return recent
-      .filter((e) => new Date(e.event_time).toDateString() === today)
-      .map((e) => ({ id: e.id, event_time: e.event_time, event_type: e.event_type, subject_id: e.subject_id }))
-  }, [data.stats?.recent_events])
-
-  const loading = data.stats === null && errors.length === 0
+  const loadingStats = data.stats === null && errors.length === 0
+  const totalSubjects = data.stats?.total_subjects ?? 0
+  const totalDocuments = data.stats?.total_documents ?? 0
 
   return (
     <div className="dashboard-page min-h-[calc(100vh-4rem)]">
@@ -197,13 +209,18 @@ function HomePage() {
               <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground tracking-tight">
                 {greeting}, {username}
               </h1>
-              <p className="mt-0.5 text-sm text-muted-foreground">Here’s your timeline at a glance.</p>
-            </div>
-            <div className="flex items-baseline gap-2 flex-shrink-0">
-              <span className="font-display text-3xl sm:text-4xl font-bold text-foreground tabular-nums">
-                {totalEvents.toLocaleString()}
-              </span>
-              <span className="text-sm text-muted-foreground whitespace-nowrap">events</span>
+              <p className="mt-0.5 text-sm text-muted-foreground flex items-center gap-2">
+                Event integrity at a glance.
+                {isConnected && (
+                  <span className="inline-flex items-center gap-1 text-status-ok font-medium">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-ok opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-status-ok" />
+                    </span>
+                    Live
+                  </span>
+                )}
+              </p>
             </div>
           </div>
         </header>
@@ -236,52 +253,95 @@ function HomePage() {
           </div>
         )}
 
-        {/* Top row: This week's data | Today's to-dos | Help center */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <WeekDataCard
+        {/* Stats row */}
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {loadingStats ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+              <div className="lg:col-span-2 h-24 rounded-none border border-border bg-muted/30 animate-pulse" />
+              <div className="flex gap-4 md:gap-6">
+                <div className="flex-1 h-24 rounded-none border border-border bg-muted/30 animate-pulse" />
+                <div className="flex-1 h-24 rounded-none border border-border bg-muted/30 animate-pulse" />
+              </div>
+            </div>
+          ) : (
+          <StatsGrid
+            totalSubjects={totalSubjects}
             totalEvents={totalEvents}
-            eventsByType={data.stats?.events_by_type}
+            totalDocuments={totalDocuments}
             eventsToday={eventsToday}
-            comparison={null}
-            loading={loading}
+            activeWorkflows={activeWorkflowsCount}
+            subjectsByType={data.stats?.subjects_by_type}
+            eventsByType={data.stats?.events_by_type}
           />
-          <TodayTodosCard todayEvents={todayEvents} loading={loading} />
-          <HelpCenterCard />
+          )}
         </div>
 
-        {/* Middle row: Common apps | Employee (subjects) data | Urgent | Announcements */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5">
-          <div className="md:col-span-4 space-y-6">
-            <CommonAppsCard />
-            <EmployeeDataCard
-              totalSubjects={data.stats?.total_subjects ?? 0}
-              subjectsByType={data.stats?.subjects_by_type}
-              onRefresh={fetchDashboard}
-              loading={loading}
-            />
+        {/* Integrity summary + Connector strip */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="lg:col-span-4">
+            <div className="rounded-none border border-border bg-card p-4">
+              <h2 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-muted-foreground" />
+                Chain integrity
+              </h2>
+              <p className="text-sm text-muted-foreground mb-3">
+                View and verify subject event chains.
+              </p>
+              <Link
+                to="/subjects"
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Browse subjects →
+              </Link>
+            </div>
           </div>
-          <div className="md:col-span-4">
-            <UrgentTasksCard count={0} onRefresh={fetchDashboard} loading={loading} />
-          </div>
-          <div className="md:col-span-4">
-            <AnnouncementsCard />
+          <div className="lg:col-span-8">
+            <div className="rounded-none border border-border bg-card p-4">
+              <h2 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                <Activity className="w-4 h-4 text-muted-foreground" />
+                Connectors
+                <span className="text-xs font-normal text-muted-foreground">
+                  {activeConnectors} of {connectorList.length} running
+                </span>
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {connectorList.length === 0 ? (
+                  <span className="text-sm text-muted-foreground">No connector data</span>
+                ) : (
+                  connectorList.map((c, i) => {
+                    const status = (c.status ?? 'unknown').toLowerCase()
+                    const isOk = status === 'running' || status === 'ok'
+                    const isWarn = status === 'degraded'
+                    return (
+                      <div
+                        key={c.connector_id ?? i}
+                        className={cn(
+                          'inline-flex items-center gap-1.5 px-2 py-1 rounded-none border text-xs',
+                          isOk && 'border-status-ok/50 bg-status-ok/10 text-status-ok',
+                          isWarn && 'border-status-warn/50 bg-status-warn/10 text-status-warn',
+                          !isOk && !isWarn && 'border-status-error/50 bg-status-error/10 text-status-error'
+                        )}
+                      >
+                        <Circle className="w-2 h-2 fill-current" />
+                        <span>{c.connector_id ?? `Connector ${i + 1}`}</span>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+              <Link
+                to="/connectors"
+                className="inline-block mt-2 text-xs font-medium text-primary hover:underline"
+              >
+                View connector health →
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* Bottom row: Activity trend (large chart) | Latest changes + Recent activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5">
-          <div className="lg:col-span-7">
-            <TurnoverChartCard
-              totalSubjects={data.stats?.total_subjects ?? 0}
-              totalEvents={totalEvents}
-              recentEvents={data.stats?.recent_events ?? undefined}
-              loading={loading}
-            />
-          </div>
-          <div className="lg:col-span-5 space-y-6">
-            <LatestTurnoverCard />
-            <RecentActivityCard limit={8} recentEvents={data.stats?.recent_events} />
-          </div>
+        {/* Real-time event feed */}
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <RecentActivityCard limit={8} recentEvents={data.stats?.recent_events} />
         </div>
       </div>
     </div>

@@ -27,6 +27,8 @@ export interface EventBlockProps {
   index: number
   isGenesis?: boolean
   documentCount?: number
+  /** When set, row is clickable and calls this instead of navigating to event page (e.g. for drawer) */
+  onEventClick?: (event: EventResponse) => void
 }
 
 function HashCell({ hash, isLink, copiedHash, onCopy }: {
@@ -56,8 +58,44 @@ function HashCell({ hash, isLink, copiedHash, onCopy }: {
   )
 }
 
-export function EventBlockRow({ event, index, isGenesis = false, documentCount = 0 }: EventBlockProps) {
+function CellLink({
+  to,
+  params,
+  className,
+  children,
+  onEventClick,
+  event,
+}: {
+  to: string
+  params: { subjectId: string; eventId: string }
+  className?: string
+  children: React.ReactNode
+  onEventClick?: (event: EventResponse) => void
+  event: EventResponse
+}) {
+  if (onEventClick) {
+    return (
+      <span
+        role="button"
+        tabIndex={0}
+        onClick={(e) => { e.preventDefault(); onEventClick(event) }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEventClick(event) } }}
+        className={className}
+      >
+        {children}
+      </span>
+    )
+  }
+  return (
+    <Link to={to} params={params} className={className}>
+      {children}
+    </Link>
+  )
+}
+
+export function EventBlockRow({ event, index, isGenesis = false, documentCount = 0, onEventClick }: EventBlockProps) {
   const [copiedHash, setCopiedHash] = useState<string | null>(null)
+  const linkParams = { subjectId: event.subject_id, eventId: event.id }
 
   const copyHash = (hash: string, e: React.MouseEvent) => {
     e.preventDefault()
@@ -73,7 +111,7 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
   return (
     <tr className="group cursor-pointer">
       <td className={`${cell} ${colStyles.block} border-l rounded-none`}>
-        <Link to="/subjects/$subjectId/events/$eventId" params={{ subjectId: event.subject_id, eventId: event.id }} className="flex items-center justify-center">
+        <CellLink to="/subjects/$subjectId/events/$eventId" params={linkParams} onEventClick={onEventClick} event={event} className="flex items-center justify-center">
           <div className={`w-7 h-7 rounded-none flex items-center justify-center ${
             isGenesis ? 'bg-primary/20 border-2 border-primary' : 'bg-muted border border-border'
           }`}>
@@ -81,36 +119,36 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
               {isGenesis ? 'G' : index.toString().padStart(2, '0')}
             </span>
           </div>
-        </Link>
+        </CellLink>
       </td>
 
       <td className={`${cell} ${colStyles.type}`}>
-        <Link to="/subjects/$subjectId/events/$eventId" params={{ subjectId: event.subject_id, eventId: event.id }} className="flex items-center gap-2">
+        <CellLink to="/subjects/$subjectId/events/$eventId" params={linkParams} onEventClick={onEventClick} event={event} className="flex items-center gap-2">
           <span className="font-medium text-sm text-foreground">{event.event_type}</span>
           {isGenesis && (
             <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary rounded-none shrink-0">
               Genesis
             </span>
           )}
-        </Link>
+        </CellLink>
       </td>
 
       <td className={`${cell} ${colStyles.version}`}>
-        <Link to="/subjects/$subjectId/events/$eventId" params={{ subjectId: event.subject_id, eventId: event.id }} className="block">
+        <CellLink to="/subjects/$subjectId/events/$eventId" params={linkParams} onEventClick={onEventClick} event={event} className="block">
           <span className="text-xs text-muted-foreground">v{event.schema_version}</span>
-        </Link>
+        </CellLink>
       </td>
 
       <td className={`${cell} ${colStyles.date} text-xs text-muted-foreground whitespace-nowrap`}>
-        <Link to="/subjects/$subjectId/events/$eventId" params={{ subjectId: event.subject_id, eventId: event.id }} className="block">
+        <CellLink to="/subjects/$subjectId/events/$eventId" params={linkParams} onEventClick={onEventClick} event={event} className="block">
           {formatEventDate(eventDate)}
-        </Link>
+        </CellLink>
       </td>
 
       <td className={`${cell} ${colStyles.time} text-xs font-mono text-muted-foreground whitespace-nowrap`}>
-        <Link to="/subjects/$subjectId/events/$eventId" params={{ subjectId: event.subject_id, eventId: event.id }} className="block">
+        <CellLink to="/subjects/$subjectId/events/$eventId" params={linkParams} onEventClick={onEventClick} event={event} className="block">
           {formatEventTime(eventDate)}
-        </Link>
+        </CellLink>
       </td>
 
       <td className={`${cell} ${colStyles.hash}`}>
@@ -119,16 +157,16 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
 
       <td className={`${cell} ${colStyles.prevHash}`}>
         {isGenesis ? (
-          <Link to="/subjects/$subjectId/events/$eventId" params={{ subjectId: event.subject_id, eventId: event.id }} className="block">
+          <CellLink to="/subjects/$subjectId/events/$eventId" params={linkParams} onEventClick={onEventClick} event={event} className="block">
             <span className="text-xs text-muted-foreground">—</span>
-          </Link>
+          </CellLink>
         ) : (
           <HashCell hash={event.payload.previous_hash as string} isLink copiedHash={copiedHash} onCopy={copyHash} />
         )}
       </td>
 
       <td className={`${cell} ${colStyles.docs}`}>
-        <Link to="/subjects/$subjectId/events/$eventId" params={{ subjectId: event.subject_id, eventId: event.id }} className="flex items-center justify-center">
+        <CellLink to="/subjects/$subjectId/events/$eventId" params={linkParams} onEventClick={onEventClick} event={event} className="flex items-center justify-center">
           {documentCount > 0 ? (
             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded-none">
               <FileText className="w-2.5 h-2.5" />
@@ -137,14 +175,14 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
           ) : (
             <span className="text-xs text-muted-foreground/50">—</span>
           )}
-        </Link>
+        </CellLink>
       </td>
 
       <td className={`${cell} ${colStyles.action} border-r rounded-none`}>
-        <Link to="/subjects/$subjectId/events/$eventId" params={{ subjectId: event.subject_id, eventId: event.id }} className="flex items-center justify-center gap-1">
+        <CellLink to="/subjects/$subjectId/events/$eventId" params={linkParams} onEventClick={onEventClick} event={event} className="flex items-center justify-center gap-1">
           <CheckCircle className="w-4 h-4 text-green-500" />
           <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-        </Link>
+        </CellLink>
       </td>
     </tr>
   )
@@ -157,6 +195,8 @@ export interface EventBlockChainProps {
   totalEvents?: number
   /** Current page offset (0-indexed, for correct block numbering) */
   pageOffset?: number
+  /** When set, clicking an event calls this instead of navigating (e.g. open drawer) */
+  onEventClick?: (event: EventResponse) => void
 }
 
 export function EventBlockChain({
@@ -164,6 +204,7 @@ export function EventBlockChain({
   documentCounts = {},
   totalEvents,
   pageOffset = 0,
+  onEventClick,
 }: EventBlockChainProps) {
   if (events.length === 0) return null
 
@@ -227,6 +268,7 @@ export function EventBlockChain({
                 index={blockIndex}
                 isGenesis={blockIndex === 0}
                 documentCount={documentCounts[event.id] || 0}
+                onEventClick={onEventClick}
               />
             )
           })}

@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { Calendar, Tag, AlertCircle, Boxes, FileText, Shield, ChevronLeft, ChevronRight, Upload, Download, Trash2, Database, Link2 } from 'lucide-react'
+import { useEventStream } from '@/hooks/useActivitySubscription'
 import { useEffect, useState, useCallback } from 'react'
 import { useStore } from '@tanstack/react-store'
 import { timelineApi } from '@/lib/api-client'
@@ -8,7 +9,7 @@ import { authStore } from '@/lib/auth-store'
 import { DocumentUpload } from '@/components/documents/DocumentUpload'
 import { DocumentList } from '@/components/documents/DocumentList'
 import { DocumentViewer } from '@/components/documents/DocumentViewer'
-import { EventBlockChain } from '@/components/events'
+import { EventBlockChain, EventDetailPanel } from '@/components/events'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { SkeletonBreadcrumbs, SkeletonEventTimeline, Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -16,6 +17,7 @@ import type { SubjectResponse, EventResponse, EventListResponse } from '@/lib/ty
 import { LoadingIcon } from '@/components/ui/icons'
 import { Button } from '@/components/ui/button'
 import { Modal, ModalActions } from '@/components/ui/Modal'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { getApiErrorDisplay } from '@/lib/api-utils'
 import { useHasSubjectExportAccess } from '@/hooks/useHasSubjectExportAccess'
 import { useHasSubjectErasureAccess } from '@/hooks/useHasSubjectErasureAccess'
@@ -66,6 +68,7 @@ function SubjectDetailPage() {
   const [exportLoading, setExportLoading] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const [erasureError, setErasureError] = useState<string | null>(null)
+  const [eventDrawerEvent, setEventDrawerEvent] = useState<EventResponse | null>(null)
 
   const hasExportAccess = useHasSubjectExportAccess(!!authState.user)
   const hasErasureAccess = useHasSubjectErasureAccess(!!authState.user)
@@ -218,6 +221,15 @@ function SubjectDetailPage() {
       setCurrentPage(page)
     }
   }
+
+  const { isConnected } = useEventStream({
+    enabled: !!authState.user && activeTab === 'events',
+    subjectId,
+    onNewActivity: () => {
+      fetchSubject()
+      fetchEvents()
+    },
+  })
 
   const handleExport = async () => {
     setExportError(null)
@@ -382,6 +394,19 @@ function SubjectDetailPage() {
         />
       )}
 
+      {/* Event detail drawer (Sheet) — from timeline click; full-page route still available for shareable links */}
+      <Sheet open={!!eventDrawerEvent} onOpenChange={(open) => !open && setEventDrawerEvent(null)}>
+        <SheetContent side="right" className="w-full max-w-lg overflow-y-auto p-0">
+          {eventDrawerEvent && (
+            <EventDetailPanel
+              event={eventDrawerEvent}
+              onClose={() => setEventDrawerEvent(null)}
+              className="border-0 min-h-full"
+            />
+          )}
+        </SheetContent>
+      </Sheet>
+
       {/* Breadcrumbs */}
       <Breadcrumbs
         items={[
@@ -514,6 +539,15 @@ function SubjectDetailPage() {
       {/* Content */}
       {activeTab === 'events' && (
         <div>
+          {isConnected && (
+            <div className="mb-2 flex items-center gap-1.5 text-status-ok text-xs font-medium">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-ok opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-status-ok" />
+              </span>
+              LIVE
+            </div>
+          )}
           {events.length === 0 ? (
             <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/30">
               <EmptyState
@@ -533,6 +567,7 @@ function SubjectDetailPage() {
                 documentCounts={documentCounts}
                 totalEvents={totalEvents}
                 pageOffset={currentPage * PAGE_SIZE}
+                onEventClick={(ev) => setEventDrawerEvent(ev)}
               />
 
               {/* Pagination Controls */}

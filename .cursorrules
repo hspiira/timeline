@@ -1,7 +1,14 @@
 # shadcn instructions
 
-Use the latest version of Shadcn to install new components, like this command to add a button component:
+Use the latest version of Shadcn to install new components:
 
 ```bash
-pnpm dlx shadcn@latest add button
+pnpm dlx shadcn@latest add <component>
 ```
+
+## Design system (preset a12)
+
+- **Preset:** This project uses shadcn/ui preset **a12** for consistent, non-flat controls (e.g. radio buttons) and theme. When (re)configuring, use `npx shadcn@latest init --preset a12`. Get the exact preset code from https://ui.shadcn.com/create if needed.
+- **Theming:** Follow https://ui.shadcn.com/docs/theming (CSS variables, `@theme inline` for new colors). New components must match the preset's radius and color conventions.
+- **Skills:** Use shadcn Skills (`pnpm dlx skills add shadcn/ui`) so the assistant has project context. See https://ui.shadcn.com/docs/skills.
+- **Add components:** Always extend from shadcn; do not build from scratch when a shadcn component exists (Sidebar, Sheet, Radio Group, etc.). Use `pnpm dlx shadcn@latest add <component>` per https://ui.shadcn.com/docs/cli.

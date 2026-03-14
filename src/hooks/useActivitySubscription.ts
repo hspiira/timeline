@@ -4,6 +4,8 @@ import type { Activity } from '@/lib/types/activity'
 
 interface UseActivitySubscriptionOptions {
   enabled?: boolean
+  /** Filter stream to this subject (backend query param). */
+  subjectId?: string | null
   onNewActivity?: (activity: Activity) => void
   onActivityUpdated?: (activity: Activity) => void
   onActivityRemoved?: (activityId: string) => void
@@ -19,13 +21,16 @@ type SubscriptionEvent =
 /**
  * Build SSE stream URL for the events stream (roadmap: /api/v1/events/stream).
  * EventSource does not support custom headers in the browser, so auth is passed as query param.
+ * Optional subject_id filters server-side to that subject.
  */
-function getEventsStreamUrl(): string | null {
+export function getEventsStreamUrl(subjectId?: string | null): string | null {
   const token = getAuthToken()
   if (!token) return null
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
   const base = apiUrl.replace(/\/$/, '')
-  return `${base}/api/v1/events/stream?token=${encodeURIComponent(token)}`
+  const params = new URLSearchParams({ token })
+  if (subjectId) params.set('subject_id', subjectId)
+  return `${base}/api/v1/events/stream?${params.toString()}`
 }
 
 /**
@@ -35,6 +40,7 @@ function getEventsStreamUrl(): string | null {
  */
 export function useActivitySubscription({
   enabled = true,
+  subjectId = null,
   onNewActivity,
   onActivityUpdated,
   onActivityRemoved,
@@ -47,6 +53,8 @@ export function useActivitySubscription({
   const reconnectAttemptsRef = useRef(0)
   const MAX_RECONNECT_ATTEMPTS = 5
   const RECONNECT_INTERVAL = 3000
+  const subjectIdRef = useRef(subjectId)
+  subjectIdRef.current = subjectId
 
   const dispatchEvent = useCallback(
     (message: SubscriptionEvent) => {
@@ -103,7 +111,7 @@ export function useActivitySubscription({
   const connect = useCallback(() => {
     if (eventSourceRef.current?.readyState === EventSource.OPEN) return
 
-    const url = getEventsStreamUrl()
+    const url = getEventsStreamUrl(subjectIdRef.current)
     if (!url) {
       console.warn('No auth token available for SSE connection')
       return
@@ -180,7 +188,7 @@ export function useActivitySubscription({
   useEffect(() => {
     if (enabled) connect()
     return () => disconnect()
-  }, [enabled, connect, disconnect])
+  }, [enabled, subjectId, connect, disconnect])
 
   return {
     isConnected,
@@ -192,6 +200,9 @@ export function useActivitySubscription({
     reconnect: connect,
   }
 }
+
+/** Alias for useActivitySubscription; use for dashboard and subject timeline SSE. */
+export const useEventStream = useActivitySubscription
 
 /**
  * Simulated real-time activity generator for development/testing

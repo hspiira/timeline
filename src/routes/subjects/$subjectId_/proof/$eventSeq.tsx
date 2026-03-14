@@ -9,6 +9,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { AlertCircle, Copy, Check } from 'lucide-react'
 import { useState } from 'react'
 import type { components } from '@/lib/timeline-api'
+import { MerkleProofTree } from '@/components/verify/MerkleProofTree'
 
 type MerkleProofResponse = components['schemas']['MerkleProofResponse']
 
@@ -97,7 +98,8 @@ function ProofPage() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="bg-card/80 rounded-none border border-border/50 p-3">
-          <h2 className="text-sm font-semibold text-foreground mb-2">Proof path</h2>
+          <MerkleProofTree proof={proof} className="mb-4" />
+          <h2 className="text-sm font-semibold text-foreground mb-2">Proof path (steps)</h2>
           <div className="space-y-1 font-mono text-xs">
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground shrink-0">Leaf:</span>
@@ -135,8 +137,25 @@ function ProofPage() {
             </div>
             {proof.tsa_anchor_id && (
               <div>
-                <dt className="text-muted-foreground">TSA anchor</dt>
-                <dd className="font-mono text-xs">{proof.tsa_anchor_id}</dd>
+                <dt className="text-muted-foreground mb-1">TSA anchor</dt>
+                <dd className="flex items-center gap-2">
+                  <code className="font-mono text-xs break-all bg-muted/50 px-2 py-1 rounded-none border border-border/50">
+                    {proof.tsa_anchor_id}
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 shrink-0"
+                    onClick={() => {
+                      navigator.clipboard.writeText(proof.tsa_anchor_id ?? '')
+                      setCopied(true)
+                      setTimeout(() => setCopied(false), 2000)
+                    }}
+                    title="Copy TSA anchor"
+                  >
+                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  </Button>
+                </dd>
               </div>
             )}
           </dl>

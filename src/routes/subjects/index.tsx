@@ -43,6 +43,7 @@ function SubjectsPage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingSubject, setEditingSubject] = useState<SubjectWithMetadata | null>(null)
   const [filterType, setFilterType] = useState<string>('')
+  const [filterIntegrity, setFilterIntegrity] = useState<string>('') // '' = All, valid, broken, unknown
   const [search, setSearch] = useState('')
   // Always start with 'grid' so SSR and first client render match; read localStorage after mount
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
@@ -79,11 +80,12 @@ function SubjectsPage() {
     enabled: search.trim().length > 0,
   })
 
-  // Display: when search is active use search results (mapped to SubjectWithMetadata-like); otherwise use list
+  // Display: when search is active use search results (mapped to SubjectWithMetadata-like); otherwise use list; then filter by integrity
   const displaySubjects = useMemo(() => {
+    let list: SubjectWithMetadata[]
     if (search.trim().length > 0) {
       if (!searchQuery.data) return []
-      return (searchQuery.data as Array<{ resource_type?: string; id: string; display_title?: string; snippet?: string | null }>)
+      list = (searchQuery.data as Array<{ resource_type?: string; id: string; display_title?: string; snippet?: string | null }>)
         .filter((r) => r.resource_type === 'subject')
         .map((r) => ({
           id: r.id,
@@ -94,10 +96,14 @@ function SubjectsPage() {
           attributes: {},
           eventCount: 0,
           lastEventDate: undefined,
+          integrityStatus: undefined as SubjectWithMetadata['integrityStatus'],
         })) as SubjectWithMetadata[]
+    } else {
+      list = subjects
     }
-    return subjects
-  }, [search, searchQuery.data, subjects])
+    if (!filterIntegrity) return list
+    return list.filter((s) => (s.integrityStatus ?? 'unknown') === filterIntegrity)
+  }, [search, searchQuery.data, subjects, filterIntegrity])
 
   const displayLoading = search.trim().length > 0 ? searchQuery.isLoading : isLoading
   const displayError = search.trim().length > 0 ? searchQuery.error : error
@@ -300,39 +306,59 @@ function SubjectsPage() {
           </div>
 
           {/* Filter Controls */}
-          {filterTypeOptions.length > 0 && (
-            <div className="w-full lg:w-auto flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-              <label className="text-sm font-medium text-foreground/90 whitespace-nowrap">
-                Filter by type:
-              </label>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <SingleSelectCombobox
-                  value={filterType}
-                  onValueChange={setFilterType}
-                  options={[
-                    { value: '', label: 'All types' },
-                    ...filterTypeOptions.map(({ type_name, display_name }) => ({
-                      value: type_name,
-                      label: display_name,
-                    })),
-                  ]}
-                  placeholder="All types"
-                  clearable
-                  className="flex-1 sm:flex-none min-w-0"
-                />
-                {filterType && (
-                  <Button
-                    onClick={() => setFilterType('')}
-                    variant="ghost"
-                    size="sm"
-                    className="flex-shrink-0"
-                  >
-                    Clear
-                  </Button>
-                )}
+          <div className="w-full lg:w-auto flex flex-wrap items-center gap-2 sm:gap-3">
+            {filterTypeOptions.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                <label className="text-sm font-medium text-foreground/90 whitespace-nowrap">
+                  Filter by type:
+                </label>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <SingleSelectCombobox
+                    value={filterType}
+                    onValueChange={setFilterType}
+                    options={[
+                      { value: '', label: 'All types' },
+                      ...filterTypeOptions.map(({ type_name, display_name }) => ({
+                        value: type_name,
+                        label: display_name,
+                      })),
+                    ]}
+                    placeholder="All types"
+                    clearable
+                    className="flex-1 sm:flex-none min-w-0"
+                  />
+                  {filterType && (
+                    <Button
+                      onClick={() => setFilterType('')}
+                      variant="ghost"
+                      size="sm"
+                      className="flex-shrink-0"
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
               </div>
+            )}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-foreground/90 whitespace-nowrap">
+                Integrity:
+              </label>
+              <SingleSelectCombobox
+                value={filterIntegrity}
+                onValueChange={setFilterIntegrity}
+                options={[
+                  { value: '', label: 'All' },
+                  { value: 'valid', label: 'Valid' },
+                  { value: 'broken', label: 'Broken' },
+                  { value: 'unknown', label: 'Unknown' },
+                ]}
+                placeholder="All"
+                clearable
+                className="w-full sm:w-32 min-w-0"
+              />
             </div>
-          )}
+          </div>
         </div>
 
         {/* Content */}
@@ -357,9 +383,9 @@ function SubjectsPage() {
           <div className="bg-card/80 backdrop-blur-sm rounded-none border border-border/50">
             <EmptyState
               icon={Users}
-              title={search || filterType ? 'No subjects match' : 'No subjects yet'}
+              title={search || filterType || filterIntegrity ? 'No subjects match' : 'No subjects yet'}
               description={
-                search || filterType
+                search || filterType || filterIntegrity
                   ? 'Try adjusting your filters or search terms'
                   : 'Create your first subject to start tracking events and building verifiable event chains'
               }
@@ -368,12 +394,13 @@ function SubjectsPage() {
                 onClick: () => setShowCreateModal(true),
               }}
               secondaryAction={
-                search || filterType
+                search || filterType || filterIntegrity
                   ? {
                       label: 'Clear Filters',
                       onClick: () => {
                         setSearch('')
                         setFilterType('')
+                        setFilterIntegrity('')
                       },
                     }
                   : undefined

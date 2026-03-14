@@ -20,6 +20,7 @@ import { Route as ProjectionsIndexRouteImport } from './routes/projections/index
 import { Route as FlowsIndexRouteImport } from './routes/flows/index'
 import { Route as EventsIndexRouteImport } from './routes/events/index'
 import { Route as EmailAccountsIndexRouteImport } from './routes/email-accounts/index'
+import { Route as ConnectorsIndexRouteImport } from './routes/connectors/index'
 import { Route as VerifyTenantRouteImport } from './routes/verify/tenant'
 import { Route as VerifySubjectIdRouteImport } from './routes/verify/$subjectId'
 import { Route as SubjectsSubjectIdRouteImport } from './routes/subjects/$subjectId'
@@ -109,6 +110,11 @@ const EventsIndexRoute = EventsIndexRouteImport.update({
 const EmailAccountsIndexRoute = EmailAccountsIndexRouteImport.update({
   id: '/email-accounts/',
   path: '/email-accounts/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConnectorsIndexRoute = ConnectorsIndexRouteImport.update({
+  id: '/connectors/',
+  path: '/connectors/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VerifyTenantRoute = VerifyTenantRouteImport.update({
@@ -314,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/subjects/$subjectId': typeof SubjectsSubjectIdRoute
   '/verify/$subjectId': typeof VerifySubjectIdRoute
   '/verify/tenant': typeof VerifyTenantRoute
+  '/connectors/': typeof ConnectorsIndexRoute
   '/email-accounts/': typeof EmailAccountsIndexRoute
   '/events/': typeof EventsIndexRoute
   '/flows/': typeof FlowsIndexRoute
@@ -362,6 +369,7 @@ export interface FileRoutesByTo {
   '/subjects/$subjectId': typeof SubjectsSubjectIdRoute
   '/verify/$subjectId': typeof VerifySubjectIdRoute
   '/verify/tenant': typeof VerifyTenantRoute
+  '/connectors': typeof ConnectorsIndexRoute
   '/email-accounts': typeof EmailAccountsIndexRoute
   '/events': typeof EventsIndexRoute
   '/flows': typeof FlowsIndexRoute
@@ -411,6 +419,7 @@ export interface FileRoutesById {
   '/subjects/$subjectId': typeof SubjectsSubjectIdRoute
   '/verify/$subjectId': typeof VerifySubjectIdRoute
   '/verify/tenant': typeof VerifyTenantRoute
+  '/connectors/': typeof ConnectorsIndexRoute
   '/email-accounts/': typeof EmailAccountsIndexRoute
   '/events/': typeof EventsIndexRoute
   '/flows/': typeof FlowsIndexRoute
@@ -461,6 +470,7 @@ export interface FileRouteTypes {
     | '/subjects/$subjectId'
     | '/verify/$subjectId'
     | '/verify/tenant'
+    | '/connectors/'
     | '/email-accounts/'
     | '/events/'
     | '/flows/'
@@ -509,6 +519,7 @@ export interface FileRouteTypes {
     | '/subjects/$subjectId'
     | '/verify/$subjectId'
     | '/verify/tenant'
+    | '/connectors'
     | '/email-accounts'
     | '/events'
     | '/flows'
@@ -557,6 +568,7 @@ export interface FileRouteTypes {
     | '/subjects/$subjectId'
     | '/verify/$subjectId'
     | '/verify/tenant'
+    | '/connectors/'
     | '/email-accounts/'
     | '/events/'
     | '/flows/'
@@ -606,6 +618,7 @@ export interface RootRouteChildren {
   SubjectsSubjectIdRoute: typeof SubjectsSubjectIdRoute
   VerifySubjectIdRoute: typeof VerifySubjectIdRoute
   VerifyTenantRoute: typeof VerifyTenantRoute
+  ConnectorsIndexRoute: typeof ConnectorsIndexRoute
   EmailAccountsIndexRoute: typeof EmailAccountsIndexRoute
   EventsIndexRoute: typeof EventsIndexRoute
   FlowsIndexRoute: typeof FlowsIndexRoute
@@ -702,6 +715,13 @@ declare module '@tanstack/react-router' {
       path: '/email-accounts'
       fullPath: '/email-accounts/'
       preLoaderRoute: typeof EmailAccountsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/connectors/': {
+      id: '/connectors/'
+      path: '/connectors'
+      fullPath: '/connectors/'
+      preLoaderRoute: typeof ConnectorsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/verify/tenant': {
@@ -1008,6 +1028,7 @@ const rootRouteChildren: RootRouteChildren = {
   SubjectsSubjectIdRoute: SubjectsSubjectIdRoute,
   VerifySubjectIdRoute: VerifySubjectIdRoute,
   VerifyTenantRoute: VerifyTenantRoute,
+  ConnectorsIndexRoute: ConnectorsIndexRoute,
   EmailAccountsIndexRoute: EmailAccountsIndexRoute,
   EventsIndexRoute: EventsIndexRoute,
   FlowsIndexRoute: FlowsIndexRoute,

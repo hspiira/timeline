@@ -2,6 +2,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import type { SubjectWithMetadata } from '@/hooks/useSubjects'
 import { SquarePen } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useState, useMemo } from 'react'
 import { formatDateSafe } from '@/lib/format-date'
 import { DataTable } from '@/components/ui/DataTable'
@@ -86,6 +87,13 @@ export function SubjectsTable({
         <span className="text-sm text-muted-foreground">
           {getTypeDisplayName(row.original.subject_type, subjectTypeConfig)}
         </span>
+      ),
+    },
+    {
+      accessorKey: 'integrityStatus',
+      header: 'Integrity',
+      cell: ({ row }) => (
+        <StatusBadge status={(row.original.integrityStatus ?? 'unknown') as 'valid' | 'broken' | 'unknown'} dotOnly={false} />
       ),
     },
     {

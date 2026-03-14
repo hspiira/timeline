@@ -2,6 +2,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { Calendar, ArrowRight, Activity, SquarePen } from 'lucide-react'
 import type { SubjectWithMetadata } from '@/hooks/useSubjects'
 import { Button } from '@/components/ui/button'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 import { getSubjectTypeThemeFromConfig } from '@/lib/subject-type-theme'
 import { formatShortDate } from '@/lib/format-date'
 import type { components } from '@/lib/timeline-api'
@@ -90,8 +91,11 @@ export function SubjectsGrid({
                     className={`w-5 h-5 ${useConfigColor ? '' : textColor}`}
                   />
                 </div>
-                <div className="px-2 py-1 bg-muted rounded-none text-xs font-medium text-muted-foreground">
-                  {typeLabel}
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={(subject.integrityStatus ?? 'unknown') as 'valid' | 'broken' | 'unknown'} dotOnly />
+                  <span className="px-2 py-1 bg-muted rounded-none text-xs font-medium text-muted-foreground">
+                    {typeLabel}
+                  </span>
                 </div>
               </div>
 
