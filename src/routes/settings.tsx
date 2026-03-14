@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useLocation, useNavigate } from '@tanstack/rea
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useHasAuditAccess } from '@/hooks/useHasAuditAccess'
-import { Shield, Database, Zap, Users, KeyRound, Layers, FolderOpen, ClipboardList, GitBranch, Link2, FileText, Activity } from 'lucide-react'
+import { Shield, Database, Zap, Users, KeyRound, Layers, FolderOpen, ClipboardList, GitBranch, Link2, FileText } from 'lucide-react'
 
 export const Route = createFileRoute('/settings')({
   beforeLoad: () => {
@@ -97,12 +97,6 @@ function SettingsLayout() {
       icon: KeyRound,
       description: 'Email OAuth credentials',
     },
-    {
-      path: '/settings/connectors',
-      label: 'Connectors',
-      icon: Activity,
-      description: 'Connector health status',
-    },
   ]
 
   return (
@@ -124,8 +118,8 @@ function SettingsLayout() {
                 <button
                   key={item.path}
                   onClick={() => navigate({ to: item.path })}
-                  className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-none transition-colors text-left ${
-                    active ? 'bg-primary/10' : 'hover:bg-muted'
+                  className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-none transition-colors text-left border-l-2 ${
+                    active ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-muted'
                   }`}
                 >
                   <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />

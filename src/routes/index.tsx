@@ -36,6 +36,73 @@ interface FetchError {
   message: string
 }
 
+/** Chain integrity breakdown. Uses optional summary API; when absent shows placeholder. */
+function ChainIntegrityCard() {
+  const authState = useStore(authStore)
+  const { data: summary } = useQuery({
+    queryKey: ['integrity', 'summary'],
+    queryFn: async (): Promise<{ healthy: number; broken: number; unverified: number; lastVerified: string | null } | null> => {
+      // Backend may add GET /api/v1/tenants/integrity/summary; until then return null
+      return null
+    },
+    enabled: !!authState.user,
+  })
+
+  const healthy = summary?.healthy ?? '—'
+  const broken = summary?.broken ?? '—'
+  const unverified = summary?.unverified ?? '—'
+  const lastVerified = summary?.lastVerified
+    ? (() => {
+        const d = new Date(summary.lastVerified)
+        const diffMs = Date.now() - d.getTime()
+        const mins = Math.floor(diffMs / 60000)
+        if (mins < 1) return 'Just now'
+        if (mins < 60) return `${mins} minutes ago`
+        return `${Math.floor(mins / 60)} hours ago`
+      })()
+    : '—'
+
+  return (
+    <div className="rounded-none border border-border bg-card p-4">
+      <h2 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+        <Shield className="w-4 h-4 text-muted-foreground" />
+        Chain integrity
+      </h2>
+      <dl className="space-y-1.5 text-sm">
+        <div className="flex justify-between gap-2">
+          <dt className="text-muted-foreground flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-status-ok" aria-hidden /> Healthy
+          </dt>
+          <dd className="font-medium tabular-nums">{healthy}</dd>
+        </div>
+        <div className="flex justify-between gap-2">
+          <dt className="text-muted-foreground flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-status-error" aria-hidden /> Broken
+          </dt>
+          <dd className="font-medium tabular-nums">
+            {typeof broken === 'number' ? (
+              <Link to="/subjects" className="text-primary hover:underline">
+                {broken} subjects
+              </Link>
+            ) : (
+              broken
+            )}
+          </dd>
+        </div>
+        <div className="flex justify-between gap-2">
+          <dt className="text-muted-foreground flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-muted-foreground/50" aria-hidden /> Unverified
+          </dt>
+          <dd className="font-medium tabular-nums">{unverified}</dd>
+        </div>
+      </dl>
+      <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
+        Last verified: {lastVerified}
+      </p>
+    </div>
+  )
+}
+
 function HomePage() {
   const authState = useStore(authStore)
 
@@ -72,10 +139,6 @@ function HomePage() {
     const today = new Date().toDateString()
     return recent.filter((e) => new Date(e.event_time).toDateString() === today).length
   }, [data.stats?.recent_events])
-
-  const activeWorkflowsCount = useMemo(() => {
-    return data.workflows.filter((w) => (w as { is_active?: boolean }).is_active).length
-  }, [data.workflows])
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true)
@@ -182,12 +245,12 @@ function HomePage() {
 
   const loadingStats = data.stats === null && errors.length === 0
   const totalSubjects = data.stats?.total_subjects ?? 0
-  const totalDocuments = data.stats?.total_documents ?? 0
+  const openRepairs = 0 // TODO: replace when backend adds GET .../integrity/repair?status=PENDING_APPROVAL
 
   return (
-    <div className="dashboard-page min-h-[calc(100vh-4rem)]">
+    <div className="dashboard-page min-h-[calc(100vh-4rem)] relative">
       <div
-        className="pointer-events-none fixed inset-0 opacity-[0.02] dark:opacity-[0.04]"
+        className="pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.06]"
         style={{
           backgroundImage: `
             linear-gradient(to right, currentColor 1px, transparent 1px),
@@ -204,7 +267,7 @@ function HomePage() {
           className="border-b border-border/60 bg-muted/20 animate-in fade-in slide-in-from-bottom-2 duration-500"
           style={{ borderLeftWidth: '4px', borderLeftColor: 'var(--dashboard-accent)' }}
         >
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 py-5">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 py-5 pl-2 sm:pl-3">
             <div>
               <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground tracking-tight">
                 {greeting}, {username}
@@ -256,20 +319,19 @@ function HomePage() {
         {/* Stats row */}
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           {loadingStats ? (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-              <div className="lg:col-span-2 h-24 rounded-none border border-border bg-muted/30 animate-pulse" />
-              <div className="flex gap-4 md:gap-6">
-                <div className="flex-1 h-24 rounded-none border border-border bg-muted/30 animate-pulse" />
-                <div className="flex-1 h-24 rounded-none border border-border bg-muted/30 animate-pulse" />
-              </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-24 rounded-none border border-border bg-muted/30 animate-pulse" />
+              ))}
             </div>
           ) : (
           <StatsGrid
             totalSubjects={totalSubjects}
             totalEvents={totalEvents}
-            totalDocuments={totalDocuments}
             eventsToday={eventsToday}
-            activeWorkflows={activeWorkflowsCount}
+            activeConnectors={activeConnectors}
+            totalConnectors={connectorList.length}
+            openRepairs={openRepairs}
             subjectsByType={data.stats?.subjects_by_type}
             eventsByType={data.stats?.events_by_type}
           />
@@ -279,21 +341,7 @@ function HomePage() {
         {/* Integrity summary + Connector strip */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="lg:col-span-4">
-            <div className="rounded-none border border-border bg-card p-4">
-              <h2 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-muted-foreground" />
-                Chain integrity
-              </h2>
-              <p className="text-sm text-muted-foreground mb-3">
-                View and verify subject event chains.
-              </p>
-              <Link
-                to="/subjects"
-                className="text-sm font-medium text-primary hover:underline"
-              >
-                Browse subjects →
-              </Link>
-            </div>
+            <ChainIntegrityCard />
           </div>
           <div className="lg:col-span-8">
             <div className="rounded-none border border-border bg-card p-4">

@@ -1,7 +1,7 @@
 'use client'
 
 import { Link, useRouterState } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   LayoutDashboard,
   Users,
@@ -20,24 +20,30 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 
+const SIDEBAR_COLLAPSED_KEY = 'sidebar-collapsed'
+
 function NavLink({
   to,
   icon: Icon,
   children,
   collapsed,
+  title,
 }: {
   to: string
   icon: React.ElementType
   children: React.ReactNode
   collapsed: boolean
+  title?: string
 }) {
   const router = useRouterState()
   const pathname = router.location.pathname
   const isActive = to === '/' ? pathname === '/' : pathname.startsWith(to)
+  const label = title ?? (typeof children === 'string' ? children : '')
 
   return (
     <Link
       to={to}
+      title={collapsed ? label : undefined}
       className={cn(
         'flex items-center gap-2 text-sm font-medium transition-colors rounded-none',
         isActive
@@ -57,36 +63,37 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ className }: AppSidebarProps) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'
+  })
+
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed))
+  }, [collapsed])
 
   return (
     <aside
       className={cn(
-        'flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200',
+        'flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200 shrink-0 h-full',
         collapsed ? 'w-[52px]' : 'w-56',
         className
       )}
     >
-      <div className="flex flex-1 flex-col gap-1 overflow-auto py-2">
-        {/* Core */}
+      <div className="flex flex-1 flex-col gap-1 overflow-y-auto py-2">
+        {/* Core: Dashboard, Subjects, Events only */}
         <div className={!collapsed ? 'px-2' : 'px-1'}>
           {!collapsed && (
             <p className="mb-1 px-2 text-xs font-semibold text-muted-foreground">Core</p>
           )}
-          <NavLink to="/" icon={LayoutDashboard} collapsed={collapsed}>
+          <NavLink to="/" icon={LayoutDashboard} collapsed={collapsed} title="Dashboard">
             Dashboard
           </NavLink>
-          <NavLink to="/subjects" icon={Users} collapsed={collapsed}>
+          <NavLink to="/subjects" icon={Users} collapsed={collapsed} title="Subjects">
             Subjects
           </NavLink>
-          <NavLink to="/events" icon={Calendar} collapsed={collapsed}>
+          <NavLink to="/events" icon={Calendar} collapsed={collapsed} title="Events">
             Events
-          </NavLink>
-          <NavLink to="/flows" icon={GitBranch} collapsed={collapsed}>
-            Flows
-          </NavLink>
-          <NavLink to="/email-accounts" icon={Mail} collapsed={collapsed}>
-            Email
           </NavLink>
         </div>
 
@@ -97,10 +104,10 @@ export function AppSidebar({ className }: AppSidebarProps) {
           {!collapsed && (
             <p className="mb-1 px-2 text-xs font-semibold text-muted-foreground">Integrity</p>
           )}
-          <NavLink to="/verify/tenant" icon={FileCheck} collapsed={collapsed}>
+          <NavLink to="/verify/tenant" icon={FileCheck} collapsed={collapsed} title="Verify">
             Verify
           </NavLink>
-          <NavLink to="/integrity/repairs" icon={Wrench} collapsed={collapsed}>
+          <NavLink to="/integrity/repairs" icon={Wrench} collapsed={collapsed} title="Repairs">
             Repairs
           </NavLink>
         </div>
@@ -112,22 +119,28 @@ export function AppSidebar({ className }: AppSidebarProps) {
           {!collapsed && (
             <p className="mb-1 px-2 text-xs font-semibold text-muted-foreground">Analytics</p>
           )}
-          <NavLink to="/projections" icon={BarChart3} collapsed={collapsed}>
+          <NavLink to="/projections" icon={BarChart3} collapsed={collapsed} title="Projections">
             Projections
           </NavLink>
         </div>
 
         <Separator orientation="horizontal" className="my-1" />
 
-        {/* System / Admin */}
+        {/* System: Connectors, Flows, Email, Settings */}
         <div className={!collapsed ? 'px-2' : 'px-1'}>
           {!collapsed && (
             <p className="mb-1 px-2 text-xs font-semibold text-muted-foreground">System</p>
           )}
-          <NavLink to="/connectors" icon={Activity} collapsed={collapsed}>
+          <NavLink to="/connectors" icon={Activity} collapsed={collapsed} title="Connectors">
             Connectors
           </NavLink>
-          <NavLink to="/settings" icon={Settings} collapsed={collapsed}>
+          <NavLink to="/flows" icon={GitBranch} collapsed={collapsed} title="Flows">
+            Flows
+          </NavLink>
+          <NavLink to="/email-accounts" icon={Mail} collapsed={collapsed} title="Email">
+            Email
+          </NavLink>
+          <NavLink to="/settings" icon={Settings} collapsed={collapsed} title="Settings">
             Settings
           </NavLink>
         </div>

@@ -95,41 +95,41 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           <ErrorBoundary>
           {/* Header - only show on non-auth pages */}
           {authState.user ? (
-            <div className="flex h-full min-h-screen">
-              <AppSidebar />
-              <div className="flex flex-1 flex-col min-w-0">
-                <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-4 border-b bg-background/80 backdrop-blur-md px-4 sm:px-6 lg:px-8">
-                  <Link to="/" className="flex items-center gap-2 group shrink-0">
-                    <img src="/logo.svg" alt="Timeline" className="w-8 h-8 transition-transform group-hover:scale-110" />
-                    <span className="text-xl font-bold text-foreground hidden sm:inline">
-                      Timeline
-                    </span>
-                  </Link>
-                  <div className="flex-1 flex justify-end items-center gap-2">
-                    <GlobalSearch />
-                    <TenantSelector />
-                    <button
-                      type="button"
-                      className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-none transition-colors"
-                      aria-label="Notifications"
-                    >
-                      <Bell className="w-5 h-5" />
-                    </button>
-                    <span className="text-sm font-medium text-muted-foreground hidden md:inline">
-                      {authState.user.username}
-                    </span>
-                    <SettingsButton />
-                    <ThemeToggle />
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-accent rounded-none transition-all"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span className="hidden sm:inline">Logout</span>
-                    </button>
-                  </div>
-                </header>
-                <main className="flex-1 bg-background">
+            <div className="flex flex-col h-screen overflow-hidden">
+              <header className="z-40 flex h-16 shrink-0 items-center gap-4 border-b bg-background/80 backdrop-blur-md px-4 sm:px-6 lg:px-8 w-full">
+                <Link to="/" className="flex items-center gap-2 group shrink-0">
+                  <img src="/logo.svg" alt="Timeline" className="w-8 h-8 transition-transform group-hover:scale-110" />
+                  <span className="text-xl font-bold text-foreground hidden sm:inline">
+                    Timeline
+                  </span>
+                </Link>
+                <div className="flex-1 flex justify-end items-center gap-2">
+                  <GlobalSearch />
+                  <TenantSelector />
+                  <button
+                    type="button"
+                    className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-none transition-colors"
+                    aria-label="Notifications"
+                  >
+                    <Bell className="w-5 h-5" />
+                  </button>
+                  <span className="text-sm font-medium text-muted-foreground hidden md:inline">
+                    {authState.user.username}
+                  </span>
+                  <SettingsButton />
+                  <ThemeToggle />
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-accent rounded-none transition-all"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden sm:inline">Logout</span>
+                  </button>
+                </div>
+              </header>
+              <div className="flex flex-1 min-h-0 min-w-0">
+                <AppSidebar />
+                <main className="flex-1 min-h-0 overflow-y-auto bg-background">
                   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {children}
                   </div>

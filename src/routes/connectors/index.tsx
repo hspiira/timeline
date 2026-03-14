@@ -1,14 +1,10 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
+import { ConnectorsHealthPage } from '@/components/connectors/ConnectorsHealthPage'
 
 export const Route = createFileRoute('/connectors/')({
   beforeLoad: () => {
     requireAuthBeforeLoad()
-    throw redirect({ to: '/settings/connectors', replace: true })
   },
-  component: ConnectorsRedirect,
+  component: ConnectorsHealthPage,
 })
-
-function ConnectorsRedirect() {
-  return null
-}

@@ -36,23 +36,19 @@ const RESOURCE_ICONS: Record<ActivityType['resourceType'], LucideIcon> = {
   role: Shield,
 }
 
-const RESOURCE_COLORS: Record<ActivityType['resourceType'], string> = {
-  event: 'text-blue-500',
-  subject: 'text-purple-500',
-  document: 'text-amber-500',
-  workflow: 'text-cyan-500',
-  permission: 'text-green-500',
-  role: 'text-indigo-500',
-}
-
-/** Icon tint per resource type for card variant; project uses green, icons carry the type color */
-const CARD_ROW_ICON: Record<ActivityType['resourceType'], string> = {
-  event: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400',
-  subject: 'bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400',
-  document: 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400',
-  workflow: 'bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400',
-  permission: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400',
-  role: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400',
+/** Intent-based semantic colors using design tokens (--status-ok, --status-warn, --status-error, --status-repair). */
+function getActivityIntentClasses(activity: ActivityType): { text: string; bg: string } {
+  const eventType = (activity.resourceName ?? '').toLowerCase()
+  if (eventType.includes('break') || eventType.includes('chain_break')) {
+    return { text: 'text-status-error', bg: 'bg-status-error/10 text-status-error' }
+  }
+  if (eventType.includes('repair') || eventType.includes('chain_repair')) {
+    return { text: 'text-status-repair', bg: 'bg-status-repair/10 text-status-repair' }
+  }
+  if (activity.action === 'verified') {
+    return { text: 'text-status-ok', bg: 'bg-status-ok/10 text-status-ok' }
+  }
+  return { text: 'text-muted-foreground', bg: 'bg-muted/50 text-muted-foreground' }
 }
 
 interface MinimalActivityFeedProps {
@@ -79,7 +75,7 @@ function formatRelativeTime(date: Date): string {
 
 function ActivityRow({ activity, variant = 'default' }: { activity: ActivityType; variant?: 'default' | 'card' }) {
   const Icon = RESOURCE_ICONS[activity.resourceType]
-  const iconColor = RESOURCE_COLORS[activity.resourceType]
+  const intent = getActivityIntentClasses(activity)
   const config = ACTIVITY_CONFIG[activity.action]
 
   const getLink = () => {
@@ -95,10 +91,9 @@ function ActivityRow({ activity, variant = 'default' }: { activity: ActivityType
   const link = getLink()
 
   if (variant === 'card') {
-    const iconTheme = CARD_ROW_ICON[activity.resourceType]
     const content = (
       <div className="flex items-center gap-3 py-2.5 border-b border-border/40 last:border-b-0 hover:bg-muted/30 transition-colors group">
-        <div className={`w-8 h-8 rounded-none flex items-center justify-center shrink-0 ${iconTheme}`}>
+        <div className={`w-8 h-8 rounded-none flex items-center justify-center shrink-0 ${intent.bg}`}>
           <Icon className="w-4 h-4" strokeWidth={1.5} />
         </div>
         <div className="flex-1 min-w-0">
@@ -128,13 +123,13 @@ function ActivityRow({ activity, variant = 'default' }: { activity: ActivityType
         className="w-1 h-8 rounded-full shrink-0 bg-[var(--dashboard-accent)] opacity-60 group-hover:opacity-100 transition-opacity"
         aria-hidden
       />
-      <div className={`w-9 h-9 rounded-none bg-muted/60 flex items-center justify-center shrink-0 ${iconColor}`}>
+      <div className={`w-9 h-9 rounded-none flex items-center justify-center shrink-0 ${intent.bg}`}>
         <Icon className="w-4 h-4" strokeWidth={1.75} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-foreground truncate">{activity.resourceName}</span>
-          <span className={`text-[10px] px-1.5 py-0.5 rounded-none font-medium ${config.color}`}>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-none font-medium ${intent.bg}`}>
             {config.label}
           </span>
         </div>

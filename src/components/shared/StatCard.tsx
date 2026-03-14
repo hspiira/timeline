@@ -41,7 +41,7 @@ export function StatCard({
             className={`
                 group relative overflow-hidden
                 rounded-none border border-border/60
-                bg-card/80 backdrop-blur-sm
+                bg-card/80
                 transition-all duration-300
                 hover:border-[var(--dashboard-accent)]/40 hover:bg-card
                 ${isHero ? 'p-6 md:p-8' : 'p-5'}
