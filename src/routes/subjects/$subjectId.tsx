@@ -22,6 +22,8 @@ import { getApiErrorDisplay } from '@/lib/api-utils'
 import { useHasSubjectExportAccess } from '@/hooks/useHasSubjectExportAccess'
 import { useHasSubjectErasureAccess } from '@/hooks/useHasSubjectErasureAccess'
 import { SubjectRelationshipsTab } from '@/components/subjects/SubjectRelationshipsTab'
+import { useEventTypes } from '@/hooks/useEventTypes'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
 
 const PAGE_SIZE = 10
 
@@ -41,18 +43,24 @@ export const Route = createFileRoute('/subjects/$subjectId')({
           ? 'relationships'
           : 'events') as Tab,
     event_id: typeof search.event_id === 'string' ? search.event_id : undefined,
+    event_type: typeof search.event_type === 'string' ? search.event_type : '',
+    from: typeof search.from === 'string' ? search.from : '',
+    to: typeof search.to === 'string' ? search.to : '',
   }),
 })
 
 function SubjectDetailPage() {
   const { subjectId } = Route.useParams()
-  const { tab: activeTab, event_id: eventIdFromUrl } = Route.useSearch()
+  const { tab: activeTab, event_id: eventIdFromUrl, event_type: searchEventType, from: searchFrom, to: searchTo } = Route.useSearch()
   const navigate = useNavigate()
   const authState = useStore(authStore)
   const [subject, setSubject] = useState<SubjectResponse | null>(null)
   const [events, setEvents] = useState<EventResponse[]>([])
   const [totalEvents, setTotalEvents] = useState(0)
   const [currentPage, setCurrentPage] = useState(0)
+  const [filterEventType, setFilterEventType] = useState(searchEventType ?? '')
+  const [filterDateFrom, setFilterDateFrom] = useState(searchFrom ?? '')
+  const [filterDateTo, setFilterDateTo] = useState(searchTo ?? '')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [viewingDocument, setViewingDocument] = useState<{ id: string; filename: string; type: string } | null>(null)
@@ -73,8 +81,19 @@ function SubjectDetailPage() {
 
   const hasExportAccess = useHasSubjectExportAccess(!!authState.user)
   const hasErasureAccess = useHasSubjectErasureAccess(!!authState.user)
+  const { types: eventTypes, loading: eventTypesLoading } = useEventTypes()
 
-  const totalPages = Math.ceil(totalEvents / PAGE_SIZE)
+  const hasFilters = filterEventType !== '' || filterDateFrom !== '' || filterDateTo !== ''
+  const totalPages = totalEvents >= 0 ? Math.ceil(totalEvents / PAGE_SIZE) : null
+  const hasMorePages = !hasFilters && events.length >= PAGE_SIZE
+
+  const searchFor = (overrides: { tab: Tab; event_id?: string; event_type?: string; from?: string; to?: string }) => ({
+    tab: overrides.tab,
+    event_id: overrides.event_id ?? undefined,
+    event_type: overrides.event_type ?? filterEventType ?? '',
+    from: overrides.from ?? filterDateFrom ?? '',
+    to: overrides.to ?? filterDateTo ?? '',
+  })
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -93,12 +112,24 @@ function SubjectDetailPage() {
     setSubjectDocumentCount(null)
   }, [subjectId])
 
-  // Fetch events when page changes
+  // Sync filter state from URL (e.g. back/forward or shared link)
+  useEffect(() => {
+    setFilterEventType(searchEventType ?? '')
+    setFilterDateFrom(searchFrom ?? '')
+    setFilterDateTo(searchTo ?? '')
+  }, [searchEventType, searchFrom, searchTo])
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(0)
+  }, [filterEventType, filterDateFrom, filterDateTo])
+
+  // Fetch events when page or filters change
   useEffect(() => {
     if (authState.user && subject) {
       fetchEvents()
     }
-  }, [currentPage, subject])
+  }, [currentPage, subject, filterEventType, filterDateFrom, filterDateTo])
 
   // Deep-link: open event drawer when URL has event_id
   useEffect(() => {
@@ -183,59 +214,91 @@ function SubjectDetailPage() {
 
   const fetchEvents = useCallback(async () => {
     try {
-      // events.list returns a flat EventListResponse[] array
-      const { data: eventsList, error: eventsError } = await timelineApi.events.list(subjectId)
+      const hasFilters = filterEventType !== '' || filterDateFrom !== '' || filterDateTo !== ''
 
+      if (hasFilters) {
+        // Full list then client-side filter + paginate. Full filter+server-side parity requires backend event_type/from/to query params.
+        const { data: eventsList, error: eventsError } = await timelineApi.events.list(subjectId)
+        if (eventsError) {
+          // @ts-expect-error - openapi-fetch error handling
+          const errorMessage = eventsError?.message || 'Unable to load events'
+          setError(errorMessage)
+          return
+        }
+        if (!eventsList) return
+
+        let filtered = eventsList as EventListResponse[]
+        if (filterEventType !== '') {
+          filtered = filtered.filter((item) => item.event_type === filterEventType)
+        }
+        if (filterDateFrom !== '') {
+          const fromDate = filterDateFrom
+          filtered = filtered.filter((item) => (item.event_time?.slice(0, 10) ?? '') >= fromDate)
+        }
+        if (filterDateTo !== '') {
+          const toDate = filterDateTo
+          filtered = filtered.filter((item) => (item.event_time?.slice(0, 10) ?? '') <= toDate)
+        }
+
+        setTotalEvents(filtered.length)
+        const start = currentPage * PAGE_SIZE
+        const pageItems = filtered.slice(start, start + PAGE_SIZE)
+        await setEventsAndDocumentCounts(pageItems)
+        return
+      }
+
+      // No filters: server-side pagination (skip/limit)
+      const { data: eventsList, error: eventsError } = await timelineApi.events.list(subjectId, {
+        skip: currentPage * PAGE_SIZE,
+        limit: PAGE_SIZE,
+      })
       if (eventsError) {
         // @ts-expect-error - openapi-fetch error handling
         const errorMessage = eventsError?.message || 'Unable to load events'
         setError(errorMessage)
-      } else if (eventsList) {
-        setTotalEvents(eventsList.length)
-
-        // Paginate client-side: slice to current page
-        const start = currentPage * PAGE_SIZE
-        const pageItems = eventsList.slice(start, start + PAGE_SIZE)
-
-        // Fetch full event details for the current page (needed for EventBlockChain)
-        const fullEvents = await Promise.all(
-          pageItems.map(async (item: EventListResponse) => {
-            const { data } = await timelineApi.events.get(item.id)
-            return data
-          })
-        )
-        setEvents(fullEvents.filter((e): e is EventResponse => e != null))
-
-        // Load document counts for page events
-        const documentPromises = pageItems.map(async (item: EventListResponse) => {
-          try {
-            const { data: docs, error } = await timelineApi.documents.listByEvent(item.id)
-            if (error) {
-              return { eventId: item.id, count: 0 }
-            }
-            return { eventId: item.id, count: Array.isArray(docs) ? docs.length : 0 }
-          } catch {
-            return { eventId: item.id, count: 0 }
-          }
-        })
-
-        const documentResults = await Promise.all(documentPromises)
-        const counts: Record<string, number> = {}
-        documentResults.forEach(({ eventId, count }: { eventId: string; count: number }) => {
-          counts[eventId] = count
-        })
-        setDocumentCounts(counts)
+        return
       }
+      if (!eventsList) return
+
+      const list = eventsList as EventListResponse[]
+      setTotalEvents(-1) // unknown total when using server-side pagination
+      await setEventsAndDocumentCounts(list)
     } catch (err) {
       setError('An unexpected error occurred')
       console.error('Error:', err)
     }
-  }, [subjectId, currentPage])
+  }, [subjectId, currentPage, filterEventType, filterDateFrom, filterDateTo])
+
+  // Shared: fetch full details and document counts for a page of list items
+  const setEventsAndDocumentCounts = useCallback(async (pageItems: EventListResponse[]) => {
+    const fullEvents = await Promise.all(
+      pageItems.map(async (item: EventListResponse) => {
+        const { data } = await timelineApi.events.get(item.id)
+        return data
+      })
+    )
+    setEvents(fullEvents.filter((e): e is EventResponse => e != null))
+    const documentPromises = pageItems.map(async (item: EventListResponse) => {
+      try {
+        const { data: docs, error } = await timelineApi.documents.listByEvent(item.id)
+        if (error) return { eventId: item.id, count: 0 }
+        return { eventId: item.id, count: Array.isArray(docs) ? docs.length : 0 }
+      } catch {
+        return { eventId: item.id, count: 0 }
+      }
+    })
+    const documentResults = await Promise.all(documentPromises)
+    const counts: Record<string, number> = {}
+    documentResults.forEach(({ eventId, count }: { eventId: string; count: number }) => {
+      counts[eventId] = count
+    })
+    setDocumentCounts(counts)
+  }, [])
 
   const goToPage = (page: number) => {
-    if (page >= 0 && page < totalPages) {
-      setCurrentPage(page)
-    }
+    if (page < 0) return
+    if (totalPages !== null && page >= totalPages) return
+    setCurrentPage(page)
   }
 
   const { isConnected } = useEventStream({
@@ -416,7 +479,7 @@ function SubjectDetailPage() {
         onOpenChange={(open) => {
           if (!open) {
             setEventDrawerEvent(null)
-            navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: activeTab, event_id: undefined } })
+            navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: searchFor({ tab: activeTab, event_id: undefined }) })
           }
         }}
       >
@@ -426,7 +489,7 @@ function SubjectDetailPage() {
               event={eventDrawerEvent}
               onClose={() => {
                 setEventDrawerEvent(null)
-                navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: activeTab, event_id: undefined } })
+                navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: searchFor({ tab: activeTab, event_id: undefined }) })
               }}
               className="border-0 min-h-full"
             />
@@ -518,7 +581,7 @@ function SubjectDetailPage() {
       {/* Tabs — persisted in URL so reload keeps tab */}
       <div className="flex gap-1 mb-3 border-b border-border/40">
         <button
-          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'events', event_id: undefined } })}
+          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: searchFor({ tab: 'events', event_id: undefined }) })}
           className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-none flex items-center gap-2 ${
             activeTab === 'events'
               ? 'bg-muted/40 border-primary text-foreground'
@@ -529,7 +592,7 @@ function SubjectDetailPage() {
           Event Chain
         </button>
         <button
-          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'documents', event_id: undefined } })}
+          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: searchFor({ tab: 'documents', event_id: undefined }) })}
           className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-none flex items-center gap-2 ${
             activeTab === 'documents'
               ? 'bg-muted/40 border-primary text-foreground'
@@ -540,7 +603,7 @@ function SubjectDetailPage() {
           Documents
         </button>
         <button
-          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'state', event_id: undefined } })}
+          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: searchFor({ tab: 'state', event_id: undefined }) })}
           className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-none flex items-center gap-2 ${
             activeTab === 'state'
               ? 'bg-muted/40 border-primary text-foreground'
@@ -551,7 +614,7 @@ function SubjectDetailPage() {
           State
         </button>
         <button
-          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'relationships', event_id: undefined } })}
+          onClick={() => navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: searchFor({ tab: 'relationships', event_id: undefined }) })}
           className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 rounded-none flex items-center gap-2 ${
             activeTab === 'relationships'
               ? 'bg-muted/40 border-primary text-foreground'
@@ -584,6 +647,136 @@ function SubjectDetailPage() {
               View all epochs →
             </Link>
           </div>
+
+          {/* Event filters: type + date range. Integrity filter deferred until list API supports it. */}
+          <div className="mb-3 flex flex-wrap items-center gap-3 rounded-none border border-border/40 bg-muted/10 px-3 py-2">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <label className="text-sm font-medium text-foreground/90 whitespace-nowrap">
+                Event type:
+              </label>
+              <SingleSelectCombobox
+                value={filterEventType}
+                onValueChange={(value) => {
+                  setFilterEventType(value)
+                  navigate({
+                    to: '/subjects/$subjectId',
+                    params: { subjectId },
+                    search: { tab: 'events', event_id: eventIdFromUrl, event_type: value, from: filterDateFrom, to: filterDateTo },
+                  })
+                }}
+                options={[
+                  { value: '', label: eventTypesLoading ? 'Loading…' : 'All types' },
+                  ...eventTypes.map((t) => ({ value: t, label: t })),
+                ]}
+                placeholder="All types"
+                clearable
+                className="min-w-[140px]"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-sm font-medium text-foreground/90 whitespace-nowrap">
+                From:
+              </label>
+              <input
+                type="date"
+                value={filterDateFrom}
+                onChange={(e) => {
+                  const v = e.target.value
+                  setFilterDateFrom(v)
+                  navigate({
+                    to: '/subjects/$subjectId',
+                    params: { subjectId },
+                    search: { tab: 'events', event_id: eventIdFromUrl, event_type: filterEventType, from: v, to: filterDateTo },
+                  })
+                }}
+                className="h-8 rounded-none border border-border bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-sm font-medium text-foreground/90 whitespace-nowrap">
+                To:
+              </label>
+              <input
+                type="date"
+                value={filterDateTo}
+                onChange={(e) => {
+                  const v = e.target.value
+                  setFilterDateTo(v)
+                  navigate({
+                    to: '/subjects/$subjectId',
+                    params: { subjectId },
+                    search: { tab: 'events', event_id: eventIdFromUrl, event_type: filterEventType, from: filterDateFrom, to: v },
+                  })
+                }}
+                className="h-8 rounded-none border border-border bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            {(filterEventType || filterDateFrom || filterDateTo) && (
+              <div className="flex flex-wrap items-center gap-1.5 ml-auto">
+                {filterEventType && (
+                  <span className="inline-flex items-center gap-1 rounded-none border border-border/60 bg-muted/30 px-2 py-0.5 text-xs text-foreground/90">
+                    type: {filterEventType}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterEventType('')
+                        navigate({
+                          to: '/subjects/$subjectId',
+                          params: { subjectId },
+                          search: { tab: 'events', event_id: eventIdFromUrl, event_type: '', from: filterDateFrom, to: filterDateTo },
+                        })
+                      }}
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Clear event type filter"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {filterDateFrom && (
+                  <span className="inline-flex items-center gap-1 rounded-none border border-border/60 bg-muted/30 px-2 py-0.5 text-xs text-foreground/90">
+                    from: {filterDateFrom}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterDateFrom('')
+                        navigate({
+                          to: '/subjects/$subjectId',
+                          params: { subjectId },
+                          search: { tab: 'events', event_id: eventIdFromUrl, event_type: filterEventType, from: '', to: filterDateTo },
+                        })
+                      }}
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Clear from date"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {filterDateTo && (
+                  <span className="inline-flex items-center gap-1 rounded-none border border-border/60 bg-muted/30 px-2 py-0.5 text-xs text-foreground/90">
+                    to: {filterDateTo}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterDateTo('')
+                        navigate({
+                          to: '/subjects/$subjectId',
+                          params: { subjectId },
+                          search: { tab: 'events', event_id: eventIdFromUrl, event_type: filterEventType, from: filterDateFrom, to: '' },
+                        })
+                      }}
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Clear to date"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
           {events.length === 0 ? (
             <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/30">
               <EmptyState
@@ -605,15 +798,17 @@ function SubjectDetailPage() {
                 pageOffset={currentPage * PAGE_SIZE}
                 onEventClick={(ev) => {
                 setEventDrawerEvent(ev)
-                navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: { tab: 'events', event_id: ev.id } })
+                navigate({ to: '/subjects/$subjectId', params: { subjectId }, search: searchFor({ tab: 'events', event_id: ev.id }) })
               }}
               />
 
               {/* Pagination Controls */}
-              {totalPages > 1 && (
+              {(totalPages !== null ? totalPages > 1 : currentPage > 0 || hasMorePages) && (
                 <div className="flex items-center justify-between mt-4 px-4 py-3 bg-card/80 backdrop-blur-sm rounded-none border border-border/30">
                   <div className="text-xs text-muted-foreground">
-                    Showing {currentPage * PAGE_SIZE + 1} - {Math.min((currentPage + 1) * PAGE_SIZE, totalEvents)} of {totalEvents} events
+                    {totalEvents >= 0
+                      ? `Showing ${currentPage * PAGE_SIZE + 1} - ${Math.min((currentPage + 1) * PAGE_SIZE, totalEvents)} of ${totalEvents} events`
+                      : `Page ${currentPage + 1}`}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -626,11 +821,11 @@ function SubjectDetailPage() {
                       Previous
                     </Button>
                     <span className="text-xs text-muted-foreground px-2">
-                      Page {currentPage + 1} of {totalPages}
+                      {totalPages !== null ? `Page ${currentPage + 1} of ${totalPages}` : `Page ${currentPage + 1}`}
                     </span>
                     <Button
                       onClick={() => goToPage(currentPage + 1)}
-                      disabled={currentPage >= totalPages - 1}
+                      disabled={totalPages !== null ? currentPage >= totalPages - 1 : !hasMorePages}
                       variant="ghost"
                       size="sm"
                     >

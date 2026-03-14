@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getAuthToken } from '@/lib/api-client'
+import { getAuthToken, getApiBaseUrl } from '@/lib/api-client'
 import type { Activity } from '@/lib/types/activity'
 
 interface UseActivitySubscriptionOptions {
@@ -26,8 +26,7 @@ type SubscriptionEvent =
 export function getEventsStreamUrl(subjectId?: string | null): string | null {
   const token = getAuthToken()
   if (!token) return null
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-  const base = apiUrl.replace(/\/$/, '')
+  const base = getApiBaseUrl().replace(/\/$/, '')
   const params = new URLSearchParams({ token })
   if (subjectId) params.set('subject_id', subjectId)
   return `${base}/api/v1/events/stream?${params.toString()}`

@@ -3,20 +3,37 @@ import type { paths, components } from './timeline-api'
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+/** API base URL for the backend. Single source of truth; use this instead of duplicating env/fallback. */
+export function getApiBaseUrl(): string {
+  return BASE_URL
+}
+
+const DEV_TOKEN_KEY = 'auth_token_dev'
+
 let authToken: string | null = null
 let tenantId: string | null = null
 
 if (typeof window !== 'undefined') {
   tenantId = localStorage.getItem('tenant_id')
+  // In dev only: restore token from sessionStorage so HMR/reload doesn't log you out
+  if (import.meta.env.DEV) {
+    const stored = sessionStorage.getItem(DEV_TOKEN_KEY)
+    if (stored) authToken = stored
+  }
 }
 
 /**
  * Access token is stored in memory only (no localStorage) for XSS safety.
+ * In dev we also persist to sessionStorage so hot reload doesn't clear it.
  * Refresh token is expected in an httpOnly cookie set by the backend on login.
  * On 401, the client attempts POST /api/v1/auth/refresh with credentials: 'include'.
  */
 export function setAuthToken(token: string | null) {
   authToken = token
+  if (typeof window !== 'undefined' && import.meta.env.DEV) {
+    if (token) sessionStorage.setItem(DEV_TOKEN_KEY, token)
+    else sessionStorage.removeItem(DEV_TOKEN_KEY)
+  }
 }
 
 export function getAuthToken(): string | null {
@@ -516,8 +533,7 @@ export const timelineApi = {
         params: { path: { document_id: id } },
       }),
     upload: async (data: FormData) => {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-      const url = `${baseUrl}/api/v1/documents`
+      const url = `${getApiBaseUrl()}/api/v1/documents`
 
       try {
         const headers: Record<string, string> = {}

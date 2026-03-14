@@ -1,18 +1,21 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { useEffect, useCallback, useState } from 'react'
+import { useEffect, useCallback, useState, useMemo } from 'react'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { useQuery } from '@tanstack/react-query'
 import { timelineApi } from '@/lib/api-client'
 import { formatFullDateTime } from '@/lib/format-date'
-import { CheckCircle, AlertTriangle, AlertCircle, DownloadIcon, Wrench, ChevronDown, ChevronRight, Boxes, FileCheck } from 'lucide-react'
+import { CheckCircle, AlertTriangle, AlertCircle, DownloadIcon, Wrench, ChevronDown, ChevronRight, ChevronLeft, Boxes, FileCheck } from 'lucide-react'
 import { ChainVisualization } from '@/components/verify/ChainVisualization'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { SkeletonBreadcrumbs, Skeleton } from '@/components/ui/Skeleton'
 import type { components } from '@/lib/timeline-api'
 import { Button } from '@/components/ui/button'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
+
+const VERIFY_PAGE_SIZE = 20
 
 type IntegrityEpochItem = components['schemas']['IntegrityEpochItem']
 
@@ -103,7 +106,9 @@ function VerifyPage() {
   const authState = useRequireAuth()
   const navigate = useNavigate()
   const { subjectId } = Route.useParams()
-  const [expandedRow, setExpandedRow] = useState<number | null>(null)
+  const [expandedEventId, setExpandedEventId] = useState<string | null>(null)
+  const [filterStatus, setFilterStatus] = useState<'' | 'valid' | 'break'>('')
+  const [detailPage, setDetailPage] = useState(0)
 
   const { data: epochs = [] } = useQuery({
     queryKey: ['integrity', 'epochs', subjectId],
@@ -133,6 +138,26 @@ function VerifyPage() {
   useEffect(() => {
     if (authState.user && subjectId) refetch()
   }, [authState.user, subjectId, refetch])
+
+  const eventsList = verification?.events ?? []
+  const filteredEvents = useMemo(() => {
+    if (filterStatus === '') return eventsList
+    if (filterStatus === 'valid') return eventsList.filter((e) => e.is_valid)
+    return eventsList.filter((e) => !e.is_valid)
+  }, [eventsList, filterStatus])
+
+  const paginatedEvents = useMemo(() => {
+    const start = detailPage * VERIFY_PAGE_SIZE
+    return filteredEvents.slice(start, start + VERIFY_PAGE_SIZE)
+  }, [filteredEvents, detailPage])
+
+  useEffect(() => {
+    setDetailPage(0)
+  }, [filterStatus])
+
+  const detailTotalPages = Math.ceil(filteredEvents.length / VERIFY_PAGE_SIZE)
+  const detailStart = detailPage * VERIFY_PAGE_SIZE
+  const detailEnd = Math.min(detailStart + VERIFY_PAGE_SIZE, filteredEvents.length)
 
   const handleExportReport = () => {
     if (!verification) return
@@ -237,18 +262,15 @@ function VerifyPage() {
 
       {/* Error Alert */}
       {error && (
-        <div className="mb-3 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none flex gap-2">
-          <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+        <div className="mb-3 p-2.5 bg-destructive/10 border border-destructive/50 rounded-none flex gap-2">
+          <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
           <div className="flex-1">
-            <h3 className="font-semibold text-red-900 dark:text-red-200 text-xs">Verification Failed</h3>
-            <p className="text-xs text-red-800 dark:text-red-300 mt-0.5">{error}</p>
+            <h3 className="font-semibold text-destructive text-xs">Verification Failed</h3>
+            <p className="text-xs text-destructive mt-0.5">{error}</p>
           </div>
-          <button
-            onClick={() => refetch()}
-            className="px-2.5 py-0.5 text-xs bg-red-600 text-white rounded-none hover:bg-red-700 transition-colors shrink-0"
-          >
+          <Button type="button" variant="destructive" size="sm" onClick={() => refetch()} className="shrink-0">
             Retry
-          </button>
+          </Button>
         </div>
       )}
 
@@ -302,14 +324,14 @@ function VerifyPage() {
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <h1 className="text-lg font-bold text-foreground">Chain Verification</h1>
               {verification.is_chain_valid ? (
-                <div className="flex items-center gap-1 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-none">
-                  <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-                  <span className="font-semibold text-green-900 dark:text-green-200 text-xs">Valid Chain</span>
+                <div className="flex items-center gap-1 px-2.5 py-1 bg-status-ok/10 border border-status-ok/50 rounded-none">
+                  <CheckCircle className="w-3.5 h-3.5 text-status-ok" />
+                  <span className="font-semibold text-status-ok text-xs">Valid Chain</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-1 px-2.5 py-1 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none">
-                  <AlertTriangle className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-                  <span className="font-semibold text-red-900 dark:text-red-200 text-xs">Tampered Chain</span>
+                <div className="flex items-center gap-1 px-2.5 py-1 bg-status-error/10 border border-status-error/50 rounded-none">
+                  <AlertTriangle className="w-3.5 h-3.5 text-status-error" />
+                  <span className="font-semibold text-status-error text-xs">Tampered Chain</span>
                 </div>
               )}
               <Button
@@ -335,9 +357,9 @@ function VerifyPage() {
             {/* Compact Stats */}
             <div className="flex flex-wrap gap-3 mb-2 text-sm">
               <span className="text-muted-foreground">Total Events: <span className="font-bold text-foreground">{verification.total_events}</span></span>
-              <span className="text-muted-foreground">Valid Events: <span className="font-bold text-green-600 dark:text-green-400">{verification.valid_events}</span></span>
-              <span className="text-muted-foreground">Invalid Events: <span className="font-bold text-red-600 dark:text-red-400">{verification.invalid_events}</span></span>
-              <span className="text-muted-foreground">Integrity: <span className={`font-bold ${verification.is_chain_valid ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{verification.total_events > 0 ? Math.round((verification.valid_events / verification.total_events) * 100) : 0}%</span></span>
+              <span className="text-muted-foreground">Valid Events: <span className="font-bold text-status-ok">{verification.valid_events}</span></span>
+              <span className="text-muted-foreground">Invalid Events: <span className="font-bold text-status-error">{verification.invalid_events}</span></span>
+              <span className="text-muted-foreground">Integrity: <span className={`font-bold ${verification.is_chain_valid ? 'text-status-ok' : 'text-status-error'}`}>{verification.total_events > 0 ? Math.round((verification.valid_events / verification.total_events) * 100) : 0}%</span></span>
             </div>
 
             <p className="text-xs text-muted-foreground">Subject ID: {subjectId}</p>
@@ -350,6 +372,26 @@ function VerifyPage() {
           {verification.events && verification.events.length > 0 && (
             <div className="bg-card/80 rounded-none border border-border/50 p-3 mb-3">
               <h2 className="text-sm font-semibold text-foreground mb-2">Verification Detail</h2>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <label className="text-sm font-medium text-foreground/90 whitespace-nowrap">Status:</label>
+                <SingleSelectCombobox
+                  value={filterStatus}
+                  onValueChange={(v) => setFilterStatus((v === 'valid' || v === 'break') ? v : '')}
+                  options={[
+                    { value: '', label: 'All' },
+                    { value: 'valid', label: 'Valid' },
+                    { value: 'break', label: 'Break' },
+                  ]}
+                  placeholder="All"
+                  clearable
+                  className="min-w-[100px]"
+                />
+                {filterStatus && (
+                  <span className="text-xs text-muted-foreground">
+                    Showing {filteredEvents.length} of {eventsList.length} events
+                  </span>
+                )}
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm border-collapse">
                   <thead>
@@ -363,13 +405,13 @@ function VerifyPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {verification.events.map((event, index) => (
+                    {paginatedEvents.map((event) => (
                       <VerificationTableRow
                         key={event.event_id}
                         event={event}
                         subjectId={subjectId}
-                        isExpanded={expandedRow === index}
-                        onToggle={() => setExpandedRow((i) => (i === index ? null : index))}
+                        isExpanded={expandedEventId === event.event_id}
+                        onToggle={() => setExpandedEventId((id) => (id === event.event_id ? null : event.event_id))}
                         onInitiateRepair={() => navigate({ to: '/integrity/repairs/new', search: { subject_id: subjectId, break_seq: String(event.sequence) } })}
                         onViewProof={() => navigate({ to: '/subjects/$subjectId/proof/$eventSeq', params: { subjectId, eventSeq: String(event.sequence) } })}
                       />
@@ -377,6 +419,36 @@ function VerifyPage() {
                   </tbody>
                 </table>
               </div>
+              {filteredEvents.length > VERIFY_PAGE_SIZE && (
+                <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/30">
+                  <div className="text-xs text-muted-foreground">
+                    Showing {detailStart + 1}–{detailEnd} of {filteredEvents.length} events
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDetailPage((p) => Math.max(0, p - 1))}
+                      disabled={detailPage === 0}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      Previous
+                    </Button>
+                    <span className="text-xs text-muted-foreground px-2">
+                      Page {detailPage + 1} of {detailTotalPages}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDetailPage((p) => p + 1)}
+                      disabled={detailPage >= detailTotalPages - 1}
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -407,11 +479,11 @@ function VerifyPage() {
 
           {/* Invalid Events Summary */}
           {verification.invalid_events > 0 && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none p-3 mb-3">
-              <h2 className="text-sm font-semibold text-red-900 dark:text-red-200 mb-2">
+            <div className="bg-destructive/10 border border-destructive/50 rounded-none p-3 mb-3">
+              <h2 className="text-sm font-semibold text-destructive mb-2">
                 Chain Integrity Issues ({verification.invalid_events} {verification.invalid_events === 1 ? 'issue' : 'issues'})
               </h2>
-              <p className="text-xs text-red-800 dark:text-red-300 mb-2">
+              <p className="text-xs text-destructive mb-2">
                 {verification.invalid_events} event{verification.invalid_events !== 1 ? 's' : ''} failed verification. See the Visual Chain Overview above for details.
               </p>
             </div>

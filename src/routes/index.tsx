@@ -8,7 +8,7 @@ import { StatsGrid } from '@/components/dashboard/StatsGrid'
 import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard'
 import { useEventStream } from '@/hooks/useActivitySubscription'
 import { Loader2, AlertCircle, RefreshCw, Activity, Shield, Circle } from 'lucide-react'
-import { timelineApi } from '@/lib/api-client'
+import { timelineApi, getAuthToken, getTenantId, getApiBaseUrl } from '@/lib/api-client'
 import { getApiErrorDisplay } from '@/lib/api-utils'
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import type { components } from '@/lib/timeline-api'
@@ -36,14 +36,36 @@ interface FetchError {
   message: string
 }
 
-/** Chain integrity breakdown. Uses optional summary API; when absent shows placeholder. */
+/** Response shape for GET /api/v1/tenants/integrity/summary (when backend implements it). */
+interface IntegritySummaryResponse {
+  healthy?: number
+  broken?: number
+  unverified?: number
+  last_verified?: string | null
+}
+
+/** Chain integrity breakdown. Wired to GET /api/v1/tenants/integrity/summary; shows "—" when endpoint is absent or errors. */
 function ChainIntegrityCard() {
   const authState = useStore(authStore)
   const { data: summary } = useQuery({
     queryKey: ['integrity', 'summary'],
     queryFn: async (): Promise<{ healthy: number; broken: number; unverified: number; lastVerified: string | null } | null> => {
-      // Backend may add GET /api/v1/tenants/integrity/summary; until then return null
-      return null
+      const baseUrl = getApiBaseUrl()
+      const token = getAuthToken()
+      const tenantId = getTenantId()
+      const res = await fetch(`${baseUrl}/api/v1/tenants/integrity/summary`, {
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+          ...(tenantId && { 'X-Tenant-ID': tenantId }),
+        },
+      })
+      if (!res.ok) return null
+      const raw = (await res.json()) as IntegritySummaryResponse
+      const healthy = typeof raw.healthy === 'number' ? raw.healthy : 0
+      const broken = typeof raw.broken === 'number' ? raw.broken : 0
+      const unverified = typeof raw.unverified === 'number' ? raw.unverified : 0
+      const lastVerified = typeof raw.last_verified === 'string' ? raw.last_verified : null
+      return { healthy, broken, unverified, lastVerified }
     },
     enabled: !!authState.user,
   })

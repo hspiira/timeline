@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getAuthToken } from '@/lib/api-client'
+import { getAuthToken, getApiBaseUrl } from '@/lib/api-client'
 
 export type SyncStage =
   | 'started'
@@ -109,7 +109,7 @@ export function useSyncProgress({
     }
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const apiUrl = getApiBaseUrl()
       const wsProtocol = apiUrl.startsWith('https') ? 'wss:' : 'ws:'
       const apiHost = new URL(apiUrl).host
       const wsUrl = `${wsProtocol}//${apiHost}/api/v1/ws?token=${encodeURIComponent(token)}`
