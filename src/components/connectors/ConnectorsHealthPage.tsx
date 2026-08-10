@@ -178,7 +178,7 @@ export function ConnectorsHealthPage() {
                               <span className="text-xs bg-popover border border-border px-2 py-1 rounded-none shadow">
                                 Lag: {payload[0].value}
                               </span>
-                            ) : null} />
+                            ) : null)} />
                             <Line type="monotone" dataKey="lag" stroke="var(--chart-1, hsl(var(--primary)))" strokeWidth={1.5} dot={false} />
                           </LineChart>
                         </ResponsiveContainer>

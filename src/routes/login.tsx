@@ -5,6 +5,7 @@ import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
 import { authStore, authActions } from '@/lib/auth-store'
 import { useRedirectIfAuthenticated } from '@/lib/hooks'
 import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
+import { AuthCard } from '@/components/auth/AuthCard'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -64,27 +65,21 @@ function LoginPage() {
 
   return (
     <AuthPageLayout>
-      <div className="w-full max-w-md">
-        <div className="bg-card/80 backdrop-blur-md border border-border shadow-xl p-8 [border-radius:var(--radius)]">
-          {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <img src="/logo.svg" alt="Timeline" className="w-16 h-16" />
-          </div>
-
+      <AuthCard>
           {/* Title */}
-          <h1 className="text-2xl font-bold text-center mb-6 text-foreground">
-            Sign In
+          <h1 className="text-center font-display text-xl font-semibold tracking-tight text-foreground">
+            Sign in
           </h1>
 
           {/* Session expired message */}
           {sessionExpired && !authState.error && (
-            <div className="mb-4 p-3 bg-muted border border-border rounded-none text-sm text-muted-foreground">
+            <div className="mt-6 bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
               Session expired. Please sign in again.
             </div>
           )}
           {/* Error Message */}
           {authState.error && (
-            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-none">
+            <div className="mt-6 bg-destructive/10 px-3 py-2.5">
               <p className="text-sm text-destructive">
                 {authState.error}
               </p>
@@ -92,31 +87,29 @@ function LoginPage() {
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
             <div>
               <label
                 htmlFor="tenant-code"
-                className="block text-sm font-medium text-foreground mb-1.5"
+                className="mb-1.5 block text-sm font-medium text-foreground"
               >
                 Organisation code
               </label>
-              <p className="text-xs text-muted-foreground mb-1.5">
-                From your admin or invite email.
-              </p>
               <Input
                 id="tenant-code"
                 type="text"
                 value={tenantCode}
                 onChange={(e) => setTenantCode(e.target.value)}
                 required
-                placeholder="e.g. acme-corp"
+                placeholder="acme-corp"
+                className="font-mono"
               />
             </div>
 
             <div>
               <label
                 htmlFor="username"
-                className="block text-sm font-medium text-foreground mb-1.5"
+                className="mb-1.5 block text-sm font-medium text-foreground"
               >
                 Username
               </label>
@@ -131,12 +124,20 @@ function LoginPage() {
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-foreground mb-1.5"
-              >
-                Password
-              </label>
+              <div className="mb-1.5 flex items-baseline justify-between gap-4">
+                <label
+                  htmlFor="password"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Password
+                </label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <Input
                   id="password"
@@ -166,46 +167,22 @@ function LoginPage() {
 
             <Button
               type="submit"
+              size="lg"
               disabled={showLoading}
               isLoading={showLoading}
               className="w-full"
             >
-              {showLoading ? 'Signing in...' : 'Sign In'}
+              {showLoading ? 'Signing in…' : 'Sign in'}
             </Button>
-
-            {/* Optional: enable when backend supports SSO */}
-            <div className="relative my-4">
-              <span className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </span>
-              <span className="relative flex justify-center text-xs text-muted-foreground">
-                or
-              </span>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              disabled
-              title="SSO not configured"
-            >
-              Continue with SSO
-            </Button>
-
-            <p className="text-xs text-muted-foreground text-center">
-              <Link to="/forgot-password" className="hover:underline">
-                Forgot password?
-              </Link>
-            </p>
           </form>
 
           {/* Bottom links */}
-          <div className="mt-6 flex flex-col items-center gap-3 text-center">
+          <div className="mt-8 flex flex-col items-center gap-2.5 text-center">
             <p className="text-sm text-muted-foreground">
               Don't have an account?{' '}
               <Link
                 to="/register"
-                className="text-foreground font-medium hover:underline"
+                className="font-medium text-foreground hover:underline"
               >
                 Register your tenant
               </Link>
@@ -215,15 +192,14 @@ function LoginPage() {
               onClick={() => {
                 window.location.href = '/'
               }}
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              className="inline-flex cursor-pointer items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
               aria-label="Back to home"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="h-3.5 w-3.5" />
               Back to home
             </button>
           </div>
-        </div>
-      </div>
+      </AuthCard>
     </AuthPageLayout>
   )
 }
