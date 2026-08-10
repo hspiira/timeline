@@ -116,7 +116,7 @@ export function WorkflowEditModalGraph({
       return
     }
 
-    const updateData: WorkflowUpdate & { trigger_event_type?: string; actions?: components['schemas']['WorkflowAction'][] } = {
+    const updateData: WorkflowUpdate & { trigger_event_type?: string; actions?: NonNullable<components['schemas']['WorkflowCreateRequest']['actions']> } = {
       name: name.trim(),
       description: description.trim() || undefined,
       execution_order: executionOrder,

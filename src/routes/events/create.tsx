@@ -227,7 +227,7 @@ function CreateEventPage() {
       }
 
       // Create event with payload (documents are optional now)
-      const eventCreateData: components['schemas']['EventCreateRequest'] = {
+      const eventCreateData: components['schemas']['EventCreate'] = {
         subject_id: state.subjectId,
         event_type: state.eventType,
         schema_version: schemaVersion,
