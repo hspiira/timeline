@@ -1,34 +1,76 @@
-Welcome to your new TanStack app! 
+# Timeline UI
+
+Frontend for the **Timeline** API: multi-tenant event-sourced timeline (subjects, events, documents, workflows). Built with Vite, React 19, TypeScript, TanStack Router, React Query, and openapi-fetch.
+
+The app talks to the Timeline backend API. The API base URL is set via **`VITE_API_URL`** (default `http://localhost:8000`). All requests send `Authorization: Bearer <token>` and `X-Tenant-ID` when the user is logged in. See **`docs/BACKEND_API.md`** for endpoint behavior, document categories, subject state/export/erasure, and permission gating.
+
+---
 
 # Getting Started
 
-To run this application:
-
 ```bash
-npm install
-npm run start
+pnpm install
+pnpm run dev
 ```
+
+Runs the app at `http://localhost:3000`. Log in with tenant code, username, and password (backend must be running and CORS allowed for the dev origin).
 
 # Building For Production
 
-To build this application for production:
-
 ```bash
-npm run build
+pnpm run build
+pnpm run preview
 ```
 
 ## Testing
 
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
+This project uses [Vitest](https://vitest.dev/) for testing:
 
 ```bash
-npm run test
+pnpm run test
 ```
 
 ## Styling
 
 This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
 
+---
+
+## API types (generate:api)
+
+TypeScript types and API paths are generated from the backend OpenAPI spec into **`src/lib/timeline-api.ts`**.
+
+**Prerequisite:** The Timeline API server must be running. The script fetches **`/openapi.json`** from that server. Default base URL: **`http://localhost:8000`**.
+
+```bash
+# Start the backend first (e.g. in ~/dev/new_timeline), then:
+pnpm run generate:api
+```
+
+**Custom URL:** Override with `OPENAPI_URL` or `API_URL`; the script appends `/openapi.json`.
+
+```bash
+OPENAPI_URL=https://api.example.com pnpm run generate:api
+API_URL=http://localhost:9000 pnpm run generate:api
+```
+
+## Troubleshooting
+
+### CORS / "No 'Access-Control-Allow-Origin' header" when calling the API
+
+The app (port 3000) calls the API at `http://localhost:8000` by default. The backend must allow origin `http://localhost:3000` and send `Access-Control-Allow-Origin` on responses. If you see CORS, the backend is often returning an error (e.g. 500) without CORS headers—check backend logs and fix the underlying error. Set `VITE_API_URL` to point at a different API URL if needed.
+
+### "Failed to fetch dynamically imported module" (e.g. `src/routes/index.tsx?tsr-split=component`)
+
+This usually happens when the dev server or browser is using a stale route chunk (e.g. after a restart or a change that invalidated the module graph). Try:
+
+1. **Hard refresh** the page (e.g. Cmd+Shift+R / Ctrl+Shift+R). The app listens for `vite:preloadError` and will reload automatically in some cases.
+2. **Clear Vite cache and restart**:
+   ```bash
+   rm -rf node_modules/.vite
+   pnpm run dev
+   ```
+3. If it persists, stop the dev server, run `pnpm install`, then start again.
 
 ## Linting & Formatting
 

@@ -9,38 +9,685 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SetPasswordRouteImport } from './routes/set-password'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SubjectsIndexRouteImport } from './routes/subjects/index'
+import { Route as SearchIndexRouteImport } from './routes/search/index'
+import { Route as ProjectionsIndexRouteImport } from './routes/projections/index'
+import { Route as FlowsIndexRouteImport } from './routes/flows/index'
+import { Route as EventsIndexRouteImport } from './routes/events/index'
+import { Route as EmailAccountsIndexRouteImport } from './routes/email-accounts/index'
+import { Route as ConnectorsIndexRouteImport } from './routes/connectors/index'
+import { Route as VerifyTenantRouteImport } from './routes/verify/tenant'
+import { Route as VerifySubjectIdRouteImport } from './routes/verify/$subjectId'
+import { Route as SubjectsSubjectIdRouteImport } from './routes/subjects/$subjectId'
+import { Route as ProjectionsNewRouteImport } from './routes/projections/new'
+import { Route as FlowsCreateRouteImport } from './routes/flows/create'
+import { Route as FlowsFlowIdRouteImport } from './routes/flows/$flowId'
+import { Route as EventsCreateRouteImport } from './routes/events/create'
+import { Route as EmailAccountsCreateRouteImport } from './routes/email-accounts/create'
+import { Route as EmailAccountsAccountIdRouteImport } from './routes/email-accounts/$accountId'
+import { Route as SettingsWorkflowsIndexRouteImport } from './routes/settings/workflows/index'
+import { Route as SettingsUsersIndexRouteImport } from './routes/settings/users/index'
+import { Route as SettingsSubjectTypesIndexRouteImport } from './routes/settings/subject-types/index'
+import { Route as SettingsSchemasIndexRouteImport } from './routes/settings/schemas/index'
+import { Route as SettingsRolesIndexRouteImport } from './routes/settings/roles/index'
+import { Route as SettingsRelationshipKindsIndexRouteImport } from './routes/settings/relationship-kinds/index'
+import { Route as SettingsPermissionsIndexRouteImport } from './routes/settings/permissions/index'
+import { Route as SettingsOauthProvidersIndexRouteImport } from './routes/settings/oauth-providers/index'
+import { Route as SettingsNamingTemplatesIndexRouteImport } from './routes/settings/naming-templates/index'
+import { Route as SettingsEventTransitionRulesIndexRouteImport } from './routes/settings/event-transition-rules/index'
+import { Route as SettingsDocumentCategoriesIndexRouteImport } from './routes/settings/document-categories/index'
+import { Route as SettingsConnectorsIndexRouteImport } from './routes/settings/connectors/index'
+import { Route as SettingsAuditLogIndexRouteImport } from './routes/settings/audit-log/index'
+import { Route as IntegrityRepairsIndexRouteImport } from './routes/integrity/repairs/index'
+import { Route as AdminRolesIndexRouteImport } from './routes/admin/roles/index'
+import { Route as AdminPermissionsIndexRouteImport } from './routes/admin/permissions/index'
+import { Route as SubjectsSubjectIdEpochsRouteImport } from './routes/subjects/$subjectId_/epochs'
+import { Route as SettingsWorkflowsCreateRouteImport } from './routes/settings/workflows/create'
+import { Route as SettingsWorkflowsBuilderRouteImport } from './routes/settings/workflows/builder'
+import { Route as ProjectionsNameVersionRouteImport } from './routes/projections/$name/$version'
+import { Route as IntegrityRepairsNewRouteImport } from './routes/integrity/repairs/new'
+import { Route as IntegrityRepairsRepairIdRouteImport } from './routes/integrity/repairs/$repairId'
+import { Route as EventsSubjectSubjectIdRouteImport } from './routes/events/subject.$subjectId'
+import { Route as EmailAccountsOauthCallbackRouteImport } from './routes/email-accounts/oauth/callback'
+import { Route as SubjectsSubjectIdProofEventSeqRouteImport } from './routes/subjects/$subjectId_/proof/$eventSeq'
+import { Route as SubjectsSubjectIdEventsEventIdRouteImport } from './routes/subjects/$subjectId_/events/$eventId'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetPasswordRoute = SetPasswordRouteImport.update({
+  id: '/set-password',
+  path: '/set-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SubjectsIndexRoute = SubjectsIndexRouteImport.update({
+  id: '/subjects/',
+  path: '/subjects/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchIndexRoute = SearchIndexRouteImport.update({
+  id: '/search/',
+  path: '/search/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectionsIndexRoute = ProjectionsIndexRouteImport.update({
+  id: '/projections/',
+  path: '/projections/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FlowsIndexRoute = FlowsIndexRouteImport.update({
+  id: '/flows/',
+  path: '/flows/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventsIndexRoute = EventsIndexRouteImport.update({
+  id: '/events/',
+  path: '/events/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailAccountsIndexRoute = EmailAccountsIndexRouteImport.update({
+  id: '/email-accounts/',
+  path: '/email-accounts/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConnectorsIndexRoute = ConnectorsIndexRouteImport.update({
+  id: '/connectors/',
+  path: '/connectors/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyTenantRoute = VerifyTenantRouteImport.update({
+  id: '/verify/tenant',
+  path: '/verify/tenant',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifySubjectIdRoute = VerifySubjectIdRouteImport.update({
+  id: '/verify/$subjectId',
+  path: '/verify/$subjectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubjectsSubjectIdRoute = SubjectsSubjectIdRouteImport.update({
+  id: '/subjects/$subjectId',
+  path: '/subjects/$subjectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectionsNewRoute = ProjectionsNewRouteImport.update({
+  id: '/projections/new',
+  path: '/projections/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FlowsCreateRoute = FlowsCreateRouteImport.update({
+  id: '/flows/create',
+  path: '/flows/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FlowsFlowIdRoute = FlowsFlowIdRouteImport.update({
+  id: '/flows/$flowId',
+  path: '/flows/$flowId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventsCreateRoute = EventsCreateRouteImport.update({
+  id: '/events/create',
+  path: '/events/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailAccountsCreateRoute = EmailAccountsCreateRouteImport.update({
+  id: '/email-accounts/create',
+  path: '/email-accounts/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailAccountsAccountIdRoute = EmailAccountsAccountIdRouteImport.update({
+  id: '/email-accounts/$accountId',
+  path: '/email-accounts/$accountId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsWorkflowsIndexRoute = SettingsWorkflowsIndexRouteImport.update({
+  id: '/workflows/',
+  path: '/workflows/',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsUsersIndexRoute = SettingsUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsSubjectTypesIndexRoute =
+  SettingsSubjectTypesIndexRouteImport.update({
+    id: '/subject-types/',
+    path: '/subject-types/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsSchemasIndexRoute = SettingsSchemasIndexRouteImport.update({
+  id: '/schemas/',
+  path: '/schemas/',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsRolesIndexRoute = SettingsRolesIndexRouteImport.update({
+  id: '/roles/',
+  path: '/roles/',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsRelationshipKindsIndexRoute =
+  SettingsRelationshipKindsIndexRouteImport.update({
+    id: '/relationship-kinds/',
+    path: '/relationship-kinds/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsPermissionsIndexRoute =
+  SettingsPermissionsIndexRouteImport.update({
+    id: '/permissions/',
+    path: '/permissions/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsOauthProvidersIndexRoute =
+  SettingsOauthProvidersIndexRouteImport.update({
+    id: '/oauth-providers/',
+    path: '/oauth-providers/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsNamingTemplatesIndexRoute =
+  SettingsNamingTemplatesIndexRouteImport.update({
+    id: '/naming-templates/',
+    path: '/naming-templates/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsEventTransitionRulesIndexRoute =
+  SettingsEventTransitionRulesIndexRouteImport.update({
+    id: '/event-transition-rules/',
+    path: '/event-transition-rules/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsDocumentCategoriesIndexRoute =
+  SettingsDocumentCategoriesIndexRouteImport.update({
+    id: '/document-categories/',
+    path: '/document-categories/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsConnectorsIndexRoute = SettingsConnectorsIndexRouteImport.update({
+  id: '/connectors/',
+  path: '/connectors/',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsAuditLogIndexRoute = SettingsAuditLogIndexRouteImport.update({
+  id: '/audit-log/',
+  path: '/audit-log/',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const IntegrityRepairsIndexRoute = IntegrityRepairsIndexRouteImport.update({
+  id: '/integrity/repairs/',
+  path: '/integrity/repairs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRolesIndexRoute = AdminRolesIndexRouteImport.update({
+  id: '/admin/roles/',
+  path: '/admin/roles/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPermissionsIndexRoute = AdminPermissionsIndexRouteImport.update({
+  id: '/admin/permissions/',
+  path: '/admin/permissions/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubjectsSubjectIdEpochsRoute = SubjectsSubjectIdEpochsRouteImport.update({
+  id: '/subjects/$subjectId_/epochs',
+  path: '/subjects/$subjectId/epochs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsWorkflowsCreateRoute = SettingsWorkflowsCreateRouteImport.update({
+  id: '/workflows/create',
+  path: '/workflows/create',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsWorkflowsBuilderRoute =
+  SettingsWorkflowsBuilderRouteImport.update({
+    id: '/workflows/builder',
+    path: '/workflows/builder',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const ProjectionsNameVersionRoute = ProjectionsNameVersionRouteImport.update({
+  id: '/projections/$name/$version',
+  path: '/projections/$name/$version',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrityRepairsNewRoute = IntegrityRepairsNewRouteImport.update({
+  id: '/integrity/repairs/new',
+  path: '/integrity/repairs/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrityRepairsRepairIdRoute =
+  IntegrityRepairsRepairIdRouteImport.update({
+    id: '/integrity/repairs/$repairId',
+    path: '/integrity/repairs/$repairId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const EventsSubjectSubjectIdRoute = EventsSubjectSubjectIdRouteImport.update({
+  id: '/events/subject/$subjectId',
+  path: '/events/subject/$subjectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailAccountsOauthCallbackRoute =
+  EmailAccountsOauthCallbackRouteImport.update({
+    id: '/email-accounts/oauth/callback',
+    path: '/email-accounts/oauth/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const SubjectsSubjectIdProofEventSeqRoute =
+  SubjectsSubjectIdProofEventSeqRouteImport.update({
+    id: '/subjects/$subjectId_/proof/$eventSeq',
+    path: '/subjects/$subjectId/proof/$eventSeq',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const SubjectsSubjectIdEventsEventIdRoute =
+  SubjectsSubjectIdEventsEventIdRouteImport.update({
+    id: '/subjects/$subjectId_/events/$eventId',
+    path: '/subjects/$subjectId/events/$eventId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
+  '/set-password': typeof SetPasswordRoute
+  '/settings': typeof SettingsRouteWithChildren
+  '/email-accounts/$accountId': typeof EmailAccountsAccountIdRoute
+  '/email-accounts/create': typeof EmailAccountsCreateRoute
+  '/events/create': typeof EventsCreateRoute
+  '/flows/$flowId': typeof FlowsFlowIdRoute
+  '/flows/create': typeof FlowsCreateRoute
+  '/projections/new': typeof ProjectionsNewRoute
+  '/subjects/$subjectId': typeof SubjectsSubjectIdRoute
+  '/verify/$subjectId': typeof VerifySubjectIdRoute
+  '/verify/tenant': typeof VerifyTenantRoute
+  '/connectors/': typeof ConnectorsIndexRoute
+  '/email-accounts/': typeof EmailAccountsIndexRoute
+  '/events/': typeof EventsIndexRoute
+  '/flows/': typeof FlowsIndexRoute
+  '/projections/': typeof ProjectionsIndexRoute
+  '/search/': typeof SearchIndexRoute
+  '/subjects/': typeof SubjectsIndexRoute
+  '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
+  '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
+  '/integrity/repairs/$repairId': typeof IntegrityRepairsRepairIdRoute
+  '/integrity/repairs/new': typeof IntegrityRepairsNewRoute
+  '/projections/$name/$version': typeof ProjectionsNameVersionRoute
+  '/settings/workflows/builder': typeof SettingsWorkflowsBuilderRoute
+  '/settings/workflows/create': typeof SettingsWorkflowsCreateRoute
+  '/subjects/$subjectId/epochs': typeof SubjectsSubjectIdEpochsRoute
+  '/admin/permissions/': typeof AdminPermissionsIndexRoute
+  '/admin/roles/': typeof AdminRolesIndexRoute
+  '/integrity/repairs/': typeof IntegrityRepairsIndexRoute
+  '/settings/audit-log/': typeof SettingsAuditLogIndexRoute
+  '/settings/connectors/': typeof SettingsConnectorsIndexRoute
+  '/settings/document-categories/': typeof SettingsDocumentCategoriesIndexRoute
+  '/settings/event-transition-rules/': typeof SettingsEventTransitionRulesIndexRoute
+  '/settings/naming-templates/': typeof SettingsNamingTemplatesIndexRoute
+  '/settings/oauth-providers/': typeof SettingsOauthProvidersIndexRoute
+  '/settings/permissions/': typeof SettingsPermissionsIndexRoute
+  '/settings/relationship-kinds/': typeof SettingsRelationshipKindsIndexRoute
+  '/settings/roles/': typeof SettingsRolesIndexRoute
+  '/settings/schemas/': typeof SettingsSchemasIndexRoute
+  '/settings/subject-types/': typeof SettingsSubjectTypesIndexRoute
+  '/settings/users/': typeof SettingsUsersIndexRoute
+  '/settings/workflows/': typeof SettingsWorkflowsIndexRoute
+  '/subjects/$subjectId/events/$eventId': typeof SubjectsSubjectIdEventsEventIdRoute
+  '/subjects/$subjectId/proof/$eventSeq': typeof SubjectsSubjectIdProofEventSeqRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
+  '/set-password': typeof SetPasswordRoute
+  '/settings': typeof SettingsRouteWithChildren
+  '/email-accounts/$accountId': typeof EmailAccountsAccountIdRoute
+  '/email-accounts/create': typeof EmailAccountsCreateRoute
+  '/events/create': typeof EventsCreateRoute
+  '/flows/$flowId': typeof FlowsFlowIdRoute
+  '/flows/create': typeof FlowsCreateRoute
+  '/projections/new': typeof ProjectionsNewRoute
+  '/subjects/$subjectId': typeof SubjectsSubjectIdRoute
+  '/verify/$subjectId': typeof VerifySubjectIdRoute
+  '/verify/tenant': typeof VerifyTenantRoute
+  '/connectors': typeof ConnectorsIndexRoute
+  '/email-accounts': typeof EmailAccountsIndexRoute
+  '/events': typeof EventsIndexRoute
+  '/flows': typeof FlowsIndexRoute
+  '/projections': typeof ProjectionsIndexRoute
+  '/search': typeof SearchIndexRoute
+  '/subjects': typeof SubjectsIndexRoute
+  '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
+  '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
+  '/integrity/repairs/$repairId': typeof IntegrityRepairsRepairIdRoute
+  '/integrity/repairs/new': typeof IntegrityRepairsNewRoute
+  '/projections/$name/$version': typeof ProjectionsNameVersionRoute
+  '/settings/workflows/builder': typeof SettingsWorkflowsBuilderRoute
+  '/settings/workflows/create': typeof SettingsWorkflowsCreateRoute
+  '/subjects/$subjectId/epochs': typeof SubjectsSubjectIdEpochsRoute
+  '/admin/permissions': typeof AdminPermissionsIndexRoute
+  '/admin/roles': typeof AdminRolesIndexRoute
+  '/integrity/repairs': typeof IntegrityRepairsIndexRoute
+  '/settings/audit-log': typeof SettingsAuditLogIndexRoute
+  '/settings/connectors': typeof SettingsConnectorsIndexRoute
+  '/settings/document-categories': typeof SettingsDocumentCategoriesIndexRoute
+  '/settings/event-transition-rules': typeof SettingsEventTransitionRulesIndexRoute
+  '/settings/naming-templates': typeof SettingsNamingTemplatesIndexRoute
+  '/settings/oauth-providers': typeof SettingsOauthProvidersIndexRoute
+  '/settings/permissions': typeof SettingsPermissionsIndexRoute
+  '/settings/relationship-kinds': typeof SettingsRelationshipKindsIndexRoute
+  '/settings/roles': typeof SettingsRolesIndexRoute
+  '/settings/schemas': typeof SettingsSchemasIndexRoute
+  '/settings/subject-types': typeof SettingsSubjectTypesIndexRoute
+  '/settings/users': typeof SettingsUsersIndexRoute
+  '/settings/workflows': typeof SettingsWorkflowsIndexRoute
+  '/subjects/$subjectId/events/$eventId': typeof SubjectsSubjectIdEventsEventIdRoute
+  '/subjects/$subjectId/proof/$eventSeq': typeof SubjectsSubjectIdProofEventSeqRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
+  '/set-password': typeof SetPasswordRoute
+  '/settings': typeof SettingsRouteWithChildren
+  '/email-accounts/$accountId': typeof EmailAccountsAccountIdRoute
+  '/email-accounts/create': typeof EmailAccountsCreateRoute
+  '/events/create': typeof EventsCreateRoute
+  '/flows/$flowId': typeof FlowsFlowIdRoute
+  '/flows/create': typeof FlowsCreateRoute
+  '/projections/new': typeof ProjectionsNewRoute
+  '/subjects/$subjectId': typeof SubjectsSubjectIdRoute
+  '/verify/$subjectId': typeof VerifySubjectIdRoute
+  '/verify/tenant': typeof VerifyTenantRoute
+  '/connectors/': typeof ConnectorsIndexRoute
+  '/email-accounts/': typeof EmailAccountsIndexRoute
+  '/events/': typeof EventsIndexRoute
+  '/flows/': typeof FlowsIndexRoute
+  '/projections/': typeof ProjectionsIndexRoute
+  '/search/': typeof SearchIndexRoute
+  '/subjects/': typeof SubjectsIndexRoute
+  '/email-accounts/oauth/callback': typeof EmailAccountsOauthCallbackRoute
+  '/events/subject/$subjectId': typeof EventsSubjectSubjectIdRoute
+  '/integrity/repairs/$repairId': typeof IntegrityRepairsRepairIdRoute
+  '/integrity/repairs/new': typeof IntegrityRepairsNewRoute
+  '/projections/$name/$version': typeof ProjectionsNameVersionRoute
+  '/settings/workflows/builder': typeof SettingsWorkflowsBuilderRoute
+  '/settings/workflows/create': typeof SettingsWorkflowsCreateRoute
+  '/subjects/$subjectId_/epochs': typeof SubjectsSubjectIdEpochsRoute
+  '/admin/permissions/': typeof AdminPermissionsIndexRoute
+  '/admin/roles/': typeof AdminRolesIndexRoute
+  '/integrity/repairs/': typeof IntegrityRepairsIndexRoute
+  '/settings/audit-log/': typeof SettingsAuditLogIndexRoute
+  '/settings/connectors/': typeof SettingsConnectorsIndexRoute
+  '/settings/document-categories/': typeof SettingsDocumentCategoriesIndexRoute
+  '/settings/event-transition-rules/': typeof SettingsEventTransitionRulesIndexRoute
+  '/settings/naming-templates/': typeof SettingsNamingTemplatesIndexRoute
+  '/settings/oauth-providers/': typeof SettingsOauthProvidersIndexRoute
+  '/settings/permissions/': typeof SettingsPermissionsIndexRoute
+  '/settings/relationship-kinds/': typeof SettingsRelationshipKindsIndexRoute
+  '/settings/roles/': typeof SettingsRolesIndexRoute
+  '/settings/schemas/': typeof SettingsSchemasIndexRoute
+  '/settings/subject-types/': typeof SettingsSubjectTypesIndexRoute
+  '/settings/users/': typeof SettingsUsersIndexRoute
+  '/settings/workflows/': typeof SettingsWorkflowsIndexRoute
+  '/subjects/$subjectId_/events/$eventId': typeof SubjectsSubjectIdEventsEventIdRoute
+  '/subjects/$subjectId_/proof/$eventSeq': typeof SubjectsSubjectIdProofEventSeqRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/register'
+    | '/set-password'
+    | '/settings'
+    | '/email-accounts/$accountId'
+    | '/email-accounts/create'
+    | '/events/create'
+    | '/flows/$flowId'
+    | '/flows/create'
+    | '/projections/new'
+    | '/subjects/$subjectId'
+    | '/verify/$subjectId'
+    | '/verify/tenant'
+    | '/connectors/'
+    | '/email-accounts/'
+    | '/events/'
+    | '/flows/'
+    | '/projections/'
+    | '/search/'
+    | '/subjects/'
+    | '/email-accounts/oauth/callback'
+    | '/events/subject/$subjectId'
+    | '/integrity/repairs/$repairId'
+    | '/integrity/repairs/new'
+    | '/projections/$name/$version'
+    | '/settings/workflows/builder'
+    | '/settings/workflows/create'
+    | '/subjects/$subjectId/epochs'
+    | '/admin/permissions/'
+    | '/admin/roles/'
+    | '/integrity/repairs/'
+    | '/settings/audit-log/'
+    | '/settings/connectors/'
+    | '/settings/document-categories/'
+    | '/settings/event-transition-rules/'
+    | '/settings/naming-templates/'
+    | '/settings/oauth-providers/'
+    | '/settings/permissions/'
+    | '/settings/relationship-kinds/'
+    | '/settings/roles/'
+    | '/settings/schemas/'
+    | '/settings/subject-types/'
+    | '/settings/users/'
+    | '/settings/workflows/'
+    | '/subjects/$subjectId/events/$eventId'
+    | '/subjects/$subjectId/proof/$eventSeq'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/register'
+    | '/set-password'
+    | '/settings'
+    | '/email-accounts/$accountId'
+    | '/email-accounts/create'
+    | '/events/create'
+    | '/flows/$flowId'
+    | '/flows/create'
+    | '/projections/new'
+    | '/subjects/$subjectId'
+    | '/verify/$subjectId'
+    | '/verify/tenant'
+    | '/connectors'
+    | '/email-accounts'
+    | '/events'
+    | '/flows'
+    | '/projections'
+    | '/search'
+    | '/subjects'
+    | '/email-accounts/oauth/callback'
+    | '/events/subject/$subjectId'
+    | '/integrity/repairs/$repairId'
+    | '/integrity/repairs/new'
+    | '/projections/$name/$version'
+    | '/settings/workflows/builder'
+    | '/settings/workflows/create'
+    | '/subjects/$subjectId/epochs'
+    | '/admin/permissions'
+    | '/admin/roles'
+    | '/integrity/repairs'
+    | '/settings/audit-log'
+    | '/settings/connectors'
+    | '/settings/document-categories'
+    | '/settings/event-transition-rules'
+    | '/settings/naming-templates'
+    | '/settings/oauth-providers'
+    | '/settings/permissions'
+    | '/settings/relationship-kinds'
+    | '/settings/roles'
+    | '/settings/schemas'
+    | '/settings/subject-types'
+    | '/settings/users'
+    | '/settings/workflows'
+    | '/subjects/$subjectId/events/$eventId'
+    | '/subjects/$subjectId/proof/$eventSeq'
+  id:
+    | '__root__'
+    | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/register'
+    | '/set-password'
+    | '/settings'
+    | '/email-accounts/$accountId'
+    | '/email-accounts/create'
+    | '/events/create'
+    | '/flows/$flowId'
+    | '/flows/create'
+    | '/projections/new'
+    | '/subjects/$subjectId'
+    | '/verify/$subjectId'
+    | '/verify/tenant'
+    | '/connectors/'
+    | '/email-accounts/'
+    | '/events/'
+    | '/flows/'
+    | '/projections/'
+    | '/search/'
+    | '/subjects/'
+    | '/email-accounts/oauth/callback'
+    | '/events/subject/$subjectId'
+    | '/integrity/repairs/$repairId'
+    | '/integrity/repairs/new'
+    | '/projections/$name/$version'
+    | '/settings/workflows/builder'
+    | '/settings/workflows/create'
+    | '/subjects/$subjectId_/epochs'
+    | '/admin/permissions/'
+    | '/admin/roles/'
+    | '/integrity/repairs/'
+    | '/settings/audit-log/'
+    | '/settings/connectors/'
+    | '/settings/document-categories/'
+    | '/settings/event-transition-rules/'
+    | '/settings/naming-templates/'
+    | '/settings/oauth-providers/'
+    | '/settings/permissions/'
+    | '/settings/relationship-kinds/'
+    | '/settings/roles/'
+    | '/settings/schemas/'
+    | '/settings/subject-types/'
+    | '/settings/users/'
+    | '/settings/workflows/'
+    | '/subjects/$subjectId_/events/$eventId'
+    | '/subjects/$subjectId_/proof/$eventSeq'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LoginRoute: typeof LoginRoute
+  RegisterRoute: typeof RegisterRoute
+  SetPasswordRoute: typeof SetPasswordRoute
+  SettingsRoute: typeof SettingsRouteWithChildren
+  EmailAccountsAccountIdRoute: typeof EmailAccountsAccountIdRoute
+  EmailAccountsCreateRoute: typeof EmailAccountsCreateRoute
+  EventsCreateRoute: typeof EventsCreateRoute
+  FlowsFlowIdRoute: typeof FlowsFlowIdRoute
+  FlowsCreateRoute: typeof FlowsCreateRoute
+  ProjectionsNewRoute: typeof ProjectionsNewRoute
+  SubjectsSubjectIdRoute: typeof SubjectsSubjectIdRoute
+  VerifySubjectIdRoute: typeof VerifySubjectIdRoute
+  VerifyTenantRoute: typeof VerifyTenantRoute
+  ConnectorsIndexRoute: typeof ConnectorsIndexRoute
+  EmailAccountsIndexRoute: typeof EmailAccountsIndexRoute
+  EventsIndexRoute: typeof EventsIndexRoute
+  FlowsIndexRoute: typeof FlowsIndexRoute
+  ProjectionsIndexRoute: typeof ProjectionsIndexRoute
+  SearchIndexRoute: typeof SearchIndexRoute
+  SubjectsIndexRoute: typeof SubjectsIndexRoute
+  EmailAccountsOauthCallbackRoute: typeof EmailAccountsOauthCallbackRoute
+  EventsSubjectSubjectIdRoute: typeof EventsSubjectSubjectIdRoute
+  IntegrityRepairsRepairIdRoute: typeof IntegrityRepairsRepairIdRoute
+  IntegrityRepairsNewRoute: typeof IntegrityRepairsNewRoute
+  ProjectionsNameVersionRoute: typeof ProjectionsNameVersionRoute
+  SubjectsSubjectIdEpochsRoute: typeof SubjectsSubjectIdEpochsRoute
+  AdminPermissionsIndexRoute: typeof AdminPermissionsIndexRoute
+  AdminRolesIndexRoute: typeof AdminRolesIndexRoute
+  IntegrityRepairsIndexRoute: typeof IntegrityRepairsIndexRoute
+  SubjectsSubjectIdEventsEventIdRoute: typeof SubjectsSubjectIdEventsEventIdRoute
+  SubjectsSubjectIdProofEventSeqRoute: typeof SubjectsSubjectIdProofEventSeqRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/set-password': {
+      id: '/set-password'
+      path: '/set-password'
+      fullPath: '/set-password'
+      preLoaderRoute: typeof SetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +695,378 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/subjects/': {
+      id: '/subjects/'
+      path: '/subjects'
+      fullPath: '/subjects/'
+      preLoaderRoute: typeof SubjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search/': {
+      id: '/search/'
+      path: '/search'
+      fullPath: '/search/'
+      preLoaderRoute: typeof SearchIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projections/': {
+      id: '/projections/'
+      path: '/projections'
+      fullPath: '/projections/'
+      preLoaderRoute: typeof ProjectionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/flows/': {
+      id: '/flows/'
+      path: '/flows'
+      fullPath: '/flows/'
+      preLoaderRoute: typeof FlowsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events/': {
+      id: '/events/'
+      path: '/events'
+      fullPath: '/events/'
+      preLoaderRoute: typeof EventsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email-accounts/': {
+      id: '/email-accounts/'
+      path: '/email-accounts'
+      fullPath: '/email-accounts/'
+      preLoaderRoute: typeof EmailAccountsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/connectors/': {
+      id: '/connectors/'
+      path: '/connectors'
+      fullPath: '/connectors/'
+      preLoaderRoute: typeof ConnectorsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify/tenant': {
+      id: '/verify/tenant'
+      path: '/verify/tenant'
+      fullPath: '/verify/tenant'
+      preLoaderRoute: typeof VerifyTenantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify/$subjectId': {
+      id: '/verify/$subjectId'
+      path: '/verify/$subjectId'
+      fullPath: '/verify/$subjectId'
+      preLoaderRoute: typeof VerifySubjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subjects/$subjectId': {
+      id: '/subjects/$subjectId'
+      path: '/subjects/$subjectId'
+      fullPath: '/subjects/$subjectId'
+      preLoaderRoute: typeof SubjectsSubjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projections/new': {
+      id: '/projections/new'
+      path: '/projections/new'
+      fullPath: '/projections/new'
+      preLoaderRoute: typeof ProjectionsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/flows/create': {
+      id: '/flows/create'
+      path: '/flows/create'
+      fullPath: '/flows/create'
+      preLoaderRoute: typeof FlowsCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/flows/$flowId': {
+      id: '/flows/$flowId'
+      path: '/flows/$flowId'
+      fullPath: '/flows/$flowId'
+      preLoaderRoute: typeof FlowsFlowIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events/create': {
+      id: '/events/create'
+      path: '/events/create'
+      fullPath: '/events/create'
+      preLoaderRoute: typeof EventsCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email-accounts/create': {
+      id: '/email-accounts/create'
+      path: '/email-accounts/create'
+      fullPath: '/email-accounts/create'
+      preLoaderRoute: typeof EmailAccountsCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email-accounts/$accountId': {
+      id: '/email-accounts/$accountId'
+      path: '/email-accounts/$accountId'
+      fullPath: '/email-accounts/$accountId'
+      preLoaderRoute: typeof EmailAccountsAccountIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/workflows/': {
+      id: '/settings/workflows/'
+      path: '/workflows'
+      fullPath: '/settings/workflows/'
+      preLoaderRoute: typeof SettingsWorkflowsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/users/': {
+      id: '/settings/users/'
+      path: '/users'
+      fullPath: '/settings/users/'
+      preLoaderRoute: typeof SettingsUsersIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/subject-types/': {
+      id: '/settings/subject-types/'
+      path: '/subject-types'
+      fullPath: '/settings/subject-types/'
+      preLoaderRoute: typeof SettingsSubjectTypesIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/schemas/': {
+      id: '/settings/schemas/'
+      path: '/schemas'
+      fullPath: '/settings/schemas/'
+      preLoaderRoute: typeof SettingsSchemasIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/roles/': {
+      id: '/settings/roles/'
+      path: '/roles'
+      fullPath: '/settings/roles/'
+      preLoaderRoute: typeof SettingsRolesIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/relationship-kinds/': {
+      id: '/settings/relationship-kinds/'
+      path: '/relationship-kinds'
+      fullPath: '/settings/relationship-kinds/'
+      preLoaderRoute: typeof SettingsRelationshipKindsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/permissions/': {
+      id: '/settings/permissions/'
+      path: '/permissions'
+      fullPath: '/settings/permissions/'
+      preLoaderRoute: typeof SettingsPermissionsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/oauth-providers/': {
+      id: '/settings/oauth-providers/'
+      path: '/oauth-providers'
+      fullPath: '/settings/oauth-providers/'
+      preLoaderRoute: typeof SettingsOauthProvidersIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/naming-templates/': {
+      id: '/settings/naming-templates/'
+      path: '/naming-templates'
+      fullPath: '/settings/naming-templates/'
+      preLoaderRoute: typeof SettingsNamingTemplatesIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/event-transition-rules/': {
+      id: '/settings/event-transition-rules/'
+      path: '/event-transition-rules'
+      fullPath: '/settings/event-transition-rules/'
+      preLoaderRoute: typeof SettingsEventTransitionRulesIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/document-categories/': {
+      id: '/settings/document-categories/'
+      path: '/document-categories'
+      fullPath: '/settings/document-categories/'
+      preLoaderRoute: typeof SettingsDocumentCategoriesIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/connectors/': {
+      id: '/settings/connectors/'
+      path: '/connectors'
+      fullPath: '/settings/connectors/'
+      preLoaderRoute: typeof SettingsConnectorsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/audit-log/': {
+      id: '/settings/audit-log/'
+      path: '/audit-log'
+      fullPath: '/settings/audit-log/'
+      preLoaderRoute: typeof SettingsAuditLogIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/integrity/repairs/': {
+      id: '/integrity/repairs/'
+      path: '/integrity/repairs'
+      fullPath: '/integrity/repairs/'
+      preLoaderRoute: typeof IntegrityRepairsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/roles/': {
+      id: '/admin/roles/'
+      path: '/admin/roles'
+      fullPath: '/admin/roles/'
+      preLoaderRoute: typeof AdminRolesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/permissions/': {
+      id: '/admin/permissions/'
+      path: '/admin/permissions'
+      fullPath: '/admin/permissions/'
+      preLoaderRoute: typeof AdminPermissionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subjects/$subjectId_/epochs': {
+      id: '/subjects/$subjectId_/epochs'
+      path: '/subjects/$subjectId/epochs'
+      fullPath: '/subjects/$subjectId/epochs'
+      preLoaderRoute: typeof SubjectsSubjectIdEpochsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/workflows/create': {
+      id: '/settings/workflows/create'
+      path: '/workflows/create'
+      fullPath: '/settings/workflows/create'
+      preLoaderRoute: typeof SettingsWorkflowsCreateRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/workflows/builder': {
+      id: '/settings/workflows/builder'
+      path: '/workflows/builder'
+      fullPath: '/settings/workflows/builder'
+      preLoaderRoute: typeof SettingsWorkflowsBuilderRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/projections/$name/$version': {
+      id: '/projections/$name/$version'
+      path: '/projections/$name/$version'
+      fullPath: '/projections/$name/$version'
+      preLoaderRoute: typeof ProjectionsNameVersionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrity/repairs/new': {
+      id: '/integrity/repairs/new'
+      path: '/integrity/repairs/new'
+      fullPath: '/integrity/repairs/new'
+      preLoaderRoute: typeof IntegrityRepairsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrity/repairs/$repairId': {
+      id: '/integrity/repairs/$repairId'
+      path: '/integrity/repairs/$repairId'
+      fullPath: '/integrity/repairs/$repairId'
+      preLoaderRoute: typeof IntegrityRepairsRepairIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events/subject/$subjectId': {
+      id: '/events/subject/$subjectId'
+      path: '/events/subject/$subjectId'
+      fullPath: '/events/subject/$subjectId'
+      preLoaderRoute: typeof EventsSubjectSubjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email-accounts/oauth/callback': {
+      id: '/email-accounts/oauth/callback'
+      path: '/email-accounts/oauth/callback'
+      fullPath: '/email-accounts/oauth/callback'
+      preLoaderRoute: typeof EmailAccountsOauthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subjects/$subjectId_/proof/$eventSeq': {
+      id: '/subjects/$subjectId_/proof/$eventSeq'
+      path: '/subjects/$subjectId/proof/$eventSeq'
+      fullPath: '/subjects/$subjectId/proof/$eventSeq'
+      preLoaderRoute: typeof SubjectsSubjectIdProofEventSeqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subjects/$subjectId_/events/$eventId': {
+      id: '/subjects/$subjectId_/events/$eventId'
+      path: '/subjects/$subjectId/events/$eventId'
+      fullPath: '/subjects/$subjectId/events/$eventId'
+      preLoaderRoute: typeof SubjectsSubjectIdEventsEventIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface SettingsRouteChildren {
+  SettingsWorkflowsBuilderRoute: typeof SettingsWorkflowsBuilderRoute
+  SettingsWorkflowsCreateRoute: typeof SettingsWorkflowsCreateRoute
+  SettingsAuditLogIndexRoute: typeof SettingsAuditLogIndexRoute
+  SettingsConnectorsIndexRoute: typeof SettingsConnectorsIndexRoute
+  SettingsDocumentCategoriesIndexRoute: typeof SettingsDocumentCategoriesIndexRoute
+  SettingsEventTransitionRulesIndexRoute: typeof SettingsEventTransitionRulesIndexRoute
+  SettingsNamingTemplatesIndexRoute: typeof SettingsNamingTemplatesIndexRoute
+  SettingsOauthProvidersIndexRoute: typeof SettingsOauthProvidersIndexRoute
+  SettingsPermissionsIndexRoute: typeof SettingsPermissionsIndexRoute
+  SettingsRelationshipKindsIndexRoute: typeof SettingsRelationshipKindsIndexRoute
+  SettingsRolesIndexRoute: typeof SettingsRolesIndexRoute
+  SettingsSchemasIndexRoute: typeof SettingsSchemasIndexRoute
+  SettingsSubjectTypesIndexRoute: typeof SettingsSubjectTypesIndexRoute
+  SettingsUsersIndexRoute: typeof SettingsUsersIndexRoute
+  SettingsWorkflowsIndexRoute: typeof SettingsWorkflowsIndexRoute
+}
+
+const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsWorkflowsBuilderRoute: SettingsWorkflowsBuilderRoute,
+  SettingsWorkflowsCreateRoute: SettingsWorkflowsCreateRoute,
+  SettingsAuditLogIndexRoute: SettingsAuditLogIndexRoute,
+  SettingsConnectorsIndexRoute: SettingsConnectorsIndexRoute,
+  SettingsDocumentCategoriesIndexRoute: SettingsDocumentCategoriesIndexRoute,
+  SettingsEventTransitionRulesIndexRoute:
+    SettingsEventTransitionRulesIndexRoute,
+  SettingsNamingTemplatesIndexRoute: SettingsNamingTemplatesIndexRoute,
+  SettingsOauthProvidersIndexRoute: SettingsOauthProvidersIndexRoute,
+  SettingsPermissionsIndexRoute: SettingsPermissionsIndexRoute,
+  SettingsRelationshipKindsIndexRoute: SettingsRelationshipKindsIndexRoute,
+  SettingsRolesIndexRoute: SettingsRolesIndexRoute,
+  SettingsSchemasIndexRoute: SettingsSchemasIndexRoute,
+  SettingsSubjectTypesIndexRoute: SettingsSubjectTypesIndexRoute,
+  SettingsUsersIndexRoute: SettingsUsersIndexRoute,
+  SettingsWorkflowsIndexRoute: SettingsWorkflowsIndexRoute,
+}
+
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  LoginRoute: LoginRoute,
+  RegisterRoute: RegisterRoute,
+  SetPasswordRoute: SetPasswordRoute,
+  SettingsRoute: SettingsRouteWithChildren,
+  EmailAccountsAccountIdRoute: EmailAccountsAccountIdRoute,
+  EmailAccountsCreateRoute: EmailAccountsCreateRoute,
+  EventsCreateRoute: EventsCreateRoute,
+  FlowsFlowIdRoute: FlowsFlowIdRoute,
+  FlowsCreateRoute: FlowsCreateRoute,
+  ProjectionsNewRoute: ProjectionsNewRoute,
+  SubjectsSubjectIdRoute: SubjectsSubjectIdRoute,
+  VerifySubjectIdRoute: VerifySubjectIdRoute,
+  VerifyTenantRoute: VerifyTenantRoute,
+  ConnectorsIndexRoute: ConnectorsIndexRoute,
+  EmailAccountsIndexRoute: EmailAccountsIndexRoute,
+  EventsIndexRoute: EventsIndexRoute,
+  FlowsIndexRoute: FlowsIndexRoute,
+  ProjectionsIndexRoute: ProjectionsIndexRoute,
+  SearchIndexRoute: SearchIndexRoute,
+  SubjectsIndexRoute: SubjectsIndexRoute,
+  EmailAccountsOauthCallbackRoute: EmailAccountsOauthCallbackRoute,
+  EventsSubjectSubjectIdRoute: EventsSubjectSubjectIdRoute,
+  IntegrityRepairsRepairIdRoute: IntegrityRepairsRepairIdRoute,
+  IntegrityRepairsNewRoute: IntegrityRepairsNewRoute,
+  ProjectionsNameVersionRoute: ProjectionsNameVersionRoute,
+  SubjectsSubjectIdEpochsRoute: SubjectsSubjectIdEpochsRoute,
+  AdminPermissionsIndexRoute: AdminPermissionsIndexRoute,
+  AdminRolesIndexRoute: AdminRolesIndexRoute,
+  IntegrityRepairsIndexRoute: IntegrityRepairsIndexRoute,
+  SubjectsSubjectIdEventsEventIdRoute: SubjectsSubjectIdEventsEventIdRoute,
+  SubjectsSubjectIdProofEventSeqRoute: SubjectsSubjectIdProofEventSeqRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
