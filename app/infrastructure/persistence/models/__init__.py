@@ -7,6 +7,7 @@ from app.infrastructure.persistence.models.document_requirement import (
 )
 from app.infrastructure.persistence.models.email_account import EmailAccount
 from app.infrastructure.persistence.models.event import Event
+from app.infrastructure.persistence.models.identity import Identity, normalise_email
 from app.infrastructure.persistence.models.flow import Flow, FlowSubject
 from app.infrastructure.persistence.models.event_schema import EventSchema
 from app.infrastructure.persistence.models.event_transition_rule import (
@@ -71,6 +72,8 @@ __all__ = [
     "MerkleNode",
     "PasswordSetToken",
     "Tenant",
+    "Identity",
+    "normalise_email",
     "User",
     "RelationshipKind",
     "Subject",

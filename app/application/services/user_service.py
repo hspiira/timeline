@@ -9,6 +9,7 @@ from typing import Any
 from app.application.dtos.user import UserResult
 from app.domain import ValidationException
 from app.domain.exceptions import ResourceNotFoundException
+from app.shared.utils.email import normalise_email
 
 
 def _user_to_result(u: Any) -> UserResult:
@@ -40,16 +41,25 @@ class UserService:
         email: str | None = None,
         password: str | None = None,
     ) -> UserResult:
-        """Update email and/or password. Raises ResourceNotFoundException if user not found."""
+        """Update email and/or password.
+
+        Both live on the person's identity rather than on this organisation's
+        membership, so a change here applies wherever they sign in. Email is unique
+        system-wide; the repository raises DuplicateEmailException if it is taken.
+
+        Raises:
+            ResourceNotFoundException: if the membership does not exist.
+            ValidationException: if neither field is supplied.
+        """
         if email is None and password is None:
             raise ValidationException("At least one of email or password is required")
         user = await self._user_repo.get_by_id_and_tenant(user_id, tenant_id)
         if not user:
             raise ResourceNotFoundException("user", user_id)
         if email is not None:
-            user.email = email
+            user.identity.email = normalise_email(email)
         if password is not None:
-            user.hashed_password = await asyncio.to_thread(
+            user.identity.hashed_password = await asyncio.to_thread(
                 self._hash_password, password
             )
         updated = await self._user_repo.update(user)
