@@ -19,21 +19,41 @@ function safeRedirectPath(raw: unknown): string | undefined {
 export const Route = createFileRoute('/login')({
   component: LoginPage,
   validateSearch: (search: Record<string, unknown>) => ({
+    // Vestigial: sign-in no longer uses an organisation code. Kept only because ten
+    // call sites still pass it; safe to drop along with those links.
     tenant: (search.tenant as string) || '',
     redirect: safeRedirectPath(search.redirect),
     sessionExpired: search.session_expired === '1',
   }),
 })
 
+/** Remembering the last organisation means a repeat user never sees the picker again. */
+const LAST_ORG_KEY = 'timeline_last_tenant_id'
+
+function readLastOrg(): string | null {
+  if (typeof window === 'undefined') return null
+  return window.localStorage.getItem(LAST_ORG_KEY)
+}
+
+function rememberLastOrg(tenantId: string) {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(LAST_ORG_KEY, tenantId)
+  }
+}
+
 function LoginPage() {
   const navigate = useNavigate()
-  const { tenant, redirect, sessionExpired } = Route.useSearch()
+  const { redirect, sessionExpired } = Route.useSearch()
   const authState = useStore(authStore)
-  const [tenantCode, setTenantCode] = useState(tenant)
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [mounted, setMounted] = useState(false)
+  // Only populated when the email turns out to belong to several organisations.
+  const [organisations, setOrganisations] = useState<
+    { tenant_id: string; name: string }[]
+  >([])
+  const [chosenOrg, setChosenOrg] = useState<string>('')
   useEffect(() => setMounted(true), [])
 
   // Path-only for navigate() to avoid search schema mismatches; pathname is enough to return to the right page
@@ -51,7 +71,30 @@ function LoginPage() {
     authActions.clearError()
 
     try {
-      await authActions.login(username, password, tenantCode)
+      // If a picker is already showing, the user has chosen; otherwise work out
+      // whether one is even needed. Most people belong to one organisation and
+      // never see this.
+      let tenantId = chosenOrg || undefined
+
+      if (!tenantId) {
+        const orgs = await authActions.organisationsForEmail(email)
+        if (orgs.length > 1) {
+          const remembered = readLastOrg()
+          const known = orgs.find((o) => o.tenant_id === remembered)
+          if (known) {
+            tenantId = known.tenant_id
+          } else {
+            setOrganisations(orgs)
+            setChosenOrg(orgs[0].tenant_id)
+            return
+          }
+        }
+        // Zero or one: send it without an organisation and let the server decide,
+        // so an unknown email fails the same way a wrong password does.
+      }
+
+      await authActions.login(email, password, tenantId)
+      if (tenantId) rememberLastOrg(tenantId)
       navigate({ to: redirectPath })
     } catch (error) {
       console.error('Login failed:', error)
@@ -90,38 +133,50 @@ function LoginPage() {
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
             <div>
               <label
-                htmlFor="tenant-code"
+                htmlFor="email"
                 className="mb-1.5 block text-sm font-medium text-foreground"
               >
-                Organisation code
+                Email
               </label>
               <Input
-                id="tenant-code"
-                type="text"
-                value={tenantCode}
-                onChange={(e) => setTenantCode(e.target.value)}
+                id="email"
+                type="email"
+                autoComplete="username"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  // A different email may belong to different organisations.
+                  setOrganisations([])
+                  setChosenOrg('')
+                }}
                 required
-                placeholder="acme-corp"
-                className="font-mono"
+                placeholder="you@company.com"
               />
             </div>
 
-            <div>
-              <label
-                htmlFor="username"
-                className="mb-1.5 block text-sm font-medium text-foreground"
-              >
-                Username
-              </label>
-              <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                placeholder="username"
-              />
-            </div>
+            {/* Shown only when this email belongs to more than one organisation. */}
+            {organisations.length > 1 && (
+              <div>
+                <label
+                  htmlFor="organisation"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
+                >
+                  Organisation
+                </label>
+                <select
+                  id="organisation"
+                  value={chosenOrg}
+                  onChange={(e) => setChosenOrg(e.target.value)}
+                  className="w-full rounded-none border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1"
+                >
+                  {organisations.map((o) => (
+                    <option key={o.tenant_id} value={o.tenant_id}>
+                      {o.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <div className="mb-1.5 flex items-baseline justify-between gap-4">

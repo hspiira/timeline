@@ -298,8 +298,9 @@ function CreateUserModal({
 
     setLoading(true)
     try {
-      const { data, error: apiError } = await timelineApi.auth.register({
-        tenant_code: tenantCode,
+      // Authenticated, permission-checked, and the organisation comes from our own
+      // token — no tenant code needed. The old public /auth/register is disabled.
+      const { data, error: apiError } = await timelineApi.users.create({
         username: username.trim(),
         email: email.trim(),
         password: password,

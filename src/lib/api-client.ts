@@ -151,22 +151,27 @@ export const timelineApi = {
   },
 
   auth: {
-    login: async (username: string, password: string, tenant_code: string) => {
+    /**
+     * Sign in with email and password. `tenant_id` is only needed when the email
+     * belongs to more than one organisation — call `organisations()` first to find out.
+     */
+    login: async (email: string, password: string, tenant_id?: string) => {
       return client.POST('/api/v1/auth/login', {
-        body: {
-          username,
-          password,
-          tenant_code,
-        },
+        body: { email, password, ...(tenant_id ? { tenant_id } : {}) },
       })
     },
-    register: (data: components['schemas']['RegisterRequest']) =>
-      client.POST('/api/v1/auth/register', { body: data }),
+    /** Which organisations can this email sign in to? One means never ask the user. */
+    organisations: (email: string) =>
+      client.POST('/api/v1/auth/organisations', { body: { email } }),
+    logout: () => client.POST('/api/v1/auth/logout', {}),
     setInitialPassword: (data: components['schemas']['SetInitialPasswordRequest']) =>
       client.POST('/api/v1/auth/set-initial-password', { body: data }),
   },
 
   users: {
+    /** Add someone to the signed-in organisation. Authenticated and permission-checked. */
+    create: (data: components['schemas']['UserCreateRequest']) =>
+      client.POST('/api/v1/users', { body: data }),
     me: () => client.GET('/api/v1/auth/me'),
     update: (data: components['schemas']['UserUpdate']) =>
       client.PUT('/api/v1/auth/me', { body: data }),

@@ -20,11 +20,23 @@ const initialState: AuthState = {
 export const authStore = new Store(initialState)
 
 export const authActions = {
-  async login(username: string, password: string, tenant_code: string) {
+  /** Which organisations can this email sign in to? Empty means unknown email. */
+  async organisationsForEmail(email: string) {
+    const response = await timelineApi.auth.organisations(email.trim())
+    if (response.error) return []
+    return response.data?.organisations ?? []
+  },
+
+  /**
+   * Sign in with email and password. Pass `tenant_id` only when the email belongs to
+   * several organisations; for the common single-organisation case, omit it and the
+   * user is never asked.
+   */
+  async login(email: string, password: string, tenant_id?: string) {
     authStore.setState((state) => ({ ...state, isLoading: true, error: null }))
 
     try {
-      const response = await timelineApi.auth.login(username, password, tenant_code)
+      const response = await timelineApi.auth.login(email, password, tenant_id)
 
       if (response.error) {
         const display = getApiErrorDisplay(
