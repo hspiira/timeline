@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
     audit_log as audit_log_endpoint,
     auth,
     chain_anchors,
+    connectors,
     document_categories,
     documents,
     email_accounts,
@@ -19,9 +20,11 @@ from app.api.v1.endpoints import (
     events,
     flows,
     health,
+    integrity,
     naming_templates,
     oauth_providers,
     permissions,
+    projections as projections_endpoint,
     relationship_kinds,
     retention,
     roles,
@@ -31,6 +34,7 @@ from app.api.v1.endpoints import (
     tenants,
     user_roles,
     users,
+    webhooks,
 )
 from app.api.v1.endpoints import websocket as ws_endpoint
 from app.api.v1.endpoints import workflows
@@ -46,9 +50,19 @@ api_router.include_router(
     audit_log_endpoint.router, prefix="/audit-log", tags=["audit-log"]
 )
 api_router.include_router(events.router, prefix="/events", tags=["events"])
+api_router.include_router(connectors.router, prefix="/connectors", tags=["connectors"])
 api_router.include_router(tenants.router, prefix="/tenants", tags=["tenants"])
 api_router.include_router(
     chain_anchors.router, prefix="/tenants", tags=["chain-anchors"]
+)
+api_router.include_router(
+    integrity.router, prefix="/tenants", tags=["integrity"]
+)
+api_router.include_router(
+    webhooks.router, prefix="/tenants", tags=["webhooks"]
+)
+api_router.include_router(
+    projections_endpoint.router, prefix="/tenants", tags=["projections"]
 )
 api_router.include_router(documents.router, prefix="/documents", tags=["documents"])
 api_router.include_router(

@@ -80,19 +80,19 @@ class TestEventEntityValidate:
         assert "id" in exc_info.value.details.get("field", "")
 
     @patch("app.domain.entities.event.utc_now")
-    def test_empty_payload_raises(self, mock_utc_now: object) -> None:
+    def test_empty_payload_allowed(self, mock_utc_now: object) -> None:
+        """Empty payload is allowed (e.g. CDC delete/tombstone events)."""
         mock_utc_now.return_value = datetime(2025, 2, 1, 12, 0, 0, tzinfo=timezone.utc)
-        with pytest.raises(ValidationException) as exc_info:
-            EventEntity(
-                id="ev1",
-                tenant_id="t1",
-                subject_id="sub1",
-                event_type=EventType("created"),
-                event_time=datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
-                payload={},
-                chain=_make_valid_chain(),
-            )
-        assert "payload" in exc_info.value.details.get("field", "")
+        entity = EventEntity(
+            id="ev1",
+            tenant_id="t1",
+            subject_id="sub1",
+            event_type=EventType("created"),
+            event_time=datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
+            payload={},
+            chain=_make_valid_chain(),
+        )
+        assert entity.payload == {}
 
     @patch("app.domain.entities.event.utc_now")
     def test_future_event_time_raises(self, mock_utc_now: object) -> None:

@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, SecretStr, field_validator
 
-from app.domain.enums import TenantStatus
+from app.domain.enums import TenantStatus, IntegrityProfile
 
 
 def _normalize_tenant_code(value: str) -> str:
@@ -85,3 +85,33 @@ class TenantResponse(BaseModel):
     code: str
     name: str
     status: TenantStatus
+
+
+class TenantIntegrityStatus(BaseModel):
+    """Current tenant integrity profile and last change metadata."""
+
+    profile: IntegrityProfile
+    last_changed_at: datetime | None = None
+    cooling_off_ends_at: datetime | None = None
+
+
+class TenantIntegrityUpdateRequest(BaseModel):
+    """Request body for updating tenant integrity profile."""
+
+    new_profile: IntegrityProfile
+    reason: str | None = Field(
+        default=None,
+        description="Optional reason for the profile change (stored in history).",
+    )
+
+
+class TenantIntegrityHistoryItem(BaseModel):
+    """Single integrity profile history entry."""
+
+    previous_profile: IntegrityProfile | None
+    new_profile: IntegrityProfile
+    changed_at: datetime
+    changed_by_user_id: str
+    change_reason: str | None = None
+    cooling_off_ends_at: datetime | None = None
+

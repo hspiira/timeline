@@ -56,28 +56,66 @@ class VerificationService:
         max_events: int | None = None,
         timeout_seconds: int | None = None,
     ) -> None:
-        self.event_repo = event_repo
-        self.hash_service = hash_service
+        self._event_repo = event_repo
+        self._hash_service = hash_service
         self.max_events = max_events
         self.timeout_seconds = timeout_seconds
 
-    async def verify_subject_chain(
+    async def _fetch_all_events_for_subject(
         self, subject_id: str, tenant_id: str
-    ) -> ChainVerificationResult:
-        """Verify event chain for one subject. Events sorted by event_time (oldest first)."""
-        # Fetch ALL events for the subject so chain verification is complete (no silent truncation).
+    ) -> list[EventResult]:
+        """Fetch all events for a subject in batches (no silent truncation)."""
         all_events: list[EventResult] = []
         batch_size = 500
         offset = 0
         while True:
-            batch = await self.event_repo.get_by_subject(
+            batch = await self._event_repo.get_by_subject(
                 subject_id, tenant_id, skip=offset, limit=batch_size
             )
             all_events.extend(batch)
             if len(batch) < batch_size:
                 break
             offset += batch_size
-        events = sorted(all_events, key=lambda e: e.event_time)
+        return all_events
+
+    async def _fetch_all_events_for_tenant(
+        self, tenant_id: str
+    ) -> list[EventResult]:
+        """Fetch all events for a tenant in batches (no silent truncation)."""
+        all_events: list[EventResult] = []
+        batch_size = 500
+        offset = 0
+        while True:
+            batch = await self._event_repo.get_by_tenant(
+                tenant_id, skip=offset, limit=batch_size
+            )
+            all_events.extend(batch)
+            if len(batch) < batch_size:
+                break
+            offset += batch_size
+        return all_events
+
+    def _sort_events_chain_order(self, events: list[EventResult]) -> list[EventResult]:
+        """Sort events by chain order: event_seq ascending (tiebreak event_time).
+
+        Events with event_seq=None are excluded so they do not sort before genesis
+        (which would cause false CHAIN_BREAK in verification).
+        """
+        with_seq = [e for e in events if e.event_seq is not None]
+        dropped = len(events) - len(with_seq)
+        if dropped:
+            logger.warning(
+                "Excluded %s event(s) with no event_seq from chain verification",
+                dropped,
+            )
+        return sorted(with_seq, key=lambda e: (e.event_seq, e.event_time))
+
+    async def verify_subject_chain(
+        self, subject_id: str, tenant_id: str
+    ) -> ChainVerificationResult:
+        """Verify event chain for one subject. Events ordered by event_seq (chain order)."""
+        all_events = await self._fetch_all_events_for_subject(subject_id, tenant_id)
+        events = self._sort_events_chain_order(all_events)
 
         if not events:
             return ChainVerificationResult(
@@ -112,7 +150,7 @@ class VerificationService:
         Raises VerificationLimitExceededException if total events exceed max_events.
         Applies timeout_seconds when set to avoid long-running request timeouts.
         """
-        total = await self.event_repo.count_by_tenant(tenant_id)
+        total = await self._event_repo.count_by_tenant(tenant_id)
         if self.max_events is not None and total > self.max_events:
             raise VerificationLimitExceededException(
                 tenant_id=tenant_id,
@@ -127,17 +165,7 @@ class VerificationService:
                 self.timeout_seconds,
             )
         async def _run() -> ChainVerificationResult:
-            all_events: list[EventResult] = []
-            batch_size = 500
-            offset = 0
-            while True:
-                batch = await self.event_repo.get_by_tenant(
-                    tenant_id, skip=offset, limit=batch_size
-                )
-                all_events.extend(batch)
-                if len(batch) < batch_size:
-                    break
-                offset += batch_size
+            all_events = await self._fetch_all_events_for_tenant(tenant_id)
             return await self._verify_tenant_events(tenant_id, all_events)
 
         try:
@@ -176,10 +204,7 @@ class VerificationService:
                 by_subject[sid] = []
             by_subject[sid].append(event)
         for sid in by_subject:
-            by_subject[sid] = sorted(
-                by_subject[sid],
-                key=lambda e: e.event_time,
-            )
+            by_subject[sid] = self._sort_events_chain_order(by_subject[sid])
 
         results = []
         valid, invalid = 0, 0
@@ -203,7 +228,7 @@ class VerificationService:
     def _verify_events_chain(
         self, events: list[EventResult]
     ) -> tuple[list[VerificationResult], int, int]:
-        """Verify a chain of events (sorted by event_time). Returns (results, valid_count, invalid_count)."""
+        """Verify a chain of events (sorted by event_seq). Returns (results, valid_count, invalid_count)."""
         results: list[VerificationResult] = []
         valid, invalid = 0, 0
         for i, event in enumerate(events):
@@ -253,7 +278,7 @@ class VerificationService:
                 previous_hash=previous_hash,
             )
 
-        computed = self.hash_service.compute_hash(
+        computed = self._hash_service.compute_hash(
             subject_id=subject_id,
             event_type=event_type,
             schema_version=schema_version,

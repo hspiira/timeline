@@ -2,16 +2,20 @@
 
 from datetime import datetime
 
-from sqlalchemy import asc, desc, func, select, text
+from sqlalchemy import asc, desc, func, select, text, tuple_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.event import EventCreate, EventResult, EventToPersist
+from app.domain.enums import EventIntegrityStatus
 from app.infrastructure.persistence.models.event import Event
+from app.infrastructure.persistence.models.subject import Subject
 from app.infrastructure.persistence.repositories.base import BaseRepository
 
 
 def _event_to_result(e: Event) -> EventResult:
     """Map ORM Event to application EventResult."""
+    if e.integrity_status is None:
+        raise ValueError("Event.integrity_status must be populated before mapping")
     return EventResult(
         id=e.id,
         tenant_id=e.tenant_id,
@@ -24,6 +28,17 @@ def _event_to_result(e: Event) -> EventResult:
         hash=e.hash,
         workflow_instance_id=e.workflow_instance_id,
         correlation_id=e.correlation_id,
+        external_id=e.external_id,
+        source=e.source,
+        event_seq=e.event_seq,
+        epoch_id=e.epoch_id,
+        integrity_status=(
+            e.integrity_status.value
+            if isinstance(e.integrity_status, EventIntegrityStatus)
+            else e.integrity_status
+        ),
+        tsa_anchor_id=e.tsa_anchor_id,
+        merkle_leaf_hash=e.merkle_leaf_hash,
     )
 
 
@@ -79,12 +94,73 @@ class EventRepository(BaseRepository[Event]):
                 out[e.subject_id] = _event_to_result(e)
         return out
 
+    async def get_by_subject_and_external_id(
+        self, subject_id: str, tenant_id: str, external_id: str
+    ) -> EventResult | None:
+        """Return event by subject and external idempotency key, if any."""
+        result = await self.db.execute(
+            select(Event).where(
+                Event.subject_id == subject_id,
+                Event.tenant_id == tenant_id,
+                Event.external_id == external_id,
+            )
+        )
+        row = result.scalar_one_or_none()
+        return _event_to_result(row) if row else None
+
+    async def get_by_tenant_and_seq(
+        self, tenant_id: str, event_seq: int
+    ) -> EventResult | None:
+        """Return single event for tenant by global event_seq, or None."""
+        result = await self.db.execute(
+            select(Event).where(
+                Event.tenant_id == tenant_id,
+                Event.event_seq == event_seq,
+            )
+        )
+        row = result.scalar_one_or_none()
+        return _event_to_result(row) if row else None
+
+    async def get_by_external_ids(
+        self, tenant_id: str, subject_external_pairs: set[tuple[str, str]]
+    ) -> dict[tuple[str, str], EventResult]:
+        """Return existing events for (subject_id, external_id) pairs."""
+        if not subject_external_pairs:
+            return {}
+        result = await self.db.execute(
+            select(Event).where(
+                Event.tenant_id == tenant_id,
+                tuple_(Event.subject_id, Event.external_id).in_(
+                    list(subject_external_pairs)
+                ),
+            )
+        )
+        rows = result.scalars().all()
+        return {(e.subject_id, e.external_id): _event_to_result(e) for e in rows}
+
+    async def get_by_tenant_and_seq(
+        self, tenant_id: str, event_seq: int
+    ) -> EventResult | None:
+        """Return single event for tenant by global event_seq, or None."""
+        result = await self.db.execute(
+            select(Event).where(
+                Event.tenant_id == tenant_id,
+                Event.event_seq == event_seq,
+            )
+        )
+        row = result.scalar_one_or_none()
+        return _event_to_result(row) if row else None
+
     async def create_event(
         self,
         tenant_id: str,
         data: EventCreate,
         event_hash: str,
         previous_hash: str | None,
+        *,
+        epoch_id: str | None = None,
+        integrity_status: str = "VALID",
+        merkle_leaf_hash: str | None = None,
     ) -> EventResult:
         event = Event(
             tenant_id=tenant_id,
@@ -97,6 +173,15 @@ class EventRepository(BaseRepository[Event]):
             previous_hash=previous_hash,
             workflow_instance_id=data.workflow_instance_id,
             correlation_id=data.correlation_id,
+            external_id=data.external_id,
+            source=data.source,
+            epoch_id=epoch_id,
+            integrity_status=(
+                EventIntegrityStatus(integrity_status)
+                if isinstance(integrity_status, str)
+                else integrity_status
+            ),
+            merkle_leaf_hash=merkle_leaf_hash,
         )
         created = await self.create(event)
         return _event_to_result(created)
@@ -169,6 +254,70 @@ class EventRepository(BaseRepository[Event]):
         )
         return result.scalar() or 0
 
+    async def set_tsa_anchor_for_events(
+        self,
+        tenant_id: str,
+        event_ids: list[str],
+        tsa_anchor_id: str,
+    ) -> None:
+        """Set tsa_anchor_id and mark integrity_status=VALID for given events."""
+        if not event_ids:
+            return
+        stmt = (
+            update(Event)
+            .where(Event.tenant_id == tenant_id, Event.id.in_(event_ids))
+            .values(
+                tsa_anchor_id=tsa_anchor_id,
+                integrity_status=EventIntegrityStatus.VALID,
+            )
+        )
+        await self.db.execute(stmt)
+
+    async def mark_event_integrity_status(
+        self, event_id: str, status: str
+    ) -> None:
+        """Set integrity_status on a single event using bulk UPDATE (no ORM updates)."""
+        stmt = (
+            update(Event)
+            .where(Event.id == event_id)
+            .values(integrity_status=EventIntegrityStatus(status))
+        )
+        await self.db.execute(stmt)
+
+    async def mark_events_repaired_from_seq(
+        self,
+        tenant_id: str,
+        subject_id: str,
+        from_event_seq: int,
+    ) -> None:
+        """Set integrity_status='Repaired' for events at or after from_event_seq."""
+        stmt = (
+            update(Event)
+            .where(
+                Event.tenant_id == tenant_id,
+                Event.subject_id == subject_id,
+                Event.event_seq >= from_event_seq,
+            )
+            .values(integrity_status=EventIntegrityStatus.REPAIRED)
+        )
+        await self.db.execute(stmt)
+
+    async def get_hash_at_seq(
+        self,
+        tenant_id: str,
+        epoch_id: str,
+        event_seq: int,
+    ) -> str | None:
+        """Return event.hash for the given (tenant, epoch, event_seq), or None."""
+        result = await self.db.execute(
+            select(Event.hash).where(
+                Event.tenant_id == tenant_id,
+                Event.epoch_id == epoch_id,
+                Event.event_seq == event_seq,
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def get_counts_by_type(self, tenant_id: str) -> dict[str, int]:
         """Return event counts per event_type for tenant."""
         result = await self.db.execute(
@@ -233,12 +382,69 @@ class EventRepository(BaseRepository[Event]):
         row = result.scalar_one_or_none()
         return row if row else None
 
+    async def get_events_since_seq(
+        self,
+        tenant_id: str,
+        since_seq: int,
+        limit: int = 1000,
+        subject_type: str | None = None,
+    ) -> list[EventResult]:
+        """Return events for tenant with event_seq > since_seq, ordered by event_seq asc (for projection engine watermark polling)."""
+        q = select(Event).where(
+            Event.tenant_id == tenant_id,
+            Event.event_seq > since_seq,
+        )
+        if subject_type is not None:
+            q = (
+                q.join(Subject, Event.subject_id == Subject.id)
+                .where(Subject.subject_type == subject_type)
+            )
+        q = q.order_by(asc(Event.event_seq)).limit(limit)
+        result = await self.db.execute(q)
+        events = [_event_to_result(e) for e in result.scalars().all()]
+        for ev in events:
+            if ev.event_seq is None:
+                raise ValueError(
+                    "event_seq is required for sequence-backed read; "
+                    "missing repository mapping or backfill"
+                )
+        return events
+
     async def get_distinct_tenant_ids(self) -> list[str]:
         """Return distinct tenant_ids that have at least one event (for anchoring job). Deterministic order by tenant_id."""
         result = await self.db.execute(
             select(Event.tenant_id).distinct().order_by(Event.tenant_id)
         )
         return list(result.scalars().all())
+
+    async def get_events_for_epoch(
+        self,
+        tenant_id: str,
+        epoch_id: str,
+    ) -> list[EventResult]:
+        """Return events for an epoch ordered by event_seq ascending."""
+        result = await self.db.execute(
+            select(Event)
+            .where(Event.tenant_id == tenant_id, Event.epoch_id == epoch_id)
+            .order_by(asc(Event.event_seq))
+        )
+        return [_event_to_result(e) for e in result.scalars().all()]
+
+    async def get_last_event_in_epoch(
+        self, epoch_id: str, tenant_id: str
+    ) -> EventResult | None:
+        """Return the last event in the given epoch (by event_seq) for sealing logic."""
+        result = await self.db.execute(
+            select(Event)
+            .where(
+                Event.tenant_id == tenant_id,
+                Event.epoch_id == epoch_id,
+            )
+            .order_by(desc(Event.event_seq))
+            .limit(1)
+        )
+        row = result.scalar_one_or_none()
+        return _event_to_result(row) if row else None
 
     async def create_events_bulk(
         self, tenant_id: str, events: list[EventToPersist]
@@ -257,10 +463,19 @@ class EventRepository(BaseRepository[Event]):
                 previous_hash=e.previous_hash,
                 workflow_instance_id=e.workflow_instance_id,
                 correlation_id=e.correlation_id,
+                external_id=e.external_id,
+                source=e.source,
+                epoch_id=e.epoch_id,
+                integrity_status=EventIntegrityStatus(e.integrity_status),
+                merkle_leaf_hash=e.merkle_leaf_hash,
             )
             for e in events
         ]
         self.db.add_all(objs)
         await self.db.flush()
-        # IDs and fields are set in Python (CUID + payload); no refresh needed.
-        return [_event_to_result(o) for o in objs]
+        # Load server-generated event_seq values for all inserted rows in one query.
+        result = await self.db.execute(
+            select(Event).where(Event.id.in_([o.id for o in objs]))
+        )
+        events_by_id = {event.id: event for event in result.scalars().all()}
+        return [_event_to_result(events_by_id[o.id]) for o in objs]

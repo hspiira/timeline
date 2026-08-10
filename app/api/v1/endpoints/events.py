@@ -1,24 +1,30 @@
 """Event API: thin routes delegating to EventService and EventRepository."""
 
 import asyncio
+import json
 import logging
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from starlette.responses import StreamingResponse
 
 from app.api.v1.dependencies import (
     ensure_audit_logged,
+    get_enrichment_context,
+    get_event_rate_limit,
     get_event_repo,
     get_event_service,
     get_event_service_for_create,
+    get_event_stream_broadcaster,
     get_tenant_id,
     get_verification_service,
     get_verification_runner,
     require_permission,
 )
 from app.application.dtos.event import EventCreate
+from app.application.services.enrichment import EnrichmentContext
 from app.application.services.verification_service import (
     ChainVerificationResult,
     VerificationService,
@@ -102,12 +108,16 @@ async def create_event(
     body: EventCreate,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     event_svc: Annotated[EventService, Depends(get_event_service_for_create)],
+    enrichment_context: Annotated[EnrichmentContext, Depends(get_enrichment_context)],
+    _rate: Annotated[None, Depends(get_event_rate_limit)] = None,
     _: Annotated[object, Depends(require_permission("event", "create"))] = None,
     _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
     """Create a single event (hash chaining, optional schema validation, workflows)."""
     try:
-        created = await event_svc.create_event(tenant_id, body)
+        created = await event_svc.create_event(
+            tenant_id, body, enrichment_context=enrichment_context
+        )
         return EventResponse(
             id=created.id,
             subject_id=created.subject_id,
@@ -118,6 +128,8 @@ async def create_event(
             hash=created.chain.current_hash.value,
             workflow_instance_id=created.workflow_instance_id,
             correlation_id=created.correlation_id,
+            external_id=created.external_id,
+            source=created.source,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
@@ -147,6 +159,32 @@ async def list_events(
             limit=limit,
         )
     return [EventListResponse.model_validate(e) for e in events]
+
+
+@router.get(
+    "/stream",
+    summary="Stream new events (SSE)",
+)
+async def stream_events(
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    subject_id: str | None = Query(None, description="Filter to this subject"),
+    broadcaster=Depends(get_event_stream_broadcaster),
+    _: Annotated[object, Depends(require_permission("event", "read"))] = None,
+):
+    """Server-Sent Events stream of new events for the tenant (and optionally one subject). Requires event:read."""
+    async def event_generator() -> AsyncIterator[str]:
+        async for payload in broadcaster.subscribe(tenant_id, subject_id):
+            yield f"data: {json.dumps(payload)}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.get(

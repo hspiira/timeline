@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import desc
 
 from app.application.dtos.chain_anchor import ChainAnchorResult
+from app.domain.enums import ChainAnchorStatus
 from app.domain.exceptions import ChainAnchorConflictException
 from app.infrastructure.persistence.models.chain_anchor import ChainAnchor
 from app.infrastructure.persistence.repositories.base import BaseRepository
@@ -15,6 +16,11 @@ from app.infrastructure.persistence.repositories.base import BaseRepository
 
 def _to_result(a: ChainAnchor) -> ChainAnchorResult:
     """Map ORM to DTO."""
+    status = (
+        a.status.value
+        if isinstance(a.status, ChainAnchorStatus)
+        else a.status
+    )
     return ChainAnchorResult(
         id=a.id,
         tenant_id=a.tenant_id,
@@ -24,7 +30,7 @@ def _to_result(a: ChainAnchor) -> ChainAnchorResult:
         tsa_url=a.tsa_url,
         tsa_receipt=a.tsa_receipt,
         tsa_serial=a.tsa_serial,
-        status=a.status,
+        status=status,
         error_message=a.error_message,
         created_at=a.created_at,
         event_count=a.event_count,
@@ -80,7 +86,7 @@ class ChainAnchorRepository(BaseRepository[ChainAnchor]):
                     chain_tip_hash=chain_tip_hash,
                     anchored_at=anchored_at,
                     tsa_url=tsa_url,
-                    status="pending",
+                    status=ChainAnchorStatus.PENDING,
                 )
                 created = await self.create(anchor)
                 return _to_result(created)
@@ -107,10 +113,12 @@ class ChainAnchorRepository(BaseRepository[ChainAnchor]):
             update(ChainAnchor)
             .where(
                 ChainAnchor.id == anchor_id,
-                ChainAnchor.status.in_(("pending", "failed")),
+                ChainAnchor.status.in_(
+                    (ChainAnchorStatus.PENDING, ChainAnchorStatus.FAILED)
+                ),
             )
             .values(
-                status="confirmed",
+                status=ChainAnchorStatus.CONFIRMED,
                 tsa_receipt=tsa_receipt,
                 tsa_serial=tsa_serial,
                 error_message=None,
@@ -127,8 +135,11 @@ class ChainAnchorRepository(BaseRepository[ChainAnchor]):
         """Mark anchor as failed; return updated result or None. Only updates when status is not confirmed."""
         result = await self.db.execute(
             update(ChainAnchor)
-            .where(ChainAnchor.id == anchor_id, ChainAnchor.status != "confirmed")
-            .values(status="failed", error_message=error_message)
+            .where(
+                ChainAnchor.id == anchor_id,
+                ChainAnchor.status != ChainAnchorStatus.CONFIRMED,
+            )
+            .values(status=ChainAnchorStatus.FAILED, error_message=error_message)
         )
         if result.rowcount != 1:
             return None
@@ -141,8 +152,11 @@ class ChainAnchorRepository(BaseRepository[ChainAnchor]):
         """Set status to pending and clear error_message (for retry after failed). Only updates when status is failed."""
         result = await self.db.execute(
             update(ChainAnchor)
-            .where(ChainAnchor.id == anchor_id, ChainAnchor.status == "failed")
-            .values(status="pending", error_message=None)
+            .where(
+                ChainAnchor.id == anchor_id,
+                ChainAnchor.status == ChainAnchorStatus.FAILED,
+            )
+            .values(status=ChainAnchorStatus.PENDING, error_message=None)
         )
         if result.rowcount != 1:
             return None
@@ -180,7 +194,7 @@ class ChainAnchorRepository(BaseRepository[ChainAnchor]):
         """Return the most recent confirmed anchor for tenant, or None. tenant_level_only=True (default) returns only tenant-level (subject_id IS NULL)."""
         q = select(ChainAnchor).where(
             ChainAnchor.tenant_id == tenant_id,
-            ChainAnchor.status == "confirmed",
+            ChainAnchor.status == ChainAnchorStatus.CONFIRMED,
         )
         if tenant_level_only:
             q = q.where(ChainAnchor.subject_id.is_(None))

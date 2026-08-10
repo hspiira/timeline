@@ -4,18 +4,28 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING
 
 from sqlalchemy.exc import IntegrityError
 
 from app.application.dtos.event import EventCreate, EventResult, EventToPersist
+from app.application.dtos.integrity import OpenEpochAssignment
+from app.application.services.enrichment import EnrichmentContext
 from app.application.dtos.subject_type import SubjectTypeResult
+from app.application.interfaces.post_create_hooks import IPostCreateHook, PostCreateContext
 from app.application.interfaces.repositories import (
     IEventRepository,
     ISubjectRepository,
 )
 from app.application.interfaces.services import IHashService
+from app.application.services.enrichment import IEventEnricher
+from app.application.services.tsa_batch_queue import (
+    TsaBatchQueue,
+    TsaBatchItem,
+    DEFAULT_TSA_BATCH_QUEUE,
+)
 from app.domain.entities.event import EventEntity
+from app.domain.enums import EventIntegrityStatus, IntegrityProfile
 from app.domain.exceptions import (
     ChainForkError,
     ResourceNotFoundException,
@@ -31,8 +41,8 @@ if TYPE_CHECKING:
     from app.application.interfaces.services import (
         IEventSchemaValidator,
         IEventTransitionValidator,
-        IWorkflowEngine,
     )
+    from app.application.services.epoch_service import EpochService
 
 
 def _event_result_to_entity(r: EventResult) -> EventEntity:
@@ -50,7 +60,10 @@ def _event_result_to_entity(r: EventResult) -> EventEntity:
         chain=chain,
         workflow_instance_id=r.workflow_instance_id,
         correlation_id=r.correlation_id,
+        external_id=r.external_id,
+        source=r.source,
     )
+
 
 logger = get_logger(__name__)
 
@@ -68,25 +81,61 @@ class EventService:
         *,
         db: "AsyncSession",
         schema_validator: IEventSchemaValidator | None = None,
-        workflow_engine_provider: Callable[[], IWorkflowEngine | None] | None = None,
         transition_validator: IEventTransitionValidator | None = None,
         subject_type_repo: "ISubjectTypeRepository | None" = None,
+        enrichers: list[IEventEnricher] | None = None,
+        post_create_hooks: list[IPostCreateHook] | None = None,
+        epoch_service: "EpochService | None" = None,
+        tsa_batch_queue: TsaBatchQueue | None = DEFAULT_TSA_BATCH_QUEUE,
     ) -> None:
         self.event_repo = event_repo
         self.hash_service = hash_service
         self.subject_repo = subject_repo
         self.db = db
         self.schema_validator = schema_validator
-        self._workflow_engine_provider = workflow_engine_provider
         self.transition_validator = transition_validator
         self.subject_type_repo = subject_type_repo
+        self.enrichers = enrichers or []
+        self._post_create_hooks = post_create_hooks or []
+        self.epoch_service = epoch_service
+        self._tsa_batch_queue = tsa_batch_queue
 
-    @property
-    def workflow_engine(self) -> "IWorkflowEngine | None":
-        """Resolve workflow engine lazily to avoid circular init."""
-        if self._workflow_engine_provider is None:
-            return None
-        return self._workflow_engine_provider()
+    async def _append_one_for_epoch(
+        self,
+        assignment: OpenEpochAssignment,
+        tenant_id: str,
+        data: EventCreate,
+        event_hash: str,
+        prev_hash: str | None,
+    ) -> tuple[EventResult, bool]:
+        """Persist one event into the given epoch; used by with_open_epoch. Returns (created, is_first)."""
+        profile = IntegrityProfile(assignment.profile_snapshot)
+        integrity_status = (
+            EventIntegrityStatus.VALID.value
+            if profile == IntegrityProfile.STANDARD
+            else EventIntegrityStatus.PENDING_ANCHOR.value
+        )
+        merkle_leaf_hash = (
+            event_hash if profile == IntegrityProfile.LEGAL_GRADE else None
+        )
+        created = await self.event_repo.create_event(
+            tenant_id,
+            data,
+            event_hash,
+            prev_hash,
+            epoch_id=assignment.epoch_id,
+            integrity_status=integrity_status,
+            merkle_leaf_hash=merkle_leaf_hash,
+        )
+        if self._tsa_batch_queue and profile == IntegrityProfile.COMPLIANCE:
+            await self._tsa_batch_queue.enqueue(
+                TsaBatchItem(
+                    tenant_id=tenant_id,
+                    event_id=created.id,
+                    payload_hash_hex=event_hash,
+                )
+            )
+        return created, assignment.event_count == 0
 
     async def create_event(
         self,
@@ -94,8 +143,18 @@ class EventService:
         data: EventCreate,
         *,
         trigger_workflows: bool = True,
+        skip_transition_validation: bool = False,
+        skip_schema_validation: bool = False,
+        enrichment_context: EnrichmentContext | None = None,
     ) -> EventEntity:
         """Create one event; validate subject and schema, compute hash, optionally trigger workflows."""
+        if data.external_id:
+            existing = await self.event_repo.get_by_subject_and_external_id(
+                data.subject_id, tenant_id, data.external_id
+            )
+            if existing:
+                return _event_result_to_entity(existing)
+
         subject = await self.subject_repo.get_by_id_and_tenant(
             data.subject_id, tenant_id
         )
@@ -114,7 +173,7 @@ class EventService:
                         field="event_type",
                     )
 
-        if self.schema_validator:
+        if not skip_schema_validation and self.schema_validator:
             await self.schema_validator.validate_payload(
                 tenant_id,
                 data.event_type,
@@ -123,13 +182,17 @@ class EventService:
                 subject_type=subject.subject_type.value,
             )
 
-        if self.transition_validator:
+        if not skip_transition_validation and self.transition_validator:
             await self.transition_validator.validate_can_emit(
                 tenant_id=tenant_id,
                 subject_id=data.subject_id,
                 event_type=data.event_type,
                 workflow_instance_id=data.workflow_instance_id,
             )
+
+        if enrichment_context and self.enrichers:
+            for enricher in self.enrichers:
+                data = await enricher.enrich(data, enrichment_context)
 
         for attempt in range(MAX_RETRIES):
             try:
@@ -154,9 +217,18 @@ class EventService:
                         previous_hash=prev_hash,
                     )
 
-                    created = await self.event_repo.create_event(
-                        tenant_id, data, event_hash, prev_hash
-                    )
+                    if self.epoch_service:
+                        _, created = await self.epoch_service.with_open_epoch(
+                            tenant_id,
+                            data.subject_id,
+                            lambda a: self._append_one_for_epoch(
+                                a, tenant_id, data, event_hash, prev_hash
+                            ),
+                        )
+                    else:
+                        created = await self.event_repo.create_event(
+                            tenant_id, data, event_hash, prev_hash
+                        )
                 break
             except IntegrityError as exc:
                 if attempt == MAX_RETRIES - 1:
@@ -167,9 +239,15 @@ class EventService:
                 await asyncio.sleep(0.05 * (2**attempt))
 
         entity = _event_result_to_entity(created)
-        if trigger_workflows and self.workflow_engine:
-            await self._trigger_workflows(entity, tenant_id)
-
+        context = PostCreateContext(
+            tenant_id=tenant_id,
+            entity=entity,
+            event_result=created,
+            subject_type=subject.subject_type.value,
+            trigger_workflows=trigger_workflows,
+        )
+        for hook in self._post_create_hooks:
+            await hook.after_event(context)
         return entity
 
     async def create_events_bulk(
@@ -179,10 +257,23 @@ class EventService:
         *,
         skip_schema_validation: bool = False,
         trigger_workflows: bool = False,
+        enrichment_context: EnrichmentContext | None = None,
     ) -> list[EventEntity]:
         """Bulk create events (e.g. email sync). Hashes computed sequentially; single DB roundtrip."""
         if not events:
             return []
+
+        seen_entities: list[EventEntity] = []
+        pairs = {(e.subject_id, e.external_id) for e in events if e.external_id}
+        if pairs:
+            already_seen = await self.event_repo.get_by_external_ids(tenant_id, pairs)
+            new_events = [
+                e for e in events if (e.subject_id, e.external_id) not in already_seen
+            ]
+            seen_entities = [_event_result_to_entity(r) for r in already_seen.values()]
+            if not new_events:
+                return seen_entities
+            events = new_events
 
         subject_ids = {e.subject_id for e in events}
         subjects = await self.subject_repo.get_by_ids_and_tenant(tenant_id, subject_ids)
@@ -211,89 +302,167 @@ class EventService:
                             field="event_type",
                         )
 
-        # Fetch last event per subject in one query (batch).
-        last_events = await self.event_repo.get_last_events_for_subjects(
-            tenant_id, subject_ids
-        )
-        chain_state: dict[str, tuple[str | None, datetime | None]] = {
-            sid: (
-                (last_events[sid].hash, last_events[sid].event_time)
-                if last_events.get(sid) else (None, None)
-            )
-            for sid in subject_ids
-        }
+        if enrichment_context and self.enrichers:
+            enriched: list[EventCreate] = []
+            for event_data in events:
+                for enricher in self.enrichers:
+                    event_data = await enricher.enrich(event_data, enrichment_context)
+                enriched.append(event_data)
+            events = enriched
 
-        to_persist: list[EventToPersist] = []
-        for event_data in events:
-            prev_hash, prev_time = chain_state[event_data.subject_id]
-            EventEntity.validate_event_time_after_previous(
-                event_data.event_time,
-                prev_time,
-            )
-            if self.transition_validator:
-                await self.transition_validator.validate_can_emit(
-                    tenant_id=tenant_id,
-                    subject_id=event_data.subject_id,
-                    event_type=event_data.event_type,
-                    workflow_instance_id=event_data.workflow_instance_id,
-                )
-            if not skip_schema_validation and self.schema_validator:
-                subject = subject_by_id[event_data.subject_id]
-                await self.schema_validator.validate_payload(
-                    tenant_id,
-                    event_data.event_type,
-                    event_data.schema_version,
-                    event_data.payload,
-                    subject_type=subject.subject_type.value,
-                )
-            event_hash = self.hash_service.compute_hash(
-                subject_id=event_data.subject_id,
-                event_type=event_data.event_type,
-                schema_version=event_data.schema_version,
-                event_time=event_data.event_time,
-                payload=event_data.payload,
-                previous_hash=prev_hash,
-            )
-            to_persist.append(
-                EventToPersist(
-                    subject_id=event_data.subject_id,
-                    event_type=event_data.event_type,
-                    schema_version=event_data.schema_version,
-                    event_time=event_data.event_time,
-                    payload=event_data.payload,
-                    hash=event_hash,
-                    previous_hash=prev_hash,
-                    workflow_instance_id=event_data.workflow_instance_id,
-                    correlation_id=event_data.correlation_id,
-                )
-            )
-            chain_state[event_data.subject_id] = (event_hash, event_data.event_time)
+        representative_subject_id = min(subject_ids)
 
-        created = await self.event_repo.create_events_bulk(tenant_id, to_persist)
+        for attempt in range(MAX_RETRIES):
+            try:
+                async with self.db.begin():
+                    for subject_id in sorted(subject_ids):
+                        await self.event_repo.lock_subject_for_update(subject_id)
+                    last_events = await self.event_repo.get_last_events_for_subjects(
+                        tenant_id, subject_ids
+                    )
+                    chain_state: dict[str, tuple[str | None, datetime | None]] = {
+                        sid: (
+                            (last_events[sid].hash, last_events[sid].event_time)
+                            if last_events.get(sid)
+                            else (None, None)
+                        )
+                        for sid in subject_ids
+                    }
+
+                    assignment_by_subject: dict[str, OpenEpochAssignment] = {}
+                    if self.epoch_service:
+                        for sid in sorted(subject_ids):
+                            assignment_by_subject[sid] = (
+                                await self.epoch_service.get_or_create_open_epoch(
+                                    tenant_id, sid
+                                )
+                            )
+                    events_added_per_subject: dict[str, int] = {
+                        sid: 0 for sid in subject_ids
+                    }
+
+                    to_persist: list[EventToPersist] = []
+                    epoch_meta: list[tuple[str, bool]] = []
+                    for event_data in events:
+                        prev_hash, prev_time = chain_state[event_data.subject_id]
+                        EventEntity.validate_event_time_after_previous(
+                            event_data.event_time,
+                            prev_time,
+                        )
+                        if self.transition_validator:
+                            await self.transition_validator.validate_can_emit(
+                                tenant_id=tenant_id,
+                                subject_id=event_data.subject_id,
+                                event_type=event_data.event_type,
+                                workflow_instance_id=event_data.workflow_instance_id,
+                            )
+                        if not skip_schema_validation and self.schema_validator:
+                            subject = subject_by_id[event_data.subject_id]
+                            await self.schema_validator.validate_payload(
+                                tenant_id,
+                                event_data.event_type,
+                                event_data.schema_version,
+                                event_data.payload,
+                                subject_type=subject.subject_type.value,
+                            )
+                        event_hash = self.hash_service.compute_hash(
+                            subject_id=event_data.subject_id,
+                            event_type=event_data.event_type,
+                            schema_version=event_data.schema_version,
+                            event_time=event_data.event_time,
+                            payload=event_data.payload,
+                            previous_hash=prev_hash,
+                        )
+                        epoch_id: str | None = None
+                        integrity_status = EventIntegrityStatus.VALID.value
+                        merkle_leaf_hash: str | None = None
+                        is_first = False
+                        if self.epoch_service:
+                            assignment = assignment_by_subject[event_data.subject_id]
+                            n = events_added_per_subject[event_data.subject_id]
+                            is_first = assignment.event_count + n == 0
+                            epoch_id = assignment.epoch_id
+                            prof = IntegrityProfile(assignment.profile_snapshot)
+                            integrity_status = (
+                                EventIntegrityStatus.VALID.value
+                                if prof == IntegrityProfile.STANDARD
+                                else EventIntegrityStatus.PENDING_ANCHOR.value
+                            )
+                            merkle_leaf_hash = (
+                                event_hash
+                                if prof == IntegrityProfile.LEGAL_GRADE
+                                else None
+                            )
+                            epoch_meta.append((assignment.epoch_id, is_first))
+                            events_added_per_subject[event_data.subject_id] = n + 1
+                        to_persist.append(
+                            EventToPersist(
+                                subject_id=event_data.subject_id,
+                                event_type=event_data.event_type,
+                                schema_version=event_data.schema_version,
+                                event_time=event_data.event_time,
+                                payload=event_data.payload,
+                                hash=event_hash,
+                                previous_hash=prev_hash,
+                                workflow_instance_id=event_data.workflow_instance_id,
+                                correlation_id=event_data.correlation_id,
+                                external_id=event_data.external_id,
+                                source=event_data.source,
+                                epoch_id=epoch_id,
+                                integrity_status=integrity_status,
+                                merkle_leaf_hash=merkle_leaf_hash,
+                            )
+                        )
+                        chain_state[event_data.subject_id] = (
+                            event_hash,
+                            event_data.event_time,
+                        )
+
+                    created = await self.event_repo.create_events_bulk(
+                        tenant_id, to_persist
+                    )
+                    if self.epoch_service and epoch_meta:
+                        entries = [
+                            (eid, ev.event_seq, first)
+                            for ev, (eid, first) in zip(created, epoch_meta)
+                            if ev.event_seq is not None
+                        ]
+                        await self.epoch_service.record_events_appended_bulk(entries)
+                    if self._tsa_batch_queue and self.epoch_service:
+                        for ev, (eid, first) in zip(created, epoch_meta):
+                            # Enqueue COMPLIANCE events for TSA batch anchoring.
+                            assignment = assignment_by_subject[ev.subject_id]
+                            if IntegrityProfile(assignment.profile_snapshot) == IntegrityProfile.COMPLIANCE:
+                                await self._tsa_batch_queue.enqueue(
+                                    TsaBatchItem(
+                                        tenant_id=tenant_id,
+                                        event_id=ev.id,
+                                        payload_hash_hex=ev.hash,
+                                    )
+                                )
+                break
+            except IntegrityError as exc:
+                if attempt == MAX_RETRIES - 1:
+                    raise ChainForkError(
+                        "Could not append events after retries.",
+                        representative_subject_id,
+                    ) from exc
+                await asyncio.sleep(0.05 * (2**attempt))
+
         entities = [_event_result_to_entity(ev) for ev in created]
+        if pairs:
+            entities = seen_entities + entities
 
-        if trigger_workflows and self.workflow_engine:
-            for ev in entities:
-                await self._trigger_workflows(ev, tenant_id)
-
-        return entities
-
-    async def _trigger_workflows(
-        self, event: EventEntity, tenant_id: str
-    ) -> list[Any]:
-        if not self.workflow_engine:
-            return []
-        try:
-            result = await self.workflow_engine.process_event_triggers(event, tenant_id)
-            return result or []
-        except (AssertionError, AttributeError, IndexError, KeyError, NameError, TypeError):
-            # Programming errors: do not mask; re-raise so they surface in tests and logs.
-            raise
-        except Exception:
-            # Runtime/infra failures (e.g. network, DB in workflow): log and do not fail event creation.
-            logger.exception(
-                "Workflow trigger failed for event %s (type: %s)",
-                event.id,
-                event.event_type.value,
+        for ev in created:
+            entity = _event_result_to_entity(ev)
+            subject = subject_by_id[ev.subject_id]
+            context = PostCreateContext(
+                tenant_id=tenant_id,
+                entity=entity,
+                event_result=ev,
+                subject_type=subject.subject_type.value,
+                trigger_workflows=trigger_workflows,
             )
-            return []
+            for hook in self._post_create_hooks:
+                await hook.after_event(context)
+        return entities

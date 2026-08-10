@@ -19,6 +19,10 @@ class EventCreate(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
     workflow_instance_id: str | None = None
     correlation_id: str | None = None
+    # Platform: set by connectors for idempotency; optional for API callers.
+    external_id: str | None = None
+    # Platform: originating system (e.g. "api:crm", "cdc:postgres:policies", "kafka:billing").
+    source: str | None = None
 
     @field_validator("event_time", mode="before")
     @classmethod
@@ -43,6 +47,16 @@ class EventResult:
     hash: str
     workflow_instance_id: str | None = None
     correlation_id: str | None = None
+    external_id: str | None = None
+    source: str | None = None
+    # Monotonic insertion order (watermark); required for sequence-backed reads (get_events_since_seq).
+    # None means missing mapping/backfill; consumers must reject before using as offset.
+    event_seq: int | None = None
+    # Chain integrity (epoch, status, TSA, Merkle leaf).
+    epoch_id: str | None = None
+    integrity_status: str | None = None
+    tsa_anchor_id: str | None = None
+    merkle_leaf_hash: str | None = None
 
 
 @dataclass(frozen=True)
@@ -58,3 +72,9 @@ class EventToPersist:
     previous_hash: str | None
     workflow_instance_id: str | None = None
     correlation_id: str | None = None
+    external_id: str | None = None
+    source: str | None = None
+    # Chain integrity (optional; set by EventService when epoch service is used).
+    epoch_id: str | None = None
+    integrity_status: str | None = None
+    merkle_leaf_hash: str | None = None

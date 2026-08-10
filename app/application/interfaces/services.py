@@ -8,11 +8,28 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol
 
+from app.domain.enums import TsaAnchorType
 from app.shared.enums import ActorType, AuditAction
 
 if TYPE_CHECKING:
     from app.application.dtos.event import EventCreate
     from app.domain.entities.event import EventEntity
+
+
+# TSA service interface (chain integrity: anchor payload hash, verify stored token)
+class ITSAService(Protocol):
+    """Protocol for RFC 3161 TSA anchoring used by epoch sealing and batch workers."""
+
+    async def anchor(
+        self,
+        tenant_id: str,
+        payload_hash_hex: str,
+        anchor_type: TsaAnchorType,
+    ) -> str:
+        """Submit payload_hash to TSA, store token in tsa_anchor table; return anchor id."""
+
+    async def verify(self, anchor_id: str) -> bool:
+        """Verify stored TSA token against payload_hash; update verification_status. Return True if valid."""
 
 
 # Hash service interface
@@ -75,6 +92,8 @@ class IEventService(Protocol):
         data: EventCreate,
         *,
         trigger_workflows: bool = True,
+        skip_transition_validation: bool = False,
+        skip_schema_validation: bool = False,
     ) -> EventEntity:
         """Create a new event with cryptographic chaining and optional schema validation."""
 

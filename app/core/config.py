@@ -7,7 +7,7 @@ validated at load time.
 
 from functools import lru_cache
 
-from pydantic import SecretStr, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -90,6 +90,12 @@ class Settings(BaseSettings):
     chain_anchor_tsa_url: str = "https://freetsa.org/tsr"
     chain_anchor_tsa_cert_path: str | None = None  # path to TSA root cert for prod verification
     chain_anchor_tsa_timeout_seconds: int = 10
+    # Integrity epoch sealing: seal due epochs and open next; TSA for COMPLIANCE/LEGAL_GRADE.
+    epoch_sealing_enabled: bool = False
+    # TSA batch anchoring (COMPLIANCE profile): background job drains queue and anchors batches.
+    tsa_batch_enabled: bool = False
+    tsa_batch_interval_seconds: int = 60
+    tsa_batch_max_events: int = 500
 
     # Request / middleware
     request_timeout_seconds: int = 60
@@ -121,6 +127,31 @@ class Settings(BaseSettings):
     cache_ttl_permissions: int = 300
     cache_ttl_schemas: int = 600
     cache_ttl_tenants: int = 900
+
+    # Connectors (platform event ingestion)
+    connector_cdc_postgres_enabled: bool = False
+    connector_cdc_postgres_dsn: SecretStr | None = None
+    connector_cdc_postgres_slot_name: str = "timeline_cdc"
+    connector_cdc_postgres_publication: str = "timeline_pub"
+    connector_kafka_enabled: bool = False
+    connector_kafka_bootstrap_servers: str | None = None
+    connector_kafka_group_id: str = "timeline-consumer"
+    connector_kafka_topics: list[str] = Field(default_factory=list)
+    connector_kafka_auto_offset_reset: str = "earliest"
+    connector_email_enabled: bool = False
+    connector_email_tenant_id: str | None = None
+    connector_email_poll_interval_seconds: float = 60.0
+    connector_file_watch_enabled: bool = False
+    connector_file_watch_path: str | None = None
+
+    # Event rate limits (per-tenant, per minute)
+    rate_limit_events_per_minute_per_tenant: int = 10_000
+    rate_limit_bulk_events_per_minute_per_tenant: int = 50_000
+
+    # Projection engine (Phase 5)
+    projection_engine_enabled: bool = False
+    projection_engine_interval_seconds: int = 5
+    projection_engine_batch_size: int = 1000
 
     # OpenTelemetry
     telemetry_enabled: bool = True
@@ -182,6 +213,28 @@ class Settings(BaseSettings):
                 "allowed_origins must not be '*' (use explicit origins, e.g. "
                 "ALLOWED_ORIGINS=https://app.example.com)."
             )
+        # Connectors: fail fast when enabled but required config is missing.
+        if self.connector_email_enabled and not self.connector_email_tenant_id:
+            raise ValueError(
+                "CONNECTOR_EMAIL_TENANT_ID is required when CONNECTOR_EMAIL_ENABLED=true."
+            )
+        if self.connector_file_watch_enabled and not self.connector_file_watch_path:
+            raise ValueError(
+                "CONNECTOR_FILE_WATCH_PATH is required when CONNECTOR_FILE_WATCH_ENABLED=true."
+            )
+        if self.connector_cdc_postgres_enabled and not self.connector_cdc_postgres_dsn:
+            raise ValueError(
+                "CONNECTOR_CDC_POSTGRES_DSN is required when CONNECTOR_CDC_POSTGRES_ENABLED=true."
+            )
+        if self.connector_kafka_enabled:
+            if not self.connector_kafka_bootstrap_servers:
+                raise ValueError(
+                    "CONNECTOR_KAFKA_BOOTSTRAP_SERVERS is required when CONNECTOR_KAFKA_ENABLED=true."
+                )
+            if not self.connector_kafka_topics:
+                raise ValueError(
+                    "CONNECTOR_KAFKA_TOPICS is required when CONNECTOR_KAFKA_ENABLED=true."
+                )
         return self
 
 

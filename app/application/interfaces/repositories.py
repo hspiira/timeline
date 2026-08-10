@@ -37,6 +37,17 @@ if TYPE_CHECKING:
     from app.application.dtos.tenant import TenantResult
     from app.application.dtos.user import UserResult
     from app.application.dtos.chain_anchor import ChainAnchorResult
+    from app.application.dtos.integrity import OpenEpochAssignment
+    from app.application.dtos.webhook_subscription import (
+        WebhookSubscriptionCreate,
+        WebhookSubscriptionForDispatch,
+        WebhookSubscriptionResult,
+        WebhookSubscriptionUpdate,
+    )
+    from app.application.dtos.projection import (
+        ProjectionDefinitionResult,
+        ProjectionStateResult,
+    )
 
 
 # Event repository interface
@@ -54,14 +65,28 @@ class IEventRepository(Protocol):
     ) -> dict[str, EventResult | None]:
         """Return the latest event per subject (batch). Missing subjects have None."""
 
+    async def get_by_subject_and_external_id(
+        self, subject_id: str, tenant_id: str, external_id: str
+    ) -> EventResult | None:
+        """Return event by subject and external idempotency key, if any."""
+
+    async def get_by_external_ids(
+        self, tenant_id: str, subject_external_pairs: set[tuple[str, str]]
+    ) -> dict[tuple[str, str], EventResult]:
+        """Return existing events for (subject_id, external_id) pairs. Key: (subject_id, external_id) -> EventResult."""
+
     async def create_event(
         self,
         tenant_id: str,
         data: EventCreate,
         event_hash: str,
         previous_hash: str | None,
+        *,
+        epoch_id: str | None = None,
+        integrity_status: str = "VALID",
+        merkle_leaf_hash: str | None = None,
     ) -> EventResult:
-        """Create a new event with computed hash."""
+        """Create a new event with computed hash and optional integrity fields."""
 
     async def create_events_bulk(
         self,
@@ -92,7 +117,26 @@ class IEventRepository(Protocol):
         workflow_instance_id: str | None = None,
         limit: int = 10000,
     ) -> list[EventResult]:
-        """Return events for subject in chronological order (oldest first). If as_of is set, only events with event_time <= as_of. If after_event_id is set, only events after that event (for snapshot replay). If workflow_instance_id is set, only events in that stream."""
+        """Return events for subject in chronological order (oldest first)."""
+
+    async def get_events_since_seq(
+        self,
+        tenant_id: str,
+        since_seq: int,
+        limit: int = 1000,
+        subject_type: str | None = None,
+    ) -> list[EventResult]:
+        """Return events for tenant with event_seq > since_seq, ordered by event_seq asc."""
+
+    async def get_last_event_in_epoch(
+        self, epoch_id: str, tenant_id: str
+    ) -> EventResult | None:
+        """Return the last event in the given epoch (by event_seq) for sealing logic."""
+
+    async def get_events_for_epoch(
+        self, tenant_id: str, epoch_id: str
+    ) -> list[EventResult]:
+        """Return events for an epoch ordered by event_seq ascending (Merkle build)."""
 
     async def count_by_tenant(self, tenant_id: str) -> int:
         """Return total event count for tenant (for verification limit check)."""
@@ -118,7 +162,33 @@ class IEventRepository(Protocol):
         """Return the hash of the latest event for the tenant (chain tip). None if no events."""
 
     async def get_distinct_tenant_ids(self) -> list[str]:
-        """Return distinct tenant_ids that have at least one event (for anchoring job). Deterministic order by tenant_id."""
+        """Return distinct tenant_ids that have at least one event (for anchoring job)."""
+
+    async def get_by_tenant_and_seq(
+        self, tenant_id: str, event_seq: int
+    ) -> EventResult | None:
+        """Return event by tenant and global event_seq, or None."""
+
+    async def mark_event_integrity_status(
+        self, event_id: str, status: str
+    ) -> None:
+        """Set integrity_status on a single event (e.g. CHAIN_BREAK)."""
+
+    async def mark_events_repaired_from_seq(
+        self,
+        tenant_id: str,
+        subject_id: str,
+        from_event_seq: int,
+    ) -> None:
+        """Set integrity_status='Repaired' for events at or after from_event_seq."""
+
+    async def get_hash_at_seq(
+        self,
+        tenant_id: str,
+        epoch_id: str,
+        event_seq: int,
+    ) -> str | None:
+        """Return event.hash for the given (tenant, epoch, event_seq), or None."""
 
 
 # Subject repository interface
@@ -615,6 +685,60 @@ class ITenantRepository(Protocol):
         """Update tenant name and/or status; return updated result or None."""
 
 
+# Epoch repository interface (chain integrity)
+class IEpochRepository(Protocol):
+    """Protocol for integrity epoch repository (get-or-create open epoch, increment)."""
+
+    async def get_open_epoch_for_update(
+        self,
+        tenant_id: str,
+        subject_id: str,
+    ) -> "OpenEpochAssignment | None":
+        """Return the open epoch for (tenant, subject) with row lock, or None."""
+
+    async def get_latest_sealed_terminal_hash(
+        self,
+        tenant_id: str,
+        subject_id: str,
+    ) -> str | None:
+        """Return terminal_hash of the latest sealed epoch, or None (use GENESIS)."""
+
+    async def get_next_epoch_number(
+        self,
+        tenant_id: str,
+        subject_id: str,
+    ) -> int:
+        """Return the next epoch number (max+1 or 0) for (tenant, subject)."""
+
+    async def create_epoch(
+        self,
+        tenant_id: str,
+        subject_id: str,
+        epoch_number: int,
+        genesis_hash: str,
+        profile_snapshot: str,
+    ) -> "OpenEpochAssignment":
+        """Create a new open epoch; first_event_seq set to 0 until first event."""
+
+    async def increment_epoch_event(
+        self,
+        epoch_id: str,
+        last_event_seq: int,
+        *,
+        is_first: bool = False,
+    ) -> None:
+        """Increment event_count and set last_event_seq; if is_first, set first_event_seq."""
+
+    async def mark_epoch_failed(self, epoch_id: str) -> None:
+        """Mark epoch as FAILED so it is skipped by get_sealable_epochs."""
+
+    async def mark_epoch_broken(self, epoch_id: str) -> None:
+        """Mark epoch as BROKEN when a chain break is detected."""
+
+    async def mark_epoch_repaired(self, epoch_id: str) -> None:
+        """Mark epoch as REPAIRED after a successful chain repair."""
+
+
 # User repository interface
 class IUserRepository(Protocol):
     """Protocol for user repository (DIP)."""
@@ -962,3 +1086,125 @@ class IAuditLogRepository(Protocol):
         to_timestamp: datetime | None = None,
     ) -> int:
         """Return total count of audit log entries for tenant with optional filters."""
+
+
+# Webhook subscription repository interface
+class IWebhookSubscriptionRepository(Protocol):
+    """Protocol for webhook subscription repository (event push)."""
+
+    async def get_active_by_tenant(
+        self, tenant_id: str
+    ) -> list["WebhookSubscriptionForDispatch"]:
+        """Return active subscriptions for tenant (for dispatching; includes secret)."""
+
+    async def get_by_id_for_dispatch(
+        self, tenant_id: str, subscription_id: str
+    ) -> "WebhookSubscriptionForDispatch | None":
+        """Return subscription with secret for dispatch/test, or None."""
+
+    async def create(
+        self,
+        tenant_id: str,
+        data: "WebhookSubscriptionCreate",
+    ) -> "WebhookSubscriptionResult":
+        """Create a webhook subscription; returns the created record."""
+
+    async def get_by_id(
+        self, tenant_id: str, subscription_id: str
+    ) -> "WebhookSubscriptionResult | None":
+        """Return subscription by id scoped to tenant, or None."""
+
+    async def list_by_tenant(
+        self,
+        tenant_id: str,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list["WebhookSubscriptionResult"]:
+        """List subscriptions for tenant (paginated)."""
+
+    async def update(
+        self,
+        tenant_id: str,
+        subscription_id: str,
+        data: "WebhookSubscriptionUpdate",
+    ) -> "WebhookSubscriptionResult":
+        """Update subscription; raises if not found."""
+
+    async def delete(self, tenant_id: str, subscription_id: str) -> None:
+        """Delete subscription; no-op if not found."""
+
+
+# Projection repository interface
+class IProjectionRepository(Protocol):
+    """Protocol for projection definition and state repository (Phase 5)."""
+
+    async def list_active(
+        self, tenant_id: str | None = None
+    ) -> list["ProjectionDefinitionResult"]:
+        """All active projection definitions, optionally filtered by tenant."""
+
+    async def list_active_for_advance(
+        self,
+        tenant_id: str | None = None,
+        limit: int | None = None,
+    ) -> list["ProjectionDefinitionResult"]:
+        """Active projection definitions locked FOR UPDATE SKIP LOCKED for advancement."""
+
+    async def list_by_tenant(
+        self, tenant_id: str
+    ) -> list["ProjectionDefinitionResult"]:
+        """All projection definitions for tenant (active and inactive)."""
+
+    async def get_by_name_version(
+        self, tenant_id: str, name: str, version: int
+    ) -> "ProjectionDefinitionResult | None":
+        """Return projection definition by tenant, name and version."""
+
+    async def create(
+        self,
+        tenant_id: str,
+        name: str,
+        version: int,
+        subject_type: str | None,
+    ) -> "ProjectionDefinitionResult":
+        """Create projection definition with last_event_seq=0."""
+
+    async def advance_watermark(self, projection_id: str, new_seq: int) -> None:
+        """Update last_event_seq for the projection definition."""
+
+    async def get_state(
+        self, projection_id: str, subject_id: str
+    ) -> "ProjectionStateResult | None":
+        """Return projection state for (projection_id, subject_id), or None."""
+
+    async def upsert_state(
+        self, projection_id: str, subject_id: str, state: dict
+    ) -> None:
+        """Insert or update projection state for (projection_id, subject_id)."""
+
+    async def list_states(
+        self, projection_id: str, skip: int = 0, limit: int = 100
+    ) -> list["ProjectionStateResult"]:
+        """List projection states for projection (paginated)."""
+
+    async def deactivate(
+        self, tenant_id: str, name: str, version: int
+    ) -> None:
+        """Set active=False for the projection definition (by tenant, name, version)."""
+
+    async def reset_watermark(
+        self, tenant_id: str, name: str, version: int
+    ) -> None:
+        """Set last_event_seq=0 for the projection (triggers full replay on next cycle)."""
+
+    async def count_states(self, projection_id: str) -> int:
+        """Return count of projection_state rows for this projection."""
+
+    async def get_top_by_field(
+        self,
+        projection_id: str,
+        field: str,
+        limit: int = 10,
+    ) -> list["ProjectionStateResult"]:
+        """Return top N states ordered by state->>field DESC (numeric)."""

@@ -40,7 +40,7 @@ def upgrade() -> None:
             nullable=True,
         ),
         sa.CheckConstraint(
-            "status IN ('active', 'suspended', 'archived')", name="tenant_status_check"
+            "status IN ('Active', 'Suspended', 'Archived')", name="tenant_status_check"
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("code"),

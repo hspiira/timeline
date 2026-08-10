@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from app.api.v1.dependencies import (
     ensure_audit_logged,
     get_create_subject_snapshot_use_case,
-    get_get_subject_state_use_case,
+    get_subject_state_use_case,
     get_run_snapshot_job_use_case,
     get_subject_erasure_service,
     get_subject_export_service,
@@ -205,7 +205,7 @@ async def get_subject_state(
     subject_id: str,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
     state_use_case: Annotated[
-        GetSubjectStateUseCase, Depends(get_get_subject_state_use_case)
+        GetSubjectStateUseCase, Depends(get_subject_state_use_case)
     ],
     _: Annotated[object, Depends(require_permission("subject", "read"))] = None,
     as_of: str | None = Query(

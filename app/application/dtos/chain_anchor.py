@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+from app.domain.enums import ChainAnchorStatus
+
 
 @dataclass(frozen=True)
 class ChainAnchorResult:
@@ -16,7 +18,7 @@ class ChainAnchorResult:
     tsa_url: str
     tsa_receipt: bytes | None  # raw DER TimeStampToken; None when pending/failed
     tsa_serial: str | None
-    status: str  # pending | confirmed | failed
+    status: ChainAnchorStatus
     error_message: str | None
     created_at: datetime
     # Option C readiness: event count and per-subject tips at anchor time (not populated yet).

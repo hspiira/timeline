@@ -252,7 +252,7 @@ async def run(path: Path) -> None:
                     subject_repo=subject_repo,
                     db=session,
                     schema_validator=schema_validator,
-                    workflow_engine_provider=lambda: None,
+                    post_create_hooks=[],
                 )
                 cmd = EventCreate(
                     subject_id=subject_id,

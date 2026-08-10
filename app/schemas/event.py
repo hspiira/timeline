@@ -19,6 +19,8 @@ class EventListResponse(BaseModel):
     event_time: AwareDatetime
     workflow_instance_id: str | None = None
     correlation_id: str | None = None
+    external_id: str | None = None
+    source: str | None = None
 
 
 class EventResponse(BaseModel):
@@ -35,6 +37,8 @@ class EventResponse(BaseModel):
     hash: str
     workflow_instance_id: str | None = None
     correlation_id: str | None = None
+    external_id: str | None = None
+    source: str | None = None
 
 
 class EventVerificationResult(BaseModel):
