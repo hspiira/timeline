@@ -98,9 +98,11 @@ from app.infrastructure.persistence.repositories import (
     ChainRepairLogRepository,
 )
 from app.infrastructure.services import (
-    InMemoryEventStreamBroadcaster,
     SystemAuditService,
     WorkflowEngine,
+)
+from app.infrastructure.services.event_stream_broadcaster import (
+    InMemoryEventStreamBroadcaster,
 )
 from app.infrastructure.services.post_create_hooks import (
     EventStreamBroadcastHook,

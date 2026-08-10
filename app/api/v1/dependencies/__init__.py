@@ -81,6 +81,7 @@ from app.api.v1.dependencies._domain import (
     get_event_schema_repo_for_write,
     get_event_service,
     get_event_service_for_create,
+    get_event_stream_broadcaster,
     get_event_transition_rule_repo,
     get_event_transition_rule_repo_for_write,
     get_flow_document_compliance_use_case,
@@ -119,6 +120,7 @@ from app.api.v1.dependencies._domain import (
     get_tenant_integrity_history_repo,
     get_tenant_integrity_history_repo_for_write,
     get_integrity_epoch_repo,
+    get_merkle_node_repo,
     get_chain_repair_service,
 )
 
@@ -158,6 +160,7 @@ __all__ = [
     "get_event_schema_repo_for_write",
     "get_event_service",
     "get_event_service_for_create",
+    "get_event_stream_broadcaster",
     "get_event_transition_rule_repo",
     "get_event_transition_rule_repo_for_write",
     "get_flow_document_compliance_use_case",
@@ -229,6 +232,7 @@ __all__ = [
     "get_tenant_integrity_history_repo",
     "get_tenant_integrity_history_repo_for_write",
     "get_integrity_epoch_repo",
+    "get_merkle_node_repo",
     "get_chain_repair_service",
     "require_permission",
 ]

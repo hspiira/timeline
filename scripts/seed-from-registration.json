@@ -5,7 +5,7 @@
     {
       "code": "acme",
       "name": "Acme Corp",
-      "status": "active"
+      "status": "Active"
     }
   ],
   "event_transition_rules": [
