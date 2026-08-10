@@ -2,6 +2,9 @@ import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
+from sqlalchemy import text
+
+from app.infrastructure.persistence.models.tenant import Tenant
 
 from app.application.dtos.projection import ProjectionDefinitionResult
 from app.application.services.merkle_service import MerkleService
@@ -20,10 +23,22 @@ from app.infrastructure.services.projection_engine import ProjectionEngine
 
 
 @pytest.mark.asyncio
-async def test_projection_engine_uses_skip_locked_and_subject_type_filtering(async_session):
+@pytest.mark.requires_db
+async def test_projection_engine_uses_skip_locked_and_subject_type_filtering(db_session):
     """Smoke test: engine can run one cycle and call get_events_since_seq with subject_type."""
-    repo = ProjectionRepository(async_session)
-    event_repo = EventRepository(async_session)
+    # projection_definition.tenant_id is a real foreign key, and row-level security
+    # needs the session pointed at that tenant before either write is allowed.
+    tenant_id = "ptest_t1"
+    await db_session.execute(
+        text(f"SET LOCAL app.current_tenant_id = '{tenant_id}'")
+    )
+    db_session.add(
+        Tenant(id=tenant_id, code="ptest-t1", name="Projection Test", status="Active")
+    )
+    await db_session.flush()
+
+    repo = ProjectionRepository(db_session)
+    event_repo = EventRepository(db_session)
     registry = ProjectionRegistry()
 
     # Register a dummy projection handler.
@@ -31,11 +46,11 @@ async def test_projection_engine_uses_skip_locked_and_subject_type_filtering(asy
         state["count"] = state.get("count", 0) + 1
         return state
 
-    registry.register("dummy", 1, handler)
+    registry.register("dummy", 1, "account", handler)
 
     # Create definition row.
     defn = await repo.create(
-        tenant_id="t1",
+        tenant_id=tenant_id,
         name="dummy",
         version=1,
         subject_type="account",
@@ -54,7 +69,8 @@ async def test_projection_engine_uses_skip_locked_and_subject_type_filtering(asy
 
 
 @pytest.mark.asyncio
-async def test_query_projection_use_case_batches_over_events(async_session, monkeypatch):
+@pytest.mark.requires_db
+async def test_query_projection_use_case_batches_over_events(db_session, monkeypatch):
     """QueryProjectionUseCase.get_state_as_of should batch over get_events_chronological."""
     projection_repo = AsyncMock()
     event_repo = AsyncMock(spec=EventRepository)
@@ -64,7 +80,7 @@ async def test_query_projection_use_case_batches_over_events(async_session, monk
         state["seen"] = state.get("seen", 0) + 1
         return state
 
-    registry.register("dummy", 1, handler)
+    registry.register("dummy_query", 1, None, handler)
     use_case = QueryProjectionUseCase(
         projection_repo=projection_repo,
         event_repo=event_repo,
@@ -75,20 +91,24 @@ async def test_query_projection_use_case_batches_over_events(async_session, monk
         def __init__(self, eid: str):
             self.id = eid
 
-    # First batch full, second batch partial, then empty.
+    # get_state_as_of pages with a batch size of 500 and stops as soon as a page
+    # comes back short, so the first page has to be exactly full for the loop to go
+    # round again. An earlier version of this test used pages of 2 and 1, which
+    # stopped after the first page and never exercised the batching it was named for.
+    BATCH_SIZE = 500
     event_repo.get_events_chronological.side_effect = [
-        [Ev("e1"), Ev("e2")],
-        [Ev("e3")],
+        [Ev(f"e{i}") for i in range(BATCH_SIZE)],
+        [Ev("last")],
         [],
     ]
 
     state = await use_case.get_state_as_of(
         tenant_id="t1",
-        name="dummy",
+        name="dummy_query",
         version=1,
         subject_id="s1",
         as_of=None,
     )
-    assert state == {"seen": 3}
+    assert state == {"seen": BATCH_SIZE + 1}
 
 

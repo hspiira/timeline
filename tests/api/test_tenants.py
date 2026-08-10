@@ -81,8 +81,16 @@ async def test_create_tenant_admin_initial_password_too_short_returns_422(
 async def test_create_tenant_when_secret_not_configured_returns_503(
     client: AsyncClient,
 ) -> None:
-    """POST /api/v1/tenants returns 503 when CREATE_TENANT_SECRET is not set."""
-    env_prev = os.environ.pop("CREATE_TENANT_SECRET", None)
+    """POST /api/v1/tenants returns 503 when CREATE_TENANT_SECRET is not set.
+
+    Sets the variable to empty rather than removing it: settings also load from a
+    local .env file, so simply popping the environment variable leaves a value in
+    place on any machine whose .env defines one. An explicit empty environment
+    variable overrides the file, which keeps this test independent of the developer's
+    setup.
+    """
+    env_prev = os.environ.get("CREATE_TENANT_SECRET")
+    os.environ["CREATE_TENANT_SECRET"] = ""
     get_settings.cache_clear()
     try:
         response = await client.post(
@@ -94,6 +102,8 @@ async def test_create_tenant_when_secret_not_configured_returns_503(
     finally:
         if env_prev is not None:
             os.environ["CREATE_TENANT_SECRET"] = env_prev
+        else:
+            os.environ.pop("CREATE_TENANT_SECRET", None)
         get_settings.cache_clear()
 
 

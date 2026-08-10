@@ -12,10 +12,10 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.infrastructure.persistence.database import (
-    AsyncSessionLocal,
-    _ensure_engine,
-)
+# Import the module, not the names: _ensure_engine() rebinds AsyncSessionLocal as a
+# module global, and a from-import would capture the pre-init None forever.
+from app.infrastructure.persistence import database as _database
+from app.infrastructure.persistence.database import _ensure_engine
 from app.main import app
 
 # When CREATE_TENANT_SECRET is not set, tests that create tenants set this so
@@ -31,6 +31,23 @@ async def client() -> AsyncClient:
         yield ac
 
 
+@pytest.fixture(autouse=True)
+async def _reset_db_engine():
+    """Dispose the shared async engine after every test.
+
+    The engine and its connection pool are module-level globals, but pytest-asyncio
+    gives each test its own event loop. A pooled connection created under one loop
+    and reused under the next raises "Event loop is closed", which shows up as a
+    failure in whichever test happens to run second. Disposing and clearing the
+    globals makes _ensure_engine() rebuild against the current loop.
+    """
+    yield
+    if _database.engine is not None:
+        await _database.engine.dispose()
+        _database.engine = None
+        _database.AsyncSessionLocal = None
+
+
 @pytest.fixture
 async def db_session() -> AsyncSession:
     """Database session for repository/integration tests. Rolls back after test.
@@ -40,11 +57,11 @@ async def db_session() -> AsyncSession:
     run without DB via: pytest -m 'not requires_db'.
     """
     _ensure_engine()
-    if AsyncSessionLocal is None:
+    if _database.AsyncSessionLocal is None:
         pytest.skip(
             "Postgres not configured: set DATABASE_URL and run: uv run alembic upgrade head"
         )
-    async with AsyncSessionLocal() as session:
+    async with _database.AsyncSessionLocal() as session:
         yield session
         await session.rollback()
 
@@ -58,7 +75,7 @@ async def auth_headers(client: AsyncClient) -> dict[str, str] | None:
     Creates real tenant + user; data persists after test (use a test DB for CI).
     """
     _ensure_engine()
-    if AsyncSessionLocal is None:
+    if _database.AsyncSessionLocal is None:
         pytest.skip(
             "Postgres not configured: set DATABASE_URL and run: uv run alembic upgrade head"
         )
