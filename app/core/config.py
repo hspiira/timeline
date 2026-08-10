@@ -37,7 +37,17 @@ class Settings(BaseSettings):
     # Security
     secret_key: SecretStr = SecretStr("")
     algorithm: str = "HS256"
-    access_token_expire_minutes: int = 480  # 8 hours
+    # Short-lived: the client renews quietly against /auth/refresh, so a short
+    # window costs users nothing and limits how long a leaked token is useful.
+    access_token_expire_minutes: int = 30
+    # How long someone can stay signed in without re-entering their password.
+    refresh_token_expire_days: int = 14
+    # Refresh token cookie. httpOnly so page scripts cannot read it. Leave
+    # refresh_cookie_secure true in production; set false only for plain-http local dev.
+    refresh_cookie_name: str = "timeline_refresh"
+    refresh_cookie_secure: bool = True
+    refresh_cookie_samesite: str = "lax"
+    refresh_cookie_domain: str | None = None
     encryption_salt: SecretStr = SecretStr("")
     # Credential storage (email/OAuth): use a separate secret so JWT key rotation does not break stored credentials.
     credential_encryption_secret: SecretStr | None = None

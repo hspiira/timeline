@@ -16,15 +16,11 @@ async def test_login_missing_body_returns_422(client: AsyncClient) -> None:
     assert response.status_code == 422
 
 
-async def test_login_empty_tenant_code_returns_422(client: AsyncClient) -> None:
-    """POST /api/v1/auth/login with empty tenant_code fails validation."""
+async def test_login_invalid_email_returns_422(client: AsyncClient) -> None:
+    """POST /api/v1/auth/login with something that is not an email fails validation."""
     response = await client.post(
         "/api/v1/auth/login",
-        json={
-            "tenant_code": "",
-            "username": "user",
-            "password": "password123",
-        },
+        json={"email": "not-an-email", "password": "password123"},
     )
     assert response.status_code == 422
 
@@ -33,32 +29,55 @@ async def test_login_short_password_returns_422(client: AsyncClient) -> None:
     """POST /api/v1/auth/login with password shorter than 8 chars fails validation."""
     response = await client.post(
         "/api/v1/auth/login",
-        json={
-            "tenant_code": "acme",
-            "username": "user",
-            "password": "short",
-        },
+        json={"email": "user@example.com", "password": "short"},
     )
     assert response.status_code == 422
 
 
-async def test_login_invalid_credentials_returns_401(client: AsyncClient) -> None:
-    """POST /api/v1/auth/login with valid shape but unknown tenant returns 401.
+async def test_login_no_longer_accepts_an_organisation_code(
+    client: AsyncClient,
+) -> None:
+    """An organisation code alone is not enough to sign in; email is required.
 
-    Does not require a real DB; app resolves tenant by code and returns 401
-    when tenant is not found or credentials fail. Message must be generic
-    (same as wrong password) to avoid tenant enumeration.
+    Guards against the old three-field form quietly coming back.
     """
     response = await client.post(
         "/api/v1/auth/login",
-        json={
-            "tenant_code": "nonexistent-tenant-code-xyz",
-            "username": "nobody",
-            "password": "password123",
-        },
+        json={"tenant_code": "acme", "username": "user", "password": "password123"},
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.requires_db
+async def test_login_unknown_email_returns_401(client: AsyncClient) -> None:
+    """POST /api/v1/auth/login with an unregistered email returns a generic 401.
+
+    Sign-in takes an email and no organisation code. An unknown email must fail with
+    exactly the same message as a wrong password, so neither can be used to work out
+    whether an address is registered.
+    """
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "nobody@example.com", "password": "password123"},
     )
     assert response.status_code == 401
     assert response.json().get("message") == "Invalid credentials"
+
+
+@pytest.mark.requires_db
+async def test_organisations_for_unknown_email_returns_empty_200(
+    client: AsyncClient,
+) -> None:
+    """POST /api/v1/auth/organisations always returns 200, empty for an unknown email.
+
+    A 404 here would let anyone probe which addresses exist.
+    """
+    response = await client.post(
+        "/api/v1/auth/organisations",
+        json={"email": "nobody@example.com"},
+    )
+    assert response.status_code == 200
+    assert response.json() == {"organisations": []}
 
 
 async def test_register_missing_body_returns_422(client: AsyncClient) -> None:
@@ -81,83 +100,25 @@ async def test_register_invalid_email_returns_422(client: AsyncClient) -> None:
     assert response.status_code == 422
 
 
-async def test_register_invalid_tenant_code_returns_400_generic(
-    client: AsyncClient,
-) -> None:
-    """POST /api/v1/auth/register with unknown tenant_code returns 400 with generic message (no enumeration)."""
+async def test_public_registration_is_disabled(client: AsyncClient) -> None:
+    """POST /api/v1/auth/register is disabled and says so.
+
+    It used to let anyone who knew an organisation's code create an account inside
+    that organisation, and codes are not secret. Adding people is now an
+    authenticated action on POST /api/v1/users.
+    """
     response = await client.post(
         "/api/v1/auth/register",
         json={
-            "tenant_code": "nonexistent-tenant-code-xyz",
+            "tenant_code": "any-code",
             "username": "user",
             "email": "user@example.com",
             "password": "password123",
         },
     )
-    assert response.status_code == 400
-    assert response.json().get("message") == "Registration failed"
+    assert response.status_code == 403
+    assert "POST /api/v1/users" in response.json().get("message", "")
 
-
-@pytest.mark.requires_db
-async def test_register_duplicate_user_returns_400_generic(client: AsyncClient) -> None:
-    """POST /api/v1/auth/register with existing email returns 400 with generic message (no enumeration)."""
-    from app.infrastructure.persistence.database import AsyncSessionLocal, _ensure_engine
-
-    _ensure_engine()
-    if AsyncSessionLocal is None:
-        pytest.skip("Postgres not configured")
-
-    if "CREATE_TENANT_SECRET" not in os.environ:
-        os.environ["CREATE_TENANT_SECRET"] = _TEST_CREATE_TENANT_SECRET
-        get_settings.cache_clear()
-    secret = os.environ.get("CREATE_TENANT_SECRET", _TEST_CREATE_TENANT_SECRET)
-    code = f"reg-{uuid.uuid4().hex[:10]}"
-    create_resp = await client.post(
-        "/api/v1/tenants",
-        json={"code": code, "name": "Reg Test"},
-        headers={"X-Create-Tenant-Secret": secret},
-    )
-    if create_resp.status_code != 201:
-        pytest.skip(f"Could not create tenant: {create_resp.status_code}")
-
-    email = f"dup-{uuid.uuid4().hex[:8]}@example.com"
-    reg1 = await client.post(
-        "/api/v1/auth/register",
-        json={
-            "tenant_code": code,
-            "username": "user1",
-            "email": email,
-            "password": "password123",
-        },
-    )
-    assert reg1.status_code == 201
-
-    reg2 = await client.post(
-        "/api/v1/auth/register",
-        json={
-            "tenant_code": code,
-            "username": "user2",
-            "email": email,
-            "password": "otherpass456",
-        },
-    )
-    assert reg2.status_code == 400
-    assert reg2.json().get("message") == "Registration failed"
-
-
-async def test_set_initial_password_passwords_mismatch_returns_422(
-    client: AsyncClient,
-) -> None:
-    """POST /api/v1/auth/set-initial-password with password != password_confirm returns 422."""
-    response = await client.post(
-        "/api/v1/auth/set-initial-password",
-        json={
-            "token": "any-token",
-            "password": "NewPassword123!",
-            "password_confirm": "OtherPassword123!",
-        },
-    )
-    assert response.status_code == 422
 
 
 @pytest.mark.requires_db
