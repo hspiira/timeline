@@ -9,8 +9,9 @@ import { timelineApi } from '@/lib/api-client'
 export const Route = createFileRoute('/set-password')({
   component: SetPasswordPage,
   validateSearch: (search: Record<string, unknown>) => ({
+    // Token only. The organisation is derived server-side from the redeemed
+    // token, so carrying an organisation code here served no purpose.
     token: typeof search.token === 'string' ? search.token : '',
-    tenant: typeof search.tenant === 'string' ? search.tenant : '',
   }),
 })
 
@@ -50,7 +51,7 @@ function getSetPasswordErrorMessage(apiError: unknown): string {
 
 function SetPasswordPage() {
   const navigate = useNavigate()
-  const { token, tenant } = Route.useSearch()
+  const { token } = Route.useSearch()
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -101,7 +102,7 @@ function SetPasswordPage() {
   const goToLogin = () => {
     navigate({
       to: '/login',
-      search: { tenant: tenant || '', redirect: undefined, sessionExpired: false },
+      search: {},
     })
   }
 
@@ -157,7 +158,7 @@ function SetPasswordPage() {
             </div>
             <h1 className="text-lg font-bold text-foreground mb-2">Invalid link</h1>
             <p className="text-sm text-muted-foreground mb-6">{error}</p>
-            <Link to="/login" search={{ tenant: '', redirect: '/', sessionExpired: false }}>
+            <Link to="/login" search={{}}>
               <Button variant="outline" className="w-full">
                 Go to Login
               </Button>

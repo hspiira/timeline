@@ -30,7 +30,7 @@ export async function requireAuthBeforeLoad(intendedPath?: string) {
     )
     throw redirect({
       to: '/login',
-      search: { tenant: '', redirect: redirectPath, sessionExpired: false },
+      search: { redirect: redirectPath },
       replace: true,
     })
   }

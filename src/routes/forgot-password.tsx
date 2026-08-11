@@ -21,7 +21,7 @@ function ForgotPasswordPage() {
           <p className="text-sm text-muted-foreground text-center mb-6">
             Password reset is not yet available. Contact your administrator to reset your password.
           </p>
-          <Link to="/login" search={{ tenant: '', redirect: undefined, sessionExpired: false }}>
+          <Link to="/login" search={{}}>
             <Button variant="outline" className="w-full">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Sign In

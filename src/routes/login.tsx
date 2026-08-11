@@ -18,13 +18,16 @@ function safeRedirectPath(raw: unknown): string | undefined {
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
-  validateSearch: (search: Record<string, unknown>) => ({
-    // Vestigial: sign-in no longer uses an organisation code. Kept only because ten
-    // call sites still pass it; safe to drop along with those links.
-    tenant: (search.tenant as string) || '',
-    redirect: safeRedirectPath(search.redirect),
-    sessionExpired: search.session_expired === '1',
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    // Only return keys that are actually present. Returning a value the URL does
+    // not carry (sessionExpired: false, say) makes the router redirect to add it,
+    // so a plain link to /login cost a 307 on every visit.
+    const out: { redirect?: string; sessionExpired?: boolean } = {}
+    const redirect = safeRedirectPath(search.redirect)
+    if (redirect) out.redirect = redirect
+    if (search.session_expired === '1') out.sessionExpired = true
+    return out
+  },
 })
 
 /** Remembering the last organisation means a repeat user never sees the picker again. */

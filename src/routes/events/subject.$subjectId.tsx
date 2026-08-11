@@ -49,7 +49,7 @@ function SubjectEventsPage() {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authState.isLoading && !authState.user) {
-      navigate({ to: '/login', search: { tenant: '', redirect: undefined, sessionExpired: false } })
+      navigate({ to: '/login', search: {} })
     }
   }, [authState.isLoading, authState.user, navigate])
 

@@ -66,7 +66,7 @@ function RegisterTenantPage() {
       if (token) {
         navigate({
           to: '/set-password',
-          search: { token, tenant: createdTenant.tenant_code },
+          search: { token },
         })
       } else {
         window.location.href = createdTenant.set_password_url
@@ -80,7 +80,7 @@ function RegisterTenantPage() {
     if (createdTenant) {
       navigate({
         to: '/login',
-        search: { tenant: createdTenant.tenant_code, redirect: undefined, sessionExpired: false },
+        search: {},
       })
     }
   }
@@ -261,7 +261,7 @@ function RegisterTenantPage() {
               Already have an account?{' '}
               <Link
                 to="/login"
-                search={{ tenant: '', redirect: '/', sessionExpired: false }}
+                search={{}}
                 className="font-medium text-foreground hover:underline"
               >
                 Sign in
