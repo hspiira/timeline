@@ -10,6 +10,7 @@ from app.domain.enums import EventIntegrityStatus
 from app.infrastructure.persistence.models.event import Event
 from app.infrastructure.persistence.models.subject import Subject
 from app.infrastructure.persistence.repositories.base import BaseRepository
+from app.core.tenant_validation import is_valid_tenant_id_format
 
 
 def _event_to_result(e: Event) -> EventResult:
@@ -59,6 +60,20 @@ class EventRepository(BaseRepository[Event]):
         await self.db.execute(
             text("SELECT id FROM subject WHERE id = :sid FOR UPDATE"),
             {"sid": subject_id},
+        )
+
+    async def apply_tenant_context(self, tenant_id: str) -> None:
+        """Set the tenant context for row-level security on the current transaction.
+
+        ``SET LOCAL`` does not outlive the transaction it was issued in, so a caller
+        that opens its own transaction (event creation does, to lock the subject row
+        and retry on a chain fork) has to set it again inside that transaction or
+        every policy evaluates against nothing.
+        """
+        if not is_valid_tenant_id_format(tenant_id):
+            raise ValueError(f"Malformed tenant id: {tenant_id!r}")
+        await self.db.execute(
+            text(f"SET LOCAL app.current_tenant_id = '{tenant_id}'")
         )
 
     async def get_last_event(self, subject_id: str, tenant_id: str) -> EventResult | None:
@@ -159,7 +174,10 @@ class EventRepository(BaseRepository[Event]):
         previous_hash: str | None,
         *,
         epoch_id: str | None = None,
-        integrity_status: str = "VALID",
+        # EventIntegrityStatus.VALID is "Valid"; the literal "VALID" used here
+        # before was not a member, so any caller relying on the default failed
+        # with 'VALID' is not a valid EventIntegrityStatus.
+        integrity_status: str = EventIntegrityStatus.VALID.value,
         merkle_leaf_hash: str | None = None,
     ) -> EventResult:
         event = Event(

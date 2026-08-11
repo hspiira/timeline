@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol
 
 from app.domain.enums import TenantStatus
+from app.domain.enums import EventIntegrityStatus
 
 if TYPE_CHECKING:
     from app.application.dtos.audit_log import AuditLogEntryCreate, AuditLogResult
@@ -57,6 +58,13 @@ class IEventRepository(Protocol):
     async def lock_subject_for_update(self, subject_id: str) -> None:
         """Acquire a row-level exclusive lock on the subject for the duration of the transaction."""
 
+    async def apply_tenant_context(self, tenant_id: str) -> None:
+        """Set the tenant context for row-level security on the current transaction.
+
+        Needed by callers that open their own transaction: the context is set with
+        SET LOCAL, which does not outlive the transaction it was issued in.
+        """
+
     async def get_last_event(self, subject_id: str, tenant_id: str) -> EventResult | None:
         """Return the most recent event for subject in tenant."""
 
@@ -83,7 +91,10 @@ class IEventRepository(Protocol):
         previous_hash: str | None,
         *,
         epoch_id: str | None = None,
-        integrity_status: str = "VALID",
+        # EventIntegrityStatus.VALID is "Valid"; the literal "VALID" used here
+        # before was not a member, so any caller relying on the default failed
+        # with 'VALID' is not a valid EventIntegrityStatus.
+        integrity_status: str = EventIntegrityStatus.VALID.value,
         merkle_leaf_hash: str | None = None,
     ) -> EventResult:
         """Create a new event with computed hash and optional integrity fields."""

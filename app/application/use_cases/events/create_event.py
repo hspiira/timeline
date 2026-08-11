@@ -137,6 +137,33 @@ class EventService:
             )
         return created, assignment.event_count == 0
 
+    async def _release_ambient_transaction(self) -> None:
+        """Close any transaction opened before this write, so it can open its own.
+
+        Row-level security needs the tenant context, which is set with SET LOCAL and
+        so only exists inside a transaction — meaning the session handed over by
+        get_db already has one open. This write needs its own, because a chain fork is
+        retried by rolling the whole attempt back and a savepoint inside someone
+        else's transaction would not do.
+
+        Everything this method does before this point is reads, so closing that
+        transaction loses nothing of its own. Without this, SQLAlchemy raises "a
+        transaction is already begun on this Session" and every event creation fails
+        with a 500 — which it did, on both the API and the seed scripts, with nothing
+        covering it.
+
+        Caller beware: this rolls back, so any of the *caller's* uncommitted writes on
+        the same session are discarded. That is safe for the current callers, which
+        take a session from ``get_db`` and write nothing before creating the event. A
+        caller that does need to write first must commit before calling, or use a
+        separate session for the event.
+
+        The caller must re-apply the tenant context inside its new transaction, since
+        SET LOCAL did not survive.
+        """
+        if self.db.in_transaction():
+            await self.db.rollback()
+
     async def create_event(
         self,
         tenant_id: str,
@@ -148,6 +175,12 @@ class EventService:
         enrichment_context: EnrichmentContext | None = None,
     ) -> EventEntity:
         """Create one event; validate subject and schema, compute hash, optionally trigger workflows."""
+        # The checks below read tenant-scoped tables before this method opens its own
+        # transaction, so they need the tenant context in whatever transaction is
+        # current. It is normally already set by get_db, but not on a second call on
+        # the same session: the first call committed, taking its SET LOCAL with it.
+        # Setting it here makes this method self-sufficient and repeatable.
+        await self.event_repo.apply_tenant_context(tenant_id)
         if data.external_id:
             existing = await self.event_repo.get_by_subject_and_external_id(
                 data.subject_id, tenant_id, data.external_id
@@ -196,7 +229,11 @@ class EventService:
 
         for attempt in range(MAX_RETRIES):
             try:
+                await self._release_ambient_transaction()
                 async with self.db.begin():
+                    # SET LOCAL did not survive the release above; set it again so
+                    # row-level security applies inside this transaction.
+                    await self.event_repo.apply_tenant_context(tenant_id)
                     await self.event_repo.lock_subject_for_update(data.subject_id)
                     prev_event = await self.event_repo.get_last_event(
                         data.subject_id, tenant_id
@@ -260,6 +297,12 @@ class EventService:
         enrichment_context: EnrichmentContext | None = None,
     ) -> list[EventEntity]:
         """Bulk create events (e.g. email sync). Hashes computed sequentially; single DB roundtrip."""
+        # The checks below read tenant-scoped tables before this method opens its own
+        # transaction, so they need the tenant context in whatever transaction is
+        # current. It is normally already set by get_db, but not on a second call on
+        # the same session: the first call committed, taking its SET LOCAL with it.
+        # Setting it here makes this method self-sufficient and repeatable.
+        await self.event_repo.apply_tenant_context(tenant_id)
         if not events:
             return []
 
@@ -314,7 +357,11 @@ class EventService:
 
         for attempt in range(MAX_RETRIES):
             try:
+                await self._release_ambient_transaction()
                 async with self.db.begin():
+                    # SET LOCAL did not survive the release above; set it again so
+                    # row-level security applies inside this transaction.
+                    await self.event_repo.apply_tenant_context(tenant_id)
                     for subject_id in sorted(subject_ids):
                         await self.event_repo.lock_subject_for_update(subject_id)
                     last_events = await self.event_repo.get_last_events_for_subjects(
