@@ -9,8 +9,8 @@ All imports use app.*.
 import asyncio
 import sys
 
-from app.infrastructure.persistence.database import AsyncSessionLocal, _ensure_engine
 from app.infrastructure.persistence.repositories import TenantRepository, UserRepository
+from scripts._session import open_session, resolve_tenant
 
 
 async def main() -> None:
@@ -25,21 +25,13 @@ async def main() -> None:
     username = sys.argv[2]
     password = sys.argv[3] if len(sys.argv) > 3 else None
 
-    _ensure_engine()
-    if AsyncSessionLocal is None:
-        print("AsyncSessionLocal not configured", file=sys.stderr)
-        sys.exit(1)
-
-    async with AsyncSessionLocal() as session:
+    async with open_session() as session:
         async with session.begin():
             tenant_repo = TenantRepository(
                 session, cache_service=None, audit_service=None
             )
             user_repo = UserRepository(session, audit_service=None)
-            tenant = await tenant_repo.get_by_code(tenant_code)
-            if not tenant:
-                print(f"Tenant not found: {tenant_code}", file=sys.stderr)
-                sys.exit(1)
+            tenant = await resolve_tenant(session, tenant_repo, tenant_code)
             if not password:
                 import secrets
 

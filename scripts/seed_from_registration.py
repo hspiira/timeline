@@ -55,6 +55,7 @@ from app.infrastructure.persistence.repositories.event_transition_rule_repo impo
 from app.infrastructure.services.tenant_initialization_service import (
     TenantInitializationService,
 )
+from scripts._session import use_tenant, use_tenant_for_connection
 
 
 def _project_root() -> Path:
@@ -62,7 +63,11 @@ def _project_root() -> Path:
 
 
 def _load_env() -> None:
-    load_dotenv(_project_root() / ".env", override=True)
+    # override=False so an explicitly set DATABASE_URL wins over .env. With
+    # override=True these scripts silently ignored the administrator connection
+    # string they are meant to be run with, reconnecting as the application role
+    # and then failing to see any existing tenant.
+    load_dotenv(_project_root() / ".env", override=False)
 
 
 def _parse_event_time(s: str) -> datetime:
@@ -166,9 +171,10 @@ async def run(path: Path) -> None:
                     init_svc,
                     code=code,
                     name=t["name"],
-                    status=t.get("status", "active"),
+                    status=t.get("status", TenantStatus.ACTIVE.value),
                 )
                 tenant_ids[code] = tenant_id
+                await use_tenant(session, tenant_id)
                 print(f"Tenant {code} -> {tenant_id}")
                 await _ensure_admin_user(
                     session,
@@ -186,6 +192,7 @@ async def run(path: Path) -> None:
                 tenant_id = tenant_ids.get(es["tenant_code"])
                 if not tenant_id:
                     continue
+                await use_tenant(session, tenant_id)
                 next_ver = await schema_repo.get_next_version(
                     tenant_id, es["event_type"]
                 )
@@ -206,6 +213,7 @@ async def run(path: Path) -> None:
                 tenant_id = tenant_ids.get(tr["tenant_code"])
                 if not tenant_id:
                     continue
+                await use_tenant(session, tenant_id)
                 existing_rule = await transition_rule_repo.get_rule_for_event_type(
                     tenant_id, tr["event_type"]
                 )
@@ -228,6 +236,7 @@ async def run(path: Path) -> None:
                 tenant_id = tenant_ids.get(sub["tenant_code"])
                 if not tenant_id:
                     continue
+                await use_tenant(session, tenant_id)
                 ref = sub.get("external_ref")
                 subject_repo = SubjectRepository(
                     session, tenant_id=tenant_id, audit_service=None
@@ -253,6 +262,9 @@ async def run(path: Path) -> None:
                 tenant_id = tenant_ids.get(u["tenant_code"])
                 if not tenant_id:
                     continue
+                # Row-level security is keyed on this; without it the writes below
+                # are rejected and the reads silently return nothing.
+                await use_tenant(session, tenant_id)
                 existing_user = await user_repo.get_by_username_and_tenant(
                     u["username"], tenant_id
                 )
@@ -279,6 +291,9 @@ async def run(path: Path) -> None:
                 tenant_id = tenant_ids.get(w["tenant_code"])
                 if not tenant_id:
                     continue
+                # Row-level security is keyed on this; without it the writes below
+                # are rejected and the reads silently return nothing.
+                await use_tenant(session, tenant_id)
                 await workflow_repo.create_workflow(
                     tenant_id=tenant_id,
                     name=w["name"],
@@ -292,30 +307,41 @@ async def run(path: Path) -> None:
                 )
                 print(f"  Workflow {w['name']}")
 
+
+    # Events are seeded after the transaction above has committed, on a session of
+    # their own. EventService opens a transaction per event so it can lock the
+    # subject row and retry on a chain fork, which it cannot do inside an outer
+    # transaction ("a transaction is already begun on this Session"). Before this,
+    # every event was skipped with that error and the seed quietly produced none.
+    if events_data:
+        async with db_mod.AsyncSessionLocal() as event_session:
+            current_tenant: str | None = None
             for ev in events_data:
                 tenant_id = tenant_ids.get(ev["tenant_code"])
                 if not tenant_id:
                     continue
-                subject_id = subject_ids.get(
-                    (tenant_id, ev["subject_external_ref"])
-                )
+                subject_id = subject_ids.get((tenant_id, ev["subject_external_ref"]))
                 if not subject_id:
                     print(
                         f"  Skip event: subject {ev['subject_external_ref']} not found"
                     )
                     continue
-                event_repo = EventRepository(session)
-                hash_service = HashService()
-                subject_repo = SubjectRepository(
-                    session, tenant_id=tenant_id, audit_service=None
+                # Connection-scoped, so EventService's own transactions inherit it.
+                if tenant_id != current_tenant:
+                    await use_tenant_for_connection(event_session, tenant_id)
+                    current_tenant = tenant_id
+
+                event_schema_repo = EventSchemaRepository(
+                    event_session, cache_service=None, audit_service=None
                 )
-                schema_validator = EventSchemaValidator(schema_repo)
                 event_svc = EventService(
-                    event_repo=event_repo,
-                    hash_service=hash_service,
-                    subject_repo=subject_repo,
-                    db=session,
-                    schema_validator=schema_validator,
+                    event_repo=EventRepository(event_session),
+                    hash_service=HashService(),
+                    subject_repo=SubjectRepository(
+                        event_session, tenant_id=tenant_id, audit_service=None
+                    ),
+                    db=event_session,
+                    schema_validator=EventSchemaValidator(event_schema_repo),
                     post_create_hooks=[],
                 )
                 cmd = EventCreate(
@@ -329,10 +355,14 @@ async def run(path: Path) -> None:
                     created = await event_svc.create_event(
                         tenant_id=tenant_id, data=cmd, trigger_workflows=False
                     )
-                    print(f"  Event {ev['event_type']} on {ev['subject_external_ref']} -> {created.id}")
+                    print(
+                        f"  Event {ev['event_type']} on "
+                        f"{ev['subject_external_ref']} -> {created.id}"
+                    )
                 except Exception as e:
                     print(
-                        f"  Skip event {ev['event_type']} on {ev['subject_external_ref']}: {e}",
+                        f"  Skip event {ev['event_type']} on "
+                        f"{ev['subject_external_ref']}: {e}",
                         file=sys.stderr,
                     )
 
