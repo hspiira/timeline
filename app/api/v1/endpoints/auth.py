@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import text
 
 from app.api.v1.dependencies import (
+    get_authorization_service,
     get_create_access_token,
     get_current_user,
     get_set_password_deps,
@@ -20,6 +21,7 @@ from app.api.v1.dependencies import (
     get_user_service,
 )
 from app.application.dtos.user import UserResult
+from app.application.services.authorization_service import AuthorizationService
 from app.application.services.user_service import UserService
 from app.core.config import get_settings
 from app.core.tenant_validation import is_valid_tenant_id_format
@@ -306,12 +308,22 @@ async def logout(response: Response):
 @router.get("/me", response_model=UserResponse)
 async def get_me(
     current_user: Annotated[UserResult, Depends(get_current_user)],
+    auth_svc: Annotated[AuthorizationService, Depends(get_authorization_service)],
 ):
-    """Return the currently authenticated user from JWT.
+    """Return the authenticated user together with the permissions they hold.
+
+    The permission list lets a client hide actions the caller cannot perform.
+    It is a convenience for the interface only: every endpoint still checks the
+    caller's permissions itself, so a client that ignores this list gains nothing.
 
     Requires Authorization: Bearer <token>.
     """
-    return UserResponse.model_validate(current_user)
+    permissions = await auth_svc.get_user_permissions(
+        current_user.id, current_user.tenant_id
+    )
+    return UserResponse.model_validate(current_user).model_copy(
+        update={"permissions": sorted(permissions)}
+    )
 
 
 @router.put("/me", response_model=UserResponse)
