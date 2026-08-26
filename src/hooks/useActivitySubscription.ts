@@ -237,7 +237,7 @@ export function useSimulatedActivityStream(
         resourceId: `resource_${Math.random().toString(36).substr(2, 9)}`,
         resourceName: `Resource ${Math.floor(Math.random() * 100)}`,
         timestamp: new Date(),
-        priority: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)] as any,
+        priority: (['low', 'medium', 'high'] as const)[Math.floor(Math.random() * 3)],
         description: 'Simulated activity for development',
       }
 

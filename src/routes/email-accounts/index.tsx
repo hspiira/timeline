@@ -14,6 +14,7 @@ import {
 } from '@/hooks/useSyncProgress'
 import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
+import { getApiErrorMessage } from '@/lib/api-utils'
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import type { EmailAccountResponse } from '@/lib/types'
 
@@ -101,9 +102,7 @@ function EmailAccountsPage() {
       const { data, error: apiError } = await timelineApi.emailAccounts.list()
 
       if (apiError) {
-        const errorObj = apiError as any
-        const errorDetail = errorObj?.detail || errorObj?.message || String(apiError)
-        setError(typeof errorDetail === 'string' ? errorDetail : 'Failed to load email accounts')
+        setError(getApiErrorMessage(apiError, 'Failed to load email accounts'))
       } else if (data) {
         setAccounts(data)
       }
@@ -122,10 +121,7 @@ function EmailAccountsPage() {
       const { error: apiError } = await timelineApi.emailAccounts.sync(accountId)
 
       if (apiError) {
-        const errorMsg =
-          typeof apiError === 'object' && 'message' in apiError
-            ? (apiError as any).message
-            : 'Failed to sync email account'
+        const errorMsg = getApiErrorMessage(apiError, 'Failed to sync email account')
         toast.error('Sync failed', errorMsg)
       } else {
         toast.success('Sync started', `Syncing emails for ${emailAddress}`)

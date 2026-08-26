@@ -20,6 +20,7 @@ import { ErrorIcon, LoadingIcon } from '@/components/ui/icons'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
+import { getApiErrorMessage } from '@/lib/api-utils'
 import { formatDateTimeSafe } from '@/lib/format-date'
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import type { EmailAccountResponse } from '@/lib/types'
@@ -113,9 +114,7 @@ function EmailAccountDetailPage() {
       const { data, error: apiError } = await timelineApi.emailAccounts.get(accountId)
 
       if (apiError) {
-        const errorObj = apiError as any
-        const errorDetail = errorObj?.detail || errorObj?.message || String(apiError)
-        setError(typeof errorDetail === 'string' ? errorDetail : 'Failed to load email account')
+        setError(getApiErrorMessage(apiError, 'Failed to load email account'))
       } else if (data) {
         setAccount(data)
       }
@@ -135,10 +134,7 @@ function EmailAccountDetailPage() {
       const { error: apiError } = await timelineApi.emailAccounts.sync(accountId)
 
       if (apiError) {
-        const errorMsg =
-          typeof apiError === 'object' && 'message' in apiError
-            ? (apiError as any).message
-            : 'Failed to sync email account'
+        const errorMsg = getApiErrorMessage(apiError, 'Failed to sync email account')
         toast.error('Sync failed', errorMsg)
       } else {
         toast.success('Sync started', `Syncing emails for ${account.email_address}`)
@@ -161,10 +157,7 @@ function EmailAccountDetailPage() {
       const { error: apiError } = await timelineApi.emailAccounts.delete(accountId)
 
       if (apiError) {
-        const errorMsg =
-          typeof apiError === 'object' && 'message' in apiError
-            ? (apiError as any).message
-            : 'Failed to disconnect email account'
+        const errorMsg = getApiErrorMessage(apiError, 'Failed to disconnect email account')
         toast.error('Failed to disconnect', errorMsg)
         throw new Error(errorMsg)
       }

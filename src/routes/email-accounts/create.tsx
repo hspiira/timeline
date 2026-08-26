@@ -16,6 +16,7 @@ import { ErrorIcon, LoadingIcon } from '@/components/ui/icons'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
+import { getApiErrorMessage } from '@/lib/api-utils'
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import type { components } from '@/lib/timeline-api'
 
@@ -262,10 +263,7 @@ function CreateEmailAccountPage() {
       const { data, error: apiError } = await timelineApi.emailAccounts.create(accountData)
 
       if (apiError) {
-        const errorMsg =
-          typeof apiError === 'object' && 'message' in apiError
-            ? (apiError as any).message
-            : 'Failed to create email account'
+        const errorMsg = getApiErrorMessage(apiError, 'Failed to create email account')
         setError(errorMsg)
         toast.error('Failed to connect', errorMsg)
       } else if (data) {

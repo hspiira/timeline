@@ -27,7 +27,7 @@ interface FormState {
   actions: Array<{
     id: string
     action_type: string
-    parameters: Record<string, any>
+    parameters: Record<string, unknown>
   }>
   isActive: boolean
   fieldErrors: Record<string, string>
@@ -74,7 +74,7 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
       name: state.name,
       description: state.description || undefined,
       trigger_event_type: state.triggerEventType,
-      actions: state.actions as any,
+      actions: state.actions as unknown as WorkflowCreate['actions'],
       execution_order: 0,
       is_active: state.isActive,
     }

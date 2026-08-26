@@ -200,7 +200,7 @@ export function DocumentUpload({
         )
       }, 300)
 
-      const { data, error } = await timelineApi.documents.upload(formData as any)
+      const { data, error } = await timelineApi.documents.upload(formData)
 
       clearInterval(progressInterval)
 
@@ -208,7 +208,7 @@ export function DocumentUpload({
         // Log detailed error information for debugging
         console.error('Document upload error:', {
           error,
-          formDataEntries: Array.from((formData as any).entries?.() || []),
+          formDataEntries: Array.from(formData.entries()),
           file: { name: file.name, size: file.size, type: file.type },
           subjectId,
           documentType: docType,

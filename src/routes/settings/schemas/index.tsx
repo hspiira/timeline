@@ -10,6 +10,7 @@ import { DataTable } from '@/components/ui/DataTable'
 import { ErrorModal } from '@/components/ui/ErrorModal'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { timelineApi } from '@/lib/api-client'
+import { getApiErrorMessage } from '@/lib/api-utils'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/settings/schemas/')({
@@ -75,7 +76,7 @@ function SchemasPage() {
 
   const handleCreateSchema = async (
     eventType: string,
-    definition: Record<string, any>,
+    definition: Record<string, unknown>,
     allowedSubjectTypes?: string[] | null,
   ) => {
     try {
@@ -87,10 +88,7 @@ function SchemasPage() {
       })
 
       if (apiError) {
-        const errorMsg =
-          typeof apiError === 'object' && 'message' in apiError
-            ? (apiError as any).message
-            : 'Failed to create schema'
+        const errorMsg = getApiErrorMessage(apiError, 'Failed to create schema')
         setError(errorMsg)
         return false
       }
@@ -120,12 +118,7 @@ function SchemasPage() {
       const { error: apiError } = await timelineApi.eventSchemas.delete(deletingSchema.id)
 
       if (apiError) {
-        const errorMsg =
-          typeof apiError === 'object' && 'detail' in apiError
-            ? (apiError as any).detail
-            : typeof apiError === 'object' && 'message' in apiError
-              ? (apiError as any).message
-              : 'Failed to delete schema'
+        const errorMsg = getApiErrorMessage(apiError, 'Failed to delete schema')
         throw new Error(errorMsg)
       }
 

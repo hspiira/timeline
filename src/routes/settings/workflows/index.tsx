@@ -14,6 +14,7 @@ import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
+import { getApiErrorMessage } from '@/lib/api-utils'
 import type { components } from '@/lib/timeline-api'
 export const Route = createFileRoute('/settings/workflows/')({
   component: WorkflowsPage,
@@ -142,10 +143,7 @@ function WorkflowsPage() {
       })
 
       if (apiError) {
-        const errorMsg =
-          typeof apiError === 'object' && 'message' in apiError
-            ? (apiError as any).message
-            : 'Failed to update workflow'
+        const errorMsg = getApiErrorMessage(apiError, 'Failed to update workflow')
         setError(errorMsg)
         toast.error('Failed to update', errorMsg)
       } else {
@@ -184,10 +182,7 @@ function WorkflowsPage() {
       const { error: apiError } = await timelineApi.workflows.delete(workflowId)
 
       if (apiError) {
-        const errorMsg =
-          typeof apiError === 'object' && 'message' in apiError
-            ? (apiError as any).message
-            : 'Failed to delete workflow'
+        const errorMsg = getApiErrorMessage(apiError, 'Failed to delete workflow')
         setError(errorMsg)
         toast.error('Failed to delete', errorMsg)
         throw new Error(errorMsg)
@@ -245,7 +240,7 @@ function WorkflowsPage() {
       id: 'action_count',
       header: 'Actions',
       cell: ({ row }) => {
-        const actionsCount = (row.original as any).actions?.length || 0
+        const actionsCount = row.original.actions?.length ?? 0
         return (
           <span className="text-muted-foreground text-sm">
             {actionsCount} action{actionsCount !== 1 ? 's' : ''}

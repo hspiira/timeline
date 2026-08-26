@@ -104,7 +104,7 @@ export function Modal({
   return (
     <div
       className="modal-backdrop-animate fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-(--z-index)"
-      style={{ '--z-index': zIndex } as any}
+      style={{ '--z-index': zIndex } as React.CSSProperties}
       role="presentation"
     >
       <div

@@ -26,6 +26,7 @@ import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
+import { getApiErrorMessage } from '@/lib/api-utils'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/settings/oauth-providers/')({
@@ -111,7 +112,7 @@ function OAuthProvidersPage() {
       const { error: apiError } = await timelineApi.oauthProviders.delete(confirmingDelete.id)
 
       if (apiError) {
-        const errorMsg = (apiError as any)?.message || 'Failed to delete OAuth provider'
+        const errorMsg = getApiErrorMessage(apiError, 'Failed to delete OAuth provider')
         setError(errorMsg)
         toast.error('Failed to delete', errorMsg)
         throw new Error(errorMsg)
@@ -132,7 +133,7 @@ function OAuthProvidersPage() {
       if (apiError) {
         toast.error(
           'Health check failed',
-          (apiError as any)?.message || 'Could not check provider health',
+          getApiErrorMessage(apiError, 'Could not check provider health'),
         )
       } else if (data) {
         if (data.health_status === 'healthy') {
@@ -510,7 +511,7 @@ function OAuthProviderFormModal({
         )
 
         if (apiError) {
-          const errorMsg = (apiError as any)?.message || 'Failed to update OAuth provider'
+          const errorMsg = getApiErrorMessage(apiError, 'Failed to update OAuth provider')
           setError(errorMsg)
           onError(errorMsg)
         } else if (data) {
@@ -534,7 +535,7 @@ function OAuthProviderFormModal({
         const { data, error: apiError } = await timelineApi.oauthProviders.create(createData)
 
         if (apiError) {
-          const errorMsg = (apiError as any)?.message || 'Failed to create OAuth provider'
+          const errorMsg = getApiErrorMessage(apiError, 'Failed to create OAuth provider')
           setError(errorMsg)
           onError(errorMsg)
         } else if (data) {

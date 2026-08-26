@@ -21,6 +21,7 @@ import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
+import { getApiErrorMessage } from '@/lib/api-utils'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/settings/users/')({
@@ -315,8 +316,7 @@ function CreateUserModal({
       })
 
       if (apiError) {
-        const errorMsg =
-          (apiError as any)?.message || (apiError as any)?.detail || 'Failed to create user'
+        const errorMsg = getApiErrorMessage(apiError, 'Failed to create user')
         setError(errorMsg)
         onError(errorMsg)
       } else if (data) {
@@ -453,7 +453,7 @@ function ManageUserRolesModal({
     try {
       const { data, error: apiError } = await timelineApi.users.getRoles(user.id)
       if (apiError) {
-        setError((apiError as any)?.message || 'Failed to load user roles')
+        setError(getApiErrorMessage(apiError, 'Failed to load user roles'))
       } else if (data) {
         setUserRoles(data)
         setSelectedRoles(new Set(data.map((r) => r.id)))
@@ -480,7 +480,7 @@ function ManageUserRolesModal({
       for (const roleId of toAssign) {
         const { error: apiError } = await timelineApi.users.assignRole(user.id, roleId)
         if (apiError) {
-          const errorMsg = (apiError as any)?.message || 'Failed to assign role'
+          const errorMsg = getApiErrorMessage(apiError, 'Failed to assign role')
           setError(errorMsg)
           onError(errorMsg)
           return
@@ -491,7 +491,7 @@ function ManageUserRolesModal({
       for (const roleId of toRemove) {
         const { error: apiError } = await timelineApi.users.removeRole(user.id, roleId)
         if (apiError) {
-          const errorMsg = (apiError as any)?.message || 'Failed to remove role'
+          const errorMsg = getApiErrorMessage(apiError, 'Failed to remove role')
           setError(errorMsg)
           onError(errorMsg)
           return
