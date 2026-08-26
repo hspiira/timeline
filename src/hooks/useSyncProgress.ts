@@ -114,8 +114,7 @@ export function useSyncProgress({
       const apiHost = new URL(apiUrl).host
       const wsUrl = `${wsProtocol}//${apiHost}/api/v1/ws`
 
-      // The token is offered as a subprotocol rather than a query parameter, which
-      // would otherwise be written to proxy and server access logs.
+      // Subprotocol, not a query parameter, which proxies write to access logs.
       wsRef.current = new WebSocket(wsUrl, ['bearer', token])
 
       wsRef.current.onopen = () => {

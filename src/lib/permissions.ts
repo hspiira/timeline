@@ -1,15 +1,8 @@
 /**
- * Permission codes as the API grants them: "resource:action", with "resource:*"
- * covering every action on a resource and "*:*" covering everything.
- */
-
-/**
- * Reports whether a permission list grants an action on a resource, honouring the
- * same wildcards the API applies when it gates the endpoint.
+ * Whether a permission list grants resource:action, honouring the same "resource:*"
+ * and "*:*" wildcards the API applies.
  *
- * This decides what the interface offers, never what it is allowed to do. Each
- * endpoint re-checks the caller, so a wrong answer here shows or hides a control
- * rather than granting access.
+ * Decides what the interface offers, not what is allowed: every endpoint re-checks.
  */
 export function hasPermission(
   permissions: string[] | undefined,

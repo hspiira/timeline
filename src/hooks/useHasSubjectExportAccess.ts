@@ -3,11 +3,8 @@ import { authStore } from '@/lib/auth-store'
 import { hasPermission } from '@/lib/permissions'
 
 /**
- * Reports whether the signed-in user holds subject:export, so the subject detail
- * page can hide the Export button rather than offer an action that fails.
- *
- * Returns null while disabled or before the user has loaded, which callers treat
- * as "not yet known" and distinct from a denial.
+ * Whether the signed-in user holds subject:export, so the Export button can be
+ * hidden rather than fail on click. Null means not yet known, not denied.
  */
 export function useHasSubjectExportAccess(enabled: boolean): boolean | null {
   const user = useStore(authStore, (s) => s.user)

@@ -30,10 +30,7 @@ type ChainRepairStatus = components['schemas']['ChainRepairStatus']
 const PAGE_SIZE = 20
 const REPAIR_STATUSES: ChainRepairStatus[] = ['Pending Approval', 'Approved', 'Completed', 'Failed']
 
-/**
- * Bridges API status values to the shared status palette. The API spells statuses as
- * display text ("Pending Approval"), while `toStatusKind` matches on snake_case.
- */
+/** API statuses are display text ("Pending Approval"); toStatusKind wants snake_case. */
 function statusToken(status: ChainRepairStatus): string {
   return status.toLowerCase().replace(/\s+/g, '_')
 }
