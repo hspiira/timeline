@@ -125,6 +125,9 @@ function WorkflowBuilderCanvasInner({
 
   const onConnect = useCallback(
     (connection: Connection) => {
+      if (!connection.source || !connection.target) {
+        return
+      }
       const fromNode = nodes.find((n) => n.id === connection.source)
       const desc = fromNode ? nodeRegistry.getOptional(fromNode.type as NodeType) : undefined
       const sh = String(connection.sourceHandle ?? '')
@@ -138,8 +141,8 @@ function WorkflowBuilderCanvasInner({
       const nextWorkflow = flowToWorkflow(workflowId, workflowName, nodes, edges)
       const validation = validateConnection(
         nextWorkflow,
-        connection.source!,
-        connection.target!,
+        connection.source,
+        connection.target,
         label,
         allowCircular,
       )
@@ -237,8 +240,7 @@ function WorkflowBuilderCanvasInner({
       const order: string[] = []
       const visited = new Set<string>()
       const queue = [...triggerIds]
-      while (queue.length > 0) {
-        const id = queue.shift()!
+      for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
         if (visited.has(id)) continue
         visited.add(id)
         order.push(id)

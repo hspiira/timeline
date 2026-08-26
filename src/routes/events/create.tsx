@@ -257,13 +257,14 @@ function CreateEventPage() {
           'Failed to create event',
         )
         setApiError(display.message)
-        if (display.fieldErrors && display.fieldErrors.length > 0) {
+        const fieldErrors = display.fieldErrors
+        if (fieldErrors && fieldErrors.length > 0) {
           setState((prev) => ({
             ...prev,
             fieldErrors: {
               ...prev.fieldErrors,
               ...Object.fromEntries(
-                display.fieldErrors!.map((e) => {
+                fieldErrors.map((e) => {
                   const key = e.field.replace(/^payload\.?/, '') || 'payload'
                   return [key, e.message]
                 }),

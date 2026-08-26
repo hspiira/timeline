@@ -33,8 +33,7 @@ function reachableFromTrigger(workflow: Workflow): Set<string> {
   queue.forEach((id) => {
     reached.add(id)
   })
-  while (queue.length > 0) {
-    const id = queue.shift()!
+  for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
     const node = workflow.nodes.find((n) => n.id === id)
     if (!node) continue
     for (const toId of node.outgoingConnections ?? []) {

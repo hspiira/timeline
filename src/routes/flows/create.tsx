@@ -175,9 +175,10 @@ function CreateFlowPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitError(null)
-    const nameToSubmit = useTemplateFields
-      ? buildNameFromTemplate(templateForWorkflow!.template_string, placeholderValues)
-      : name.trim()
+    const nameToSubmit =
+      useTemplateFields && templateForWorkflow
+        ? buildNameFromTemplate(templateForWorkflow.template_string, placeholderValues)
+        : name.trim()
     if (!nameToSubmit) {
       setSubmitError(
         useTemplateFields

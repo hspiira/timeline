@@ -33,6 +33,14 @@ function get(type: NodeType): NodeTypeDescriptor | undefined {
   return registry.get(type)
 }
 
+function getOrThrow(type: NodeType): NodeTypeDescriptor {
+  const descriptor = registry.get(type)
+  if (!descriptor) {
+    throw new Error(`Unregistered workflow node type: ${type}`)
+  }
+  return descriptor
+}
+
 function getAll(): NodeTypeDescriptor[] {
   return Array.from(registry.values())
 }
@@ -96,7 +104,7 @@ registerBuiltins()
 
 export const nodeRegistry = {
   register,
-  get: (type: NodeType) => get(type)!,
+  get: getOrThrow,
   getOptional: get,
   getAll,
   has,

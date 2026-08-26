@@ -62,8 +62,8 @@ export async function executeWorkflow(
   conditionEvaluator: ConditionEvaluator,
   initialPayload: Record<string, unknown> = {},
 ): Promise<ExecutionResult> {
-  const triggers = workflow.nodes.filter((n) => nodeRegistry.getOptional(n.type)?.isTrigger)
-  if (triggers.length === 0) {
+  const trigger = workflow.nodes.find((n) => nodeRegistry.getOptional(n.type)?.isTrigger)
+  if (!trigger) {
     return {
       success: false,
       context: { payload: initialPayload, stepIndex: 0 },
@@ -71,14 +71,12 @@ export async function executeWorkflow(
       error: 'No trigger node',
     }
   }
-  const trigger = triggers[0]!
   const context: ExecutionContext = { payload: { ...initialPayload }, stepIndex: 0 }
   const executedNodeIds: string[] = []
   let stepIndex = 0
   const queue: string[] = [trigger.id]
 
-  while (queue.length > 0) {
-    const id = queue.shift()!
+  for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
     const node = workflow.nodes.find((n) => n.id === id)
     if (!node) continue
 
