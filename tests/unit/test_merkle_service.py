@@ -160,6 +160,45 @@ class TestMerkleServiceGenerateProof:
             assert recomputed == root
 
     @pytest.mark.asyncio
+    async def test_forged_leaf_does_not_recompute_to_root(
+        self, merkle_service: MerkleService, merkle_repo: _FakeMerkleRepo
+    ) -> None:
+        """A substituted leaf must not satisfy the genuine leaf's proof path.
+
+        This is the property the whole proof mechanism rests on. If a proof issued
+        for one event could also be satisfied by a different hash, an inclusion proof
+        would establish nothing, so the negative case is worth pinning as firmly as
+        the positive one.
+        """
+        epoch_id = "ep1"
+        epoch = SimpleNamespace(id=epoch_id, terminal_hash=None, genesis_hash="g" * 64)
+        event_repo = merkle_service._event_repo
+        event_repo.get_events_for_epoch = AsyncMock(
+            return_value=[
+                _event_result(1, "a" * 64),
+                _event_result(2, "b" * 64),
+                _event_result(3, "c" * 64),
+                _event_result(4, "d" * 64),
+            ]
+        )
+
+        root = await merkle_service.build_and_store("t1", epoch)
+        path = await merkle_service.generate_proof(epoch_id, 2)
+        genuine_leaf = await merkle_repo.get_leaf_by_event_seq(epoch_id, 2)
+        assert genuine_leaf is not None
+        assert _recompute_root(genuine_leaf.node_hash, path) == root
+
+        forged = hashlib.sha256(b"tampered payload").hexdigest()
+        assert forged != genuine_leaf.node_hash
+        assert _recompute_root(forged, path) != root
+
+        # Nor does another genuine leaf from the same tree satisfy this path: the
+        # proof binds one position, not merely membership of the epoch.
+        other_leaf = await merkle_repo.get_leaf_by_event_seq(epoch_id, 3)
+        assert other_leaf is not None
+        assert _recompute_root(other_leaf.node_hash, path) != root
+
+    @pytest.mark.asyncio
     async def test_four_leaves_proof_has_two_steps(
         self, merkle_service: MerkleService, merkle_repo: _FakeMerkleRepo
     ) -> None:
