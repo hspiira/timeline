@@ -94,7 +94,9 @@ async def websocket_endpoint(websocket: WebSocket):
         )
         return
 
-    await manager.connect(websocket, tenant_id=tenant_id)
+    await manager.connect(
+        websocket, tenant_id=tenant_id, subprotocol=BEARER_SUBPROTOCOL
+    )
     try:
         while True:
             await websocket.receive_text()
