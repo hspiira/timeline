@@ -1,23 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState, useCallback } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
+import { CheckCircle, Loader2, Plus, Shield, SquarePen, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { DataTable } from '@/components/ui/DataTable'
+import { FormError } from '@/components/ui/FormField'
+import { Modal } from '@/components/ui/Modal'
+import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
-import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { timelineApi } from '@/lib/api-client'
-import {
-  Plus,
-  Trash2,
-  SquarePen,
-  Shield,
-  CheckCircle,
-  Loader2,
-} from 'lucide-react'
-import { ConfirmModal } from '@/components/ui/ConfirmModal'
-import { Modal } from '@/components/ui/Modal'
-import { FormError } from '@/components/ui/FormField'
-import { Button } from '@/components/ui/button'
-import { DataTable } from '@/components/ui/DataTable'
+import { getApiErrorDisplay } from '@/lib/api-utils'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/settings/roles/')({
@@ -41,7 +35,9 @@ function RolesPage() {
   const [editingRole, setEditingRole] = useState<RoleResponse | null>(null)
   const [managingPermissions, setManagingPermissions] = useState<RoleWithPermissions | null>(null)
   const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null)
-  const [confirmingDelete, setConfirmingDelete] = useState<{ id: string; name: string } | null>(null)
+  const [confirmingDelete, setConfirmingDelete] = useState<{ id: string; name: string } | null>(
+    null,
+  )
   const [includeInactive, setIncludeInactive] = useState(false)
 
   const fetchRolesAndPermissions = useCallback(async () => {
@@ -70,10 +66,13 @@ function RolesPage() {
     hasNoAccess,
     refetch,
     setError,
-  } = useFetchWithError<{ roles: RoleResponse[]; permissions: PermissionResponse[] }>(fetchRolesAndPermissions, {
-    defaultErrorMessage: 'Unable to load roles',
-    enabled: !!authState.user,
-  })
+  } = useFetchWithError<{ roles: RoleResponse[]; permissions: PermissionResponse[] }>(
+    fetchRolesAndPermissions,
+    {
+      defaultErrorMessage: 'Unable to load roles',
+      enabled: !!authState.user,
+    },
+  )
 
   useEffect(() => {
     if (authState.user) refetch()
@@ -108,8 +107,7 @@ function RolesPage() {
       const { error: apiError } = await timelineApi.roles.delete(confirmingDelete.id)
 
       if (apiError) {
-        const errorMsg = // @ts-ignore
-          apiError?.message || 'Failed to delete role'
+        const errorMsg = getApiErrorDisplay({ error: apiError }, 'Failed to delete role').message
         setError(errorMsg)
         toast.error('Failed to delete', errorMsg)
         throw new Error(errorMsg)
@@ -264,9 +262,7 @@ function RolesPage() {
           role={editingRole}
           onClose={() => setEditingRole(null)}
           onSuccess={(updatedRole) => {
-            setRoles((prev) =>
-              prev.map((r) => (r.id === updatedRole.id ? updatedRole : r))
-            )
+            setRoles((prev) => prev.map((r) => (r.id === updatedRole.id ? updatedRole : r)))
             setEditingRole(null)
             setError(null)
           }}
@@ -282,9 +278,7 @@ function RolesPage() {
           allPermissions={permissions}
           onClose={() => setManagingPermissions(null)}
           onSuccess={(updatedRole) => {
-            setRoles((prev) =>
-              prev.map((r) => (r.id === updatedRole.id ? updatedRole : r))
-            )
+            setRoles((prev) => prev.map((r) => (r.id === updatedRole.id ? updatedRole : r)))
             setManagingPermissions(null)
             setError(null)
           }}
@@ -316,10 +310,7 @@ function RolesPage() {
           <p className="text-sm text-muted-foreground mt-0.5">Manage roles and their permissions</p>
         </div>
         {!hasNoAccess && (
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            variant="primary"
-          >
+          <Button onClick={() => setShowCreateModal(true)} variant="primary">
             <Plus className="w-4 h-4" />
             Role
           </Button>
@@ -421,8 +412,7 @@ function RoleFormModal({
         })
 
         if (apiError) {
-          const errorMsg = // @ts-ignore
-            apiError?.message || 'Failed to update role'
+          const errorMsg = getApiErrorDisplay({ error: apiError }, 'Failed to update role').message
           setError(errorMsg)
           onError(errorMsg)
         } else if (data) {
@@ -436,8 +426,7 @@ function RoleFormModal({
         })
 
         if (apiError) {
-          const errorMsg = // @ts-ignore
-            apiError?.message || 'Failed to create role'
+          const errorMsg = getApiErrorDisplay({ error: apiError }, 'Failed to create role').message
           setError(errorMsg)
           onError(errorMsg)
         } else if (data) {
@@ -460,76 +449,70 @@ function RoleFormModal({
       {/* Error Alert */}
       {error && <FormError message={error} />}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {!role && (
-            <div>
-              <label className="block text-sm font-medium text-foreground/90 mb-2">
-                Code <span className="text-destructive">*</span>
-              </label>
-              <input
-                type="text"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="e.g., editor, viewer"
-                className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
-                disabled={loading}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Unique identifier for this role. Cannot be changed after creation.
-              </p>
-            </div>
-          )}
-
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {!role && (
           <div>
             <label className="block text-sm font-medium text-foreground/90 mb-2">
-              Name <span className="text-destructive">*</span>
+              Code <span className="text-destructive">*</span>
             </label>
             <input
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Content Editor"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="e.g., editor, viewer"
               className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={loading}
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              Unique identifier for this role. Cannot be changed after creation.
+            </p>
           </div>
+        )}
 
-          <div>
-            <label className="block text-sm font-medium text-foreground/90 mb-2">
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe what this role can do..."
-              rows={3}
-              className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
-              disabled={loading}
-            />
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-foreground/90 mb-2">
+            Name <span className="text-destructive">*</span>
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g., Content Editor"
+            className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+            disabled={loading}
+          />
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 justify-end flex-col sm:flex-row">
-            <Button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              variant="outline"
-              className="w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full sm:w-auto"
-            >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {role ? 'Update Role' : 'Create Role'}
-            </Button>
-          </div>
-        </form>
+        <div>
+          <label className="block text-sm font-medium text-foreground/90 mb-2">Description</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe what this role can do..."
+            rows={3}
+            className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+            disabled={loading}
+          />
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-2 justify-end flex-col sm:flex-row">
+          <Button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {role ? 'Update Role' : 'Create Role'}
+          </Button>
+        </div>
+      </form>
     </Modal>
   )
 }
@@ -549,7 +532,7 @@ function ManageRolePermissionsModal({
   onError: (error: string) => void
 }) {
   const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(
-    new Set(role.permissions?.map((p: PermissionResponse) => p.id) || [])
+    new Set(role.permissions?.map((p: PermissionResponse) => p.id) || []),
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -563,7 +546,7 @@ function ManageRolePermissionsModal({
       acc[perm.resource].push(perm)
       return acc
     },
-    {} as Record<string, PermissionResponse[]>
+    {} as Record<string, PermissionResponse[]>,
   )
 
   const handleSave = async () => {
@@ -573,7 +556,7 @@ function ManageRolePermissionsModal({
     try {
       const existingIds = role.permissions?.map((p: PermissionResponse) => p.id) || []
       const toAssign = Array.from(selectedPermissions).filter(
-        (id: string) => !existingIds.includes(id)
+        (id: string) => !existingIds.includes(id),
       )
 
       const toRemove = existingIds.filter((id: string) => !selectedPermissions.has(id))
@@ -585,8 +568,7 @@ function ManageRolePermissionsModal({
         })
 
         if (apiError) {
-          const errorMsg = // @ts-ignore
-            apiError?.message || 'Failed to assign permissions'
+          const errorMsg = getApiErrorDisplay({ error: apiError }, 'Failed to assign permissions').message
           setError(errorMsg)
           onError(errorMsg)
           return
@@ -598,8 +580,7 @@ function ManageRolePermissionsModal({
         const { error: apiError } = await timelineApi.roles.removePermission(role.id, permId)
 
         if (apiError) {
-          const errorMsg = // @ts-ignore
-            apiError?.message || 'Failed to remove permission'
+          const errorMsg = getApiErrorDisplay({ error: apiError }, 'Failed to remove permission').message
           setError(errorMsg)
           onError(errorMsg)
           return
@@ -610,8 +591,7 @@ function ManageRolePermissionsModal({
       const { data, error: fetchError } = await timelineApi.roles.get(role.id)
 
       if (fetchError) {
-        const errorMsg = // @ts-ignore
-          fetchError?.message || 'Failed to load updated role'
+        const errorMsg = getApiErrorDisplay({ error: fetchError }, 'Failed to load updated role').message
         setError(errorMsg)
         onError(errorMsg)
       } else if (data) {
@@ -635,44 +615,44 @@ function ManageRolePermissionsModal({
       {/* Error Alert */}
       {error && <FormError message={error} />}
 
-        {/* Permissions Grid */}
-        <div className="space-y-4 mb-6">
-          {Object.entries(permissionsByResource).map(([resource, perms]) => (
-            <div key={resource}>
-              <h3 className="text-sm font-semibold text-foreground mb-2 capitalize">{resource}</h3>
-              <div className="grid grid-cols-2 gap-2">
-                {perms.map((perm) => (
-                  <label
-                    key={perm.id}
-                    className="flex items-center gap-2 p-2 hover:bg-muted rounded-none cursor-pointer transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedPermissions.has(perm.id)}
-                      onChange={(e) => {
-                        const newSelected = new Set(selectedPermissions)
-                        if (e.target.checked) {
-                          newSelected.add(perm.id)
-                        } else {
-                          newSelected.delete(perm.id)
-                        }
-                        setSelectedPermissions(newSelected)
-                      }}
-                      disabled={loading}
-                      className="w-4 h-4 rounded-none border-input"
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">{perm.code}</p>
-                      {perm.description && (
-                        <p className="text-xs text-muted-foreground">{perm.description}</p>
-                      )}
-                    </div>
-                  </label>
-                ))}
-              </div>
+      {/* Permissions Grid */}
+      <div className="space-y-4 mb-6">
+        {Object.entries(permissionsByResource).map(([resource, perms]) => (
+          <div key={resource}>
+            <h3 className="text-sm font-semibold text-foreground mb-2 capitalize">{resource}</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {perms.map((perm) => (
+                <label
+                  key={perm.id}
+                  className="flex items-center gap-2 p-2 hover:bg-muted rounded-none cursor-pointer transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedPermissions.has(perm.id)}
+                    onChange={(e) => {
+                      const newSelected = new Set(selectedPermissions)
+                      if (e.target.checked) {
+                        newSelected.add(perm.id)
+                      } else {
+                        newSelected.delete(perm.id)
+                      }
+                      setSelectedPermissions(newSelected)
+                    }}
+                    disabled={loading}
+                    className="w-4 h-4 rounded-none border-input"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">{perm.code}</p>
+                    {perm.description && (
+                      <p className="text-xs text-muted-foreground">{perm.description}</p>
+                    )}
+                  </div>
+                </label>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
 
       {/* Action Buttons */}
       <div className="flex gap-2 justify-end flex-col sm:flex-row pt-4 border-t border-border">
@@ -685,12 +665,7 @@ function ManageRolePermissionsModal({
         >
           Cancel
         </Button>
-        <Button
-          type="button"
-          onClick={handleSave}
-          disabled={loading}
-          className="w-full sm:w-auto"
-        >
+        <Button type="button" onClick={handleSave} disabled={loading} className="w-full sm:w-auto">
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
           Save Permissions
         </Button>

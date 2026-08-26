@@ -1,22 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState, useCallback } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { useToast } from '@/hooks/useToast'
-import { useFetchWithError } from '@/hooks/useFetchWithError'
-import { timelineApi } from '@/lib/api-client'
-import {
-  Loader2,
-  Plus,
-  Trash2,
-  Eye,
-} from 'lucide-react'
+import { Eye, Loader2, Plus, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
-import { Modal } from '@/components/ui/Modal'
-import { FormError } from '@/components/ui/FormField'
-import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/DataTable'
+import { FormError } from '@/components/ui/FormField'
+import { Modal } from '@/components/ui/Modal'
+import { useFetchWithError } from '@/hooks/useFetchWithError'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { useToast } from '@/hooks/useToast'
+import { timelineApi } from '@/lib/api-client'
+import { getApiErrorDisplay } from '@/lib/api-utils'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/settings/permissions/')({
@@ -71,9 +67,15 @@ function PermissionsPage() {
 
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [deletingPermId, setDeletingPermId] = useState<string | null>(null)
-  const [confirmingDelete, setConfirmingDelete] = useState<{ id: string; code: string } | null>(null)
+  const [confirmingDelete, setConfirmingDelete] = useState<{ id: string; code: string } | null>(
+    null,
+  )
   const [filterResource, setFilterResource] = useState('')
-  const [viewingRoles, setViewingRoles] = useState<{ permId: string; permCode: string; roles: RoleResponse[] } | null>(null)
+  const [viewingRoles, setViewingRoles] = useState<{
+    permId: string
+    permCode: string
+    roles: RoleResponse[]
+  } | null>(null)
 
   const handleDeleteClick = (perm: PermissionResponse) => {
     if (hasNoAccess) {
@@ -91,8 +93,7 @@ function PermissionsPage() {
       const { error: apiError } = await timelineApi.permissions.delete(confirmingDelete.id)
 
       if (apiError) {
-        const errorMsg = // @ts-ignore
-          apiError?.message || 'Failed to delete permission'
+        const errorMsg = getApiErrorDisplay({ error: apiError }, 'Failed to delete permission').message
         setError(errorMsg)
         toast.error('Failed to delete', errorMsg)
         throw new Error(errorMsg)
@@ -240,10 +241,7 @@ function PermissionsPage() {
           </p>
         </div>
         {!hasNoAccess && (
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            variant="primary"
-          >
+          <Button onClick={() => setShowCreateModal(true)} variant="primary">
             <Plus className="w-4 h-4" />
             Permission
           </Button>
@@ -267,11 +265,7 @@ function PermissionsPage() {
             ))}
           </select>
           {filterResource && (
-            <Button
-              onClick={() => setFilterResource('')}
-              variant="secondary"
-              size="sm"
-            >
+            <Button onClick={() => setFilterResource('')} variant="secondary" size="sm">
               Clear filter
             </Button>
           )}
@@ -361,8 +355,7 @@ function PermissionFormModal({
       })
 
       if (apiError) {
-        const errorMsg = // @ts-ignore
-          apiError?.message || 'Failed to create permission'
+        const errorMsg = getApiErrorDisplay({ error: apiError }, 'Failed to create permission').message
         setError(errorMsg)
         onError(errorMsg)
       } else if (data) {
@@ -384,90 +377,88 @@ function PermissionFormModal({
       {/* Error Alert */}
       {error && <FormError message={error} />}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-foreground/90 mb-2">
-              Resource <span className="text-destructive">*</span>
-            </label>
-            <SingleSelectCombobox
-              value={resource}
-              onValueChange={setResource}
-              options={[
-                { value: '', label: 'Select resource...' },
-                ...resources.map((res) => ({ value: res, label: res })),
-              ]}
-              placeholder="Select resource..."
-              disabled={loading}
-              className="w-full"
-            />
-          </div>
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <label className="block text-sm font-medium text-foreground/90 mb-2">
+            Resource <span className="text-destructive">*</span>
+          </label>
+          <SingleSelectCombobox
+            value={resource}
+            onValueChange={setResource}
+            options={[
+              { value: '', label: 'Select resource...' },
+              ...resources.map((res) => ({ value: res, label: res })),
+            ]}
+            placeholder="Select resource..."
+            disabled={loading}
+            className="w-full"
+          />
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-foreground/90 mb-2">
-              Action <span className="text-destructive">*</span>
-            </label>
-            <SingleSelectCombobox
-              value={action}
-              onValueChange={setAction}
-              options={[
-                { value: '', label: 'Select action...' },
-                ...actions.map((act) => ({ value: act, label: act })),
-              ]}
-              placeholder="Select action..."
-              disabled={loading}
-              className="w-full"
-            />
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-foreground/90 mb-2">
+            Action <span className="text-destructive">*</span>
+          </label>
+          <SingleSelectCombobox
+            value={action}
+            onValueChange={setAction}
+            options={[
+              { value: '', label: 'Select action...' },
+              ...actions.map((act) => ({ value: act, label: act })),
+            ]}
+            placeholder="Select action..."
+            disabled={loading}
+            className="w-full"
+          />
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-foreground/90 mb-2">
-              Generated Code
-            </label>
-            <input
-              type="text"
-              value={resource && action ? `${resource}:${action}` : ''}
-              readOnly
-              className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground/70 disabled:opacity-50"
-              placeholder="Format: resource:action"
-            />
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-foreground/90 mb-2">
+            Generated Code
+          </label>
+          <input
+            type="text"
+            value={resource && action ? `${resource}:${action}` : ''}
+            readOnly
+            className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground/70 disabled:opacity-50"
+            placeholder="Format: resource:action"
+          />
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-foreground/90 mb-2">
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe what this permission grants..."
-              rows={3}
-              className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
-              disabled={loading}
-            />
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-foreground/90 mb-2">Description</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe what this permission grants..."
+            rows={3}
+            className="w-full px-3 py-2 bg-background border border-input rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+            disabled={loading}
+          />
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 justify-end flex-col sm:flex-row">
-            <Button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              variant="outline"
-              className="w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={loading || !resource || !action}
-              className="w-full sm:w-auto flex items-center justify-center gap-2"
-            >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              Create Permission
-            </Button>
-          </div>
-        </form>
+        {/* Action Buttons */}
+        <div className="flex gap-2 justify-end flex-col sm:flex-row">
+          <Button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={loading || !resource || !action}
+            className="w-full sm:w-auto flex items-center justify-center gap-2"
+          >
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            Create Permission
+          </Button>
+        </div>
+      </form>
     </Modal>
   )
 }
@@ -485,12 +476,7 @@ function ViewRolesModal({
   onClose: () => void
 }) {
   return (
-    <Modal
-      isOpen={true}
-      onClose={onClose}
-      maxWidth="max-w-2xl"
-      closeButton={!loading}
-    >
+    <Modal isOpen={true} onClose={onClose} maxWidth="max-w-2xl" closeButton={!loading}>
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-foreground">Roles with Permission</h2>
@@ -534,10 +520,7 @@ function ViewRolesModal({
 
       {/* Close Button */}
       <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-border">
-        <Button
-          onClick={onClose}
-          disabled={loading}
-        >
+        <Button onClick={onClose} disabled={loading}>
           Close
         </Button>
       </div>
