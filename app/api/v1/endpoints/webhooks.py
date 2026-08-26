@@ -7,10 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.api.v1.dependencies import (
     get_verified_tenant_id,
     get_webhook_dispatcher,
-    get_webhook_read_permission,
     get_webhook_subscription_repo,
     get_webhook_subscription_repo_for_write,
-    get_webhook_write_permission,
+    require_permission,
 )
 from app.application.dtos.webhook_subscription import (
     WebhookSubscriptionCreate,
@@ -58,7 +57,7 @@ async def create_webhook(
         IWebhookSubscriptionRepository,
         Depends(get_webhook_subscription_repo_for_write),
     ],
-    _: Annotated[object, Depends(get_webhook_write_permission)],
+    _: Annotated[object, Depends(require_permission("webhook", "write"))],
 ) -> WebhookSubscriptionCreateResponse:
     """Create a webhook subscription. Secret is returned only in this response."""
     data = WebhookSubscriptionCreate(
@@ -92,7 +91,7 @@ async def list_webhooks(
         IWebhookSubscriptionRepository,
         Depends(get_webhook_subscription_repo),
     ],
-    _: Annotated[object, Depends(get_webhook_read_permission)],
+    _: Annotated[object, Depends(require_permission("webhook", "read"))],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ) -> list[WebhookSubscriptionResponse]:
@@ -110,7 +109,7 @@ async def get_webhook(
     tenant_id: Annotated[str, Depends(get_verified_tenant_id)],
     subscription_id: str,
     repo: Annotated[IWebhookSubscriptionRepository, Depends(get_webhook_subscription_repo)],
-    _: Annotated[object, Depends(get_webhook_read_permission)],
+    _: Annotated[object, Depends(require_permission("webhook", "read"))],
 ) -> WebhookSubscriptionResponse:
     """Get a webhook subscription by id."""
     sub = await repo.get_by_id(tenant_id, subscription_id)
@@ -132,7 +131,7 @@ async def update_webhook(
         IWebhookSubscriptionRepository,
         Depends(get_webhook_subscription_repo_for_write),
     ],
-    _: Annotated[object, Depends(get_webhook_write_permission)],
+    _: Annotated[object, Depends(require_permission("webhook", "write"))],
 ) -> WebhookSubscriptionResponse:
     """Partially update a webhook subscription."""
     data = WebhookSubscriptionUpdate(
@@ -164,7 +163,7 @@ async def delete_webhook(
         IWebhookSubscriptionRepository,
         Depends(get_webhook_subscription_repo_for_write),
     ],
-    _: Annotated[object, Depends(get_webhook_write_permission)],
+    _: Annotated[object, Depends(require_permission("webhook", "write"))],
 ) -> None:
     """Delete a webhook subscription."""
     await repo.delete(tenant_id, subscription_id)
@@ -180,7 +179,7 @@ async def test_webhook(
     subscription_id: str,
     repo: Annotated[IWebhookSubscriptionRepository, Depends(get_webhook_subscription_repo)],
     dispatcher: Annotated[IWebhookDispatcher, Depends(get_webhook_dispatcher)],
-    _: Annotated[object, Depends(get_webhook_write_permission)],
+    _: Annotated[object, Depends(require_permission("webhook", "write"))],
 ) -> WebhookSubscriptionTestResponse:
     """POST a test payload to the subscription URL. Returns whether delivery succeeded (2xx)."""
     sub = await repo.get_by_id_for_dispatch(tenant_id, subscription_id)

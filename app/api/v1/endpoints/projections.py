@@ -8,10 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.api._openapi import doc
 from app.api.v1.dependencies import (
     get_projection_management_use_case,
-    get_projection_read_permission,
-    get_projection_write_permission,
     get_query_projection_use_case,
     get_verified_tenant_id,
+    require_permission,
 )
 from app.application.dtos.projection import ProjectionDefinitionResult
 from app.application.use_cases.projections import (
@@ -56,7 +55,7 @@ async def create_projection(
     use_case: Annotated[
         ProjectionManagementUseCase, Depends(get_projection_management_use_case)
     ],
-    _: Annotated[object, Depends(get_projection_write_permission)] = None,
+    _: Annotated[object, Depends(require_permission("projection", "write"))] = None,
 ) -> ProjectionDefinitionResponse:
     created = await use_case.create_projection(
         tenant_id=tenant_id,
@@ -77,7 +76,7 @@ async def list_projections(
     use_case: Annotated[
         ProjectionManagementUseCase, Depends(get_projection_management_use_case)
     ],
-    _: Annotated[object, Depends(get_projection_read_permission)] = None,
+    _: Annotated[object, Depends(require_permission("projection", "read"))] = None,
 ) -> list[ProjectionDefinitionResponse]:
     definitions = await use_case.list_projections(tenant_id=tenant_id)
     return [_definition_to_response(d) for d in definitions]
@@ -95,7 +94,7 @@ async def deactivate_projection(
     use_case: Annotated[
         ProjectionManagementUseCase, Depends(get_projection_management_use_case)
     ],
-    _: Annotated[object, Depends(get_projection_write_permission)] = None,
+    _: Annotated[object, Depends(require_permission("projection", "write"))] = None,
 ) -> None:
     if version < 1:
         raise HTTPException(status_code=400, detail="version must be >= 1")
@@ -116,7 +115,7 @@ async def rebuild_projection(
     use_case: Annotated[
         ProjectionManagementUseCase, Depends(get_projection_management_use_case)
     ],
-    _: Annotated[object, Depends(get_projection_write_permission)] = None,
+    _: Annotated[object, Depends(require_permission("projection", "write"))] = None,
 ) -> None:
     if version < 1:
         raise HTTPException(status_code=400, detail="version must be >= 1")
@@ -138,7 +137,7 @@ async def get_projection_state(
     use_case: Annotated[
         QueryProjectionUseCase, Depends(get_query_projection_use_case)
     ],
-    _: Annotated[object, Depends(get_projection_read_permission)] = None,
+    _: Annotated[object, Depends(require_permission("projection", "read"))] = None,
     as_of: datetime | None = Query(
         default=None,
         description="Point-in-time state (replay); omit for current state.",
@@ -176,7 +175,7 @@ async def list_projection_states(
     use_case: Annotated[
         QueryProjectionUseCase, Depends(get_query_projection_use_case)
     ],
-    _: Annotated[object, Depends(get_projection_read_permission)] = None,
+    _: Annotated[object, Depends(require_permission("projection", "read"))] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ) -> list[ProjectionStateListItem]:

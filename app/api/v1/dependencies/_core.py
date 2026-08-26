@@ -745,15 +745,6 @@ def require_permission(resource: str, action: str):
     return _require
 
 
-# Named permission dependencies (composition root: routes use Depends(get_*))
-get_chain_anchor_read_permission = require_permission("chain_anchor", "read")
-get_system_read_permission = require_permission("system", "read")
-get_webhook_read_permission = require_permission("webhook", "read")
-get_webhook_write_permission = require_permission("webhook", "write")
-get_projection_read_permission = require_permission("projection", "read")
-get_projection_write_permission = require_permission("projection", "write")
-
-
 # ---------------------------------------------------------------------------
 # OAuth provider config and email accounts (formerly oauth_email.py)
 # ---------------------------------------------------------------------------
