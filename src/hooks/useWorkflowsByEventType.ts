@@ -9,7 +9,11 @@ export const WORKFLOWS_QUERY_KEY = ['workflows'] as const
  * Shares the same cache as other workflow list usage (dashboard, settings).
  */
 export function useWorkflowsByEventType(eventType: string | undefined) {
-  const { data: workflows = [], isLoading, error } = useQuery({
+  const {
+    data: workflows = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: WORKFLOWS_QUERY_KEY,
     queryFn: async () => {
       const result = await timelineApi.workflows.list()
@@ -22,9 +26,7 @@ export function useWorkflowsByEventType(eventType: string | undefined) {
   const byEventType: WorkflowResponse[] =
     eventType == null || eventType === ''
       ? []
-      : workflows.filter(
-          (w) => (w as WorkflowResponse).trigger_event_type === eventType
-        )
+      : workflows.filter((w) => (w as WorkflowResponse).trigger_event_type === eventType)
 
   return {
     workflows: byEventType,

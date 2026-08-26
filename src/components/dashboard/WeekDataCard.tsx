@@ -1,8 +1,8 @@
 import { Link } from '@tanstack/react-router'
-import { ChevronRight, ChevronDown } from 'lucide-react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useMemo } from 'react'
-import { DashboardCard } from './DashboardCard'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { DashboardCard } from './DashboardCard'
 
 const CHART_COLORS = [
   'var(--dashboard-accent)',
@@ -51,7 +51,11 @@ export function WeekDataCard({
     <DashboardCard
       title="This week's data"
       action={
-        <button type="button" className="p-1 text-muted-foreground hover:text-foreground" aria-label="Filter">
+        <button
+          type="button"
+          className="p-1 text-muted-foreground hover:text-foreground"
+          aria-label="Filter"
+        >
           <ChevronDown className="w-4 h-4" />
         </button>
       }
@@ -73,7 +77,9 @@ export function WeekDataCard({
                 {totalEvents.toLocaleString()}
               </span>
             )}
-            {comparison != null && <span className="text-xs text-muted-foreground">{comparison}</span>}
+            {comparison != null && (
+              <span className="text-xs text-muted-foreground">{comparison}</span>
+            )}
           </div>
         </div>
 
@@ -111,18 +117,35 @@ export function WeekDataCard({
                 ))
               : segments.map((s) => (
                   <li key={s.label} className="flex items-center gap-2">
-                    <span className="w-2 h-2 shrink-0 rounded-sm" style={{ backgroundColor: s.color }} />
+                    <span
+                      className="w-2 h-2 shrink-0 rounded-sm"
+                      style={{ backgroundColor: s.color }}
+                    />
                     <span className="text-muted-foreground truncate">{s.label}</span>
-                    <span className="font-medium tabular-nums ml-auto">{s.count.toLocaleString()}</span>
+                    <span className="font-medium tabular-nums ml-auto">
+                      {s.count.toLocaleString()}
+                    </span>
                   </li>
                 ))}
           </ul>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-border/40">
-          <SummaryBox title="This week's approvals" line1="Approved 0, Rejected 0" skeleton={loading} />
-          <SummaryBox title="This week's reimbursements" line1="Reimbursed 0, Pending 0" skeleton={loading} />
-          <SummaryBox title="This week's activity" line1={`+${eventsToday} today`} skeleton={loading} />
+          <SummaryBox
+            title="This week's approvals"
+            line1="Approved 0, Rejected 0"
+            skeleton={loading}
+          />
+          <SummaryBox
+            title="This week's reimbursements"
+            line1="Reimbursed 0, Pending 0"
+            skeleton={loading}
+          />
+          <SummaryBox
+            title="This week's activity"
+            line1={`+${eventsToday} today`}
+            skeleton={loading}
+          />
         </div>
       </div>
     </DashboardCard>
@@ -133,11 +156,19 @@ function SummaryBox({
   title,
   line1,
   skeleton,
-}: { title: string; line1: string; skeleton?: boolean }) {
+}: {
+  title: string
+  line1: string
+  skeleton?: boolean
+}) {
   return (
     <div className="p-3 rounded-none border border-border/40 bg-muted/20">
       <p className="text-xs font-medium text-muted-foreground mb-1">{title}</p>
-      {skeleton ? <Skeleton className="h-4 w-24" /> : <p className="text-sm text-foreground">{line1}</p>}
+      {skeleton ? (
+        <Skeleton className="h-4 w-24" />
+      ) : (
+        <p className="text-sm text-foreground">{line1}</p>
+      )}
     </div>
   )
 }

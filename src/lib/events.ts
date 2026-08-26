@@ -3,7 +3,7 @@ import type { EventResponse } from '@/lib/types'
 /** Find an event by id in a list. Single place for lookup logic (DRY). */
 export function findEventById(
   events: EventResponse[],
-  id: string | null
+  id: string | null,
 ): EventResponse | undefined {
   if (!id) return undefined
   return events.find((e) => e.id === id)

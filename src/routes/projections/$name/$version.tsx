@@ -1,14 +1,13 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { timelineApi } from '@/lib/api-client'
-import { getTenantId } from '@/lib/api-client'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
-import { Skeleton } from '@/components/ui/Skeleton'
-import { Button } from '@/components/ui/button'
-import { useState } from 'react'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { AlertCircle, History, Wrench } from 'lucide-react'
+import { useState } from 'react'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { getTenantId, timelineApi } from '@/lib/api-client'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/projections/$name/$version')({
@@ -52,9 +51,9 @@ function ProjectionStatePage() {
   })
 
   // system_latest_seq is optional from the API; not in OpenAPI ProjectionDefinitionResponse yet (see roadmap-progress-review).
-  const projection = projections.find(
-    (p) => p.name === name && p.version === versionNum
-  ) as (ProjectionDefinitionResponse & { system_latest_seq?: number }) | undefined
+  const projection = projections.find((p) => p.name === name && p.version === versionNum) as
+    | (ProjectionDefinitionResponse & { system_latest_seq?: number })
+    | undefined
 
   // Normalize as-of to ISO (same as subject State tab) so API gets a well-defined value
   const asOfDisplay =
@@ -70,7 +69,11 @@ function ProjectionStatePage() {
         })()
       : asOf
 
-  const { data: stateData, isLoading, error } = useQuery({
+  const {
+    data: stateData,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['projection-state', tenantId ?? '', name, versionNum, effectiveSubjectId, asOfParam],
     queryFn: async () => {
       if (!tenantId || !effectiveSubjectId) throw new Error('Missing tenant or subject')
@@ -79,7 +82,7 @@ function ProjectionStatePage() {
         name,
         versionNum,
         effectiveSubjectId,
-        asOfParam ? { as_of: asOfParam } : undefined
+        asOfParam ? { as_of: asOfParam } : undefined,
       )
       if (res.error || !res.data) throw new Error('Failed to load state')
       return res.data
@@ -97,7 +100,9 @@ function ProjectionStatePage() {
       const res = await timelineApi.projections.rebuild(tenantId, name, versionNum)
       const status = res.response?.status
       if (status === 202) {
-        setRebuildMessage('Rebuild started. Watermark will reset and catch up; refresh or revisit to see progress.')
+        setRebuildMessage(
+          'Rebuild started. Watermark will reset and catch up; refresh or revisit to see progress.',
+        )
         await queryClient.invalidateQueries({ queryKey: ['projections', tenantId ?? ''] })
         await queryClient.invalidateQueries({ queryKey: ['projection-state'] })
       } else {
@@ -119,18 +124,13 @@ function ProjectionStatePage() {
       : null
 
   if (!tenantId) {
-    return (
-      <div className="p-4 text-sm text-muted-foreground">Select a tenant.</div>
-    )
+    return <div className="p-4 text-sm text-muted-foreground">Select a tenant.</div>
   }
 
   return (
     <>
       <Breadcrumbs
-        items={[
-          { label: 'Projections', href: '/projections' },
-          { label: `${name} v${version}` },
-        ]}
+        items={[{ label: 'Projections', href: '/projections' }, { label: `${name} v${version}` }]}
       />
       <div className="mb-4">
         <h1 className="text-lg font-bold text-foreground">
@@ -146,23 +146,15 @@ function ProjectionStatePage() {
       {!projectionsLoading && projection && (
         <div className="mb-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
           <span>
-            Watermark (seq): <span className="font-mono text-foreground">{projection.last_event_seq}</span>
+            Watermark (seq):{' '}
+            <span className="font-mono text-foreground">{projection.last_event_seq}</span>
           </span>
-          <span>
-            Lag: {lagText ?? '—'}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRebuild}
-            disabled={rebuildLoading}
-          >
+          <span>Lag: {lagText ?? '—'}</span>
+          <Button variant="outline" size="sm" onClick={handleRebuild} disabled={rebuildLoading}>
             <Wrench className="w-3.5 h-3.5" />
             Rebuild from genesis
           </Button>
-          {rebuildMessage && (
-            <span className="text-xs text-foreground/80">{rebuildMessage}</span>
-          )}
+          {rebuildMessage && <span className="text-xs text-foreground/80">{rebuildMessage}</span>}
         </div>
       )}
       {!projectionsLoading && projections.length > 0 && !projection && (
@@ -195,7 +187,8 @@ function ProjectionStatePage() {
               As-of (time-travel) — read-only
             </h2>
             <p className="text-xs text-muted-foreground mb-2">
-              View state as of a specific time. Enter an ISO-8601 datetime. This does not modify live state.
+              View state as of a specific time. Enter an ISO-8601 datetime. This does not modify
+              live state.
             </p>
             <div className="flex gap-2 items-center">
               <input
@@ -212,7 +205,14 @@ function ProjectionStatePage() {
                 Replay
               </Button>
               {replayAsOf && (
-                <Button variant="ghost" size="sm" onClick={() => { setReplayAsOf(null); setAsOf('') }}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setReplayAsOf(null)
+                    setAsOf('')
+                  }}
+                >
                   Clear
                 </Button>
               )}

@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { Calendar, Users, GitBranch, Mail, Settings } from 'lucide-react'
+import { Calendar, GitBranch, Mail, Settings, Users } from 'lucide-react'
 
 const TILES = [
   { to: '/events', icon: Calendar, label: 'Events' },

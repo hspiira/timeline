@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
 import { AlertCircle } from 'lucide-react'
-import { Modal, ModalActions } from './Modal'
+import { useEffect, useState } from 'react'
 import { Button } from './button'
 import { LoadingIcon } from './icons'
+import { Modal, ModalActions } from './Modal'
 
 export interface ConfirmModalProps {
   isOpen: boolean
@@ -67,7 +67,9 @@ export function ConfirmModal({
   const content = (
     <>
       <div className="flex items-start gap-2 mb-4 sm:gap-3">
-        <div className={`shrink-0 w-10 h-10 rounded-none flex items-center justify-center ${iconBg}`}>
+        <div
+          className={`shrink-0 w-10 h-10 rounded-none flex items-center justify-center ${iconBg}`}
+        >
           <AlertCircle className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">

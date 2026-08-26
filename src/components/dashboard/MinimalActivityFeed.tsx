@@ -1,19 +1,19 @@
-import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import {
-  Calendar,
-  User,
-  FileText,
-  Workflow,
-  Shield,
-  ChevronRight,
   Activity,
+  Calendar,
+  ChevronRight,
+  FileText,
   type LucideIcon,
+  Shield,
+  User,
+  Workflow,
 } from 'lucide-react'
-import { useActivityFeed } from '@/hooks/useActivityFeed'
-import { ActivityProvider } from '@/context/ActivityContext'
-import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
+import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { ErrorIcon, LoadingIcon } from '@/components/ui/icons'
+import { ActivityProvider } from '@/context/ActivityContext'
+import { useActivityFeed } from '@/hooks/useActivityFeed'
 import { formatShortDate } from '@/lib/format-date'
 import type { Activity as ActivityType } from '@/lib/types/activity'
 import { ACTIVITY_CONFIG, eventToActivity } from '@/lib/types/activity'
@@ -73,7 +73,13 @@ function formatRelativeTime(date: Date): string {
   return formatShortDate(date)
 }
 
-function ActivityRow({ activity, variant = 'default' }: { activity: ActivityType; variant?: 'default' | 'card' }) {
+function ActivityRow({
+  activity,
+  variant = 'default',
+}: {
+  activity: ActivityType
+  variant?: 'default' | 'card'
+}) {
   const Icon = RESOURCE_ICONS[activity.resourceType]
   const intent = getActivityIntentClasses(activity)
   const config = ACTIVITY_CONFIG[activity.action]
@@ -93,7 +99,9 @@ function ActivityRow({ activity, variant = 'default' }: { activity: ActivityType
   if (variant === 'card') {
     const content = (
       <div className="flex items-center gap-3 py-2.5 border-b border-border/40 last:border-b-0 hover:bg-muted/30 transition-colors group">
-        <div className={`w-8 h-8 rounded-none flex items-center justify-center shrink-0 ${intent.bg}`}>
+        <div
+          className={`w-8 h-8 rounded-none flex items-center justify-center shrink-0 ${intent.bg}`}
+        >
           <Icon className="w-4 h-4" strokeWidth={1.5} />
         </div>
         <div className="flex-1 min-w-0">
@@ -123,12 +131,16 @@ function ActivityRow({ activity, variant = 'default' }: { activity: ActivityType
         className="w-1 h-8 rounded-full shrink-0 bg-[var(--dashboard-accent)] opacity-60 group-hover:opacity-100 transition-opacity"
         aria-hidden
       />
-      <div className={`w-9 h-9 rounded-none flex items-center justify-center shrink-0 ${intent.bg}`}>
+      <div
+        className={`w-9 h-9 rounded-none flex items-center justify-center shrink-0 ${intent.bg}`}
+      >
         <Icon className="w-4 h-4" strokeWidth={1.75} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-foreground truncate">{activity.resourceName}</span>
+          <span className="text-sm font-medium text-foreground truncate">
+            {activity.resourceName}
+          </span>
           <span className={`text-[10px] px-1.5 py-0.5 rounded-none font-medium ${intent.bg}`}>
             {config.label}
           </span>
@@ -179,7 +191,9 @@ function MinimalActivityFeedContent({
 
   if (loading && sourceItems.length === 0) {
     return (
-      <div className={`flex items-center justify-center text-muted-foreground ${variant === 'card' ? 'py-6' : 'py-8'}`}>
+      <div
+        className={`flex items-center justify-center text-muted-foreground ${variant === 'card' ? 'py-6' : 'py-8'}`}
+      >
         <div className="flex flex-col items-center gap-2">
           <LoadingIcon size="md" />
           <span className="text-xs">Loading activity...</span>
@@ -201,12 +215,16 @@ function MinimalActivityFeedContent({
 
   if (sourceItems.length === 0) {
     return (
-      <div className={`flex flex-col items-center justify-center text-center ${variant === 'card' ? 'py-8' : 'py-12'}`}>
+      <div
+        className={`flex flex-col items-center justify-center text-center ${variant === 'card' ? 'py-8' : 'py-12'}`}
+      >
         <div className="w-10 h-10 rounded-none bg-muted flex items-center justify-center mb-2 text-muted-foreground">
           <Activity className="w-5 h-5" strokeWidth={1.5} />
         </div>
         <p className="text-sm font-medium text-foreground">No recent activity</p>
-        <p className="text-xs text-muted-foreground mt-0.5">Activities will appear here as they occur</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Activities will appear here as they occur
+        </p>
       </div>
     )
   }
@@ -233,7 +251,12 @@ function MinimalActivityFeedContent({
                   {loading ? <LoadingIcon size="sm" /> : 'Load More'}
                 </Button>
               )}
-              <Button variant="ghost" size="sm" onClick={() => setShowAll(false)} className="text-xs">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAll(false)}
+                className="text-xs"
+              >
                 Show Less
               </Button>
             </div>

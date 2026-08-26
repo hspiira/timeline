@@ -11,20 +11,26 @@ export interface ApiErrorDisplay {
 
 export function getApiErrorDisplay(
   options: { error: unknown; status?: number },
-  defaultMessage = 'An unexpected error occurred'
+  defaultMessage = 'An unexpected error occurred',
 ): ApiErrorDisplay {
   const { error, status } = options
-  const obj = typeof error === 'object' && error !== null ? (error as Record<string, unknown>) : null
+  const obj =
+    typeof error === 'object' && error !== null ? (error as Record<string, unknown>) : null
 
   if (status === 429) {
     return {
-      message: obj && typeof obj.message === 'string' ? obj.message : 'Too many requests; please try again later.',
+      message:
+        obj && typeof obj.message === 'string'
+          ? obj.message
+          : 'Too many requests; please try again later.',
       code: 'RATE_LIMITED',
     }
   }
 
   if (status === 422 && obj && Array.isArray(obj.details)) {
-    const fieldErrors: ApiFieldError[] = (obj.details as Array<{ loc?: (string | number)[]; msg?: string }>)
+    const fieldErrors: ApiFieldError[] = (
+      obj.details as Array<{ loc?: (string | number)[]; msg?: string }>
+    )
       .filter((d) => d && (d.loc || d.msg))
       .map((d) => ({
         field: Array.isArray(d.loc) ? d.loc.filter((x) => typeof x === 'string').join('.') : 'body',
@@ -39,8 +45,14 @@ export function getApiErrorDisplay(
 
   // Transition violation (409): { error: "TRANSITION_VIOLATION", message: "...", details: { event_type, required_prior_event_types } }
   const code = typeof obj?.error === 'string' ? obj.error : undefined
-  const details = obj && typeof obj.details === 'object' && obj.details !== null ? (obj.details as Record<string, unknown>) : null
-  const requiredPrior = details && Array.isArray(details.required_prior_event_types) ? (details.required_prior_event_types as string[]) : null
+  const details =
+    obj && typeof obj.details === 'object' && obj.details !== null
+      ? (obj.details as Record<string, unknown>)
+      : null
+  const requiredPrior =
+    details && Array.isArray(details.required_prior_event_types)
+      ? (details.required_prior_event_types as string[])
+      : null
   if (code === 'TRANSITION_VIOLATION') {
     const message =
       typeof obj?.message === 'string'
@@ -60,21 +72,21 @@ export function getApiErrorDisplay(
         if (e && typeof e === 'object' && 'message' in e) {
           const msg = (e as { message?: string }).message
           const path = (e as { path?: string | string[] }).path
-          const field = path
-            ? Array.isArray(path)
-              ? path.join('.')
-              : String(path)
-            : 'payload'
+          const field = path ? (Array.isArray(path) ? path.join('.') : String(path)) : 'payload'
           return { field, message: typeof msg === 'string' ? msg : 'Validation failed' }
         }
         return null
       })
       .filter((e): e is ApiFieldError => e !== null)
     const baseMessage = typeof obj?.message === 'string' ? obj.message : defaultMessage
-    const schemaType = details && typeof details.schema_type === 'string' ? details.schema_type : undefined
+    const schemaType =
+      details && typeof details.schema_type === 'string' ? details.schema_type : undefined
     const message =
       fieldErrors.length > 0
-        ? [baseMessage, ...fieldErrors.map((e) => (e.field ? `${e.field}: ${e.message}` : e.message))].join(' — ')
+        ? [
+            baseMessage,
+            ...fieldErrors.map((e) => (e.field ? `${e.field}: ${e.message}` : e.message)),
+          ].join(' — ')
         : baseMessage + (schemaType ? ` (${schemaType})` : '')
     return { message, code, fieldErrors }
   }
@@ -93,7 +105,7 @@ export function getApiErrorDisplay(
   }
   if (obj && Array.isArray(obj.detail)) {
     const parts = (obj.detail as Array<{ loc?: string[]; msg?: string }>).map(
-      (d) => (d.msg ?? (Array.isArray(d.loc) ? d.loc.join('.') : ''))
+      (d) => d.msg ?? (Array.isArray(d.loc) ? d.loc.join('.') : ''),
     )
     return {
       message: parts.filter(Boolean).join('. ') || defaultMessage,
@@ -107,13 +119,12 @@ export function getApiErrorDisplay(
 export function isAuthOrPermissionError(display: ApiErrorDisplay, status?: number): boolean {
   if (status === 401 || status === 403) return true
   const c = display.code?.toUpperCase()
-  return (
-    c === 'PERMISSION_DENIED' ||
-    c === 'AUTHORIZATION_ERROR' ||
-    c === 'AUTHENTICATION_ERROR'
-  )
+  return c === 'PERMISSION_DENIED' || c === 'AUTHORIZATION_ERROR' || c === 'AUTHENTICATION_ERROR'
 }
 
-export function getApiErrorMessage(error: unknown, defaultMessage = 'An unexpected error occurred'): string {
+export function getApiErrorMessage(
+  error: unknown,
+  defaultMessage = 'An unexpected error occurred',
+): string {
   return getApiErrorDisplay({ error }, defaultMessage).message
-} 
+}

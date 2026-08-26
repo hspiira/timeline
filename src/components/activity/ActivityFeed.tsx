@@ -1,17 +1,20 @@
+import { BarChart3, Calendar, Wifi, WifiOff } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Calendar, Wifi, WifiOff, BarChart3 } from 'lucide-react'
-import { useActivityFeed } from '@/hooks/useActivityFeed'
-import { useActivitySubscription, useSimulatedActivityStream } from '@/hooks/useActivitySubscription'
-import { useActivityNotifications } from '@/hooks/useActivityNotifications'
-import { ActivityRenderer } from './ActivityRenderers'
-import { VirtualActivityList } from './VirtualActivityList'
-import { ActivitySearchBar } from './ActivitySearchBar'
-import { ActivityAnalytics } from './ActivityAnalytics'
-import { ActivityProvider, useActivityContext } from '@/context/ActivityContext'
 import { Button } from '@/components/ui/button'
-import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
+import { ErrorIcon, LoadingIcon } from '@/components/ui/icons'
+import { ActivityProvider, useActivityContext } from '@/context/ActivityContext'
+import { useActivityFeed } from '@/hooks/useActivityFeed'
+import { useActivityNotifications } from '@/hooks/useActivityNotifications'
+import {
+  useActivitySubscription,
+  useSimulatedActivityStream,
+} from '@/hooks/useActivitySubscription'
 import { formatEventDate } from '@/lib/format-date'
-import type { ActivityFilter, Activity } from '@/lib/types/activity'
+import type { Activity, ActivityFilter } from '@/lib/types/activity'
+import { ActivityAnalytics } from './ActivityAnalytics'
+import { ActivityRenderer } from './ActivityRenderers'
+import { ActivitySearchBar } from './ActivitySearchBar'
+import { VirtualActivityList } from './VirtualActivityList'
 
 interface ActivityFeedProps {
   filter?: ActivityFilter
@@ -68,10 +71,13 @@ function ActivityFeedContent({
   })
 
   // Merge search query with provided filter
-  const mergedFilter = useMemo<ActivityFilter>(() => ({
-    ...filter,
-    search: searchQuery || filter?.search,
-  }), [filter, searchQuery])
+  const mergedFilter = useMemo<ActivityFilter>(
+    () => ({
+      ...filter,
+      search: searchQuery || filter?.search,
+    }),
+    [filter, searchQuery],
+  )
 
   const { feed, loading, error, fetchMore, addActivity } = useActivityFeed({
     limit,
@@ -79,7 +85,7 @@ function ActivityFeedContent({
     autoFetch: true,
   })
   const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>(
-    'disconnected'
+    'disconnected',
   )
 
   /**
@@ -90,7 +96,7 @@ function ActivityFeedContent({
       addActivity(activity)
       notifyNewActivity(activity)
     },
-    [addActivity, notifyNewActivity]
+    [addActivity, notifyNewActivity],
   )
 
   /**
@@ -101,12 +107,12 @@ function ActivityFeedContent({
       ? {
           enabled: !useSimulation,
           onNewActivity: handleNewActivity,
-          onError: err => {
+          onError: (err) => {
             console.error('WebSocket error:', err)
             setWsStatus('disconnected')
           },
         }
-      : undefined
+      : undefined,
   )
 
   /**
@@ -122,7 +128,7 @@ function ActivityFeedContent({
           ? 'connected'
           : subscription?.isReconnecting
             ? 'connecting'
-            : 'disconnected'
+            : 'disconnected',
       )
     }
   }, [subscription?.isConnected, subscription?.isReconnecting, enableRealTime, useSimulation])
@@ -245,7 +251,7 @@ function ActivityFeedContent({
               itemHeight={100}
             />
           ) : (
-            feed.items.map(activity => (
+            feed.items.map((activity) => (
               <ActivityRenderer
                 key={activity.id}
                 activity={activity}
@@ -315,20 +321,19 @@ export function ActivityFeedByDate({
 /**
  * Activity Feed by Date Content
  */
-function ActivityFeedByDateContent({
-  filter,
-  limit,
-  showAnalytics = false,
-}: ActivityFeedProps) {
+function ActivityFeedByDateContent({ filter, limit, showAnalytics = false }: ActivityFeedProps) {
   const { selected, setSelected, toggleExpanded } = useActivityContext()
   const [searchQuery, setSearchQuery] = useState('')
   const [showAnalyticsPanel, setShowAnalyticsPanel] = useState(showAnalytics)
 
   // Merge search query with provided filter
-  const mergedFilter = useMemo<ActivityFilter>(() => ({
-    ...filter,
-    search: searchQuery || filter?.search,
-  }), [filter, searchQuery])
+  const mergedFilter = useMemo<ActivityFilter>(
+    () => ({
+      ...filter,
+      search: searchQuery || filter?.search,
+    }),
+    [filter, searchQuery],
+  )
 
   const { feed, loading, error } = useActivityFeed({
     limit: limit || 100,
@@ -342,7 +347,7 @@ function ActivityFeedByDateContent({
   const groupedActivities = useMemo(() => {
     const groups: Record<string, typeof feed.items> = {}
 
-    feed.items.forEach(activity => {
+    feed.items.forEach((activity) => {
       const date = formatEventDate(activity.timestamp)
       if (!groups[date]) {
         groups[date] = []
@@ -356,7 +361,7 @@ function ActivityFeedByDateContent({
   const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set())
 
   const toggleDateCollapsed = useCallback((date: string) => {
-    setCollapsedDates(prev => {
+    setCollapsedDates((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(date)) {
         newSet.delete(date)
@@ -430,48 +435,45 @@ function ActivityFeedByDateContent({
       )}
 
       {/* Grouped activities by date */}
-      {hasActivities && Object.entries(groupedActivities).map(([date, activities]) => {
-        const isCollapsed = collapsedDates.has(date)
+      {hasActivities &&
+        Object.entries(groupedActivities).map(([date, activities]) => {
+          const isCollapsed = collapsedDates.has(date)
 
-        return (
-          <div key={date}>
-            {/* Date header with collapse toggle */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toggleDateCollapsed(date)}
-              className="gap-2 mb-3 justify-start"
-            >
-              <span
-                className={`transform transition-transform ${
-                  isCollapsed ? '' : 'rotate-90'
-                }`}
+          return (
+            <div key={date}>
+              {/* Date header with collapse toggle */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => toggleDateCollapsed(date)}
+                className="gap-2 mb-3 justify-start"
               >
-                ▶
-              </span>
-              <span className="font-semibold text-foreground">{date}</span>
-              <span className="text-xs text-muted-foreground">
-                ({activities.length})
-              </span>
-            </Button>
+                <span
+                  className={`transform transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                >
+                  ▶
+                </span>
+                <span className="font-semibold text-foreground">{date}</span>
+                <span className="text-xs text-muted-foreground">({activities.length})</span>
+              </Button>
 
-            {/* Activities list */}
-            {!isCollapsed && (
-              <div className="ml-4 space-y-2 max-h-96 overflow-y-auto">
-                {activities.map(activity => (
-                  <ActivityRenderer
-                    key={activity.id}
-                    activity={activity}
-                    isSelected={selected === activity.id}
-                    onSelect={setSelected}
-                    onExpand={toggleExpanded}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )
-      })}
+              {/* Activities list */}
+              {!isCollapsed && (
+                <div className="ml-4 space-y-2 max-h-96 overflow-y-auto">
+                  {activities.map((activity) => (
+                    <ActivityRenderer
+                      key={activity.id}
+                      activity={activity}
+                      isSelected={selected === activity.id}
+                      onSelect={setSelected}
+                      onExpand={toggleExpanded}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
     </div>
   )
 }

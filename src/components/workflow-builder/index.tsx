@@ -1,13 +1,9 @@
-import { useState, useCallback } from 'react'
-import {
-  createEmptyWorkflow,
-  validateWorkflow,
-  type Workflow,
-} from '@/lib/workflow-builder'
-import { WorkflowBuilderCanvas } from './WorkflowBuilderCanvas'
-import { NodePalette } from './NodePalette'
-import { Input } from '@/components/ui/input'
+import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { createEmptyWorkflow, validateWorkflow, type Workflow } from '@/lib/workflow-builder'
+import { NodePalette } from './NodePalette'
+import { WorkflowBuilderCanvas } from './WorkflowBuilderCanvas'
 
 export interface WorkflowBuilderProps {
   workflowId?: string
@@ -23,7 +19,7 @@ export function WorkflowBuilder({
   allowCircular = false,
 }: WorkflowBuilderProps) {
   const [workflow, setWorkflow] = useState<Workflow>(() =>
-    createEmptyWorkflow(workflowId, initialName)
+    createEmptyWorkflow(workflowId, initialName),
   )
   const [name, setName] = useState(initialName)
 

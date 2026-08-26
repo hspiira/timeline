@@ -4,32 +4,26 @@
  * persisted in localStorage keyed by flowId.
  */
 
-import { useCallback, useMemo, useState, useEffect } from 'react'
-import {
-  CheckCircle2,
-  ListTodo,
-  ChevronRight,
-  FileText,
-  RotateCcw,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import {
-  getStepsFromWorkflowActions,
-  type ParsedWorkflowStep,
-} from '@/lib/workflow-builder/parse-workflow-actions'
-import type { FlowDocumentComplianceResponse } from '@/lib/types'
+import { CheckCircle2, ChevronRight, FileText, ListTodo, RotateCcw } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { Button } from '@/components/ui/button'
+import type { FlowDocumentComplianceResponse } from '@/lib/types'
+import { cn } from '@/lib/utils'
+import {
+  getStepsFromWorkflowActions,
+  type ParsedWorkflowStep,
+} from '@/lib/workflow-builder/parse-workflow-actions'
 
 const STORAGE_KEY_PREFIX = 'flow-execution-'
 
 function loadExecutionState(
-  flowId: string
+  flowId: string,
 ): { completedIndices: number[]; currentIndex: number } | null {
   try {
     const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${flowId}`)
@@ -39,28 +33,20 @@ function loadExecutionState(
       currentIndex?: number
     }
     return {
-      completedIndices: Array.isArray(data.completedIndices)
-        ? data.completedIndices
-        : [],
+      completedIndices: Array.isArray(data.completedIndices) ? data.completedIndices : [],
       currentIndex:
-        typeof data.currentIndex === 'number' && data.currentIndex >= 0
-          ? data.currentIndex
-          : 0,
+        typeof data.currentIndex === 'number' && data.currentIndex >= 0 ? data.currentIndex : 0,
     }
   } catch {
     return null
   }
 }
 
-function saveExecutionState(
-  flowId: string,
-  completedIndices: number[],
-  currentIndex: number
-) {
+function saveExecutionState(flowId: string, completedIndices: number[], currentIndex: number) {
   try {
     localStorage.setItem(
       `${STORAGE_KEY_PREFIX}${flowId}`,
-      JSON.stringify({ completedIndices, currentIndex })
+      JSON.stringify({ completedIndices, currentIndex }),
     )
   } catch {
     // ignore
@@ -85,10 +71,7 @@ export function FlowWorkflowSteps({
   onCompleteStep,
   onRejectStep,
 }: FlowWorkflowStepsProps) {
-  const steps = useMemo(
-    () => getStepsFromWorkflowActions(workflow?.actions),
-    [workflow?.actions]
-  )
+  const steps = useMemo(() => getStepsFromWorkflowActions(workflow?.actions), [workflow?.actions])
 
   const [state, setState] = useState<{
     completedIndices: number[]
@@ -126,7 +109,7 @@ export function FlowWorkflowSteps({
     (completedIndices: number[], currentIndex: number) => {
       saveExecutionState(flowId, completedIndices, currentIndex)
     },
-    [flowId]
+    [flowId],
   )
 
   const handleCompleteStep = useCallback(() => {
@@ -152,32 +135,29 @@ export function FlowWorkflowSteps({
       setOpenStepValue(String(targetStepIndex))
       onRejectStep?.(state.currentIndex, targetStepIndex)
     },
-    [state, persist, onRejectStep]
+    [state, persist, onRejectStep],
   )
 
   const isStepCompleted = useCallback(
     (index: number) => state.completedIndices.includes(index),
-    [state.completedIndices]
+    [state.completedIndices],
   )
 
   const isCurrentStep = useCallback(
     (index: number) => state.currentIndex === index,
-    [state.currentIndex]
+    [state.currentIndex],
   )
 
   const currentStep = steps[currentIndex]
   const currentStepHasDocumentRequirement =
     currentStep?.tasks.some((t) => t.requireDocument) ?? false
   const isDocumentBlocked =
-    currentStepHasDocumentRequirement &&
-    !!compliance &&
-    !compliance.all_satisfied
+    currentStepHasDocumentRequirement && !!compliance && !compliance.all_satisfied
 
   if (steps.length === 0) return null
 
   const completedCount = state.completedIndices.length
-  const progressPercent =
-    steps.length > 0 ? (completedCount / steps.length) * 100 : 0
+  const progressPercent = steps.length > 0 ? (completedCount / steps.length) * 100 : 0
 
   return (
     <section className="space-y-1">
@@ -218,11 +198,7 @@ export function FlowWorkflowSteps({
         >
           <div className="divide-y divide-border/50">
             {steps.map((step, index) => (
-              <AccordionItem
-                key={step.index}
-                value={String(index)}
-                className="border-b-0"
-              >
+              <AccordionItem key={step.index} value={String(index)} className="border-b-0">
                 <AccordionTrigger className="flex items-center px-3 py-1 hover:no-underline [&[data-state=open]]:bg-primary/5 [&[data-state=open]]:dark:bg-primary/10">
                   <div className="flex items-center gap-1.5 text-left w-full">
                     <div
@@ -235,7 +211,7 @@ export function FlowWorkflowSteps({
                           'border-primary bg-primary/10 text-primary',
                         !isCurrentStep(index) &&
                           !isStepCompleted(index) &&
-                          'border-muted-foreground/30 bg-muted/30 text-muted-foreground'
+                          'border-muted-foreground/30 bg-muted/30 text-muted-foreground',
                       )}
                     >
                       {isStepCompleted(index) ? (
@@ -248,9 +224,7 @@ export function FlowWorkflowSteps({
                       className={cn(
                         'text-sm font-medium',
                         isStepCompleted(index) && 'text-muted-foreground',
-                        isCurrentStep(index) &&
-                          !isStepCompleted(index) &&
-                          'text-foreground'
+                        isCurrentStep(index) && !isStepCompleted(index) && 'text-foreground',
                       )}
                     >
                       {step.name}
@@ -263,22 +237,14 @@ export function FlowWorkflowSteps({
                     stepNumber={index + 1}
                     isCompleted={isStepCompleted(index)}
                     isCurrent={isCurrentStep(index)}
-                    onComplete={
-                      isCurrentStep(index) ? handleCompleteStep : undefined
-                    }
+                    onComplete={isCurrentStep(index) ? handleCompleteStep : undefined}
                     onReject={
-                      isCurrentStep(index) && index > 0
-                        ? () => handleReject(index - 1)
-                        : undefined
+                      isCurrentStep(index) && index > 0 ? () => handleReject(index - 1) : undefined
                     }
                     rejectTargetLabel={index > 0 ? `Step ${index}` : undefined}
                     documentBlocked={isCurrentStep(index) && isDocumentBlocked}
-                    complianceLoading={
-                      isCurrentStep(index) && complianceLoading
-                    }
-                    blockedReasons={
-                      compliance?.blocked_reasons?.slice(0, 1) ?? []
-                    }
+                    complianceLoading={isCurrentStep(index) && complianceLoading}
+                    blockedReasons={compliance?.blocked_reasons?.slice(0, 1) ?? []}
                   />
                 </AccordionContent>
               </AccordionItem>
@@ -319,24 +285,17 @@ function StepRow({
     <div className="space-y-2">
       <div>
         {step.description && (
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {step.description}
-          </p>
+          <p className="text-sm text-muted-foreground mt-0.5">{step.description}</p>
         )}
         {step.condition && (
-          <p className="text-xs text-muted-foreground/90 mt-1 italic">
-            {step.condition}
-          </p>
+          <p className="text-xs text-muted-foreground/90 mt-1 italic">{step.condition}</p>
         )}
       </div>
 
       {step.tasks.length > 0 && (
         <ul className="space-y-1">
           {step.tasks.map((task, i) => (
-            <li
-              key={i}
-              className="flex items-center gap-2 text-sm text-muted-foreground"
-            >
+            <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
               <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-60" />
               <span>{task.name}</span>
               {task.requireDocument && (
@@ -350,18 +309,13 @@ function StepRow({
       {isCurrent && (onComplete || onReject) && (
         <div className="flex flex-wrap items-center gap-2 pt-2">
           {complianceLoading && (
-            <p className="text-xs text-muted-foreground">
-              Checking documents…
-            </p>
+            <p className="text-xs text-muted-foreground">Checking documents…</p>
           )}
           {!complianceLoading && documentBlocked && (
             <p className="text-sm text-amber-600 dark:text-amber-400">
-              Document requirements must be satisfied before completing this
-              step.
+              Document requirements must be satisfied before completing this step.
               {blockedReasons[0] && (
-                <span className="block mt-0.5 text-muted-foreground">
-                  {blockedReasons[0]}
-                </span>
+                <span className="block mt-0.5 text-muted-foreground">{blockedReasons[0]}</span>
               )}
             </p>
           )}

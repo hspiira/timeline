@@ -1,9 +1,12 @@
-import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react'
+import { Handle, type NodeProps, Position, useConnection } from '@xyflow/react'
 import { Play } from 'lucide-react'
 import type { WorkflowNodeData } from '@/lib/workflow-builder/flow-adapter'
-import { WorkflowNodeShell, HANDLE_CLASS } from './WorkflowNodeShell'
+import { HANDLE_CLASS, WorkflowNodeShell } from './WorkflowNodeShell'
 
-export function IntegrationActionNode({ data, selected }: NodeProps<import('@xyflow/react').Node<WorkflowNodeData>>) {
+export function IntegrationActionNode({
+  data,
+  selected,
+}: NodeProps<import('@xyflow/react').Node<WorkflowNodeData>>) {
   const w = data.workflowNode
   const integration = (w.configuration?.integration as string) ?? ''
   const operation = (w.configuration?.operation as string) ?? ''

@@ -1,9 +1,9 @@
 import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { ErrorIcon } from '@/components/ui/icons'
 import { DocumentList } from './DocumentList'
 import { DocumentUpload } from './DocumentUpload'
-import { ErrorIcon } from '@/components/ui/icons'
-import { Button } from '@/components/ui/button'
 
 interface DocumentAttachmentModalProps {
   isOpen: boolean
@@ -54,36 +54,31 @@ export function DocumentAttachmentModal({
     setUploadError(error)
   }
 
-  return (  
-    <div 
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"  
-      role="presentation"  
-      onClick={onClose}  
-    >  
-      <div 
-        className="bg-background border border-border rounded-none max-w-2xl w-full max-h-[90vh] overflow-auto p-6 shadow-xl"  
-        role="dialog"  
-        aria-modal="true"  
-        aria-labelledby="modal-title"  
-        onClick={(e) => e.stopPropagation()}  
-      >  
-        <div className="flex items-center justify-between mb-6">  
-          <div>  
-            <h2 id="modal-title" className="text-xl font-semibold text-foreground">  
-              Attach Documents  
-            </h2>  
-            <p className="text-xs text-muted-foreground mt-1">  
-              Event: {eventType} {eventId.slice(0, 8)}...  
-            </p>  
-          </div>  
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            aria-label="Close modal"
-          >
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="bg-background border border-border rounded-none max-w-2xl w-full max-h-[90vh] overflow-auto p-6 shadow-xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 id="modal-title" className="text-xl font-semibold text-foreground">
+              Attach Documents
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Event: {eventType} {eventId.slice(0, 8)}...
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close modal">
             <X className="w-5 h-5" />
-          </Button>  
+          </Button>
         </div>
 
         {/* Tabs */}
@@ -127,10 +122,10 @@ export function DocumentAttachmentModal({
         {/* Content */}
         {activeTab === 'upload' && (
           <div className="space-y-4">
-            {!subjectId && (  
-              <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-none text-sm text-amber-800 dark:text-amber-300">  
-                Document upload requires a subject. This event may not have an associated subject.  
-              </div>  
+            {!subjectId && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-none text-sm text-amber-800 dark:text-amber-300">
+                Document upload requires a subject. This event may not have an associated subject.
+              </div>
             )}
             <DocumentUpload
               subjectId={subjectId}
@@ -143,20 +138,13 @@ export function DocumentAttachmentModal({
 
         {activeTab === 'attached' && (
           <div>
-            <DocumentList
-              key={refreshKey}
-              eventId={eventId}
-              subjectId={subjectId}
-            />
+            <DocumentList key={refreshKey} eventId={eventId} subjectId={subjectId} />
           </div>
         )}
 
         {/* Close Button */}
         <div className="mt-6 pt-4 border-t border-border">
-          <Button
-            variant="ghost"
-            onClick={onClose}
-          >
+          <Button variant="ghost" onClick={onClose}>
             Close
           </Button>
         </div>

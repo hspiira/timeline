@@ -1,25 +1,25 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState } from 'react'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { timelineApi } from '@/lib/api-client'
-import { useToast } from '@/hooks/useToast'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import {
-  GitBranch,
   AlertCircle,
-  Users,
   Calendar,
-  FileCheck,
   ExternalLink,
-  Trash2,
+  FileCheck,
+  GitBranch,
   Plus,
+  Trash2,
+  Users,
 } from 'lucide-react'
+import { useState } from 'react'
+import { FlowWorkflowSteps } from '@/components/flows/FlowWorkflowSteps'
+import SubjectSelector from '@/components/subjects/SubjectSelector'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
+import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { LoadingIcon } from '@/components/ui/icons'
-import { Button } from '@/components/ui/button'
-import SubjectSelector from '@/components/subjects/SubjectSelector'
-import { FlowWorkflowSteps } from '@/components/flows/FlowWorkflowSteps'
+import { useToast } from '@/hooks/useToast'
+import { timelineApi } from '@/lib/api-client'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 export const Route = createFileRoute('/flows/$flowId')({
   beforeLoad: () => {
     requireAuthBeforeLoad()
@@ -75,9 +75,7 @@ function FlowDetailPage() {
     queryKey: ['flow-subject-details', flowId, subjectIds],
     queryFn: async () => {
       const results = await Promise.all(
-        subjectIds.map((id) =>
-          timelineApi.subjects.get(id).then(({ data }) => ({ id, data }))
-        )
+        subjectIds.map((id) => timelineApi.subjects.get(id).then(({ data }) => ({ id, data }))),
       )
       const map: Record<string, { display_name?: string | null; external_ref?: string | null }> = {}
       results.forEach(({ id, data }) => {
@@ -103,9 +101,7 @@ function FlowDetailPage() {
   const { data: compliance, isLoading: complianceLoading } = useQuery({
     queryKey: ['flow-compliance', flowId],
     queryFn: async () => {
-      const { data, error } = await timelineApi.flows.getDocumentCompliance(
-        flowId
-      )
+      const { data, error } = await timelineApi.flows.getDocumentCompliance(flowId)
       if (error) throw new Error('Failed to load compliance')
       return data
     },
@@ -132,12 +128,7 @@ function FlowDetailPage() {
 
   return (
     <>
-      <Breadcrumbs
-        items={[
-          { href: '/flows', label: 'Flows' },
-          { label: flow.name },
-        ]}
-      />
+      <Breadcrumbs items={[{ href: '/flows', label: 'Flows' }, { label: flow.name }]} />
 
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground mb-1">{flow.name}</h1>
@@ -153,14 +144,13 @@ function FlowDetailPage() {
               </Link>
             </span>
           )}
-          {flow.hierarchy_values &&
-            Object.keys(flow.hierarchy_values).length > 0 && (
-              <span>
-                {Object.entries(flow.hierarchy_values)
-                  .map(([k, v]) => `${k}: ${v}`)
-                  .join(', ')}
-              </span>
-            )}
+          {flow.hierarchy_values && Object.keys(flow.hierarchy_values).length > 0 && (
+            <span>
+              {Object.entries(flow.hierarchy_values)
+                .map(([k, v]) => `${k}: ${v}`)
+                .join(', ')}
+            </span>
+          )}
         </div>
       </div>
 
@@ -169,7 +159,9 @@ function FlowDetailPage() {
         <div className="flex items-center gap-2 text-sm">
           <Users className="w-4 h-4 text-muted-foreground" />
           <span className="text-muted-foreground">Subjects</span>
-          <span className="font-medium text-foreground">{subjectsLoading ? '…' : subjects.length}</span>
+          <span className="font-medium text-foreground">
+            {subjectsLoading ? '…' : subjects.length}
+          </span>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -191,19 +183,17 @@ function FlowDetailPage() {
         </div>
       </div>
       <p className="text-sm text-muted-foreground mb-6 max-w-2xl">
-        <strong>Subjects</strong> are saved on the server when you add or remove them; they link who this flow is about.{' '}
-        <strong>Events</strong> are recorded by the system (e.g. when automations run); completing a step in the UI only saves progress in this browser and does not create an event yet.{' '}
-        <strong>Document compliance</strong> is live and can block completing a step until requirements are met.
+        <strong>Subjects</strong> are saved on the server when you add or remove them; they link who
+        this flow is about. <strong>Events</strong> are recorded by the system (e.g. when
+        automations run); completing a step in the UI only saves progress in this browser and does
+        not create an event yet. <strong>Document compliance</strong> is live and can block
+        completing a step until requirements are met.
       </p>
 
       <div className="space-y-8">
         {/* Workflow execution: steps */}
         {workflow && (
-          <FlowWorkflowSteps
-            flowId={flowId}
-            workflow={workflow}
-            eventCount={events.length}
-          />
+          <FlowWorkflowSteps flowId={flowId} workflow={workflow} eventCount={events.length} />
         )}
 
         {/* Subjects */}
@@ -229,7 +219,10 @@ function FlowDetailPage() {
                 })
                 setAdding(false)
                 if (error) {
-                  toast.error('Failed to add subject', String((error as { message?: string }).message ?? 'Unknown error'))
+                  toast.error(
+                    'Failed to add subject',
+                    String((error as { message?: string }).message ?? 'Unknown error'),
+                  )
                   return
                 }
                 setAddSubjectId('')
@@ -248,28 +241,21 @@ function FlowDetailPage() {
               Loading subjects...
             </div>
           ) : subjects.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No subjects linked to this flow.
-            </p>
+            <p className="text-sm text-muted-foreground">No subjects linked to this flow.</p>
           ) : (
             <ul className="list-none divide-y divide-border/50 border border-border/50 rounded-none bg-card/50">
               {subjects.map((s) => {
                 const details = subjectDetailsMap[s.subject_id]
                 const displayName = details?.display_name ?? null
                 const externalRef = details?.external_ref ?? null
-                const primaryLabel =
-                  displayName || externalRef || s.subject_id
-                const secondaryLabel =
-                  displayName
-                    ? (externalRef ?? s.subject_id)
-                    : externalRef
+                const primaryLabel = displayName || externalRef || s.subject_id
+                const secondaryLabel = displayName
+                  ? (externalRef ?? s.subject_id)
+                  : externalRef
                     ? s.subject_id
                     : null
                 return (
-                  <li
-                    key={s.subject_id}
-                    className="flex items-center justify-between px-4 py-3"
-                  >
+                  <li key={s.subject_id} className="flex items-center justify-between px-4 py-3">
                     <div className="min-w-0">
                       <Link
                         to="/subjects/$subjectId"
@@ -286,11 +272,7 @@ function FlowDetailPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {s.role && (
-                        <span className="text-muted-foreground text-sm">
-                          {s.role}
-                        </span>
-                      )}
+                      {s.role && <span className="text-muted-foreground text-sm">{s.role}</span>}
                       <Link
                         to="/subjects/$subjectId"
                         params={{ subjectId: s.subject_id }}
@@ -310,16 +292,21 @@ function FlowDetailPage() {
                           setRemovingId(s.subject_id)
                           const { error } = await timelineApi.flows.removeSubject(
                             flowId,
-                            s.subject_id
+                            s.subject_id,
                           )
                           setRemovingId(null)
                           if (error) {
-                            toast.error('Failed to remove subject', String((error as { message?: string }).message ?? 'Unknown error'))
+                            toast.error(
+                              'Failed to remove subject',
+                              String((error as { message?: string }).message ?? 'Unknown error'),
+                            )
                             return
                           }
-                        queryClient.invalidateQueries({ queryKey: ['flow-subjects', flowId] })
-                        queryClient.invalidateQueries({ queryKey: ['flow-subject-details', flowId] })
-                        toast.success('Subject removed')
+                          queryClient.invalidateQueries({ queryKey: ['flow-subjects', flowId] })
+                          queryClient.invalidateQueries({
+                            queryKey: ['flow-subject-details', flowId],
+                          })
+                          toast.success('Subject removed')
                         }}
                       >
                         {removingId === s.subject_id ? (
@@ -348,24 +335,15 @@ function FlowDetailPage() {
               Loading events...
             </div>
           ) : events.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No events recorded for this flow yet.
-            </p>
+            <p className="text-sm text-muted-foreground">No events recorded for this flow yet.</p>
           ) : (
             <ul className="list-none divide-y divide-border/50 border border-border/50 rounded-none bg-card/50">
               {events.slice(0, 20).map((ev) => (
-                <li
-                  key={ev.id}
-                  className="flex items-center justify-between px-4 py-3"
-                >
+                <li key={ev.id} className="flex items-center justify-between px-4 py-3">
                   <div>
-                    <span className="font-medium text-foreground">
-                      {ev.event_type}
-                    </span>
+                    <span className="font-medium text-foreground">{ev.event_type}</span>
                     <span className="text-muted-foreground text-sm ml-2">
-                      {ev.event_time
-                        ? new Date(ev.event_time).toLocaleString()
-                        : ''}
+                      {ev.event_time ? new Date(ev.event_time).toLocaleString() : ''}
                     </span>
                   </div>
                   <Link
@@ -425,36 +403,21 @@ function FlowDetailPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-muted/30 border-b border-border/50">
-                        <th className="text-left px-4 py-2 font-medium">
-                          Category
-                        </th>
-                        <th className="text-left px-4 py-2 font-medium">
-                          Required
-                        </th>
-                        <th className="text-left px-4 py-2 font-medium">
-                          Present
-                        </th>
-                        <th className="text-left px-4 py-2 font-medium">
-                          Status
-                        </th>
+                        <th className="text-left px-4 py-2 font-medium">Category</th>
+                        <th className="text-left px-4 py-2 font-medium">Required</th>
+                        <th className="text-left px-4 py-2 font-medium">Present</th>
+                        <th className="text-left px-4 py-2 font-medium">Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {compliance.items.map((item) => (
-                        <tr
-                          key={item.document_category_id}
-                          className="border-b border-border/30"
-                        >
-                          <td className="px-4 py-2">
-                            {item.display_name || item.category_name}
-                          </td>
+                        <tr key={item.document_category_id} className="border-b border-border/30">
+                          <td className="px-4 py-2">{item.display_name || item.category_name}</td>
                           <td className="px-4 py-2">{item.required_count}</td>
                           <td className="px-4 py-2">{item.present_count}</td>
                           <td className="px-4 py-2">
                             {item.satisfied ? (
-                              <span className="text-green-600 dark:text-green-400">
-                                OK
-                              </span>
+                              <span className="text-green-600 dark:text-green-400">OK</span>
                             ) : (
                               <span className="text-amber-600 dark:text-amber-400">
                                 {item.blocked_reason ?? 'Missing'}

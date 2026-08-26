@@ -39,7 +39,7 @@ export function useActivityAnalytics(activities: Activity[]) {
       byUser: {},
     }
 
-    activities.forEach(activity => {
+    activities.forEach((activity) => {
       // Count by action
       result.byAction[activity.action] = (result.byAction[activity.action] || 0) + 1
 
@@ -60,25 +60,25 @@ export function useActivityAnalytics(activities: Activity[]) {
   const trends = useMemo<ActivityTrends>(() => {
     const mostCommonAction = Object.entries(stats.byAction).reduce(
       (prev, [action, count]) => (!prev || count > prev.count ? { action, count } : prev),
-      null as { action: string; count: number } | null
+      null as { action: string; count: number } | null,
     )
 
     const mostCommonResourceType = Object.entries(stats.byResourceType).reduce(
       (prev, [resourceType, count]) =>
         !prev || count > prev.count ? { resourceType, count } : prev,
-      null as { resourceType: string; count: number } | null
+      null as { resourceType: string; count: number } | null,
     )
 
     const mostActiveUser = Object.entries(stats.byUser).reduce(
       (prev, [userId, count]) => (!prev || count > prev.count ? { userId, count } : prev),
-      null as { userId: string; count: number } | null
+      null as { userId: string; count: number } | null,
     )
 
     // Calculate average activities per hour
     const now = new Date()
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
     const activitiesLastHour = activities.filter(
-      a => a.timestamp >= oneHourAgo && a.timestamp <= now
+      (a) => a.timestamp >= oneHourAgo && a.timestamp <= now,
     ).length
     const averagePerHour = activitiesLastHour
 

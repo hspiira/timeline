@@ -1,4 +1,4 @@
-import { InputHTMLAttributes, forwardRef } from 'react'
+import { forwardRef, type InputHTMLAttributes } from 'react'
 
 export type InputVariant = 'default' | 'error' | 'success'
 export type InputSize = 'sm' | 'md' | 'lg'
@@ -13,12 +13,9 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
 }
 
 const variantStyles: Record<InputVariant, string> = {
-  default:
-    'border-border/50 focus:border-blue-500 focus:ring-blue-500',
-  error:
-    'border-red-500 focus:border-red-500 focus:ring-red-500',
-  success:
-    'border-green-500 focus:border-green-500 focus:ring-green-500',
+  default: 'border-border/50 focus:border-blue-500 focus:ring-blue-500',
+  error: 'border-red-500 focus:border-red-500 focus:ring-red-500',
+  success: 'border-green-500 focus:border-green-500 focus:ring-green-500',
 }
 
 const sizeStyles: Record<InputSize, string> = {
@@ -39,7 +36,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       disabled = false,
       ...props
     },
-    ref
+    ref,
   ) => {
     const baseStyles =
       'w-full rounded-none bg-background border border-input text-foreground transition-colors placeholder:text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed'
@@ -58,12 +55,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {error && !hideErrorMessage && (
           <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>
         )}
-        {helperText && !error && (
-          <p className="mt-1 text-xs text-muted-foreground">{helperText}</p>
-        )}
+        {helperText && !error && <p className="mt-1 text-xs text-muted-foreground">{helperText}</p>}
       </div>
     )
-  }
+  },
 )
 
 Input.displayName = 'Input'

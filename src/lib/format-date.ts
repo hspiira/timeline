@@ -16,7 +16,7 @@ function parseDate(value: Date | string | null | undefined): Date {
 function formatOrFallback(
   value: Date | string | null | undefined,
   formatter: (d: Date) => string,
-  fallback = '—'
+  fallback = '—',
 ): string {
   const d = parseDate(value)
   if (Number.isNaN(d.getTime())) return fallback
@@ -91,15 +91,12 @@ export function formatFullDateTime(date: Date | string): string {
 /** Format datetime for display; returns fallback for invalid/empty. Use in tables and optional fields. */
 export function formatDateTimeSafe(
   value: Date | string | null | undefined,
-  fallback = '—'
+  fallback = '—',
 ): string {
   return formatOrFallback(value, (d) => d.toLocaleString(locale, dateTimeOptions), fallback)
 }
 
 /** Format date only; returns fallback for invalid/empty. */
-export function formatDateSafe(
-  value: Date | string | null | undefined,
-  fallback = '—'
-): string {
+export function formatDateSafe(value: Date | string | null | undefined, fallback = '—'): string {
   return formatOrFallback(value, (d) => d.toLocaleDateString(locale, dateOptions), fallback)
 }

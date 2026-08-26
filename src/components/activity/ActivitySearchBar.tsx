@@ -1,8 +1,8 @@
 import { Search, X } from 'lucide-react'
-import { useDebouncedSearch } from '@/hooks/useDebouncedSearch'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { LoadingIcon } from '@/components/ui/icons'
+import { Input } from '@/components/ui/input'
+import { useDebouncedSearch } from '@/hooks/useDebouncedSearch'
 
 interface ActivitySearchBarProps {
   onSearch: (query: string) => void
@@ -31,13 +31,13 @@ export function ActivitySearchBar({
         <Input
           type="text"
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={(e) => setQuery(e.target.value)}
           placeholder={placeholder}
           className="pl-10 pr-10"
           helperText={query && !isSearching ? `Showing results for "${query}"` : undefined}
         />
-        {query && (
-          isSearching ? (
+        {query &&
+          (isSearching ? (
             <div className="absolute right-3 top-2.5 z-10">
               <LoadingIcon className="text-muted-foreground" />
             </div>
@@ -51,8 +51,7 @@ export function ActivitySearchBar({
             >
               <X className="w-4 h-4" />
             </Button>
-          )
-        )}
+          ))}
       </div>
     </div>
   )

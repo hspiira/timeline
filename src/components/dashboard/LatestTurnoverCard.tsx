@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { DashboardCard } from './DashboardCard'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { DashboardCard } from './DashboardCard'
 
 const TABS = ['New', 'Removed'] as const
 const SKELETON_ROWS = 4

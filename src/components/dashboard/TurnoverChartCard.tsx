@@ -1,16 +1,16 @@
+import { format, subDays } from 'date-fns'
 import { useMemo, useState } from 'react'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import { subDays, format } from 'date-fns'
-import { DashboardCard } from './DashboardCard'
-import { Skeleton } from '@/components/ui/Skeleton'
 import {
+  type ChartConfig,
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
 } from '@/components/ui/chart'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { DashboardCard } from './DashboardCard'
 
 /** Distinct colors: blue for events, amber for subjects (theme-aware for dark mode) */
 const chartConfig = {
@@ -40,7 +40,7 @@ interface RecentEventForChart {
 /** Build daily series: events count and unique subjects (active) per day from recent_events */
 function buildChartDataFromRecent(
   days: number,
-  recentEvents: RecentEventForChart[]
+  recentEvents: RecentEventForChart[],
 ): { date: string; events: number; subjects: number }[] {
   const now = new Date()
   const byDate = new Map<string, { events: number; subjectIds: Set<string> }>()
@@ -88,13 +88,10 @@ export function TurnoverChartCard({
 
   const chartData = useMemo(
     () => buildChartDataFromRecent(days, recentEvents ?? []),
-    [days, recentEvents]
+    [days, recentEvents],
   )
 
-  const periodEvents = useMemo(
-    () => chartData.reduce((s, d) => s + d.events, 0),
-    [chartData]
-  )
+  const periodEvents = useMemo(() => chartData.reduce((s, d) => s + d.events, 0), [chartData])
   const periodSubjects = useMemo(() => {
     const ids = new Set<string>()
     for (const e of recentEvents ?? []) {
@@ -157,7 +154,11 @@ export function TurnoverChartCard({
                     <stop offset="95%" stopColor="var(--color-subjects)" stopOpacity={0.1} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/50" />
+                <CartesianGrid
+                  vertical={false}
+                  strokeDasharray="3 3"
+                  className="stroke-border/50"
+                />
                 <XAxis
                   dataKey="date"
                   tickLine={false}
@@ -204,7 +205,9 @@ function MetricBox({ label, value }: { label: string; value: number }) {
   return (
     <div className="p-3 border border-border/40 rounded-none">
       <p className="text-xs text-muted-foreground mb-1">{label}</p>
-      <p className="font-display text-lg font-bold text-foreground tabular-nums">{value.toLocaleString()}</p>
+      <p className="font-display text-lg font-bold text-foreground tabular-nums">
+        {value.toLocaleString()}
+      </p>
     </div>
   )
 }

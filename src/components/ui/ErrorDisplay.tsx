@@ -4,8 +4,8 @@
  */
 
 import { AlertCircle, RefreshCw } from 'lucide-react'
-import { getApiErrorDisplay } from '@/lib/api-utils'
 import type { ApiErrorDisplay } from '@/lib/api-utils'
+import { getApiErrorDisplay } from '@/lib/api-utils'
 import { Alert, AlertDescription } from './alert'
 import { Button } from './button'
 
@@ -48,13 +48,7 @@ export function ErrorDisplay({
             </ul>
           )}
           {retryable && (
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              onClick={onRetry}
-              className="mt-3"
-            >
+            <Button type="button" variant="primary" size="sm" onClick={onRetry} className="mt-3">
               <RefreshCw size={16} className="mr-2" aria-hidden />
               Retry
             </Button>

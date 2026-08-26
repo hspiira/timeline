@@ -3,17 +3,17 @@
  * trigger and steps are read-only (set at creation).
  */
 
-import { useState, useMemo } from 'react'
 import { ChevronRight, FileText, ListTodo, Pencil } from 'lucide-react'
-import { Modal } from '@/components/ui/Modal'
+import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import { useFormSubmit } from '@/hooks/useFormSubmit'
 import { ErrorAlert } from '@/components/ui/ErrorAlert'
 import { FormField, FormTextarea } from '@/components/ui/FormField'
-import { getStepsFromWorkflowActions } from '@/lib/workflow-builder/parse-workflow-actions'
+import { Input } from '@/components/ui/input'
+import { Modal } from '@/components/ui/Modal'
+import { useFormSubmit } from '@/hooks/useFormSubmit'
 import type { components } from '@/lib/timeline-api'
+import { getStepsFromWorkflowActions } from '@/lib/workflow-builder/parse-workflow-actions'
 
 type Workflow = components['schemas']['WorkflowResponse']
 type WorkflowUpdate = components['schemas']['WorkflowUpdate']
@@ -32,10 +32,7 @@ export function WorkflowEditModal({ workflow, onClose, onSave }: WorkflowEditMod
   const [editingDetails, setEditingDetails] = useState(false)
   const { execute, loading, error, setError } = useFormSubmit()
 
-  const steps = useMemo(
-    () => getStepsFromWorkflowActions(workflow.actions),
-    [workflow.actions]
-  )
+  const steps = useMemo(() => getStepsFromWorkflowActions(workflow.actions), [workflow.actions])
   const triggerLabel = workflow.trigger_event_type || '—'
   const stepCount = steps.length
 
@@ -49,7 +46,7 @@ export function WorkflowEditModal({ workflow, onClose, onSave }: WorkflowEditMod
         description: description.trim() || undefined,
         execution_order: executionOrder,
         is_active: isActive,
-      })
+      }),
     )
 
     if (success) {
@@ -163,7 +160,9 @@ export function WorkflowEditModal({ workflow, onClose, onSave }: WorkflowEditMod
             ) : (
               <div className="flex items-start justify-between gap-4 p-5">
                 <div className="min-w-0 flex-1">
-                  <p className="text-base font-semibold text-foreground">{name || 'Untitled workflow'}</p>
+                  <p className="text-base font-semibold text-foreground">
+                    {name || 'Untitled workflow'}
+                  </p>
                   <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">
                     {description || '—'}
                   </p>
@@ -220,7 +219,9 @@ export function WorkflowEditModal({ workflow, onClose, onSave }: WorkflowEditMod
                           <p className="text-xs text-muted-foreground">{step.description}</p>
                         )}
                         {step.condition && (
-                          <p className="text-xs text-muted-foreground/80 italic">{step.condition}</p>
+                          <p className="text-xs text-muted-foreground/80 italic">
+                            {step.condition}
+                          </p>
                         )}
                         {step.tasks.length > 0 && (
                           <ul className="mt-2 space-y-1">

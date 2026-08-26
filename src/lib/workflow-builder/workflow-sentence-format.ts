@@ -5,10 +5,10 @@
  */
 
 import {
-  substituteSentence,
   getSentenceSegments,
   parseTemplateVariables,
   type SentenceSegment,
+  substituteSentence,
 } from './sentence-templates'
 
 /** Step status for UI: empty circle (pending), spinner (in progress), checkmark (completed). */
@@ -70,7 +70,7 @@ export function createStep(
     requirement?: StepRequirement
     condition?: StepCondition
     subSteps?: WorkflowStepSentence[]
-  } = {}
+  } = {},
 ): WorkflowStepSentence {
   const {
     id = nextId(),
@@ -97,13 +97,16 @@ export function createStep(
 export function createCondition(
   sentenceTemplate: string,
   sentenceVariables?: Record<string, string | number | boolean>,
-  met?: boolean
+  met?: boolean,
 ): StepCondition {
   return { sentenceTemplate, sentenceVariables, met }
 }
 
 /** Update a step's status. Returns a new step object. */
-export function setStepStatus(step: WorkflowStepSentence, status: StepStatus): WorkflowStepSentence {
+export function setStepStatus(
+  step: WorkflowStepSentence,
+  status: StepStatus,
+): WorkflowStepSentence {
   return { ...step, status }
 }
 
@@ -117,14 +120,17 @@ export function setConditionMet(step: WorkflowStepSentence, met: boolean): Workf
 }
 
 /** Add or replace sub-steps. Returns a new step object. */
-export function setSubSteps(step: WorkflowStepSentence, subSteps: WorkflowStepSentence[]): WorkflowStepSentence {
+export function setSubSteps(
+  step: WorkflowStepSentence,
+  subSteps: WorkflowStepSentence[],
+): WorkflowStepSentence {
   return { ...step, subSteps: subSteps.length > 0 ? subSteps : undefined }
 }
 
 /** Update variables on a step. Returns a new step object. */
 export function setStepVariables(
   step: WorkflowStepSentence,
-  variables: Record<string, string | number | boolean>
+  variables: Record<string, string | number | boolean>,
 ): WorkflowStepSentence {
   return { ...step, sentenceVariables: { ...step.sentenceVariables, ...variables } }
 }
@@ -169,7 +175,7 @@ export function validateWorkflowSentenceFormat(root: WorkflowSentenceFormat): St
 /** Flatten steps and sub-steps into a list with depth for indentation. */
 export function flattenSteps(
   steps: WorkflowStepSentence[],
-  depth = 0
+  depth = 0,
 ): Array<{ step: WorkflowStepSentence; depth: number }> {
   const out: Array<{ step: WorkflowStepSentence; depth: number }> = []
   for (const step of steps) {
@@ -183,9 +189,4 @@ export function flattenSteps(
 
 // --- Re-export segment helpers for renderers ---
 
-export {
-  substituteSentence,
-  getSentenceSegments,
-  parseTemplateVariables,
-  type SentenceSegment,
-}
+export { substituteSentence, getSentenceSegments, parseTemplateVariables, type SentenceSegment }

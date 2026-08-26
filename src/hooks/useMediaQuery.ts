@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 /**
  * Returns true when the given media query matches (e.g. min-width: 1024px for lg).

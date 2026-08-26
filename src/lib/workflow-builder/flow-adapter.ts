@@ -3,9 +3,9 @@
  * Single responsibility: convert workflow <-> flow state.
  */
 
-import type { Workflow, WorkflowNode, WorkflowEdge } from './types'
-import type { Node, Edge } from '@xyflow/react'
+import type { Edge, Node } from '@xyflow/react'
 import { MarkerType } from '@xyflow/react'
+import type { Workflow, WorkflowEdge, WorkflowNode } from './types'
 
 /** Approximate node size so we can pick the target side that faces the source */
 const NODE_WIDTH = 220
@@ -23,7 +23,7 @@ export interface WorkflowEdgeData extends Record<string, unknown> {
 /** Pick handle side (top/right/bottom/left) so the edge attaches on the side of the node that faces the other. */
 function sideFacing(
   fromPos: { x: number; y: number },
-  towardPos: { x: number; y: number }
+  towardPos: { x: number; y: number },
 ): 'top' | 'right' | 'bottom' | 'left' {
   const fx = fromPos.x + NODE_WIDTH / 2
   const fy = fromPos.y + NODE_HEIGHT / 2
@@ -38,7 +38,7 @@ function sideFacing(
 /** Side of target node that faces the source (for target handle). */
 function targetSideFacingSource(
   targetPos: { x: number; y: number },
-  sourcePos: { x: number; y: number }
+  sourcePos: { x: number; y: number },
 ): 'top' | 'right' | 'bottom' | 'left' {
   return sideFacing(targetPos, sourcePos)
 }
@@ -59,14 +59,10 @@ export function workflowToFlow(workflow: Workflow): {
     const isConditionEdge = e.label === 'true' || e.label === 'false'
     const sourcePos = nodePos(e.from)
     const targetPos = nodePos(e.to)
-    const sourceSide =
-      sourcePos && targetPos ? sideFacing(sourcePos, targetPos) : 'bottom'
-    const targetSide =
-      sourcePos && targetPos ? targetSideFacingSource(targetPos, sourcePos) : 'top'
-    const conditionHandle =
-      isConditionEdge ? `${sourceSide}-${e.label}` : undefined
-    const sourceHandle =
-      e.sourceHandle ?? (conditionHandle ?? sourceSide)
+    const sourceSide = sourcePos && targetPos ? sideFacing(sourcePos, targetPos) : 'bottom'
+    const targetSide = sourcePos && targetPos ? targetSideFacingSource(targetPos, sourcePos) : 'top'
+    const conditionHandle = isConditionEdge ? `${sourceSide}-${e.label}` : undefined
+    const sourceHandle = e.sourceHandle ?? conditionHandle ?? sourceSide
     const targetHandle = e.targetHandle ?? targetSide
     return {
       id: e.id,
@@ -99,7 +95,7 @@ export function flowToWorkflow(
   workflowId: string,
   workflowName: string,
   nodes: Node<WorkflowNodeData>[],
-  edges: Edge<WorkflowEdgeData>[]
+  edges: Edge<WorkflowEdgeData>[],
 ): Workflow {
   const workflowNodes: WorkflowNode[] = nodes.map((n) => {
     const w = (n.data as WorkflowNodeData).workflowNode
@@ -114,7 +110,12 @@ export function flowToWorkflow(
   })
   const workflowEdges: WorkflowEdge[] = edges.map((e) => {
     const sh = String(e.sourceHandle ?? '')
-    const labelFromHandle = sh === 'true' || sh.endsWith('-true') ? 'true' : sh === 'false' || sh.endsWith('-false') ? 'false' : undefined
+    const labelFromHandle =
+      sh === 'true' || sh.endsWith('-true')
+        ? 'true'
+        : sh === 'false' || sh.endsWith('-false')
+          ? 'false'
+          : undefined
     const label = e.data?.label ?? labelFromHandle
     return {
       id: e.id,

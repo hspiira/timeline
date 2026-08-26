@@ -1,4 +1,4 @@
-import { SingleSelectCombobox, optionsFromStrings } from '@/components/ui/combobox'
+import { optionsFromStrings, SingleSelectCombobox } from '@/components/ui/combobox'
 import { useEventTypes } from '@/hooks/useEventTypes'
 
 type Props = {

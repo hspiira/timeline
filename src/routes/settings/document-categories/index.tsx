@@ -1,16 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { timelineApi } from '@/lib/api-client'
-import { Plus, Pencil, Trash2, CheckCircle } from 'lucide-react'
-import { DataTable } from '@/components/ui/DataTable'
+import { CheckCircle, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Modal } from '@/components/ui/Modal'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { DataTable } from '@/components/ui/DataTable'
+import { ErrorModal } from '@/components/ui/ErrorModal'
 import { FormField, FormInput, FormTextarea } from '@/components/ui/FormField'
 import { FormModalActions } from '@/components/ui/FormModalActions'
-import { ConfirmModal } from '@/components/ui/ConfirmModal'
-import { ErrorModal } from '@/components/ui/ErrorModal'
+import { Modal } from '@/components/ui/Modal'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { timelineApi } from '@/lib/api-client'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/settings/document-categories/')({
@@ -19,10 +19,8 @@ export const Route = createFileRoute('/settings/document-categories/')({
 
 type DocumentCategoryListItem = components['schemas']['DocumentCategoryListItem']
 type DocumentCategoryResponse = components['schemas']['DocumentCategoryResponse']
-type DocumentCategoryCreateRequest =
-  components['schemas']['DocumentCategoryCreateRequest']
-type DocumentCategoryUpdateRequest =
-  components['schemas']['DocumentCategoryUpdateRequest']
+type DocumentCategoryCreateRequest = components['schemas']['DocumentCategoryCreateRequest']
+type DocumentCategoryUpdateRequest = components['schemas']['DocumentCategoryUpdateRequest']
 
 function DocumentCategoriesPage() {
   const authState = useRequireAuth()
@@ -31,9 +29,7 @@ function DocumentCategoriesPage() {
   const [error, setError] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<DocumentCategoryResponse | null>(null)
-  const [deleting, setDeleting] = useState<DocumentCategoryListItem | null>(
-    null
-  )
+  const [deleting, setDeleting] = useState<DocumentCategoryListItem | null>(null)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -52,11 +48,10 @@ function DocumentCategoriesPage() {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: apiError } =
-        await timelineApi.documentCategories.list({
-          skip: 0,
-          limit: 500,
-        })
+      const { data, error: apiError } = await timelineApi.documentCategories.list({
+        skip: 0,
+        limit: 500,
+      })
       if (apiError) {
         setError('Failed to load document categories')
         return
@@ -91,14 +86,10 @@ function DocumentCategoriesPage() {
         setDisplayName(data.display_name ?? '')
         setDescription(data.description ?? '')
         setMetadataSchemaJson(
-          data.metadata_schema != null
-            ? JSON.stringify(data.metadata_schema, null, 2)
-            : ''
+          data.metadata_schema != null ? JSON.stringify(data.metadata_schema, null, 2) : '',
         )
         setDefaultRetentionDays(
-          data.default_retention_days != null
-            ? String(data.default_retention_days)
-            : ''
+          data.default_retention_days != null ? String(data.default_retention_days) : '',
         )
         setIsActive(data.is_active)
         setShowModal(true)
@@ -133,9 +124,7 @@ function DocumentCategoriesPage() {
     }
 
     const retentionNum: number | null =
-      default_retention_days.trim() === ''
-        ? null
-        : parseInt(default_retention_days, 10)
+      default_retention_days.trim() === '' ? null : parseInt(default_retention_days, 10)
     if (
       default_retention_days.trim() !== '' &&
       (retentionNum === null || Number.isNaN(retentionNum) || retentionNum < 1)
@@ -154,8 +143,10 @@ function DocumentCategoriesPage() {
           default_retention_days: retentionNum,
           is_active: is_active,
         }
-        const { data, error: apiError } =
-          await timelineApi.documentCategories.update(editing.id, body)
+        const { data, error: apiError } = await timelineApi.documentCategories.update(
+          editing.id,
+          body,
+        )
         if (apiError) {
           const msg =
             typeof apiError === 'object' && 'detail' in apiError
@@ -165,9 +156,7 @@ function DocumentCategoriesPage() {
           return
         }
         if (data) {
-          setItems((prev) =>
-            prev.map((c) => (c.id === data.id ? { ...c, ...data } : c))
-          )
+          setItems((prev) => prev.map((c) => (c.id === data.id ? { ...c, ...data } : c)))
           closeModal()
         }
       } else {
@@ -179,8 +168,7 @@ function DocumentCategoriesPage() {
           default_retention_days: retentionNum,
           is_active,
         }
-        const { data, error: apiError } =
-          await timelineApi.documentCategories.create(body)
+        const { data, error: apiError } = await timelineApi.documentCategories.create(body)
         if (apiError) {
           const msg =
             typeof apiError === 'object' && 'detail' in apiError
@@ -213,8 +201,7 @@ function DocumentCategoriesPage() {
   const handleDeleteConfirm = async () => {
     if (!deleting) return
     try {
-      const { error: apiError } =
-        await timelineApi.documentCategories.delete(deleting.id)
+      const { error: apiError } = await timelineApi.documentCategories.delete(deleting.id)
       if (apiError) throw new Error('Failed to delete')
       setItems((prev) => prev.filter((c) => c.id !== deleting.id))
       setDeleting(null)
@@ -231,18 +218,14 @@ function DocumentCategoriesPage() {
       accessorKey: 'category_name',
       header: 'Category',
       cell: ({ row }) => (
-        <span className="font-medium text-foreground">
-          {row.original.category_name}
-        </span>
+        <span className="font-medium text-foreground">{row.original.category_name}</span>
       ),
     },
     {
       accessorKey: 'display_name',
       header: 'Display Name',
       cell: ({ row }) => (
-        <span className="text-muted-foreground">
-          {row.original.display_name || '—'}
-        </span>
+        <span className="text-muted-foreground">{row.original.display_name || '—'}</span>
       ),
     },
     {
@@ -274,12 +257,7 @@ function DocumentCategoriesPage() {
       header: 'Actions',
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            title="Edit"
-            onClick={() => openEdit(row.original)}
-          >
+          <Button variant="ghost" size="sm" title="Edit" onClick={() => openEdit(row.original)}>
             <Pencil className="w-4 h-4" />
           </Button>
           <Button
@@ -301,9 +279,7 @@ function DocumentCategoriesPage() {
         <Modal
           isOpen={true}
           onClose={closeModal}
-          title={
-            editing ? 'Edit Document Category' : 'Create Document Category'
-          }
+          title={editing ? 'Edit Document Category' : 'Create Document Category'}
           maxWidth="max-w-2xl"
           footer={
             <form
@@ -312,9 +288,7 @@ function DocumentCategoriesPage() {
                 handleSubmit()
               }}
             >
-              {formError && (
-                <p className="text-sm text-destructive mb-2">{formError}</p>
-              )}
+              {formError && <p className="text-sm text-destructive mb-2">{formError}</p>}
               <FormModalActions
                 onCancel={closeModal}
                 submitLabel={editing ? 'Save' : 'Create'}
@@ -359,10 +333,7 @@ function DocumentCategoriesPage() {
                 className="font-mono text-sm"
               />
             </FormField>
-            <FormField
-              label="Default retention (days)"
-              hint="Optional; positive integer"
-            >
+            <FormField label="Default retention (days)" hint="Optional; positive integer">
               <FormInput
                 type="number"
                 min={1}
@@ -396,7 +367,7 @@ function DocumentCategoriesPage() {
           cancelText="Cancel"
           isDestructive={true}
           details={{
-            'Category': deleting.category_name,
+            Category: deleting.category_name,
             'Display name': deleting.display_name || '—',
           }}
           onConfirm={handleDeleteConfirm}
@@ -412,9 +383,7 @@ function DocumentCategoriesPage() {
 
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h1 className="text-lg font-bold text-foreground">
-            Document Categories
-          </h1>
+          <h1 className="text-lg font-bold text-foreground">Document Categories</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Configure document categories, metadata schemas, and retention
           </p>
@@ -435,8 +404,7 @@ function DocumentCategoriesPage() {
         pageSize={10}
         emptyState={{
           title: 'No document categories yet',
-          description:
-            'Create a category to use when uploading documents',
+          description: 'Create a category to use when uploading documents',
           action: (
             <Button onClick={openCreate} variant="primary" size="md">
               <Plus className="w-4 h-4" />

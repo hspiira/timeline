@@ -1,13 +1,13 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useQuery } from '@tanstack/react-query'
-import { timelineApi } from '@/lib/api-client'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { AlertCircle, FileCheck } from 'lucide-react'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
-import { SkeletonBreadcrumbs, Skeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/button'
+import { Skeleton, SkeletonBreadcrumbs } from '@/components/ui/Skeleton'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { timelineApi } from '@/lib/api-client'
 import { formatFullDateTime } from '@/lib/format-date'
-import { FileCheck, AlertCircle } from 'lucide-react'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import type { components } from '@/lib/timeline-api'
 
 type IntegrityEpochItem = components['schemas']['IntegrityEpochItem']
@@ -24,7 +24,11 @@ function EpochsPage() {
   const { subjectId } = Route.useParams()
   const navigate = useNavigate()
 
-  const { data: epochs = [], isLoading, error } = useQuery({
+  const {
+    data: epochs = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['integrity', 'epochs', subjectId],
     queryFn: async () => {
       const res = await timelineApi.integrity.listEpochs(subjectId)
@@ -93,7 +97,10 @@ function EpochsPage() {
         ]}
       />
       <div className="mb-3">
-        <h1 className="text-lg font-bold text-foreground">Epochs — {subjectId.slice(0, 12)}{subjectId.length > 12 ? '…' : ''}</h1>
+        <h1 className="text-lg font-bold text-foreground">
+          Epochs — {subjectId.slice(0, 12)}
+          {subjectId.length > 12 ? '…' : ''}
+        </h1>
       </div>
 
       <div className="bg-card/80 rounded-none border border-border/50 overflow-hidden">
@@ -116,7 +123,9 @@ function EpochsPage() {
                   <td className="py-2 px-3 font-mono">{epoch.epoch_number}</td>
                   <td className="py-2 px-3">{statusLabel(epoch.status)}</td>
                   <td className="py-2 px-3">{epoch.event_count}</td>
-                  <td className="py-2 px-3 text-muted-foreground">{formatFullDateTime(epoch.opened_at)}</td>
+                  <td className="py-2 px-3 text-muted-foreground">
+                    {formatFullDateTime(epoch.opened_at)}
+                  </td>
                   <td className="py-2 px-3 text-muted-foreground">
                     {epoch.sealed_at ? formatFullDateTime(epoch.sealed_at) : '—'}
                   </td>
@@ -128,16 +137,19 @@ function EpochsPage() {
                     )}
                   </td>
                   <td className="py-2 px-3">
-                    {(epoch.status === 'Sealed' || epoch.status === 'Repaired') && epoch.merkle_root && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate({ to: '/verify/$subjectId', params: { subjectId } })}
-                      >
-                        <FileCheck className="w-3.5 h-3.5" />
-                        View Proof
-                      </Button>
-                    )}
+                    {(epoch.status === 'Sealed' || epoch.status === 'Repaired') &&
+                      epoch.merkle_root && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            navigate({ to: '/verify/$subjectId', params: { subjectId } })
+                          }
+                        >
+                          <FileCheck className="w-3.5 h-3.5" />
+                          View Proof
+                        </Button>
+                      )}
                   </td>
                 </tr>
               ))}
@@ -145,7 +157,9 @@ function EpochsPage() {
           </table>
         </div>
         {epochs.length === 0 && (
-          <div className="py-8 text-center text-muted-foreground text-sm">No epochs for this subject.</div>
+          <div className="py-8 text-center text-muted-foreground text-sm">
+            No epochs for this subject.
+          </div>
         )}
       </div>
     </>

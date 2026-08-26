@@ -1,15 +1,15 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { timelineApi } from '@/lib/api-client'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { AlertCircle, ChevronRight, FileWarning } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { Button } from '@/components/ui/button'
-import { useState, useEffect, useRef } from 'react'
-import { AlertCircle, ChevronRight, FileWarning } from 'lucide-react'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { timelineApi } from '@/lib/api-client'
 import { getApiErrorDisplay } from '@/lib/api-utils'
-import { cn } from '@/lib/utils'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import type { components } from '@/lib/timeline-api'
+import { cn } from '@/lib/utils'
 
 type IntegrityVerificationDetail = components['schemas']['IntegrityVerificationDetail']
 
@@ -17,7 +17,9 @@ export const Route = createFileRoute('/integrity/repairs/new')({
   beforeLoad: () => {
     requireAuthBeforeLoad()
   },
-  validateSearch: (search: Record<string, unknown>): { subject_id: string | undefined; break_seq: string | undefined } => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { subject_id: string | undefined; break_seq: string | undefined } => ({
     subject_id: typeof search.subject_id === 'string' ? search.subject_id : undefined,
     break_seq: typeof search.break_seq === 'string' ? search.break_seq : undefined,
   }),
@@ -34,7 +36,7 @@ function NewRepairPage() {
   const [epochId, setEpochId] = useState('')
   const [breakAtEventSeq, setBreakAtEventSeq] = useState(break_seq ? Number(break_seq) : 0)
   const [breakReason, setBreakReason] = useState(
-    break_seq ? `Hash mismatch detected on event seq ${break_seq}` : ''
+    break_seq ? `Hash mismatch detected on event seq ${break_seq}` : '',
   )
   const [repairReference, setRepairReference] = useState('')
   const [requiresLegalReference, setRequiresLegalReference] = useState(false)
@@ -97,7 +99,7 @@ function NewRepairPage() {
           error: createMutation.error as { detail?: string },
           status: (createMutation.error as { response?: { status?: number } })?.response?.status,
         },
-        'Failed to initiate repair'
+        'Failed to initiate repair',
       ).message
     : null
 
@@ -123,7 +125,8 @@ function NewRepairPage() {
       <div className="max-w-lg">
         <h1 className="text-lg font-bold text-foreground mb-2">Initiate Chain Repair</h1>
         <p className="text-sm text-muted-foreground mb-4">
-          Repair creates a new integrity epoch and an admin event. A second user must approve before the repair is completed.
+          Repair creates a new integrity epoch and an admin event. A second user must approve before
+          the repair is completed.
         </p>
 
         {/* Stepper */}
@@ -133,7 +136,9 @@ function NewRepairPage() {
             onClick={() => setStep(1)}
             className={cn(
               'flex items-center gap-1.5 px-2 py-1 rounded-none text-sm font-medium transition-colors',
-              step === 1 ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              step === 1
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted/50 text-muted-foreground hover:bg-muted',
             )}
           >
             1. Context
@@ -144,7 +149,11 @@ function NewRepairPage() {
             onClick={() => canProceedStep1 && setStep(2)}
             className={cn(
               'flex items-center gap-1.5 px-2 py-1 rounded-none text-sm font-medium transition-colors',
-              step === 2 ? 'bg-primary text-primary-foreground' : canProceedStep1 ? 'bg-muted/50 text-muted-foreground hover:bg-muted' : 'bg-muted/30 text-muted-foreground cursor-not-allowed'
+              step === 2
+                ? 'bg-primary text-primary-foreground'
+                : canProceedStep1
+                  ? 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                  : 'bg-muted/30 text-muted-foreground cursor-not-allowed',
             )}
           >
             2. Initiate
@@ -199,7 +208,9 @@ function NewRepairPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Break at event seq *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Break at event seq *
+                </label>
                 <input
                   type="number"
                   min={1}
@@ -223,10 +234,23 @@ function NewRepairPage() {
               </div>
 
               <div className="flex gap-2">
-                <Button type="button" onClick={() => canProceedStep1 && setStep(2)} disabled={!canProceedStep1}>
+                <Button
+                  type="button"
+                  onClick={() => canProceedStep1 && setStep(2)}
+                  disabled={!canProceedStep1}
+                >
                   Next: Initiate
                 </Button>
-                <Button type="button" variant="outline" onClick={() => navigate({ to: '/integrity/repairs', search: { subject_id: undefined, break_seq: undefined } })}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    navigate({
+                      to: '/integrity/repairs',
+                      search: { subject_id: undefined, break_seq: undefined },
+                    })
+                  }
+                >
                   Cancel
                 </Button>
               </div>
@@ -236,7 +260,9 @@ function NewRepairPage() {
           {step === 2 && (
             <>
               <div className="p-3 rounded-none border border-border/50 bg-muted/20 text-sm text-muted-foreground">
-                Epoch: {epochId.slice(0, 20)}… · Break at seq: {breakAtEventSeq} · {breakReason.slice(0, 60)}{breakReason.length > 60 ? '…' : ''}
+                Epoch: {epochId.slice(0, 20)}… · Break at seq: {breakAtEventSeq} ·{' '}
+                {breakReason.slice(0, 60)}
+                {breakReason.length > 60 ? '…' : ''}
               </div>
 
               <div className="flex items-center gap-2 mb-2">
@@ -263,7 +289,9 @@ function NewRepairPage() {
                   className={`w-full px-3 py-2 rounded-none border bg-background text-foreground text-sm ${referenceError ? 'border-destructive' : 'border-border'}`}
                 />
                 {referenceError && (
-                  <p className="mt-1 text-xs text-destructive">Reference is required for LEGAL_GRADE repairs.</p>
+                  <p className="mt-1 text-xs text-destructive">
+                    Reference is required for LEGAL_GRADE repairs.
+                  </p>
                 )}
               </div>
 
@@ -274,16 +302,35 @@ function NewRepairPage() {
                 </div>
               )}
 
-              <p className="text-xs text-muted-foreground">Approval will be required from a second user.</p>
+              <p className="text-xs text-muted-foreground">
+                Approval will be required from a second user.
+              </p>
 
               <div className="flex gap-2">
                 <Button type="button" variant="outline" onClick={() => setStep(1)}>
                   Back
                 </Button>
-                <Button type="submit" disabled={createMutation.isPending || !epochId.trim() || !breakReason.trim() || referenceError}>
+                <Button
+                  type="submit"
+                  disabled={
+                    createMutation.isPending ||
+                    !epochId.trim() ||
+                    !breakReason.trim() ||
+                    referenceError
+                  }
+                >
                   Initiate Repair
                 </Button>
-                <Button type="button" variant="outline" onClick={() => navigate({ to: '/integrity/repairs', search: { subject_id: undefined, break_seq: undefined } })}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    navigate({
+                      to: '/integrity/repairs',
+                      search: { subject_id: undefined, break_seq: undefined },
+                    })
+                  }
+                >
                   Cancel
                 </Button>
               </div>

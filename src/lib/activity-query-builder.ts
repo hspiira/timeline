@@ -1,8 +1,8 @@
 import type {
   ActivityAction,
   ActivityFilter,
-  ActivityResourceType,
   ActivityPriority,
+  ActivityResourceType,
 } from '@/lib/types/activity'
 
 /**
@@ -71,7 +71,7 @@ export class ActivityQueryBuilder {
    */
   static combine(...builders: ActivityQueryBuilder[]): ActivityQueryBuilder {
     const combined = new ActivityQueryBuilder()
-    builders.forEach(builder => {
+    builders.forEach((builder) => {
       combined.filter = { ...combined.filter, ...builder.filter }
     })
     return combined
@@ -116,8 +116,7 @@ export const ActivityFilters = {
   /**
    * High priority activities only
    */
-  highPriority: () =>
-    ActivityQueryBuilder.byPriority('high').build(),
+  highPriority: () => ActivityQueryBuilder.byPriority('high').build(),
 
   /**
    * Recent activities from last 24 hours
@@ -140,38 +139,30 @@ export const ActivityFilters = {
   /**
    * Document-related activities
    */
-  documents: () =>
-    ActivityQueryBuilder.byResourceType('document').build(),
+  documents: () => ActivityQueryBuilder.byResourceType('document').build(),
 
   /**
    * Subject-related activities
    */
-  subjects: () =>
-    ActivityQueryBuilder.byResourceType('subject').build(),
+  subjects: () => ActivityQueryBuilder.byResourceType('subject').build(),
 
   /**
    * Event-related activities
    */
-  events: () =>
-    ActivityQueryBuilder.byResourceType('event').build(),
+  events: () => ActivityQueryBuilder.byResourceType('event').build(),
 
   /**
    * Creation activities
    */
-  creations: () =>
-    ActivityQueryBuilder.byAction('created').build(),
+  creations: () => ActivityQueryBuilder.byAction('created').build(),
 
   /**
    * Deletions (high priority)
    */
-  deletions: () =>
-    ActivityQueryBuilder.byAction('deleted')
-      .andPriority('high')
-      .build(),
+  deletions: () => ActivityQueryBuilder.byAction('deleted').andPriority('high').build(),
 
   /**
    * Verification activities
    */
-  verifications: () =>
-    ActivityQueryBuilder.byAction('verified').build(),
+  verifications: () => ActivityQueryBuilder.byAction('verified').build(),
 }

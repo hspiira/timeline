@@ -50,7 +50,12 @@ function nextId(prefix: string): string {
 
 export function createStepRequirement(
   name: string,
-  options: { id?: string; description?: string; condition?: string; tasks?: WorkflowTaskRequirement[] } = {}
+  options: {
+    id?: string
+    description?: string
+    condition?: string
+    tasks?: WorkflowTaskRequirement[]
+  } = {},
 ): WorkflowStepRequirement {
   const { id = nextId('step'), description, condition, tasks } = options
   return {
@@ -69,7 +74,7 @@ export function createTaskRequirement(
     description?: string
     variables?: Record<string, TaskVariableValue>
     documentIds?: string[]
-  } = {}
+  } = {},
 ): WorkflowTaskRequirement {
   const { id = nextId('task'), description, variables, documentIds } = options
   return {
@@ -88,7 +93,7 @@ export function createEmptyWorkflowRequirements(name: string = ''): WorkflowRequ
 /** Convert requirements to API WorkflowCreateRequest. Steps become actions with params capturing name, description, tasks (variables, documentIds). */
 export function requirementsToCreateRequest(
   requirements: WorkflowRequirements,
-  options: { defaultTriggerEventType?: string } = {}
+  options: { defaultTriggerEventType?: string } = {},
 ): {
   name: string
   description?: string

@@ -4,8 +4,8 @@
  * Modular: action execution is injected via executor.
  */
 
-import type { Workflow, WorkflowNode, WorkflowEdge } from './types'
 import { nodeRegistry } from './node-registry'
+import type { Workflow, WorkflowEdge, WorkflowNode } from './types'
 
 export interface ExecutionContext {
   /** Accumulated payload or state passed between steps */
@@ -16,14 +16,11 @@ export interface ExecutionContext {
 
 export type ActionExecutor = (
   node: WorkflowNode,
-  context: ExecutionContext
+  context: ExecutionContext,
 ) => Promise<Record<string, unknown> | void>
 
 /** Condition evaluator: expression + context -> boolean */
-export type ConditionEvaluator = (
-  expression: string,
-  context: ExecutionContext
-) => boolean
+export type ConditionEvaluator = (expression: string, context: ExecutionContext) => boolean
 
 /** Get next node id(s) from this node. For conditions, returns one id based on evaluation. */
 function getNextNodeIds(
@@ -31,7 +28,7 @@ function getNextNodeIds(
   nodeId: string,
   node: WorkflowNode,
   context: ExecutionContext,
-  conditionEvaluator: ConditionEvaluator
+  conditionEvaluator: ConditionEvaluator,
 ): string[] {
   const desc = nodeRegistry.getOptional(node.type)
   if (desc?.isCondition) {
@@ -63,11 +60,9 @@ export async function executeWorkflow(
   workflow: Workflow,
   actionExecutor: ActionExecutor,
   conditionEvaluator: ConditionEvaluator,
-  initialPayload: Record<string, unknown> = {}
+  initialPayload: Record<string, unknown> = {},
 ): Promise<ExecutionResult> {
-  const triggers = workflow.nodes.filter(
-    (n) => nodeRegistry.getOptional(n.type)?.isTrigger
-  )
+  const triggers = workflow.nodes.filter((n) => nodeRegistry.getOptional(n.type)?.isTrigger)
   if (triggers.length === 0) {
     return {
       success: false,
@@ -126,10 +121,7 @@ export async function executeWorkflow(
 }
 
 /** Default condition evaluator: simple expression (e.g. payload.x > 0). For production, use a safe expression evaluator. */
-export function defaultConditionEvaluator(
-  expression: string,
-  context: ExecutionContext
-): boolean {
+export function defaultConditionEvaluator(expression: string, context: ExecutionContext): boolean {
   if (!expression.trim()) return false
   try {
     const fn = new Function('payload', `return Boolean(${expression})`)

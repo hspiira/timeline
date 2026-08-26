@@ -1,14 +1,14 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useQuery } from '@tanstack/react-query'
-import { timelineApi } from '@/lib/api-client'
-import { GitBranch, Plus, AlertCircle } from 'lucide-react'
-import { EmptyState } from '@/components/ui/EmptyState'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { AlertCircle, GitBranch, Plus } from 'lucide-react'
+import { useState } from 'react'
 import { FlowsTable } from '@/components/flows/FlowsTable'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/Skeleton'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { timelineApi } from '@/lib/api-client'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 
 export const Route = createFileRoute('/flows/')({
   beforeLoad: () => {
@@ -21,7 +21,12 @@ function FlowsPage() {
   const navigate = useNavigate()
   const [workflowFilter, setWorkflowFilter] = useState<string>('')
 
-  const { data: flows = [], isLoading, isError, error } = useQuery({
+  const {
+    data: flows = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ['flows', workflowFilter || null],
     queryFn: async () => {
       const { data, error: apiError } = await timelineApi.flows.list({
@@ -94,9 +99,7 @@ function FlowsPage() {
       </div>
 
       <div className="mb-4 flex items-center gap-2">
-        <label className="text-sm font-medium text-foreground/90">
-          Workflow:
-        </label>
+        <label className="text-sm font-medium text-foreground/90">Workflow:</label>
         <SingleSelectCombobox
           value={workflowFilter}
           onValueChange={setWorkflowFilter}

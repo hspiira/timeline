@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useCallback, useState } from 'react'
 
 export interface ValidationRules {
   [fieldName: string]: {
@@ -37,18 +37,12 @@ export function useFormValidation(rules: ValidationRules) {
       }
 
       // Min length validation
-      if (
-        fieldRules.minLength &&
-        value.length < fieldRules.minLength.value
-      ) {
+      if (fieldRules.minLength && value.length < fieldRules.minLength.value) {
         return fieldRules.minLength.message
       }
 
       // Max length validation
-      if (
-        fieldRules.maxLength &&
-        value.length > fieldRules.maxLength.value
-      ) {
+      if (fieldRules.maxLength && value.length > fieldRules.maxLength.value) {
         return fieldRules.maxLength.message
       }
 
@@ -64,7 +58,7 @@ export function useFormValidation(rules: ValidationRules) {
 
       return null
     },
-    [rules]
+    [rules],
   )
 
   const validateForm = useCallback(
@@ -85,7 +79,7 @@ export function useFormValidation(rules: ValidationRules) {
       setErrors(newErrors)
       return !hasErrors
     },
-    [rules, validateField]
+    [rules, validateField],
   )
 
   const setFieldError = useCallback((fieldName: string, error: string | null) => {

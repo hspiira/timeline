@@ -1,35 +1,35 @@
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
+  AlertCircle,
   ArrowLeft,
   Calendar,
-  Hash,
-  Link2,
-  FileText,
   CheckCircle,
-  Clock,
-  Copy,
   ChevronLeft,
   ChevronRight,
-  AlertCircle,
-  Network,
+  Clock,
+  Copy,
   ExternalLink,
-  Play,
+  FileText,
   GitBranch,
+  Hash,
+  Link2,
+  Network,
+  Play,
 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
-import { timelineApi } from '@/lib/api-client'
-import { formatFullDateTime } from '@/lib/format-date'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { useWorkflowsByEventType } from '@/hooks/useWorkflowsByEventType'
-import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
-import { SkeletonBreadcrumbs, Skeleton } from '@/components/ui/Skeleton'
-import { Button } from '@/components/ui/button'
+import { useEffect, useState } from 'react'
 import { DocumentList } from '@/components/documents/DocumentList'
 import { PayloadModernView } from '@/components/events'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
+import { Button } from '@/components/ui/button'
 import { LoadingIcon } from '@/components/ui/icons'
-import type { EventResponse, EventListResponse } from '@/lib/types'
+import { Skeleton, SkeletonBreadcrumbs } from '@/components/ui/Skeleton'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { useWorkflowsByEventType } from '@/hooks/useWorkflowsByEventType'
+import { timelineApi } from '@/lib/api-client'
+import { formatFullDateTime } from '@/lib/format-date'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
+import type { EventListResponse, EventResponse } from '@/lib/types'
 
 export const Route = createFileRoute('/subjects/$subjectId_/events/$eventId')({
   beforeLoad: () => {
@@ -177,7 +177,7 @@ function EventDetailPage() {
       if (eventsData) {
         // Sort by event_time ascending
         const sorted = [...eventsData].sort(
-          (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
+          (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime(),
         )
         setAllEvents(sorted)
       }
@@ -394,9 +394,7 @@ function EventDetailPage() {
               <Clock className="w-5 h-5 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">Event Time</p>
-                <p className="text-sm font-medium">
-                  {formatFullDateTime(event.event_time)}
-                </p>
+                <p className="text-sm font-medium">{formatFullDateTime(event.event_time)}</p>
               </div>
             </div>
 
@@ -409,9 +407,7 @@ function EventDetailPage() {
             </div>
           </div>
 
-          {event.workflow_instance_id && (
-            <EventFlowLink flowId={event.workflow_instance_id} />
-          )}
+          {event.workflow_instance_id && <EventFlowLink flowId={event.workflow_instance_id} />}
 
           {/* Hashes */}
           <div className="space-y-3">
@@ -430,7 +426,11 @@ function EventDetailPage() {
                 </div>
               </div>
             ) : (
-              <HashField label="Previous Hash" value={(event.payload as any)?.previous_hash ?? null} fieldKey="prev_hash" />
+              <HashField
+                label="Previous Hash"
+                value={(event.payload as any)?.previous_hash ?? null}
+                fieldKey="prev_hash"
+              />
             )}
 
             {/* Chain Link Visualization */}
@@ -438,8 +438,8 @@ function EventDetailPage() {
               <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-none">
                 <Link2 className="w-4 h-4 text-green-600" />
                 <span className="text-xs text-green-700 dark:text-green-300">
-                  Chain link verified: This event's previous_hash matches block #{currentIndex - 1}'s
-                  hash
+                  Chain link verified: This event's previous_hash matches block #{currentIndex - 1}
+                  's hash
                 </span>
               </div>
             )}

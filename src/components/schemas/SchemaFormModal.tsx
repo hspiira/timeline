@@ -1,12 +1,12 @@
+import { Eye, EyeOff, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { Plus, Trash2, Eye, EyeOff } from 'lucide-react'
-import { useFormSubmit } from '@/hooks/useFormSubmit'
-import { Modal } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/button'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
 import { FormError, FormField, FormInput, FormTextarea } from '@/components/ui/FormField'
 import { FormModalActions } from '@/components/ui/FormModalActions'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { SingleSelectCombobox } from '@/components/ui/combobox'
+import { Modal } from '@/components/ui/Modal'
+import { useFormSubmit } from '@/hooks/useFormSubmit'
 import { validateAlphanumericUnderscore } from '@/lib/validation'
 
 interface SchemaField {
@@ -29,7 +29,7 @@ interface SchemaFormModalProps {
   onSubmit: (
     eventType: string,
     definition: Record<string, any>,
-    allowedSubjectTypes?: string[] | null
+    allowedSubjectTypes?: string[] | null,
   ) => Promise<boolean>
   title: string
   /** Subject types for "Allowed subject types" (optional). When empty, no restriction is sent. */
@@ -57,7 +57,12 @@ const STRING_FORMATS = [
   { value: 'phone', label: 'Phone' },
 ]
 
-export function SchemaFormModal({ onClose, onSubmit, title, subjectTypes = [] }: SchemaFormModalProps) {
+export function SchemaFormModal({
+  onClose,
+  onSubmit,
+  title,
+  subjectTypes = [],
+}: SchemaFormModalProps) {
   const [eventType, setEventType] = useState('')
   const [fields, setFields] = useState<SchemaField[]>([])
   const [allowedSubjectTypes, setAllowedSubjectTypes] = useState<string[]>([])
@@ -294,7 +299,11 @@ export function SchemaFormModal({ onClose, onSubmit, title, subjectTypes = [] }:
       for (const field of fields) {
         const err = validateAlphanumericUnderscore(field.name, 'Field name')
         if (err) {
-          setError(field.name.trim() ? err.replace('Field name', `Field name "${field.name}"`) : 'All field names are required')
+          setError(
+            field.name.trim()
+              ? err.replace('Field name', `Field name "${field.name}"`)
+              : 'All field names are required',
+          )
           return
         }
       }
@@ -309,12 +318,9 @@ export function SchemaFormModal({ onClose, onSubmit, title, subjectTypes = [] }:
       schema = generateJsonSchema()
     }
 
-    const allowed =
-      allowedSubjectTypes.length === 0 ? undefined : allowedSubjectTypes
+    const allowed = allowedSubjectTypes.length === 0 ? undefined : allowedSubjectTypes
 
-    const success = await execute(() =>
-      onSubmit(eventType.toLowerCase(), schema, allowed)
-    )
+    const success = await execute(() => onSubmit(eventType.toLowerCase(), schema, allowed))
     if (success) {
       onClose()
     } else {
@@ -326,8 +332,14 @@ export function SchemaFormModal({ onClose, onSubmit, title, subjectTypes = [] }:
 
   return (
     <>
-      <Modal isOpen={true} onClose={onClose} title={title} maxWidth="max-w-3xl" closeButton={!loading}>
-      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+      <Modal
+        isOpen={true}
+        onClose={onClose}
+        title={title}
+        maxWidth="max-w-3xl"
+        closeButton={!loading}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Error Alert */}
           {error && <FormError message={error} />}
 
@@ -335,7 +347,7 @@ export function SchemaFormModal({ onClose, onSubmit, title, subjectTypes = [] }:
           <div className="flex items-center gap-2">
             <Button
               type="button"
-              onClick={() => editMode === 'json' ? switchToFormMode() : null}
+              onClick={() => (editMode === 'json' ? switchToFormMode() : null)}
               variant={editMode === 'form' ? 'primary' : 'ghost'}
               size="sm"
               disabled={editMode === 'form'}
@@ -344,7 +356,7 @@ export function SchemaFormModal({ onClose, onSubmit, title, subjectTypes = [] }:
             </Button>
             <Button
               type="button"
-              onClick={() => editMode === 'form' ? switchToJsonMode() : null}
+              onClick={() => (editMode === 'form' ? switchToJsonMode() : null)}
               variant={editMode === 'json' ? 'primary' : 'ghost'}
               size="sm"
               disabled={editMode === 'json'}
@@ -388,7 +400,7 @@ export function SchemaFormModal({ onClose, onSubmit, title, subjectTypes = [] }:
                               setAllowedSubjectTypes((prev) => [...prev, st.type_name])
                             } else {
                               setAllowedSubjectTypes((prev) =>
-                                prev.filter((t) => t !== st.type_name)
+                                prev.filter((t) => t !== st.type_name),
                               )
                             }
                           }}
@@ -405,99 +417,104 @@ export function SchemaFormModal({ onClose, onSubmit, title, subjectTypes = [] }:
 
               {/* Fields Summary */}
               <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-foreground/90">Event Fields</h3>
-              <Button
-                type="button"
-                onClick={startAddingField}
-                disabled={loading}
-                size="sm"
-                variant="primary"
-              >
-                <Plus className="w-3 h-3" />
-                Add Field
-              </Button>
-            </div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-foreground/90">Event Fields</h3>
+                  <Button
+                    type="button"
+                    onClick={startAddingField}
+                    disabled={loading}
+                    size="sm"
+                    variant="primary"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add Field
+                  </Button>
+                </div>
 
-            {fields.length === 0 ? (
-              <div className="p-4 bg-background/50 border border-dashed border-border rounded-none text-center text-sm text-muted-foreground">
-                No fields yet. Click "Add Field" to create one.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {fields.map((field, index) => {
-                  const typeLabel = FIELD_TYPES.find((t) => t.value === field.type)?.label || field.type
-                  return (
-                    <div
-                      key={field.id}
-                      className="flex items-center justify-between p-3 bg-background/50 border border-border rounded-none hover:border-primary/50 transition-colors group"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-semibold text-muted-foreground">#{index + 1}</span>
-                          <span className="font-medium text-foreground">{field.name}</span>
-                          <span className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-none">
-                            {typeLabel}
-                          </span>
-                          {field.required && (
-                            <span className="px-1.5 py-0.5 text-xs font-medium bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-none">
-                              Required
-                            </span>
-                          )}
-                          {field.enum && field.enum.length > 0 && (
-                            <span className="px-1.5 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-none">
-                              {field.enum.length} options
-                            </span>
-                          )}
-                          {(field.minimum !== undefined || field.maximum !== undefined) && (
-                            <span className="px-1.5 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-none">
-                              {field.minimum !== undefined && field.maximum !== undefined
-                                ? `${field.minimum}-${field.maximum}`
-                                : field.minimum !== undefined
-                                ? `≥ ${field.minimum}`
-                                : `≤ ${field.maximum}`}
-                            </span>
-                          )}
-                          {field.format && (
-                            <span className="px-1.5 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-none">
-                              {field.format}
-                            </span>
-                          )}
-                          {field.pattern && (
-                            <span className="px-1.5 py-0.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 rounded-none">
-                              Regex pattern
-                            </span>
-                          )}
+                {fields.length === 0 ? (
+                  <div className="p-4 bg-background/50 border border-dashed border-border rounded-none text-center text-sm text-muted-foreground">
+                    No fields yet. Click "Add Field" to create one.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {fields.map((field, index) => {
+                      const typeLabel =
+                        FIELD_TYPES.find((t) => t.value === field.type)?.label || field.type
+                      return (
+                        <div
+                          key={field.id}
+                          className="flex items-center justify-between p-3 bg-background/50 border border-border rounded-none hover:border-primary/50 transition-colors group"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-semibold text-muted-foreground">
+                                #{index + 1}
+                              </span>
+                              <span className="font-medium text-foreground">{field.name}</span>
+                              <span className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-none">
+                                {typeLabel}
+                              </span>
+                              {field.required && (
+                                <span className="px-1.5 py-0.5 text-xs font-medium bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-none">
+                                  Required
+                                </span>
+                              )}
+                              {field.enum && field.enum.length > 0 && (
+                                <span className="px-1.5 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-none">
+                                  {field.enum.length} options
+                                </span>
+                              )}
+                              {(field.minimum !== undefined || field.maximum !== undefined) && (
+                                <span className="px-1.5 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-none">
+                                  {field.minimum !== undefined && field.maximum !== undefined
+                                    ? `${field.minimum}-${field.maximum}`
+                                    : field.minimum !== undefined
+                                      ? `≥ ${field.minimum}`
+                                      : `≤ ${field.maximum}`}
+                                </span>
+                              )}
+                              {field.format && (
+                                <span className="px-1.5 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-none">
+                                  {field.format}
+                                </span>
+                              )}
+                              {field.pattern && (
+                                <span className="px-1.5 py-0.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 rounded-none">
+                                  Regex pattern
+                                </span>
+                              )}
+                            </div>
+                            {field.description && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {field.description}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              type="button"
+                              onClick={() => startEditingField(field.id)}
+                              size="sm"
+                              variant="outline"
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => removeField(field.id)}
+                              size="sm"
+                              variant="ghost"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
+                          </div>
                         </div>
-                        {field.description && (
-                          <p className="text-xs text-muted-foreground mt-1">{field.description}</p>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          type="button"
-                          onClick={() => startEditingField(field.id)}
-                          size="sm"
-                          variant="outline"
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={() => removeField(field.id)}
-                          size="sm"
-                          variant="ghost"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </div>
-                  )
-                })}
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
               {/* JSON Preview */}
               {fields.length > 0 && (
@@ -507,11 +524,7 @@ export function SchemaFormModal({ onClose, onSubmit, title, subjectTypes = [] }:
                     onClick={() => setShowJsonPreview(!showJsonPreview)}
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
                   >
-                    {showJsonPreview ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
+                    {showJsonPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     {showJsonPreview ? 'Hide' : 'Preview'} Generated JSON
                   </button>
 
@@ -574,7 +587,7 @@ export function SchemaFormModal({ onClose, onSubmit, title, subjectTypes = [] }:
                               setAllowedSubjectTypes((prev) => [...prev, st.type_name])
                             } else {
                               setAllowedSubjectTypes((prev) =>
-                                prev.filter((t) => t !== st.type_name)
+                                prev.filter((t) => t !== st.type_name),
                               )
                             }
                           }}
@@ -622,186 +635,183 @@ export function SchemaFormModal({ onClose, onSubmit, title, subjectTypes = [] }:
               />
             </FormField>
 
-          <FormField label="Type">
-            <SingleSelectCombobox
-              value={editingField.type}
-              onValueChange={(v) => setEditingField({ ...editingField, type: v })}
-              options={FIELD_TYPES.map((t) => ({ value: t.value, label: t.label }))}
-              placeholder="Type"
-              className=""
-            />
-          </FormField>
-
-            <FormField label="Description (optional)">
-            <FormInput
-              type="text"
-              value={editingField.description}
-              onChange={(e) => setEditingField({ ...editingField, description: e.target.value })}
-              placeholder="What does this field represent?"
-            />
-          </FormField>
-
-          {/* Required */}
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={editingField.required}
-              onChange={(e) => setEditingField({ ...editingField, required: e.target.checked })}
-              className="rounded-none"
-            />
-            <span className="text-sm font-medium text-foreground/90">Required field</span>
-          </label>
-
-          {/* Enum Values - for enum type */}
-          {editingField.type === 'enum' && (
-            <div>
-              <label className="block text-sm font-medium text-foreground/90 mb-2">
-                Enum Values <span className="text-destructive">*</span>
-              </label>
-              <div className="space-y-2 mb-2">
-                {(editingField.enum || []).map((value, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <Input
-                      type="text"
-                      value={value}
-                      onChange={(e) => {
-                        const newEnum = [...(editingField.enum || [])]
-                        newEnum[idx] = e.target.value
-                        setEditingField({ ...editingField, enum: newEnum })
-                      }}
-                      className="flex-1"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newEnum = (editingField.enum || []).filter((_, i) => i !== idx)
-                        setEditingField({ ...editingField, enum: newEnum })
-                      }}
-                      className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-none transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <Button
-                type="button"
-                onClick={() => {
-                  setEditingField({
-                    ...editingField,
-                    enum: [...(editingField.enum || []), ''],
-                  })
-                }}
-                size="sm"
-                variant="primary"
-              >
-                <Plus className="w-3 h-3" />
-                Add Value
-              </Button>
-            </div>
-          )}
-
-          {/* Number Constraints - for number/integer types */}
-          {(editingField.type === 'number' || editingField.type === 'integer') && (
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-foreground/90 mb-2">
-                  Minimum (optional)
-                </label>
-                <Input
-                  type="number"
-                  value={editingField.minimum !== undefined ? editingField.minimum : ''}
-                  onChange={(e) =>
-                    setEditingField({
-                      ...editingField,
-                      minimum: e.target.value === '' ? undefined : Number(e.target.value),
-                    })
-                  }
-                  placeholder="e.g., 0"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground/90 mb-2">
-                  Maximum (optional)
-                </label>
-                <Input
-                  type="number"
-                  value={editingField.maximum !== undefined ? editingField.maximum : ''}
-                  onChange={(e) =>
-                    setEditingField({
-                      ...editingField,
-                      maximum: e.target.value === '' ? undefined : Number(e.target.value),
-                    })
-                  }
-                  placeholder="e.g., 100"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Format - for string types */}
-          {editingField.type === 'string' && (
-            <div>
-              <label className="block text-sm font-medium text-foreground/90 mb-2">
-                Format (optional)
-              </label>
+            <FormField label="Type">
               <SingleSelectCombobox
-                value={editingField.format || ''}
-                onValueChange={(v) =>
-                  setEditingField({
-                    ...editingField,
-                    format: v || undefined,
-                  })
-                }
-                options={[
-                  { value: '', label: 'None' },
-                  ...STRING_FORMATS.map((f) => ({ value: f.value, label: f.label })),
-                ]}
-                placeholder="None"
+                value={editingField.type}
+                onValueChange={(v) => setEditingField({ ...editingField, type: v })}
+                options={FIELD_TYPES.map((t) => ({ value: t.value, label: t.label }))}
+                placeholder="Type"
                 className=""
               />
-            </div>
-          )}
+            </FormField>
 
-          {/* Pattern - for string types */}
-          {editingField.type === 'string' && (
-            <div>
-              <label className="block text-sm font-medium text-foreground/90 mb-2">
-                Regex Pattern (optional)
-              </label>
-              <Input
+            <FormField label="Description (optional)">
+              <FormInput
                 type="text"
-                value={editingField.pattern || ''}
-                onChange={(e) =>
-                  setEditingField({
-                    ...editingField,
-                    pattern: e.target.value || undefined,
-                  })
-                }
-                placeholder="e.g., ^[A-Z]{2}\\d{3}$"
-                helperText="For custom validation patterns. Examples: email regex, zipcode format, etc."
+                value={editingField.description}
+                onChange={(e) => setEditingField({ ...editingField, description: e.target.value })}
+                placeholder="What does this field represent?"
               />
-            </div>
-          )}
+            </FormField>
 
-          {/* Actions */}
-          <div className="flex items-center gap-3 pt-4 border-t border-border flex-col sm:flex-row">
-            <Button
-              onClick={saveField}
-              className="flex-1 w-full sm:w-auto"
-            >
-              Save Field
-            </Button>
-            <Button
-              onClick={() => setEditingField(null)}
-              variant="outline"
-              className="flex-1 w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
+            {/* Required */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={editingField.required}
+                onChange={(e) => setEditingField({ ...editingField, required: e.target.checked })}
+                className="rounded-none"
+              />
+              <span className="text-sm font-medium text-foreground/90">Required field</span>
+            </label>
+
+            {/* Enum Values - for enum type */}
+            {editingField.type === 'enum' && (
+              <div>
+                <label className="block text-sm font-medium text-foreground/90 mb-2">
+                  Enum Values <span className="text-destructive">*</span>
+                </label>
+                <div className="space-y-2 mb-2">
+                  {(editingField.enum || []).map((value, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <Input
+                        type="text"
+                        value={value}
+                        onChange={(e) => {
+                          const newEnum = [...(editingField.enum || [])]
+                          newEnum[idx] = e.target.value
+                          setEditingField({ ...editingField, enum: newEnum })
+                        }}
+                        className="flex-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newEnum = (editingField.enum || []).filter((_, i) => i !== idx)
+                          setEditingField({ ...editingField, enum: newEnum })
+                        }}
+                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-none transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setEditingField({
+                      ...editingField,
+                      enum: [...(editingField.enum || []), ''],
+                    })
+                  }}
+                  size="sm"
+                  variant="primary"
+                >
+                  <Plus className="w-3 h-3" />
+                  Add Value
+                </Button>
+              </div>
+            )}
+
+            {/* Number Constraints - for number/integer types */}
+            {(editingField.type === 'number' || editingField.type === 'integer') && (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-foreground/90 mb-2">
+                    Minimum (optional)
+                  </label>
+                  <Input
+                    type="number"
+                    value={editingField.minimum !== undefined ? editingField.minimum : ''}
+                    onChange={(e) =>
+                      setEditingField({
+                        ...editingField,
+                        minimum: e.target.value === '' ? undefined : Number(e.target.value),
+                      })
+                    }
+                    placeholder="e.g., 0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground/90 mb-2">
+                    Maximum (optional)
+                  </label>
+                  <Input
+                    type="number"
+                    value={editingField.maximum !== undefined ? editingField.maximum : ''}
+                    onChange={(e) =>
+                      setEditingField({
+                        ...editingField,
+                        maximum: e.target.value === '' ? undefined : Number(e.target.value),
+                      })
+                    }
+                    placeholder="e.g., 100"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Format - for string types */}
+            {editingField.type === 'string' && (
+              <div>
+                <label className="block text-sm font-medium text-foreground/90 mb-2">
+                  Format (optional)
+                </label>
+                <SingleSelectCombobox
+                  value={editingField.format || ''}
+                  onValueChange={(v) =>
+                    setEditingField({
+                      ...editingField,
+                      format: v || undefined,
+                    })
+                  }
+                  options={[
+                    { value: '', label: 'None' },
+                    ...STRING_FORMATS.map((f) => ({ value: f.value, label: f.label })),
+                  ]}
+                  placeholder="None"
+                  className=""
+                />
+              </div>
+            )}
+
+            {/* Pattern - for string types */}
+            {editingField.type === 'string' && (
+              <div>
+                <label className="block text-sm font-medium text-foreground/90 mb-2">
+                  Regex Pattern (optional)
+                </label>
+                <Input
+                  type="text"
+                  value={editingField.pattern || ''}
+                  onChange={(e) =>
+                    setEditingField({
+                      ...editingField,
+                      pattern: e.target.value || undefined,
+                    })
+                  }
+                  placeholder="e.g., ^[A-Z]{2}\\d{3}$"
+                  helperText="For custom validation patterns. Examples: email regex, zipcode format, etc."
+                />
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 pt-4 border-t border-border flex-col sm:flex-row">
+              <Button onClick={saveField} className="flex-1 w-full sm:w-auto">
+                Save Field
+              </Button>
+              <Button
+                onClick={() => setEditingField(null)}
+                variant="outline"
+                className="flex-1 w-full sm:w-auto"
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </Modal>
     </>
   )

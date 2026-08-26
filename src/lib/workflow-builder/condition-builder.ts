@@ -21,12 +21,14 @@ export type ConditionOperator = (typeof CONDITION_OPERATORS)[number]['value']
 export function simpleConditionToExpression(
   field: string,
   operator: ConditionOperator,
-  value: string
+  value: string,
 ): string {
   const key = field.trim()
   if (!key) return ''
   const path = `payload.${key}`
-  const safePath = /^payload\.\w+(\.\w+)*$/.test(path) ? path : `payload['${key.replace(/'/g, "\\'")}']`
+  const safePath = /^payload\.\w+(\.\w+)*$/.test(path)
+    ? path
+    : `payload['${key.replace(/'/g, "\\'")}']`
 
   switch (operator) {
     case 'empty':
@@ -97,14 +99,16 @@ export function parseSimpleCondition(expression: string): {
     }
   }
 
-  const eqMatch = e.match(/^(payload\.\w+(\.\w+)*)\s*===\s*(.+)$/) ||
+  const eqMatch =
+    e.match(/^(payload\.\w+(\.\w+)*)\s*===\s*(.+)$/) ||
     e.match(/^(payload\.\w+(\.\w+)*)\s*==\s*(.+)$/)
   if (eqMatch) {
     const val = tryUnquote(eqMatch[3])
     return { field: eqMatch[1].replace(/^payload\./, ''), operator: 'eq', value: val }
   }
 
-  const neqMatch = e.match(/^(payload\.\w+(\.\w+)*)\s*!==\s*(.+)$/) ||
+  const neqMatch =
+    e.match(/^(payload\.\w+(\.\w+)*)\s*!==\s*(.+)$/) ||
     e.match(/^(payload\.\w+(\.\w+)*)\s*!=\s*(.+)$/)
   if (neqMatch) {
     const val = tryUnquote(neqMatch[3])
@@ -112,16 +116,28 @@ export function parseSimpleCondition(expression: string): {
   }
 
   const gtMatch = e.match(/^(payload\.\w+(\.\w+)*)\s*>\s*(.+)$/)
-  if (gtMatch) return { field: gtMatch[1].replace(/^payload\./, ''), operator: 'gt', value: gtMatch[3].trim() }
+  if (gtMatch)
+    return { field: gtMatch[1].replace(/^payload\./, ''), operator: 'gt', value: gtMatch[3].trim() }
 
   const gteMatch = e.match(/^(payload\.\w+(\.\w+)*)\s*>=\s*(.+)$/)
-  if (gteMatch) return { field: gteMatch[1].replace(/^payload\./, ''), operator: 'gte', value: gteMatch[3].trim() }
+  if (gteMatch)
+    return {
+      field: gteMatch[1].replace(/^payload\./, ''),
+      operator: 'gte',
+      value: gteMatch[3].trim(),
+    }
 
   const ltMatch = e.match(/^(payload\.\w+(\.\w+)*)\s*<\s*(.+)$/)
-  if (ltMatch) return { field: ltMatch[1].replace(/^payload\./, ''), operator: 'lt', value: ltMatch[3].trim() }
+  if (ltMatch)
+    return { field: ltMatch[1].replace(/^payload\./, ''), operator: 'lt', value: ltMatch[3].trim() }
 
   const lteMatch = e.match(/^(payload\.\w+(\.\w+)*)\s*<=\s*(.+)$/)
-  if (lteMatch) return { field: lteMatch[1].replace(/^payload\./, ''), operator: 'lte', value: lteMatch[3].trim() }
+  if (lteMatch)
+    return {
+      field: lteMatch[1].replace(/^payload\./, ''),
+      operator: 'lte',
+      value: lteMatch[3].trim(),
+    }
 
   return null
 }
@@ -139,7 +155,9 @@ function tryUnquote(s: string): string {
 }
 
 /** Validate condition expression (same evaluation as execution engine). Returns user-facing error if invalid. */
-export function validateConditionExpression(expression: string): { valid: true } | { valid: false; error: string } {
+export function validateConditionExpression(
+  expression: string,
+): { valid: true } | { valid: false; error: string } {
   const e = expression.trim()
   if (!e) return { valid: true }
   try {

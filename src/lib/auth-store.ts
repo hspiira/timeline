@@ -1,7 +1,13 @@
 import { Store } from '@tanstack/store'
-import { timelineApi, setAuthToken, getAuthToken, setTenantId, refreshAccessToken } from './api-client'
-import { getApiErrorDisplay } from './api-utils'
 import type { UserResponse } from '@/lib/types'
+import {
+  getAuthToken,
+  refreshAccessToken,
+  setAuthToken,
+  setTenantId,
+  timelineApi,
+} from './api-client'
+import { getApiErrorDisplay } from './api-utils'
 
 interface AuthState {
   user: UserResponse | null
@@ -41,7 +47,7 @@ export const authActions = {
       if (response.error) {
         const display = getApiErrorDisplay(
           { error: response.error, status: response.response?.status },
-          'Invalid credentials'
+          'Invalid credentials',
         )
         throw new Error(display.message)
       }
@@ -51,7 +57,7 @@ export const authActions = {
       const { access_token } = data
       setAuthToken(access_token)
 
-      const userResponse = await timelineApi.users.me() as {
+      const userResponse = (await timelineApi.users.me()) as {
         data?: UserResponse
         error?: unknown
         response?: { status?: number }
@@ -62,7 +68,7 @@ export const authActions = {
         setTenantId(null)
         const display = getApiErrorDisplay(
           { error: userResponse.error, status: userResponse.response?.status },
-          'Failed to fetch user info'
+          'Failed to fetch user info',
         )
         throw new Error(display.message)
       }
@@ -87,8 +93,7 @@ export const authActions = {
     } catch (error) {
       setAuthToken(null)
       setTenantId(null)
-      const errorMessage =
-        error instanceof Error ? error.message : 'Login failed'
+      const errorMessage = error instanceof Error ? error.message : 'Login failed'
       authStore.setState({
         user: null,
         token: null,
@@ -115,8 +120,7 @@ export const authActions = {
       authStore.setState((state) => ({ ...state, isLoading: false }))
       return response.data
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Tenant creation failed'
+      const errorMessage = error instanceof Error ? error.message : 'Tenant creation failed'
       authStore.setState((state) => ({
         ...state,
         isLoading: false,

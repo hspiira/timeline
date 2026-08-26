@@ -1,10 +1,10 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Calendar, ArrowRight, Activity, SquarePen } from 'lucide-react'
-import type { SubjectWithMetadata } from '@/hooks/useSubjects'
+import { Activity, ArrowRight, Calendar, SquarePen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import { getSubjectTypeThemeFromConfig } from '@/lib/subject-type-theme'
+import type { SubjectWithMetadata } from '@/hooks/useSubjects'
 import { formatShortDate } from '@/lib/format-date'
+import { getSubjectTypeThemeFromConfig } from '@/lib/subject-type-theme'
 import type { components } from '@/lib/timeline-api'
 
 type SubjectTypeListItem = components['schemas']['SubjectTypeListItem']
@@ -16,21 +16,12 @@ interface SubjectsGridProps {
   subjectTypeConfig?: SubjectTypeListItem[]
 }
 
-function getDisplayName(
-  subjectType: string,
-  config?: SubjectTypeListItem[]
-): string {
-  const found = config?.find(
-    (t) => t.type_name.toLowerCase() === subjectType.toLowerCase()
-  )
+function getDisplayName(subjectType: string, config?: SubjectTypeListItem[]): string {
+  const found = config?.find((t) => t.type_name.toLowerCase() === subjectType.toLowerCase())
   return found?.display_name ?? subjectType
 }
 
-export function SubjectsGrid({
-  data,
-  onEdit,
-  subjectTypeConfig,
-}: SubjectsGridProps) {
+export function SubjectsGrid({ data, onEdit, subjectTypeConfig }: SubjectsGridProps) {
   const navigate = useNavigate()
 
   const handleSubjectClick = (subjectId: string) => {
@@ -40,17 +31,8 @@ export function SubjectsGrid({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {data.map((subject) => {
-        const theme = getSubjectTypeThemeFromConfig(
-          subject.subject_type,
-          subjectTypeConfig
-        )
-        const {
-          icon: Icon,
-          bgColor,
-          textColor,
-          headerBg,
-          configColor,
-        } = theme
+        const theme = getSubjectTypeThemeFromConfig(subject.subject_type, subjectTypeConfig)
+        const { icon: Icon, bgColor, textColor, headerBg, configColor } = theme
         const typeLabel = getDisplayName(subject.subject_type, subjectTypeConfig)
         const useConfigColor = configColor != null && configColor !== ''
         return (
@@ -58,13 +40,11 @@ export function SubjectsGrid({
             key={subject.id}
             onClick={() => handleSubjectClick(subject.id)}
             className={`bg-card/80 rounded-none border transition-all cursor-pointer overflow-hidden group hover:border-border/40 ${
-              (subject.integrityStatus ?? '') === 'broken' ? 'border-status-warn/50 bg-status-warn/5' : 'border-border/25'
+              (subject.integrityStatus ?? '') === 'broken'
+                ? 'border-status-warn/50 bg-status-warn/5'
+                : 'border-border/25'
             }`}
-            style={
-              useConfigColor && configColor
-                ? { borderColor: `${configColor}20` }
-                : undefined
-            }
+            style={useConfigColor && configColor ? { borderColor: `${configColor}20` } : undefined}
           >
             {/* Header with icon and type */}
             <div
@@ -89,12 +69,15 @@ export function SubjectsGrid({
                       : undefined
                   }
                 >
-                  <Icon
-                    className={`w-5 h-5 ${useConfigColor ? '' : textColor}`}
-                  />
+                  <Icon className={`w-5 h-5 ${useConfigColor ? '' : textColor}`} />
                 </div>
                 <div className="flex items-center gap-2">
-                  <StatusBadge status={(subject.integrityStatus ?? 'unknown') as 'valid' | 'broken' | 'unknown'} dotOnly />
+                  <StatusBadge
+                    status={
+                      (subject.integrityStatus ?? 'unknown') as 'valid' | 'broken' | 'unknown'
+                    }
+                    dotOnly
+                  />
                   <span className="px-2 py-1 bg-muted rounded-none text-xs font-medium text-muted-foreground">
                     {typeLabel}
                   </span>
@@ -102,15 +85,16 @@ export function SubjectsGrid({
               </div>
 
               {/* Subject name: display name when set, else id */}
-              <h3 className="font-semibold text-foreground truncate text-sm mb-1 group-hover:text-primary transition-colors" title={subject.display_name?.trim() ? subject.id : undefined}>
+              <h3
+                className="font-semibold text-foreground truncate text-sm mb-1 group-hover:text-primary transition-colors"
+                title={subject.display_name?.trim() ? subject.id : undefined}
+              >
                 {subject.display_name?.trim() || subject.id}
               </h3>
 
               {/* ID when display name is shown; external ref when present */}
               {subject.display_name?.trim() && (
-                <p className="text-xs text-muted-foreground truncate font-mono">
-                  ID: {subject.id}
-                </p>
+                <p className="text-xs text-muted-foreground truncate font-mono">ID: {subject.id}</p>
               )}
               {subject.external_ref && (
                 <p className="text-xs text-muted-foreground truncate">

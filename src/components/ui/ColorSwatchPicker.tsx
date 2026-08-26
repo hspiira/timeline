@@ -1,10 +1,6 @@
-import { useState } from 'react'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 import { ChevronDown } from 'lucide-react'
+import { useState } from 'react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
 const PRESET_COLORS = [
@@ -53,18 +49,22 @@ export function ColorSwatchPicker({
           className={cn(
             'flex items-center gap-2 w-full h-10 pl-2.5 pr-3 py-2 rounded-none border border-input bg-background text-sm text-left transition-colors',
             'hover:bg-muted/50 hover:border-muted-foreground/30',
-            disabled && 'opacity-50 cursor-not-allowed'
+            disabled && 'opacity-50 cursor-not-allowed',
           )}
         >
           <span
             className={cn(
-              'flex items-center justify-center w-8 h-8 shrink-0 rounded-md border-2 border-border overflow-hidden'
+              'flex items-center justify-center w-8 h-8 shrink-0 rounded-md border-2 border-border overflow-hidden',
             )}
           >
             {value ? (
               <span
                 className="w-full h-full"
-                style={{ backgroundColor: normalizedValue.startsWith('#') ? normalizedValue : `#${normalizedValue}` }}
+                style={{
+                  backgroundColor: normalizedValue.startsWith('#')
+                    ? normalizedValue
+                    : `#${normalizedValue}`,
+                }}
               />
             ) : (
               <span
@@ -100,7 +100,7 @@ export function ColorSwatchPicker({
                 'flex flex-col items-center justify-center gap-0.5 min-w-[2.25rem] min-h-[2.25rem] rounded-md border-2 shrink-0 transition-all bg-background',
                 !value
                   ? 'border-primary ring-2 ring-primary/20'
-                  : 'border-border hover:border-muted-foreground/40 hover:bg-muted/50'
+                  : 'border-border hover:border-muted-foreground/40 hover:bg-muted/50',
               )}
             >
               <span
@@ -128,7 +128,7 @@ export function ColorSwatchPicker({
                   'min-w-[2.25rem] min-h-[2.25rem] rounded-md border-2 shrink-0 transition-all',
                   isSelected
                     ? 'border-primary ring-2 ring-primary/20'
-                    : 'border-transparent hover:border-muted-foreground/30 hover:ring-2 hover:ring-muted-foreground/20'
+                    : 'border-transparent hover:border-muted-foreground/30 hover:ring-2 hover:ring-muted-foreground/20',
                 )}
                 style={{ backgroundColor: hex }}
               />

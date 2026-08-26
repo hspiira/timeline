@@ -22,11 +22,7 @@ export function FormModalActions({
 }: FormModalActionsProps) {
   return (
     <div className="flex items-center gap-3 mt-6">
-      <Button
-        type="submit"
-        disabled={loading || submitDisabled}
-        className="flex-1"
-      >
+      <Button type="submit" disabled={loading || submitDisabled} className="flex-1">
         {loading ? (
           <>
             <LoadingIcon />

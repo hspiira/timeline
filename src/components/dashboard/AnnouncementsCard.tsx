@@ -1,5 +1,5 @@
-import { DashboardCard } from './DashboardCard'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { DashboardCard } from './DashboardCard'
 
 const SKELETON_ITEMS = 3
 

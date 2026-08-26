@@ -3,9 +3,9 @@
  * Consumed by create/edit modals and NodeConfigPanel. Keeps entity fetching in one place (DRY).
  */
 
-import { useEffect, useState, useMemo } from 'react'
-import { timelineApi } from '@/lib/api-client'
+import { useEffect, useMemo, useState } from 'react'
 import { useEventTypes } from '@/hooks/useEventTypes'
+import { timelineApi } from '@/lib/api-client'
 import { getApiErrorMessage } from '@/lib/api-utils'
 
 export interface EventTransitionRuleRef {
@@ -80,7 +80,9 @@ export function useWorkflowEngineContext(): WorkflowEngineContextValue {
       .finally(() => {
         if (mounted) setSubjectTypesLoading(false)
       })
-    return () => { mounted = false }
+    return () => {
+      mounted = false
+    }
   }, [])
 
   useEffect(() => {
@@ -91,20 +93,26 @@ export function useWorkflowEngineContext(): WorkflowEngineContextValue {
       .list({ limit: 500 })
       .then(({ data }) => {
         if (!mounted) return
-        const raw = Array.isArray(data) ? data : (data && typeof data === 'object' && 'items' in data ? (data as { items: unknown[] }).items : [])
+        const raw = Array.isArray(data)
+          ? data
+          : data && typeof data === 'object' && 'items' in data
+            ? (data as { items: unknown[] }).items
+            : []
         const list: RawEventSchema[] = Array.isArray(raw) ? (raw as RawEventSchema[]) : []
         setEventSchemas(
           list.map((s) => ({
             event_type: s.event_type ?? '',
             version: s.version,
             schema_id: s.id,
-          }))
+          })),
         )
       })
       .finally(() => {
         if (mounted) setEventSchemasLoading(false)
       })
-    return () => { mounted = false }
+    return () => {
+      mounted = false
+    }
   }, [])
 
   useEffect(() => {
@@ -120,15 +128,19 @@ export function useWorkflowEngineContext(): WorkflowEngineContextValue {
           setTransitionRules(
             list.map((r: { event_type?: string; required_prior_event_types?: string[] }) => ({
               event_type: r.event_type ?? '',
-              required_prior_event_types: Array.isArray(r.required_prior_event_types) ? r.required_prior_event_types : [],
-            }))
+              required_prior_event_types: Array.isArray(r.required_prior_event_types)
+                ? r.required_prior_event_types
+                : [],
+            })),
           )
         }
       })
       .finally(() => {
         if (mounted) setTransitionRulesLoading(false)
       })
-    return () => { mounted = false }
+    return () => {
+      mounted = false
+    }
   }, [])
 
   useEffect(() => {
@@ -146,14 +158,16 @@ export function useWorkflowEngineContext(): WorkflowEngineContextValue {
               id: r.id ?? '',
               kind: r.kind ?? '',
               display_name: r.display_name ?? null,
-            }))
+            })),
           )
         }
       })
       .finally(() => {
         if (mounted) setRelationshipKindsLoading(false)
       })
-    return () => { mounted = false }
+    return () => {
+      mounted = false
+    }
   }, [])
 
   const loading =
@@ -174,14 +188,6 @@ export function useWorkflowEngineContext(): WorkflowEngineContextValue {
       loading,
       error,
     }),
-    [
-      eventTypes,
-      subjectTypes,
-      eventSchemas,
-      transitionRules,
-      relationshipKinds,
-      loading,
-      error,
-    ]
+    [eventTypes, subjectTypes, eventSchemas, transitionRules, relationshipKinds, loading, error],
   )
 }

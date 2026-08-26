@@ -2,11 +2,11 @@ import { useMemo } from 'react'
 
 const CHART_COLORS = [
   'var(--dashboard-accent)',
-  'oklch(0.65 0.15 35)',   // orange
-  'oklch(0.55 0.12 155)',  // green
-  'oklch(0.60 0.10 250)',  // blue
-  'oklch(0.55 0.08 280)',  // purple
-  'oklch(0.62 0.12 45)',   // amber
+  'oklch(0.65 0.15 35)', // orange
+  'oklch(0.55 0.12 155)', // green
+  'oklch(0.60 0.10 250)', // blue
+  'oklch(0.55 0.08 280)', // purple
+  'oklch(0.62 0.12 45)', // amber
 ]
 
 interface EventsDonutCardProps {
@@ -81,7 +81,9 @@ export function EventsDonutCard({
                     aria-hidden
                   />
                   <span className="text-muted-foreground truncate">{s.label}</span>
-                  <span className="font-medium tabular-nums ml-auto">{s.count.toLocaleString()}</span>
+                  <span className="font-medium tabular-nums ml-auto">
+                    {s.count.toLocaleString()}
+                  </span>
                 </li>
               ))}
             </ul>

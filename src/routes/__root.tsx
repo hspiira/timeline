@@ -1,33 +1,30 @@
+import { TanStackDevtools } from '@tanstack/react-devtools'
+import type { QueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import {
-  HeadContent,
-  Scripts,
   createRootRouteWithContext,
+  HeadContent,
   Link,
+  Scripts,
   useNavigate,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
 import { useStore } from '@tanstack/react-store'
-import { useQueryClient } from '@tanstack/react-query'
+import { Bell, LogOut } from 'lucide-react'
 import { useEffect } from 'react'
-import { LogOut, Bell } from 'lucide-react'
-
-import TanStackQueryDevtools from '@/integrations/tanstack-query/devtools'
-import { getApiBaseUrl } from '@/lib/api-client'
-import { authStore, authActions } from '@/lib/auth-store'
-import { ThemeToggle } from '@/components/theme/theme-toggler'
-import { ThemeProvider } from '@/components/theme/theme-provider'
-import { SettingsButton } from '@/components/header/SettingsButton'
+import { AppSidebar } from '@/components/app-shell/AppSidebar'
 import { GlobalSearch } from '@/components/header/GlobalSearch'
+import { SettingsButton } from '@/components/header/SettingsButton'
 import { TenantSelector } from '@/components/header/TenantSelector'
+import { ThemeProvider } from '@/components/theme/theme-provider'
+import { ThemeToggle } from '@/components/theme/theme-toggler'
 import { ToastContainer } from '@/components/toast/ToastContainer'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { NotFound } from '@/components/ui/NotFound'
-import { AppSidebar } from '@/components/app-shell/AppSidebar'
-
+import TanStackQueryDevtools from '@/integrations/tanstack-query/devtools'
+import { getApiBaseUrl } from '@/lib/api-client'
+import { authActions, authStore } from '@/lib/auth-store'
 import appCss from '@/styles.css?url'
-
-import type { QueryClient } from '@tanstack/react-query'
 
 interface MyRouterContext {
   queryClient: QueryClient
@@ -110,61 +107,63 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body className="h-full overflow-x-hidden">
         <ThemeProvider defaultTheme="system" storageKey="timeline-theme">
           <ErrorBoundary>
-          {/* Header - only show on non-auth pages */}
-          {authState.user ? (
-            <div className="flex flex-col h-screen overflow-hidden">
-              <header className="z-40 flex h-16 shrink-0 items-center gap-4 border-b bg-background/80 backdrop-blur-md dark:bg-background dark:backdrop-blur-none px-4 sm:px-6 lg:px-8 w-full">
-                <Link to="/" className="flex items-center gap-2 group shrink-0">
-                  <img src="/logo.svg" alt="Timeline" className="w-8 h-8 transition-transform group-hover:scale-110" />
-                  <span className="text-xl font-bold text-foreground hidden sm:inline">
-                    Timeline
-                  </span>
-                </Link>
-                <div className="flex-1 flex justify-end items-center gap-2">
-                  <GlobalSearch />
-                  <TenantSelector />
-                  <button
-                    type="button"
-                    className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-none transition-colors"
-                    aria-label="Notifications"
-                    title="Notifications (coming soon)"
-                  >
-                    <Bell className="w-5 h-5" />
-                  </button>
-                  <span className="text-sm font-medium text-muted-foreground hidden md:inline">
-                    {authState.user.username}
-                  </span>
-                  <SettingsButton />
-                  <ThemeToggle />
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-accent rounded-none transition-all"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span className="hidden sm:inline">Logout</span>
-                  </button>
-                </div>
-              </header>
-              <div className="flex flex-1 min-h-0 min-w-0">
-                <AppSidebar />
-                <main className="flex-1 min-h-0 overflow-y-auto bg-background">
-                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <ErrorBoundary
-                      onRetry={() => queryClient.invalidateQueries()}
+            {/* Header - only show on non-auth pages */}
+            {authState.user ? (
+              <div className="flex flex-col h-screen overflow-hidden">
+                <header className="z-40 flex h-16 shrink-0 items-center gap-4 border-b bg-background/80 backdrop-blur-md dark:bg-background dark:backdrop-blur-none px-4 sm:px-6 lg:px-8 w-full">
+                  <Link to="/" className="flex items-center gap-2 group shrink-0">
+                    <img
+                      src="/logo.svg"
+                      alt="Timeline"
+                      className="w-8 h-8 transition-transform group-hover:scale-110"
+                    />
+                    <span className="text-xl font-bold text-foreground hidden sm:inline">
+                      Timeline
+                    </span>
+                  </Link>
+                  <div className="flex-1 flex justify-end items-center gap-2">
+                    <GlobalSearch />
+                    <TenantSelector />
+                    <button
+                      type="button"
+                      className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-none transition-colors"
+                      aria-label="Notifications"
+                      title="Notifications (coming soon)"
                     >
-                      {children}
-                    </ErrorBoundary>
+                      <Bell className="w-5 h-5" />
+                    </button>
+                    <span className="text-sm font-medium text-muted-foreground hidden md:inline">
+                      {authState.user.username}
+                    </span>
+                    <SettingsButton />
+                    <ThemeToggle />
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-accent rounded-none transition-all"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span className="hidden sm:inline">Logout</span>
+                    </button>
                   </div>
-                </main>
+                </header>
+                <div className="flex flex-1 min-h-0 min-w-0">
+                  <AppSidebar />
+                  <main className="flex-1 min-h-0 overflow-y-auto bg-background">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                      <ErrorBoundary onRetry={() => queryClient.invalidateQueries()}>
+                        {children}
+                      </ErrorBoundary>
+                    </div>
+                  </main>
+                </div>
               </div>
-            </div>
-          ) : (
-            <ErrorBoundary onRetry={() => queryClient.invalidateQueries()}>
-              {children}
-            </ErrorBoundary>
-          )}
+            ) : (
+              <ErrorBoundary onRetry={() => queryClient.invalidateQueries()}>
+                {children}
+              </ErrorBoundary>
+            )}
 
-          <ToastContainer />
+            <ToastContainer />
           </ErrorBoundary>
 
           <TanStackDevtools

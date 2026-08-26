@@ -59,7 +59,12 @@ export const DEFAULT_TRIGGER_NODE_ID = 'trigger-default'
 
 /** Creates a new workflow with a single trigger node so the user starts by specifying the trigger. */
 export function createWorkflowWithDefaultTrigger(id: string, name: string): Workflow {
-  const triggerNode = createNode(DEFAULT_TRIGGER_NODE_ID, 'trigger', { x: 0, y: 0 }, { eventType: '' })
+  const triggerNode = createNode(
+    DEFAULT_TRIGGER_NODE_ID,
+    'trigger',
+    { x: 0, y: 0 },
+    { eventType: '' },
+  )
   return { id, name, nodes: [triggerNode], edges: [] }
 }
 
@@ -67,7 +72,7 @@ export function createNode(
   id: string,
   type: NodeType,
   position: Position,
-  configuration: NodeConfiguration = {}
+  configuration: NodeConfiguration = {},
 ): WorkflowNode {
   return {
     id,
@@ -78,6 +83,11 @@ export function createNode(
   }
 }
 
-export function createEdge(id: string, from: string, to: string, label?: 'true' | 'false'): WorkflowEdge {
+export function createEdge(
+  id: string,
+  from: string,
+  to: string,
+  label?: 'true' | 'false',
+): WorkflowEdge {
   return { id, from, to, ...(label != null && { label }) }
 }

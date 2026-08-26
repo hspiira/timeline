@@ -3,9 +3,9 @@
  * See: https://attio.com/help/reference/attio-101/introduction-to-workflows
  */
 
-import type { Workflow } from './types'
-import { createNode, createEdge, DEFAULT_TRIGGER_NODE_ID } from './types'
 import { generateEdgeId } from './edge-manager'
+import type { Workflow } from './types'
+import { createEdge, createNode, DEFAULT_TRIGGER_NODE_ID } from './types'
 
 export interface WorkflowTemplate {
   id: string
@@ -39,19 +39,34 @@ const churnMonitorTemplate: WorkflowTemplate = {
     const actionId = 'action-1'
     const terminalId = 'terminal-false'
     const nodes = [
-      createNode(triggerId, 'trigger', { x: 0, y: 0 }, {
-        eventType: '',
-        description: 'No description',
-      }),
-      createNode(conditionId, 'condition', { x: 0, y: 160 }, {
-        expression: '',
-        description: 'Did status change to cancelled?',
-      }),
-      createNode(actionId, 'action', { x: 0, y: 320 }, {
-        actionType: 'create_event',
-        params: {},
-        description: 'Create follow-up event or task',
-      }),
+      createNode(
+        triggerId,
+        'trigger',
+        { x: 0, y: 0 },
+        {
+          eventType: '',
+          description: 'No description',
+        },
+      ),
+      createNode(
+        conditionId,
+        'condition',
+        { x: 0, y: 160 },
+        {
+          expression: '',
+          description: 'Did status change to cancelled?',
+        },
+      ),
+      createNode(
+        actionId,
+        'action',
+        { x: 0, y: 320 },
+        {
+          actionType: 'create_event',
+          params: {},
+          description: 'Create follow-up event or task',
+        },
+      ),
       createNode(terminalId, 'terminal', { x: 200, y: 260 }, {}),
     ]
     const edges = [

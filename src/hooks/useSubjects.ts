@@ -48,7 +48,9 @@ export function useSubjects({ filterType, search: _search }: UseSubjectsProps = 
         data.map(async (subject: SubjectResponse): Promise<SubjectWithMetadata> => {
           const [eventsResult, verifyResult] = await Promise.all([
             timelineApi.events.list(subject.id),
-            timelineApi.integrity.verifySubject(subject.id).catch(() => ({ data: null, error: true })),
+            timelineApi.integrity
+              .verifySubject(subject.id)
+              .catch(() => ({ data: null, error: true })),
           ])
 
           let eventCount = 0
@@ -60,7 +62,9 @@ export function useSubjects({ filterType, search: _search }: UseSubjectsProps = 
 
           let integrityStatus: SubjectWithMetadata['integrityStatus'] = 'unknown'
           if (!verifyResult.error && verifyResult.data && 'is_chain_valid' in verifyResult.data) {
-            integrityStatus = (verifyResult.data as { is_chain_valid: boolean }).is_chain_valid ? 'valid' : 'broken'
+            integrityStatus = (verifyResult.data as { is_chain_valid: boolean }).is_chain_valid
+              ? 'valid'
+              : 'broken'
           }
 
           return {
@@ -69,7 +73,7 @@ export function useSubjects({ filterType, search: _search }: UseSubjectsProps = 
             lastEventDate,
             integrityStatus,
           }
-        })
+        }),
       )
 
       return subjectsWithMetadata

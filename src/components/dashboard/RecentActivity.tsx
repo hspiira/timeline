@@ -1,8 +1,8 @@
+import { Calendar, ChevronDown, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Calendar } from 'lucide-react'
-import { TimelineEvent } from './TimelineEvent'
 import { EventDocumentsModal } from '@/components/documents/EventDocumentsModal'
 import type { EventResponse } from '@/lib/types'
+import { TimelineEvent } from './TimelineEvent'
 
 interface RecentActivityProps {
   eventsByDate: Record<string, EventResponse[]>
@@ -16,27 +16,22 @@ interface RecentActivityProps {
   }
 }
 
-export function RecentActivity({
-  eventsByDate,
-  timeline
-}: RecentActivityProps) {
+export function RecentActivity({ eventsByDate, timeline }: RecentActivityProps) {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const hasEvents = Object.keys(eventsByDate).length > 0
 
-  const selectedEvent = selectedEventId ?
-    Object.values(eventsByDate).flat().find(e => e.id === selectedEventId) :
-    null
+  const selectedEvent = selectedEventId
+    ? Object.values(eventsByDate)
+        .flat()
+        .find((e) => e.id === selectedEventId)
+    : null
 
   if (!hasEvents) {
     return (
       <div className="bg-card/80 backdrop-blur-sm rounded-none p-12 border border-border/50 text-center">
         <Calendar className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
-        <h3 className="text-lg font-semibold text-foreground mb-2">
-          No recent activity
-        </h3>
-        <p className="text-muted-foreground">
-          Events will appear here as they occur
-        </p>
+        <h3 className="text-lg font-semibold text-foreground mb-2">No recent activity</h3>
+        <p className="text-muted-foreground">Events will appear here as they occur</p>
       </div>
     )
   }
@@ -53,9 +48,7 @@ export function RecentActivity({
             >
               {collapsed ? <ChevronRight /> : <ChevronDown />}
               <span className="font-semibold">{date}</span>
-              <span className="text-xs text-muted-foreground">
-                ({events.length})
-              </span>
+              <span className="text-xs text-muted-foreground">({events.length})</span>
             </button>
 
             {!collapsed && (

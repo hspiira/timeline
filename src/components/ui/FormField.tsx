@@ -1,5 +1,5 @@
-import { ReactNode } from 'react'
 import { AlertCircle } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Alert, AlertDescription } from './alert'
 import { Input } from './input'
 
@@ -11,13 +11,7 @@ export interface FormFieldProps {
   children: ReactNode
 }
 
-export function FormField({
-  label,
-  error,
-  required = false,
-  hint,
-  children,
-}: FormFieldProps) {
+export function FormField({ label, error, required = false, hint, children }: FormFieldProps) {
   return (
     <div className="space-y-1.5">
       <label className="block text-sm font-medium text-foreground/90">
@@ -31,15 +25,12 @@ export function FormField({
           <p className="text-xs font-medium">{error}</p>
         </div>
       )}
-      {hint && !error && (
-        <p className="text-xs text-muted-foreground">{hint}</p>
-      )}
+      {hint && !error && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   )
 }
 
-export interface FormInputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
+export interface FormInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   error?: string | null
   size?: 'sm' | 'md' | 'lg'
 }
@@ -57,16 +48,11 @@ export function FormInput({ error, className = '', size, ...props }: FormInputPr
   )
 }
 
-export interface FormTextareaProps
-  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+export interface FormTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   error?: string | null
 }
 
-export function FormTextarea({
-  error,
-  className = '',
-  ...props
-}: FormTextareaProps) {
+export function FormTextarea({ error, className = '', ...props }: FormTextareaProps) {
   return (
     <textarea
       className={`w-full px-3 py-2 bg-background border rounded-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 transition-colors resize-none ${

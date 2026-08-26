@@ -1,20 +1,19 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { ArrowRight, GitBranch, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { optionsFromStrings, SingleSelectCombobox } from '@/components/ui/combobox'
+import { ErrorModal } from '@/components/ui/ErrorModal'
+import { FormError, FormField, FormInput } from '@/components/ui/FormField'
+import { FormModalActions } from '@/components/ui/FormModalActions'
+import { LoadingIcon } from '@/components/ui/icons'
+import { Input } from '@/components/ui/input'
+import { Modal } from '@/components/ui/Modal'
+import { useEventTypes } from '@/hooks/useEventTypes'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { timelineApi } from '@/lib/api-client'
-import { useEventTypes } from '@/hooks/useEventTypes'
-import { optionsFromStrings } from '@/components/ui/combobox'
-import { Plus, Pencil, Trash2, ArrowRight, GitBranch, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Modal } from '@/components/ui/Modal'
-import { FormField, FormInput, FormError } from '@/components/ui/FormField'
-import { FormModalActions } from '@/components/ui/FormModalActions'
-import { ConfirmModal } from '@/components/ui/ConfirmModal'
-import { ErrorModal } from '@/components/ui/ErrorModal'
-import { SingleSelectCombobox } from '@/components/ui/combobox'
-import { Input } from '@/components/ui/input'
 import { getApiErrorMessage } from '@/lib/api-utils'
-import { LoadingIcon } from '@/components/ui/icons'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/settings/event-transition-rules/')({
@@ -22,10 +21,8 @@ export const Route = createFileRoute('/settings/event-transition-rules/')({
 })
 
 type EventTransitionRuleResponse = components['schemas']['EventTransitionRuleResponse']
-type EventTransitionRuleCreateRequest =
-  components['schemas']['EventTransitionRuleCreateRequest']
-type EventTransitionRuleUpdate =
-  components['schemas']['EventTransitionRuleUpdate']
+type EventTransitionRuleCreateRequest = components['schemas']['EventTransitionRuleCreateRequest']
+type EventTransitionRuleUpdate = components['schemas']['EventTransitionRuleUpdate']
 
 /** Single rule as a flow card: [prior] [prior] → [target] */
 function RuleCard({
@@ -71,26 +68,14 @@ function RuleCard({
       </div>
 
       {rule.description?.trim() && (
-        <p className="mt-3 text-sm text-muted-foreground line-clamp-2 pl-0">
-          {rule.description}
-        </p>
+        <p className="mt-3 text-sm text-muted-foreground line-clamp-2 pl-0">{rule.description}</p>
       )}
 
       <div className="mt-3 flex items-center justify-end gap-1 pt-2 border-t border-border/50">
-        <Button
-          variant="ghost"
-          size="sm"
-          title="Edit"
-          onClick={() => onEdit(rule)}
-        >
+        <Button variant="ghost" size="sm" title="Edit" onClick={() => onEdit(rule)}>
           <Pencil className="w-4 h-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          title="Delete"
-          onClick={() => onDelete(rule)}
-        >
+        <Button variant="ghost" size="sm" title="Delete" onClick={() => onDelete(rule)}>
           <Trash2 className="w-4 h-4 text-destructive" />
         </Button>
       </div>
@@ -123,8 +108,10 @@ function EventTransitionRulesPage() {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: apiError } =
-        await timelineApi.eventTransitionRules.list({ skip: 0, limit: 500 })
+      const { data, error: apiError } = await timelineApi.eventTransitionRules.list({
+        skip: 0,
+        limit: 500,
+      })
       if (apiError) {
         setError('Failed to load event transition rules')
         return
@@ -193,16 +180,16 @@ function EventTransitionRulesPage() {
           required_prior_event_types,
           description: description.trim() || null,
         }
-        const { data, error: apiError } =
-          await timelineApi.eventTransitionRules.update(editing.id, body)
+        const { data, error: apiError } = await timelineApi.eventTransitionRules.update(
+          editing.id,
+          body,
+        )
         if (apiError) {
           setFormError(getApiErrorMessage(apiError, 'Failed to update'))
           return
         }
         if (data) {
-          setItems((prev) =>
-            prev.map((r) => (r.id === data.id ? data : r))
-          )
+          setItems((prev) => prev.map((r) => (r.id === data.id ? data : r)))
           closeModal()
         }
       } else {
@@ -211,8 +198,7 @@ function EventTransitionRulesPage() {
           required_prior_event_types,
           description: description.trim() || null,
         }
-        const { data, error: apiError } =
-          await timelineApi.eventTransitionRules.create(body)
+        const { data, error: apiError } = await timelineApi.eventTransitionRules.create(body)
         if (apiError) {
           setFormError(getApiErrorMessage(apiError, 'Failed to create'))
           return
@@ -232,8 +218,7 @@ function EventTransitionRulesPage() {
   const handleDeleteConfirm = async () => {
     if (!deleting) return
     try {
-      const { error: apiError } =
-        await timelineApi.eventTransitionRules.delete(deleting.id)
+      const { error: apiError } = await timelineApi.eventTransitionRules.delete(deleting.id)
       if (apiError) throw new Error('Failed to delete')
       setItems((prev) => prev.filter((r) => r.id !== deleting.id))
       setDeleting(null)
@@ -256,9 +241,7 @@ function EventTransitionRulesPage() {
         <Modal
           isOpen={true}
           onClose={closeModal}
-          title={
-            editing ? 'Edit transition rule' : 'Create transition rule'
-          }
+          title={editing ? 'Edit transition rule' : 'Create transition rule'}
           maxWidth="max-w-lg"
         >
           <form
@@ -337,9 +320,7 @@ function EventTransitionRulesPage() {
                           { value: '', label: 'Add from event types…' },
                           ...eventTypes
                             .filter(
-                              (t) =>
-                                t !== event_type?.trim() &&
-                                !requiredPriorList.includes(t)
+                              (t) => t !== event_type?.trim() && !requiredPriorList.includes(t),
                             )
                             .map((t) => ({ value: t, label: t })),
                         ]}
@@ -419,7 +400,8 @@ function EventTransitionRulesPage() {
             Event transition rules
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Require that certain event types exist before creating another (e.g. payment only after order).
+            Require that certain event types exist before creating another (e.g. payment only after
+            order).
           </p>
         </div>
         <Button variant="primary" size="md" onClick={openCreate}>
@@ -437,7 +419,9 @@ function EventTransitionRulesPage() {
         <div className="rounded-lg border border-dashed border-border bg-muted/20 p-10 text-center">
           <p className="font-medium text-foreground">No transition rules yet</p>
           <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-            Add a rule to enforce event order (e.g. <span className="font-mono text-foreground/90">payment_received</span> only after <span className="font-mono text-foreground/90">order_created</span>).
+            Add a rule to enforce event order (e.g.{' '}
+            <span className="font-mono text-foreground/90">payment_received</span> only after{' '}
+            <span className="font-mono text-foreground/90">order_created</span>).
           </p>
           <Button onClick={openCreate} variant="primary" size="md" className="mt-4">
             <Plus className="w-4 h-4" />
@@ -447,12 +431,7 @@ function EventTransitionRulesPage() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((rule) => (
-            <RuleCard
-              key={rule.id}
-              rule={rule}
-              onEdit={openEdit}
-              onDelete={setDeleting}
-            />
+            <RuleCard key={rule.id} rule={rule} onEdit={openEdit} onDelete={setDeleting} />
           ))}
         </div>
       )}

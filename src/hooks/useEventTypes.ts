@@ -10,7 +10,12 @@ function extractTypesFromSchemaList(data: unknown): string[] {
   if (Array.isArray(data)) {
     return [...new Set(data.map((s: { event_type?: string }) => s.event_type).filter(isDefined))]
   }
-  if (data && typeof data === 'object' && 'items' in data && Array.isArray((data as { items: unknown[] }).items)) {
+  if (
+    data &&
+    typeof data === 'object' &&
+    'items' in data &&
+    Array.isArray((data as { items: unknown[] }).items)
+  ) {
     const items = (data as { items: { event_type?: string }[] }).items
     return [...new Set(items.map((s) => s.event_type).filter(isDefined))]
   }
@@ -38,7 +43,9 @@ export function useEventTypes(): UseEventTypesResult {
       setLoading(true)
       setError(null)
       try {
-        const { data: schemaList, error: schemaError } = await timelineApi.eventSchemas.list({ limit: 500 })
+        const { data: schemaList, error: schemaError } = await timelineApi.eventSchemas.list({
+          limit: 500,
+        })
         if (!mounted) return
         const fromSchemas = extractTypesFromSchemaList(schemaList)
         if (fromSchemas.length > 0) {
@@ -51,7 +58,11 @@ export function useEventTypes(): UseEventTypesResult {
         const { data: eventsList } = await timelineApi.events.listAll()
         if (!mounted) return
         if (eventsList && Array.isArray(eventsList)) {
-          const fromEvents = [...new Set(eventsList.map((e: { event_type?: string }) => e.event_type).filter(isDefined))]
+          const fromEvents = [
+            ...new Set(
+              eventsList.map((e: { event_type?: string }) => e.event_type).filter(isDefined),
+            ),
+          ]
           if (fromEvents.length > 0) {
             setTypes(fromEvents)
             setError(null)
@@ -68,7 +79,9 @@ export function useEventTypes(): UseEventTypesResult {
       }
     }
     load()
-    return () => { mounted = false }
+    return () => {
+      mounted = false
+    }
   }, [])
 
   return { types, loading, error }

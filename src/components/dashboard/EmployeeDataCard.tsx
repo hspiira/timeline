@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { RefreshCw } from 'lucide-react'
-import { DashboardCard } from './DashboardCard'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { DashboardCard } from './DashboardCard'
 
 interface EmployeeDataCardProps {
   totalSubjects: number
@@ -37,7 +37,10 @@ export function EmployeeDataCard({
               <RefreshCw className="w-4 h-4" />
             </button>
           )}
-          <Link to="/subjects" className="text-xs text-muted-foreground hover:text-[var(--dashboard-accent)]">
+          <Link
+            to="/subjects"
+            className="text-xs text-muted-foreground hover:text-[var(--dashboard-accent)]"
+          >
             View details &gt;
           </Link>
         </div>
@@ -66,7 +69,9 @@ export function EmployeeDataCard({
               ? entries.map(([label, count]) => (
                   <li key={label} className="flex justify-between gap-2">
                     <span className="text-muted-foreground truncate">{label}</span>
-                    <span className="font-medium tabular-nums shrink-0">{count.toLocaleString()}</span>
+                    <span className="font-medium tabular-nums shrink-0">
+                      {count.toLocaleString()}
+                    </span>
                   </li>
                 ))
               : [

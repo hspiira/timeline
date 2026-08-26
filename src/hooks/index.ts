@@ -6,13 +6,13 @@ export {
   useSimulatedActivityStream,
 } from './useActivitySubscription'
 export { useDebouncedSearch } from './useDebouncedSearch'
-export { useEventTypes, type UseEventTypesResult } from './useEventTypes'
 export {
   EVENTS_PAGE_SIZE,
-  useEventsList,
   type UseEventsListOptions,
   type UseEventsListResult,
+  useEventsList,
 } from './useEventsList'
+export { type UseEventTypesResult, useEventTypes } from './useEventTypes'
 export {
   type UseFetchWithErrorOptions,
   type UseFetchWithErrorResult,
@@ -23,7 +23,7 @@ export {
   type UseFormSubmitReturn,
   useFormSubmit,
 } from './useFormSubmit'
-export { type FormErrors, type ValidationRules, useFormValidation } from './useFormValidation'
+export { type FormErrors, useFormValidation, type ValidationRules } from './useFormValidation'
 export { useHasAuditAccess } from './useHasAuditAccess'
 export { useHasSubjectErasureAccess } from './useHasSubjectErasureAccess'
 export { useHasSubjectExportAccess } from './useHasSubjectExportAccess'
@@ -38,6 +38,6 @@ export {
   useSyncProgress,
 } from './useSyncProgress'
 export { useTimelineState } from './useTimelineState'
-export { useWorkflowsByEventType, WORKFLOWS_QUERY_KEY } from './useWorkflowsByEventType'
 export { useToast } from './useToast'
 export { useVirtualScroll } from './useVirtualScroll'
+export { useWorkflowsByEventType, WORKFLOWS_QUERY_KEY } from './useWorkflowsByEventType'

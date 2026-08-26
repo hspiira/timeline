@@ -1,6 +1,6 @@
+import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useEffect, useId } from 'react'
-import { X } from 'lucide-react'
 import { Button } from './button'
 
 interface ModalProps {
@@ -117,7 +117,11 @@ export function Modal({
         {hasHeader && (
           <div className="flex items-start justify-between gap-4 shrink-0 px-4 pt-4 pb-2 sm:px-6 sm:pt-6 sm:pb-2">
             <div className="min-w-0 flex-1">
-              {title && <h2 id={titleId} className="text-xl font-semibold text-foreground">{title}</h2>}
+              {title && (
+                <h2 id={titleId} className="text-xl font-semibold text-foreground">
+                  {title}
+                </h2>
+              )}
               {subtitle && (
                 <p className="mt-0.5 text-sm text-muted-foreground break-words">{subtitle}</p>
               )}
@@ -137,7 +141,9 @@ export function Modal({
         )}
 
         {/* Content - scrollable */}
-        <div className="flex-1 overflow-auto px-4 pt-2 pb-4 sm:px-6 sm:pt-2 sm:pb-6 text-foreground">{children}</div>
+        <div className="flex-1 overflow-auto px-4 pt-2 pb-4 sm:px-6 sm:pt-2 sm:pb-6 text-foreground">
+          {children}
+        </div>
 
         {/* Footer */}
         {footer && (

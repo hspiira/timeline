@@ -1,5 +1,5 @@
+import { type StatusKind, toStatusKind } from '@/lib/status-tokens'
 import { cn } from '@/lib/utils'
-import { toStatusKind, type StatusKind } from '@/lib/status-tokens'
 
 export type IntegrityStatus = 'valid' | 'broken' | 'unknown'
 
@@ -28,7 +28,8 @@ interface StatusBadgeProps {
 export function StatusBadge({ status, label, className, dotOnly }: StatusBadgeProps) {
   const kind = toKind(status)
 
-  const displayLabel = label ?? (status === 'valid' ? 'Valid' : status === 'broken' ? 'Broken' : 'Unknown')
+  const displayLabel =
+    label ?? (status === 'valid' ? 'Valid' : status === 'broken' ? 'Broken' : 'Unknown')
 
   if (dotOnly) {
     return (
@@ -40,7 +41,7 @@ export function StatusBadge({ status, label, className, dotOnly }: StatusBadgePr
           kind === 'error' && 'bg-status-error',
           kind === 'repair' && 'bg-status-repair',
           kind === 'unknown' && 'bg-muted-foreground/50',
-          className
+          className,
         )}
         title={displayLabel}
         aria-label={displayLabel}
@@ -57,7 +58,7 @@ export function StatusBadge({ status, label, className, dotOnly }: StatusBadgePr
         kind === 'error' && 'border-status-error/50 bg-status-error/10 text-status-error',
         kind === 'repair' && 'border-status-repair/50 bg-status-repair/10 text-status-repair',
         kind === 'unknown' && 'border-border bg-muted/50 text-muted-foreground',
-        className
+        className,
       )}
     >
       <span
@@ -67,7 +68,7 @@ export function StatusBadge({ status, label, className, dotOnly }: StatusBadgePr
           kind === 'warn' && 'bg-status-warn',
           kind === 'error' && 'bg-status-error',
           kind === 'repair' && 'bg-status-repair',
-          kind === 'unknown' && 'bg-muted-foreground/50'
+          kind === 'unknown' && 'bg-muted-foreground/50',
         )}
       />
       {displayLabel}

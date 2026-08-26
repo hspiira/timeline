@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getAuthToken, getApiBaseUrl } from '@/lib/api-client'
+import { getApiBaseUrl, getAuthToken } from '@/lib/api-client'
 
 export type SyncStage =
   | 'started'
@@ -91,7 +91,7 @@ export function useSyncProgress({
         onError?.(err instanceof Error ? err : new Error('Unknown error'))
       }
     },
-    [onProgress, onError]
+    [onProgress, onError],
   )
 
   /**
@@ -154,16 +154,14 @@ export function useSyncProgress({
    */
   const attemptReconnect = useCallback(() => {
     if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
-      console.warn(
-        `Max reconnection attempts (${MAX_RECONNECT_ATTEMPTS}) reached. Giving up.`
-      )
+      console.warn(`Max reconnection attempts (${MAX_RECONNECT_ATTEMPTS}) reached. Giving up.`)
       setIsReconnecting(false)
       return
     }
 
     setIsReconnecting(true)
     reconnectAttemptsRef.current += 1
-    const delay = RECONNECT_INTERVAL * Math.pow(2, reconnectAttemptsRef.current - 1)
+    const delay = RECONNECT_INTERVAL * 2 ** (reconnectAttemptsRef.current - 1)
 
     reconnectTimeoutRef.current = setTimeout(() => {
       console.log(`Attempting to reconnect (attempt ${reconnectAttemptsRef.current})...`)
@@ -216,14 +214,14 @@ export function useSyncProgress({
     (accountId: string): SyncProgressEvent | null => {
       return syncProgress[accountId] || null
     },
-    [syncProgress]
+    [syncProgress],
   )
 
   /**
    * Check if any account is currently syncing
    */
   const isAnySyncing = Object.values(syncProgress).some(
-    (p) => p.stage !== 'completed' && p.stage !== 'failed'
+    (p) => p.stage !== 'completed' && p.stage !== 'failed',
   )
 
   return {

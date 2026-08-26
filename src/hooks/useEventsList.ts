@@ -1,6 +1,6 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { timelineApi } from '@/lib/api-client'
-import type { EventResponse, EventListResponse } from '@/lib/types'
+import type { EventListResponse, EventResponse } from '@/lib/types'
 
 export const EVENTS_PAGE_SIZE = 20
 
@@ -111,7 +111,7 @@ export function useEventsList(options: UseEventsListOptions): UseEventsListResul
           listData.map(async (item: EventListResponse) => {
             const { data } = await timelineApi.events.get(item.id)
             return data
-          })
+          }),
         )
         const validEvents = fullEvents.filter((e): e is EventResponse => e != null)
         if (cancelled) return
@@ -132,7 +132,7 @@ export function useEventsList(options: UseEventsListOptions): UseEventsListResul
               ? false
               : total != null
                 ? validEvents.length < total
-                : validEvents.length >= EVENTS_PAGE_SIZE
+                : validEvents.length >= EVENTS_PAGE_SIZE,
           )
         }
 
@@ -141,19 +141,21 @@ export function useEventsList(options: UseEventsListOptions): UseEventsListResul
           Promise.all(
             listData.map(async (item: EventListResponse) => {
               try {
-                const { data: docs, error: docError } = await timelineApi.documents.listByEvent(item.id)
+                const { data: docs, error: docError } = await timelineApi.documents.listByEvent(
+                  item.id,
+                )
                 if (docError) return { eventId: item.id, count: 0 }
                 return { eventId: item.id, count: Array.isArray(docs) ? docs.length : 0 }
               } catch {
                 return { eventId: item.id, count: 0 }
               }
-            })
+            }),
           ),
           Promise.all(
             uniqueSubjectIds.map(async (subjectId) => {
               const { data } = await timelineApi.subjects.get(subjectId)
               return { subjectId, displayName: data?.display_name ?? subjectId }
-            })
+            }),
           ),
         ])
         if (cancelled) return

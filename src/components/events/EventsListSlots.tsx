@@ -18,13 +18,8 @@ export interface EventsLoadingSentinelProps {
 /** Sentinel for infinite scroll; shows spinner when loading more. */
 export function EventsLoadingSentinel({ loading, sentinelRef }: EventsLoadingSentinelProps) {
   return (
-    <div
-      ref={sentinelRef}
-      className="flex items-center justify-center py-2 min-h-[1rem]"
-    >
-      {loading && (
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-      )}
+    <div ref={sentinelRef} className="flex items-center justify-center py-2 min-h-[1rem]">
+      {loading && <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />}
     </div>
   )
 }

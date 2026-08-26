@@ -1,19 +1,19 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect, useMemo } from 'react'
-import type { ColumnDef } from '@tanstack/react-table'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useQuery } from '@tanstack/react-query'
-import { timelineApi } from '@/lib/api-client'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
-import { DataTable } from '@/components/ui/DataTable'
+import { createFileRoute } from '@tanstack/react-router'
+import type { ColumnDef } from '@tanstack/react-table'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Modal } from '@/components/ui/Modal'
-import { FormField, FormInput } from '@/components/ui/FormField'
-import { FormModalActions } from '@/components/ui/FormModalActions'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
-import type { components } from '@/lib/timeline-api'
+import { DataTable } from '@/components/ui/DataTable'
+import { FormField, FormInput } from '@/components/ui/FormField'
+import { FormModalActions } from '@/components/ui/FormModalActions'
 import { LoadingIcon } from '@/components/ui/icons'
+import { Modal } from '@/components/ui/Modal'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { timelineApi } from '@/lib/api-client'
+import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/settings/naming-templates/')({
   component: NamingTemplatesPage,
@@ -170,8 +170,10 @@ function NamingTemplatesPage() {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: apiError } =
-        await timelineApi.namingTemplates.list({ skip: 0, limit: 500 })
+      const { data, error: apiError } = await timelineApi.namingTemplates.list({
+        skip: 0,
+        limit: 500,
+      })
       if (apiError) {
         setError('Failed to load naming templates')
         return
@@ -199,8 +201,7 @@ function NamingTemplatesPage() {
     setScopeId('')
   }
 
-  const matchPreset = (t: string) =>
-    TEMPLATE_PRESETS.find((p) => p.template === t)?.id ?? ''
+  const matchPreset = (t: string) => TEMPLATE_PRESETS.find((p) => p.template === t)?.id ?? ''
 
   const openEdit = (row: NamingTemplate) => {
     setEditing(row)
@@ -231,10 +232,9 @@ function NamingTemplatesPage() {
     setFormError(null)
     try {
       if (editing) {
-        const { error: apiError } = await timelineApi.namingTemplates.update(
-          editing.id,
-          { template_string: template_string.trim() }
-        )
+        const { error: apiError } = await timelineApi.namingTemplates.update(editing.id, {
+          template_string: template_string.trim(),
+        })
         if (apiError) {
           setFormError('Failed to update template')
           setSaving(false)
@@ -247,9 +247,7 @@ function NamingTemplatesPage() {
           template_string: template_string.trim(),
         })
         if (apiError) {
-          setFormError(
-            (apiError as { detail?: string }).detail ?? 'Failed to create template'
-          )
+          setFormError((apiError as { detail?: string }).detail ?? 'Failed to create template')
           setSaving(false)
           return
         }
@@ -266,8 +264,7 @@ function NamingTemplatesPage() {
   const handleDelete = async () => {
     if (!deleting) return
     try {
-      const { error: apiError } =
-        await timelineApi.namingTemplates.delete(deleting.id)
+      const { error: apiError } = await timelineApi.namingTemplates.delete(deleting.id)
       if (apiError) {
         setError('Failed to delete template')
         setDeleting(null)
@@ -290,16 +287,12 @@ function NamingTemplatesPage() {
     {
       accessorKey: 'scope_id',
       header: 'Scope',
-      cell: ({ row }) => (
-        <span className="text-sm">{scopeLabel(row.original)}</span>
-      ),
+      cell: ({ row }) => <span className="text-sm">{scopeLabel(row.original)}</span>,
     },
     {
       accessorKey: 'template_string',
       header: 'Template',
-      cell: ({ row }) => (
-        <span className="font-mono text-sm">{row.original.template_string}</span>
-      ),
+      cell: ({ row }) => <span className="font-mono text-sm">{row.original.template_string}</span>,
     },
     {
       id: 'actions',
@@ -308,12 +301,7 @@ function NamingTemplatesPage() {
         const t = row.original
         return (
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => openEdit(t)}
-              title="Edit"
-            >
+            <Button variant="ghost" size="sm" onClick={() => openEdit(t)} title="Edit">
               <Pencil className="w-4 h-4" />
             </Button>
             <Button
@@ -337,9 +325,7 @@ function NamingTemplatesPage() {
     <>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-foreground">
-            Naming templates
-          </h1>
+          <h1 className="text-xl font-bold text-foreground">Naming templates</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Define name patterns for flows, subjects, and documents (e.g.{' '}
             <code className="text-xs">{'{year}-{month}-{client_name}'}</code>)
@@ -357,9 +343,7 @@ function NamingTemplatesPage() {
           Loading...
         </div>
       )}
-      {error && (
-        <p className="text-sm text-destructive py-2">{error}</p>
-      )}
+      {error && <p className="text-sm text-destructive py-2">{error}</p>}
       {!loading && !error && (
         <DataTable
           data={items}
@@ -405,7 +389,15 @@ function NamingTemplatesPage() {
               value={scope_id}
               onValueChange={setScopeId}
               options={[
-                { value: '', label: scope_type === 'flow' ? 'Select workflow' : scope_type === 'subject' ? 'Select subject type' : 'Select document category' },
+                {
+                  value: '',
+                  label:
+                    scope_type === 'flow'
+                      ? 'Select workflow'
+                      : scope_type === 'subject'
+                        ? 'Select subject type'
+                        : 'Select document category',
+                },
                 ...scopeOptions,
               ]}
               placeholder={
@@ -446,7 +438,8 @@ function NamingTemplatesPage() {
               className="font-mono text-sm"
             />
             <p className="text-xs text-muted-foreground mt-1.5 mb-2">
-              Add placeholders with the buttons below so names follow a standard format. Only letters, numbers and underscores inside braces (e.g. {'{client_name}'}).
+              Add placeholders with the buttons below so names follow a standard format. Only
+              letters, numbers and underscores inside braces (e.g. {'{client_name}'}).
             </p>
             <div className="flex flex-wrap gap-1.5">
               {PLACEHOLDER_INSERT.map(({ key, label }) => (
@@ -456,7 +449,9 @@ function NamingTemplatesPage() {
                   variant="outline"
                   size="sm"
                   className="text-xs font-mono"
-                  onClick={() => setTemplateString((s) => s + (s && !s.endsWith('-') ? '-' : '') + `{${key}}`)}
+                  onClick={() =>
+                    setTemplateString((s) => s + (s && !s.endsWith('-') ? '-' : '') + `{${key}}`)
+                  }
                 >
                   + {label}
                 </Button>
@@ -464,13 +459,14 @@ function NamingTemplatesPage() {
             </div>
             {template_string.trim() && (
               <p className="text-xs text-muted-foreground mt-2">
-                Example: <span className="font-mono text-foreground">{exampleFromTemplate(template_string)}</span>
+                Example:{' '}
+                <span className="font-mono text-foreground">
+                  {exampleFromTemplate(template_string)}
+                </span>
               </p>
             )}
           </FormField>
-          {formError && (
-            <p className="text-sm text-destructive">{formError}</p>
-          )}
+          {formError && <p className="text-sm text-destructive">{formError}</p>}
           <FormModalActions
             onCancel={closeModal}
             submitLabel={editing ? 'Save' : 'Create'}

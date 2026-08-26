@@ -1,18 +1,12 @@
 import { Link } from '@tanstack/react-router'
-import { DataTable } from '@/components/ui/DataTable'
 import type { ColumnDef } from '@tanstack/react-table'
-import type { FlowResponse } from '@/lib/types'
+import { DataTable } from '@/components/ui/DataTable'
 import type { components } from '@/lib/timeline-api'
+import type { FlowResponse } from '@/lib/types'
 
 type Workflow = components['schemas']['WorkflowResponse']
 
-export function FlowsTable({
-  flows,
-  workflows,
-}: {
-  flows: FlowResponse[]
-  workflows: Workflow[]
-}) {
+export function FlowsTable({ flows, workflows }: { flows: FlowResponse[]; workflows: Workflow[] }) {
   const columns: Array<ColumnDef<FlowResponse>> = [
     {
       accessorKey: 'name',
@@ -39,10 +33,7 @@ export function FlowsTable({
         const w = workflows.find((x) => x.id === flow.workflow_id)
         if (!w) return flow.workflow_id
         return (
-          <Link
-            to="/settings/workflows"
-            className="text-muted-foreground hover:text-foreground"
-          >
+          <Link to="/settings/workflows" className="text-muted-foreground hover:text-foreground">
             {w.name}
           </Link>
         )
@@ -66,12 +57,6 @@ export function FlowsTable({
   ]
 
   return (
-    <DataTable
-      data={flows}
-      columns={columns}
-      isLoading={false}
-      isEmpty={false}
-      variant="default"
-    />
+    <DataTable data={flows} columns={columns} isLoading={false} isEmpty={false} variant="default" />
   )
 }

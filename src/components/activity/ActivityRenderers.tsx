@@ -1,4 +1,4 @@
-import { Calendar, User, FileText, Workflow, Shield, Badge, type LucideIcon } from 'lucide-react'
+import { Badge, Calendar, FileText, type LucideIcon, Shield, User, Workflow } from 'lucide-react'
 import type { Activity } from '@/lib/types/activity'
 import { ACTIVITY_CONFIG, formatActivityTime } from '@/lib/types/activity'
 
@@ -26,7 +26,12 @@ const RENDERER_CONFIG: Record<Activity['resourceType'], { icon: LucideIcon; colo
  * Generic Resource Activity Renderer - Renders any resource type activity
  * Replaces all specific renderers (Event, Subject, Document, etc.) with a single reusable component
  */
-function ResourceActivityRenderer({ activity, isSelected, onSelect, onExpand }: ActivityRendererProps) {
+function ResourceActivityRenderer({
+  activity,
+  isSelected,
+  onSelect,
+  onExpand,
+}: ActivityRendererProps) {
   const config = ACTIVITY_CONFIG[activity.action]
   const resourceConfig = RENDERER_CONFIG[activity.resourceType]
   const Icon = resourceConfig?.icon
@@ -42,9 +47,7 @@ function ResourceActivityRenderer({ activity, isSelected, onSelect, onExpand }: 
       <div className="flex-1">
         <div className="flex items-center gap-2 mb-1">
           {Icon && <Icon className={`w-3.5 h-3.5 ${resourceConfig.color}`} />}
-          <span className="font-medium text-sm text-foreground">
-            {activity.resourceName}
-          </span>
+          <span className="font-medium text-sm text-foreground">{activity.resourceName}</span>
           <span className="text-xs text-muted-foreground font-mono">
             {activity.resourceId.slice(0, 8)}
           </span>
@@ -116,9 +119,7 @@ function DefaultActivityRenderer({
     >
       <div className="flex-1">
         <div className="flex items-center gap-2 mb-1">
-          <span className="font-medium text-sm text-foreground">
-            {activity.resourceName}
-          </span>
+          <span className="font-medium text-sm text-foreground">{activity.resourceName}</span>
           <span className="text-xs text-muted-foreground font-mono">
             {activity.resourceId.slice(0, 8)}
           </span>
@@ -182,11 +183,13 @@ function ActivityCardContainer({
       {/* Metadata */}
       {activity.metadata && Object.keys(activity.metadata).length > 0 && (
         <div className="mt-2 ml-4 text-xs text-muted-foreground space-y-1">
-          {Object.entries(activity.metadata).slice(0, 3).map(([key, value]) => (
-            <div key={key}>
-              <strong>{key}:</strong> {String(value)}
-            </div>
-          ))}
+          {Object.entries(activity.metadata)
+            .slice(0, 3)
+            .map(([key, value]) => (
+              <div key={key}>
+                <strong>{key}:</strong> {String(value)}
+              </div>
+            ))}
         </div>
       )}
     </div>

@@ -1,13 +1,12 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { useState, useCallback, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
-import { Search as SearchIcon, FileText, Calendar, Users, Loader2 } from 'lucide-react'
-import { timelineApi } from '@/lib/api-client'
-import { Input } from '@/components/ui/input'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { Calendar, FileText, Loader2, Search as SearchIcon, Users } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
+import { Input } from '@/components/ui/input'
+import { timelineApi } from '@/lib/api-client'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/search/')({
@@ -16,9 +15,11 @@ export const Route = createFileRoute('/search/')({
   },
   validateSearch: (search: Record<string, unknown>) => ({
     q: typeof search.q === 'string' ? search.q : '',
-    scope: (typeof search.scope === 'string' && ['all', 'subjects', 'events', 'documents'].includes(search.scope))
-      ? search.scope
-      : 'all',
+    scope:
+      typeof search.scope === 'string' &&
+      ['all', 'subjects', 'events', 'documents'].includes(search.scope)
+        ? search.scope
+        : 'all',
   }),
   component: SearchPage,
 })
@@ -146,7 +147,8 @@ function SearchPage() {
 
       {initialQ.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          Enter a query and choose a scope, then click Search to find subjects, events, or documents.
+          Enter a query and choose a scope, then click Search to find subjects, events, or
+          documents.
         </p>
       )}
 

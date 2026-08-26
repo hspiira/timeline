@@ -1,27 +1,27 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { useState, useEffect } from 'react'
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Key,
+  Mail,
+  RefreshCw,
+  Server,
+  Shield,
+  Trash2,
+  XCircle,
+} from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { ErrorIcon, LoadingIcon } from '@/components/ui/icons'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
-import {
-  ArrowLeft,
-  Mail,
-  RefreshCw,
-  CheckCircle,
-  XCircle,
-  Server,
-  Calendar,
-  Clock,
-  Trash2,
-  AlertTriangle,
-  Shield,
-  Key,
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
-import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { formatDateTimeSafe } from '@/lib/format-date'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import type { EmailAccountResponse } from '@/lib/types'
 
 export const Route = createFileRoute('/email-accounts/$accountId')({
@@ -194,8 +194,15 @@ function EmailAccountDetailPage() {
       <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-none">
         <ErrorIcon className="w-6 h-6 text-red-600 dark:text-red-400 mb-2" />
         <h3 className="font-semibold text-red-900 dark:text-red-200">Error Loading Account</h3>
-        <p className="text-sm text-red-800 dark:text-red-300 mt-1">{error || 'Account not found'}</p>
-        <Button onClick={() => navigate({ to: '/email-accounts' })} variant="secondary" size="md" className="mt-3">
+        <p className="text-sm text-red-800 dark:text-red-300 mt-1">
+          {error || 'Account not found'}
+        </p>
+        <Button
+          onClick={() => navigate({ to: '/email-accounts' })}
+          variant="secondary"
+          size="md"
+          className="mt-3"
+        >
           Back to Email Accounts
         </Button>
       </div>
@@ -245,7 +252,11 @@ function EmailAccountDetailPage() {
         {/* Status Card */}
         <div className="p-4 bg-card/80 backdrop-blur-sm border border-border/50 rounded-none">
           <div className="flex items-center gap-2 text-muted-foreground mb-2">
-            {account.is_active ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+            {account.is_active ? (
+              <CheckCircle className="w-4 h-4" />
+            ) : (
+              <XCircle className="w-4 h-4" />
+            )}
             <span className="text-sm font-medium">Status</span>
           </div>
           <p className="text-lg font-bold text-foreground">
@@ -329,7 +340,8 @@ function EmailAccountDetailPage() {
                     className={`p-2 rounded-none ${
                       account.oauth_status === 'active'
                         ? 'bg-green-100 dark:bg-green-900/30'
-                        : account.oauth_status === 'refresh_failed' || account.oauth_status === 'expired'
+                        : account.oauth_status === 'refresh_failed' ||
+                            account.oauth_status === 'expired'
                           ? 'bg-amber-100 dark:bg-amber-900/30'
                           : 'bg-red-100 dark:bg-red-900/30'
                     }`}
@@ -346,7 +358,9 @@ function EmailAccountDetailPage() {
 
             {/* Re-authenticate Button for failed states */}
             {account.oauth_status &&
-              ['refresh_failed', 'consent_denied', 'revoked', 'expired'].includes(account.oauth_status) && (
+              ['refresh_failed', 'consent_denied', 'revoked', 'expired'].includes(
+                account.oauth_status,
+              ) && (
                 <Button
                   onClick={() => navigate({ to: '/email-accounts/create' })}
                   variant="primary"
@@ -366,7 +380,8 @@ function EmailAccountDetailPage() {
         <h2 className="text-base font-semibold text-foreground mb-3">Sync Options</h2>
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Email events are automatically synced to your timeline. You can trigger a manual sync at any time.
+            Email events are automatically synced to your timeline. You can trigger a manual sync at
+            any time.
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -396,9 +411,15 @@ function EmailAccountDetailPage() {
         <h2 className="text-base font-semibold text-red-600 dark:text-red-400 mb-3">Danger Zone</h2>
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Disconnecting this email account will stop syncing emails. Existing email events will remain in your timeline.
+            Disconnecting this email account will stop syncing emails. Existing email events will
+            remain in your timeline.
           </p>
-          <Button onClick={() => setConfirmingDelete(true)} disabled={deleting} variant="secondary" size="md">
+          <Button
+            onClick={() => setConfirmingDelete(true)}
+            disabled={deleting}
+            variant="secondary"
+            size="md"
+          >
             {deleting ? (
               <>
                 <LoadingIcon />

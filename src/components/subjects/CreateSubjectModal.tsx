@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
-import { useFormSubmit } from '@/hooks/useFormSubmit'
-import { FormField, FormInput, FormError } from '@/components/ui/FormField'
+import { useEffect, useState } from 'react'
+import type { JsonSchema } from '@/components/shared/JsonSchemaForm'
+import { JsonSchemaForm, validateJsonSchema } from '@/components/shared/JsonSchemaForm'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
+import { FormError, FormField, FormInput } from '@/components/ui/FormField'
 import { FormModalActions } from '@/components/ui/FormModalActions'
 import { Modal } from '@/components/ui/Modal'
-import { SingleSelectCombobox } from '@/components/ui/combobox'
-import { JsonSchemaForm, validateJsonSchema } from '@/components/shared/JsonSchemaForm'
-import type { JsonSchema } from '@/components/shared/JsonSchemaForm'
+import { useFormSubmit } from '@/hooks/useFormSubmit'
 import { timelineApi } from '@/lib/api-client'
 import type { components } from '@/lib/timeline-api'
 
@@ -22,7 +22,7 @@ interface CreateSubjectModalProps {
     subjectType: string,
     externalRef?: string,
     displayName?: string,
-    attributes?: Record<string, unknown>
+    attributes?: Record<string, unknown>,
   ) => Promise<boolean>
   /** Subject types from API (GET /subject-types). Used for schema fetch by id. */
   subjectTypes?: SubjectTypeListItem[]
@@ -66,7 +66,10 @@ export function CreateSubjectModal({
   // Subject type is always chosen from the list (Settings → Subject types)
   const options = subjectTypeOptions?.length
     ? subjectTypeOptions
-    : subjectTypes.map((t) => ({ type_name: t.type_name, display_name: t.display_name || t.type_name }))
+    : subjectTypes.map((t) => ({
+        type_name: t.type_name,
+        display_name: t.display_name || t.type_name,
+      }))
   const hasTypes = options.length > 0
 
   // When subject type is selected, fetch full type to get schema (need id from subjectTypes)
@@ -137,8 +140,8 @@ export function CreateSubjectModal({
         value,
         externalRef || undefined,
         displayName || undefined,
-        Object.keys(attributes).length ? attributes : undefined
-      )
+        Object.keys(attributes).length ? attributes : undefined,
+      ),
     )
 
     if (success) {
@@ -156,12 +159,7 @@ export function CreateSubjectModal({
   if (!isOpen) return null
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Create Subject"
-      maxWidth="max-w-4xl"
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title="Create Subject" maxWidth="max-w-4xl">
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
           {error && <FormError message={error} />}
@@ -191,10 +189,7 @@ export function CreateSubjectModal({
 
           {/* Display name + External ref on one row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField
-              label="Display name"
-              hint="Optional human-readable label"
-            >
+            <FormField label="Display name" hint="Optional human-readable label">
               <FormInput
                 type="text"
                 value={displayName}
@@ -203,10 +198,7 @@ export function CreateSubjectModal({
                 disabled={loading}
               />
             </FormField>
-            <FormField
-              label="External Reference"
-              hint="Optional - leave blank if not needed"
-            >
+            <FormField label="External Reference" hint="Optional - leave blank if not needed">
               <FormInput
                 type="text"
                 value={externalRef}
@@ -218,9 +210,7 @@ export function CreateSubjectModal({
           </div>
 
           {/* Attributes (schema-driven when type has schema) */}
-          {schemaLoading && (
-            <p className="text-sm text-muted-foreground">Loading type schema...</p>
-          )}
+          {schemaLoading && <p className="text-sm text-muted-foreground">Loading type schema...</p>}
           {!schemaLoading && attributeSchema && (
             <FormField label="Attributes" hint="Custom fields for this subject type">
               <JsonSchemaForm

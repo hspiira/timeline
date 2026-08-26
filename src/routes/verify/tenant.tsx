@@ -1,12 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { useState, useCallback } from 'react'
+import { CheckCircle, Loader2 } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { ErrorAlert } from '@/components/ui/ErrorAlert'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { timelineApi } from '@/lib/api-client'
 import { getApiErrorDisplay } from '@/lib/api-utils'
-import { CheckCircle, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { ErrorAlert } from '@/components/ui/ErrorAlert'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/verify/tenant')({
@@ -36,11 +36,15 @@ function VerifyTenantPage() {
 
     try {
       const startRes = await timelineApi.events.startVerificationJob()
-      const res = startRes as { data?: { job_id: string }; error?: unknown; response?: { status?: number } }
+      const res = startRes as {
+        data?: { job_id: string }
+        error?: unknown
+        response?: { status?: number }
+      }
       if (res.error || !res.data) {
         const display = getApiErrorDisplay(
           { error: res.error, status: res.response?.status },
-          'Failed to start verification'
+          'Failed to start verification',
         )
         setError(display.message)
         setLoading(false)
@@ -85,7 +89,8 @@ function VerifyTenantPage() {
       <div>
         <h1 className="text-xl font-semibold text-foreground">Verify all chains</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Run verification for all event chains in your tenant. For large tenants this runs in the background.
+          Run verification for all event chains in your tenant. For large tenants this runs in the
+          background.
         </p>
       </div>
 
@@ -106,7 +111,8 @@ function VerifyTenantPage() {
 
       {loading && jobId && (
         <p className="text-sm text-muted-foreground">
-          Job {jobId.slice(0, 8)}… {status?.status === 'running' ? 'Running…' : status?.status ?? 'Pending…'}
+          Job {jobId.slice(0, 8)}…{' '}
+          {status?.status === 'running' ? 'Running…' : (status?.status ?? 'Pending…')}
         </p>
       )}
 
@@ -120,11 +126,17 @@ function VerifyTenantPage() {
             <span className="text-muted-foreground">Total events:</span>
             <span className="font-medium">{result.total_events}</span>
             <span className="text-muted-foreground">Valid:</span>
-            <span className="font-medium text-green-600 dark:text-green-400">{result.valid_events}</span>
+            <span className="font-medium text-green-600 dark:text-green-400">
+              {result.valid_events}
+            </span>
             <span className="text-muted-foreground">Invalid:</span>
             <span className="font-medium text-destructive">{result.invalid_events}</span>
             <span className="text-muted-foreground">Chain valid:</span>
-            <span className={result.is_chain_valid ? 'text-green-600 dark:text-green-400' : 'text-destructive'}>
+            <span
+              className={
+                result.is_chain_valid ? 'text-green-600 dark:text-green-400' : 'text-destructive'
+              }
+            >
               {result.is_chain_valid ? 'Yes' : 'No'}
             </span>
           </div>

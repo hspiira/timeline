@@ -1,17 +1,17 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { useState, useMemo, useEffect } from 'react'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useQuery } from '@tanstack/react-query'
-import { timelineApi } from '@/lib/api-client'
-import { useToast } from '@/hooks/useToast'
-import { getApiErrorDisplay } from '@/lib/api-utils'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
-import { LoadingIcon } from '@/components/ui/icons'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { SingleSelectCombobox } from '@/components/ui/combobox'
-import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
+import { useEffect, useMemo, useState } from 'react'
 import SubjectSelector from '@/components/subjects/SubjectSelector'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
+import { Button } from '@/components/ui/button'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
+import { LoadingIcon } from '@/components/ui/icons'
+import { Input } from '@/components/ui/input'
+import { useToast } from '@/hooks/useToast'
+import { timelineApi } from '@/lib/api-client'
+import { getApiErrorDisplay } from '@/lib/api-utils'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 
 export const Route = createFileRoute('/flows/create')({
   beforeLoad: () => {
@@ -27,10 +27,7 @@ function parsePlaceholdersFromTemplate(templateString: string): string[] {
 }
 
 /** Build flow name from template by replacing {key} with values from record */
-function buildNameFromTemplate(
-  templateString: string,
-  values: Record<string, string>
-): string {
+function buildNameFromTemplate(templateString: string, values: Record<string, string>): string {
   return templateString.replace(/\{(\w+)\}/g, (_, key) => values[key] ?? '')
 }
 
@@ -53,14 +50,14 @@ export type PlaceholderOption = { label: string; enum?: string[] }
 /** Build placeholder key -> { label, enum? } from subject type schema. Only includes keys that appear in placeholderKeys. */
 function placeholderOptionsFromSchema(
   schema: { properties?: Record<string, { title?: string; enum?: unknown[] }> } | null | undefined,
-  placeholderKeys: string[]
+  placeholderKeys: string[],
 ): Map<string, PlaceholderOption> {
   const map = new Map<string, PlaceholderOption>()
   const props = schema?.properties && typeof schema.properties === 'object' ? schema.properties : {}
   for (const key of placeholderKeys) {
     const prop = props[key]
     const label =
-      (prop && typeof prop === 'object' && typeof prop.title === 'string' && prop.title.trim())
+      prop && typeof prop === 'object' && typeof prop.title === 'string' && prop.title.trim()
         ? prop.title.trim()
         : placeholderLabel(key)
     const enumArr = Array.isArray(prop?.enum) ? prop.enum.map((v) => String(v)) : undefined
@@ -73,9 +70,7 @@ function CreateFlowPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const [name, setName] = useState('')
-  const [placeholderValues, setPlaceholderValues] = useState<
-    Record<string, string>
-  >({})
+  const [placeholderValues, setPlaceholderValues] = useState<Record<string, string>>({})
   const [workflowId, setWorkflowId] = useState('')
   const [subjectId, setSubjectId] = useState('')
   const [subjectTypeIdOptional, setSubjectTypeIdOptional] = useState('')
@@ -124,7 +119,7 @@ function CreateFlowPage() {
   const subjectTypeIdForSchema = (() => {
     if (selectedSubject?.subject_type) {
       const st = subjectTypesList.find(
-        (s: { type_name?: string; id?: string }) => s.type_name === selectedSubject.subject_type
+        (s: { type_name?: string; id?: string }) => s.type_name === selectedSubject.subject_type,
       )
       return st?.id ?? null
     }
@@ -143,9 +138,7 @@ function CreateFlowPage() {
 
   const templateForWorkflow = useMemo(() => {
     if (!workflowId) return null
-    return namingTemplates.find(
-      (t) => t.scope_type === 'flow' && t.scope_id === workflowId
-    )
+    return namingTemplates.find((t) => t.scope_type === 'flow' && t.scope_id === workflowId)
   }, [workflowId, namingTemplates])
 
   const placeholderKeys = useMemo(() => {
@@ -166,15 +159,12 @@ function CreateFlowPage() {
 
   const placeholderOptionsMap = useMemo(
     () => placeholderOptionsFromSchema(subjectTypeSchema, placeholderKeys),
-    [subjectTypeSchema, placeholderKeys]
+    [subjectTypeSchema, placeholderKeys],
   )
 
   const resolvedName = useMemo(() => {
     if (useTemplateFields && templateForWorkflow)
-      return buildNameFromTemplate(
-        templateForWorkflow.template_string,
-        placeholderValues
-      )
+      return buildNameFromTemplate(templateForWorkflow.template_string, placeholderValues)
     return name.trim()
   }, [useTemplateFields, templateForWorkflow, placeholderValues, name])
 
@@ -182,25 +172,22 @@ function CreateFlowPage() {
     e.preventDefault()
     setSubmitError(null)
     const nameToSubmit = useTemplateFields
-      ? buildNameFromTemplate(
-          templateForWorkflow!.template_string,
-          placeholderValues
-        )
+      ? buildNameFromTemplate(templateForWorkflow!.template_string, placeholderValues)
       : name.trim()
     if (!nameToSubmit) {
       setSubmitError(
         useTemplateFields
           ? `Fill in all fields: ${placeholderKeys.map((k) => placeholderOptionsMap.get(k)?.label ?? placeholderLabel(k)).join(', ')}`
-          : 'Name is required'
+          : 'Name is required',
       )
       return
     }
     if (useTemplateFields) {
-      const missing = placeholderKeys.filter(
-        (k) => !(placeholderValues[k] ?? '').trim()
-      )
+      const missing = placeholderKeys.filter((k) => !(placeholderValues[k] ?? '').trim())
       if (missing.length > 0) {
-        const labels = missing.map((k) => placeholderOptionsMap.get(k)?.label ?? placeholderLabel(k))
+        const labels = missing.map(
+          (k) => placeholderOptionsMap.get(k)?.label ?? placeholderLabel(k),
+        )
         setSubmitError(`Required: ${labels.join(', ')}`)
         return
       }
@@ -215,7 +202,7 @@ function CreateFlowPage() {
       if (error) {
         const { message } = getApiErrorDisplay(
           { error, status: response?.status },
-          'Failed to create flow'
+          'Failed to create flow',
         )
         setSubmitError(message)
         setSubmitting(false)
@@ -233,23 +220,17 @@ function CreateFlowPage() {
 
   return (
     <>
-      <Breadcrumbs
-        items={[
-          { href: '/flows', label: 'Flows' },
-          { label: 'New flow' },
-        ]}
-      />
+      <Breadcrumbs items={[{ href: '/flows', label: 'Flows' }, { label: 'New flow' }]} />
 
       <div className="max-w-md">
-        <h1 className="text-2xl font-bold text-foreground mb-4">
-          Create flow
-        </h1>
+        <h1 className="text-2xl font-bold text-foreground mb-4">Create flow</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {useTemplateFields ? (
             <>
               <p className="text-sm text-muted-foreground">
-                This workflow uses a standard name format. Fill in each part; the flow name will be built automatically.
+                This workflow uses a standard name format. Fill in each part; the flow name will be
+                built automatically.
               </p>
               {!subjectId && (
                 <div>
@@ -257,17 +238,20 @@ function CreateFlowPage() {
                     Subject type (optional)
                   </label>
                   <p className="text-xs text-muted-foreground mb-1.5">
-                    Choose a subject type to use its attribute labels and dropdown options for the fields below.
+                    Choose a subject type to use its attribute labels and dropdown options for the
+                    fields below.
                   </p>
                   <SingleSelectCombobox
                     value={subjectTypeIdOptional}
                     onValueChange={setSubjectTypeIdOptional}
                     options={[
                       { value: '', label: 'None — use default labels' },
-                      ...subjectTypesList.map((st: { id: string; display_name?: string; type_name?: string }) => ({
-                        value: st.id,
-                        label: st.display_name || st.type_name || st.id,
-                      })),
+                      ...subjectTypesList.map(
+                        (st: { id: string; display_name?: string; type_name?: string }) => ({
+                          value: st.id,
+                          label: st.display_name || st.type_name || st.id,
+                        }),
+                      ),
                     ]}
                     placeholder="Select subject type"
                     clearable
@@ -332,10 +316,7 @@ function CreateFlowPage() {
             </>
           ) : (
             <div>
-              <label
-                htmlFor="flow-name"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
+              <label htmlFor="flow-name" className="block text-sm font-medium text-foreground mb-1">
                 Name
               </label>
               <Input
@@ -355,9 +336,7 @@ function CreateFlowPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
-              Workflow
-            </label>
+            <label className="block text-sm font-medium text-foreground mb-1">Workflow</label>
             <SingleSelectCombobox
               value={workflowId}
               onValueChange={setWorkflowId}

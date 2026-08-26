@@ -3,13 +3,10 @@
  * Single responsibility: workflow CRUD in memory.
  */
 
-import type { Workflow, WorkflowNode, WorkflowEdge, Position } from './types'
-import { createNode, createEdge } from './types'
+import type { Position, Workflow, WorkflowEdge, WorkflowNode } from './types'
+import { createEdge, createNode } from './types'
 
-export function addNode(
-  workflow: Workflow,
-  node: WorkflowNode
-): Workflow {
+export function addNode(workflow: Workflow, node: WorkflowNode): Workflow {
   if (workflow.nodes.some((n) => n.id === node.id)) return workflow
   return {
     ...workflow,
@@ -20,11 +17,9 @@ export function addNode(
 export function updateNode(
   workflow: Workflow,
   nodeId: string,
-  updates: Partial<Pick<WorkflowNode, 'position' | 'configuration' | 'outgoingConnections'>>
+  updates: Partial<Pick<WorkflowNode, 'position' | 'configuration' | 'outgoingConnections'>>,
 ): Workflow {
-  const nodes = workflow.nodes.map((n) =>
-    n.id === nodeId ? { ...n, ...updates } : n
-  )
+  const nodes = workflow.nodes.map((n) => (n.id === nodeId ? { ...n, ...updates } : n))
   return { ...workflow, nodes }
 }
 
@@ -34,10 +29,7 @@ export function removeNode(workflow: Workflow, nodeId: string): Workflow {
   return { ...workflow, nodes, edges }
 }
 
-export function addEdge(
-  workflow: Workflow,
-  edge: WorkflowEdge
-): Workflow {
+export function addEdge(workflow: Workflow, edge: WorkflowEdge): Workflow {
   if (workflow.edges.some((e) => e.id === edge.id)) return workflow
   const fromNode = workflow.nodes.find((n) => n.id === edge.from)
   const updatedNodes = fromNode
@@ -47,7 +39,7 @@ export function addEdge(
               ...n,
               outgoingConnections: [...(n.outgoingConnections ?? []), edge.to],
             }
-          : n
+          : n,
       )
     : workflow.nodes
   return {
@@ -69,11 +61,7 @@ export function removeEdge(workflow: Workflow, edgeId: string): Workflow {
   return { ...workflow, nodes, edges }
 }
 
-export function setNodePosition(
-  workflow: Workflow,
-  nodeId: string,
-  position: Position
-): Workflow {
+export function setNodePosition(workflow: Workflow, nodeId: string, position: Position): Workflow {
   return updateNode(workflow, nodeId, { position })
 }
 

@@ -40,15 +40,12 @@ export type FlowResponse = components['schemas']['FlowResponse']
 export type FlowCreateRequest = components['schemas']['FlowCreateRequest']
 export type FlowUpdateRequest = components['schemas']['FlowUpdateRequest']
 export type FlowSubjectResponse = components['schemas']['FlowSubjectResponse']
-export type FlowDocumentComplianceResponse =
-  components['schemas']['FlowDocumentComplianceResponse']
+export type FlowDocumentComplianceResponse = components['schemas']['FlowDocumentComplianceResponse']
 
 // Naming template types
 export type NamingTemplateResponse = components['schemas']['NamingTemplateResponse']
-export type NamingTemplateCreateRequest =
-  components['schemas']['NamingTemplateCreateRequest']
-export type NamingTemplateUpdateRequest =
-  components['schemas']['NamingTemplateUpdateRequest']
+export type NamingTemplateCreateRequest = components['schemas']['NamingTemplateCreateRequest']
+export type NamingTemplateUpdateRequest = components['schemas']['NamingTemplateUpdateRequest']
 
 // Document types
 export type DocumentListItem = components['schemas']['DocumentListItem']

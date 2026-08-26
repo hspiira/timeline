@@ -15,10 +15,13 @@ export function LandingPage() {
           to="/"
           className="flex items-center gap-2.5 text-foreground/90 hover:text-foreground transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
         >
-          <img src="/logo.svg" alt="" className="w-8 h-8 opacity-90 transition-transform duration-300 hover:rotate-6" aria-hidden />
-          <span className="font-display text-lg font-semibold tracking-tight">
-            {PROJECT_NAME}
-          </span>
+          <img
+            src="/logo.svg"
+            alt=""
+            className="w-8 h-8 opacity-90 transition-transform duration-300 hover:rotate-6"
+            aria-hidden
+          />
+          <span className="font-display text-lg font-semibold tracking-tight">{PROJECT_NAME}</span>
         </Link>
         <Link
           to="/login"
@@ -54,7 +57,8 @@ export function LandingPage() {
               search={{}}
               className="group inline-flex items-center justify-center gap-2 rounded-lg bg-white/[0.08] px-8 py-3.5 text-sm font-medium text-foreground backdrop-blur-sm transition-all duration-300 hover:bg-white/[0.14] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(255,255,255,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:translate-y-0"
               style={{
-                background: 'linear-gradient(to right, rgba(255,255,255,0.06), rgba(255,255,255,0.12))',
+                background:
+                  'linear-gradient(to right, rgba(255,255,255,0.06), rgba(255,255,255,0.12))',
               }}
             >
               Get started

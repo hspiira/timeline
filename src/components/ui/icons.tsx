@@ -1,5 +1,5 @@
-import { Loader2, AlertCircle, type LucideIcon } from 'lucide-react'
 import type { LucideProps } from 'lucide-react'
+import { AlertCircle, Loader2, type LucideIcon } from 'lucide-react'
 
 export type IconSize = 'sm' | 'md' | 'lg'
 
@@ -18,12 +18,7 @@ const sizeClasses: Record<IconSize, string> = {
  * Usage: <LoadingIcon size="sm" /> or <LoadingIcon size="md" /> or <LoadingIcon size="lg" />
  */
 export function LoadingIcon({ size = 'md', className = '', ...props }: IconComponentProps) {
-  return (
-    <Loader2
-      className={`animate-spin ${sizeClasses[size]} ${className}`}
-      {...props}
-    />
-  )
+  return <Loader2 className={`animate-spin ${sizeClasses[size]} ${className}`} {...props} />
 }
 
 /**
@@ -31,12 +26,7 @@ export function LoadingIcon({ size = 'md', className = '', ...props }: IconCompo
  * Usage: <ErrorIcon size="sm" /> or <ErrorIcon size="md" /> or <ErrorIcon size="lg" />
  */
 export function ErrorIcon({ size = 'lg', className = '', ...props }: IconComponentProps) {
-  return (
-    <AlertCircle
-      className={`shrink-0 ${sizeClasses[size]} ${className}`}
-      {...props}
-    />
-  )
+  return <AlertCircle className={`shrink-0 ${sizeClasses[size]} ${className}`} {...props} />
 }
 
 /**
@@ -48,10 +38,5 @@ export function Icon({
   className = '',
   ...props
 }: IconComponentProps & { icon: LucideIcon }) {
-  return (
-    <IconComponent
-      className={`${sizeClasses[size]} ${className}`}
-      {...props}
-    />
-  )
+  return <IconComponent className={`${sizeClasses[size]} ${className}`} {...props} />
 }

@@ -1,23 +1,25 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState, useEffect, useCallback } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { useFetchWithError } from '@/hooks/useFetchWithError'
-import { timelineApi } from '@/lib/api-client'
-import { formatDateTimeSafe } from '@/lib/format-date'
-import { DataTable } from '@/components/ui/DataTable'
-import { StatusBadge } from '@/components/ui/StatusBadge'
+import { AlertCircle, ChevronLeft, ChevronRight, Loader2, Wrench } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
-import { Wrench, ChevronLeft, ChevronRight, Loader2, AlertCircle } from 'lucide-react'
+import { DataTable } from '@/components/ui/DataTable'
+import { StatusBadge } from '@/components/ui/StatusBadge'
+import { useFetchWithError } from '@/hooks/useFetchWithError'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { timelineApi } from '@/lib/api-client'
+import { formatDateTimeSafe } from '@/lib/format-date'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/integrity/repairs/')({
   beforeLoad: () => {
     requireAuthBeforeLoad()
   },
-  validateSearch: (search: Record<string, unknown>): { subject_id: string | undefined; break_seq: string | undefined } => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { subject_id: string | undefined; break_seq: string | undefined } => ({
     subject_id: typeof search.subject_id === 'string' ? search.subject_id : undefined,
     break_seq: typeof search.break_seq === 'string' ? search.break_seq : undefined,
   }),
@@ -88,8 +90,8 @@ function RepairsPage() {
         <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
         <h2 className="text-lg font-semibold text-foreground mb-2">Access denied</h2>
         <p className="text-muted-foreground text-sm max-w-md mx-auto">
-          You do not have permission to view chain repairs. Contact your administrator if you
-          need access.
+          You do not have permission to view chain repairs. Contact your administrator if you need
+          access.
         </p>
       </div>
     )
@@ -126,7 +128,10 @@ function RepairsPage() {
       accessorKey: 'epoch_id',
       header: 'Epoch',
       cell: ({ row }) => (
-        <span className="text-sm font-mono truncate max-w-[120px] block" title={row.original.epoch_id}>
+        <span
+          className="text-sm font-mono truncate max-w-[120px] block"
+          title={row.original.epoch_id}
+        >
           {row.original.epoch_id}
         </span>
       ),
@@ -178,8 +183,8 @@ function RepairsPage() {
             Chain repairs
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Repairs awaiting approval, in progress, and completed. Filter by status to find
-            what needs your sign-off.
+            Repairs awaiting approval, in progress, and completed. Filter by status to find what
+            needs your sign-off.
           </p>
         </div>
         <Button

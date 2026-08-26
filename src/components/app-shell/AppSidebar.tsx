@@ -1,27 +1,27 @@
 'use client'
 
 import { Link, useRouterState } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
 import { useStore } from '@tanstack/react-store'
 import {
-  LayoutDashboard,
-  Users,
-  Calendar,
-  GitBranch,
-  Mail,
-  FileCheck,
-  Wrench,
-  BarChart3,
   Activity,
-  Settings,
+  BarChart3,
+  Calendar,
   ChevronLeft,
   ChevronRight,
+  FileCheck,
+  GitBranch,
+  LayoutDashboard,
+  Mail,
+  Settings,
+  Users,
+  Wrench,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { authStore } from '@/lib/auth-store'
 import { useHasSystemAccess } from '@/hooks/useHasSystemAccess'
+import { authStore } from '@/lib/auth-store'
+import { cn } from '@/lib/utils'
 
 const SIDEBAR_COLLAPSED_KEY = 'sidebar-collapsed'
 
@@ -52,7 +52,7 @@ function NavLink({
         isActive
           ? 'bg-primary text-primary-foreground'
           : 'text-foreground/70 hover:text-foreground hover:bg-accent',
-        collapsed ? 'justify-center px-2 py-2' : 'px-3 py-2'
+        collapsed ? 'justify-center px-2 py-2' : 'px-3 py-2',
       )}
     >
       <Icon className="w-4 h-4 shrink-0" />
@@ -82,7 +82,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
       className={cn(
         'flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200 shrink-0 h-full',
         collapsed ? 'w-[52px]' : 'w-56',
-        className
+        className,
       )}
     >
       <div className="flex flex-1 flex-col gap-1 overflow-y-auto py-2">
@@ -161,11 +161,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
           onClick={() => setCollapsed((c) => !c)}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
       </div>
     </aside>

@@ -1,13 +1,13 @@
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
-import { authStore, authActions } from '@/lib/auth-store'
-import { useRedirectIfAuthenticated } from '@/lib/hooks'
-import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
+import { useEffect, useState } from 'react'
 import { AuthCard } from '@/components/auth/AuthCard'
-import { Input } from '@/components/ui/input'
+import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { authActions, authStore } from '@/lib/auth-store'
+import { useRedirectIfAuthenticated } from '@/lib/hooks'
 
 /** Only allow relative app paths to avoid open redirects */
 function safeRedirectPath(raw: unknown): string | undefined {
@@ -53,15 +53,15 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [mounted, setMounted] = useState(false)
   // Only populated when the email turns out to belong to several organisations.
-  const [organisations, setOrganisations] = useState<
-    { tenant_id: string; name: string }[]
-  >([])
+  const [organisations, setOrganisations] = useState<{ tenant_id: string; name: string }[]>([])
   const [chosenOrg, setChosenOrg] = useState<string>('')
   useEffect(() => setMounted(true), [])
 
   // Path-only for navigate() to avoid search schema mismatches; pathname is enough to return to the right page
   const redirectTo = redirect ?? '/'
-  const redirectPath = redirectTo.includes('?') ? redirectTo.slice(0, redirectTo.indexOf('?')) : redirectTo
+  const redirectPath = redirectTo.includes('?')
+    ? redirectTo.slice(0, redirectTo.indexOf('?'))
+    : redirectTo
 
   // Redirect if already logged in (to intended page or dashboard)
   const isAuthenticated = useRedirectIfAuthenticated(redirectPath)
@@ -112,151 +112,136 @@ function LoginPage() {
   return (
     <AuthPageLayout>
       <AuthCard>
-          {/* Title */}
-          <h1 className="text-center font-display text-xl font-semibold tracking-tight text-foreground">
-            Sign in
-          </h1>
+        {/* Title */}
+        <h1 className="text-center font-display text-xl font-semibold tracking-tight text-foreground">
+          Sign in
+        </h1>
 
-          {/* Session expired message */}
-          {sessionExpired && !authState.error && (
-            <div className="mt-6 bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
-              Session expired. Please sign in again.
-            </div>
-          )}
-          {/* Error Message */}
-          {authState.error && (
-            <div className="mt-6 bg-destructive/10 px-3 py-2.5">
-              <p className="text-sm text-destructive">
-                {authState.error}
-              </p>
-            </div>
-          )}
+        {/* Session expired message */}
+        {sessionExpired && !authState.error && (
+          <div className="mt-6 bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+            Session expired. Please sign in again.
+          </div>
+        )}
+        {/* Error Message */}
+        {authState.error && (
+          <div className="mt-6 bg-destructive/10 px-3 py-2.5">
+            <p className="text-sm text-destructive">{authState.error}</p>
+          </div>
+        )}
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        {/* Login Form */}
+        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+          <div>
+            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
+              Email
+            </label>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="username"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                // A different email may belong to different organisations.
+                setOrganisations([])
+                setChosenOrg('')
+              }}
+              required
+              placeholder="you@company.com"
+            />
+          </div>
+
+          {/* Shown only when this email belongs to more than one organisation. */}
+          {organisations.length > 1 && (
             <div>
               <label
-                htmlFor="email"
+                htmlFor="organisation"
                 className="mb-1.5 block text-sm font-medium text-foreground"
               >
-                Email
+                Organisation
               </label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="username"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value)
-                  // A different email may belong to different organisations.
-                  setOrganisations([])
-                  setChosenOrg('')
-                }}
-                required
-                placeholder="you@company.com"
-              />
-            </div>
-
-            {/* Shown only when this email belongs to more than one organisation. */}
-            {organisations.length > 1 && (
-              <div>
-                <label
-                  htmlFor="organisation"
-                  className="mb-1.5 block text-sm font-medium text-foreground"
-                >
-                  Organisation
-                </label>
-                <select
-                  id="organisation"
-                  value={chosenOrg}
-                  onChange={(e) => setChosenOrg(e.target.value)}
-                  className="w-full rounded-none border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1"
-                >
-                  {organisations.map((o) => (
-                    <option key={o.tenant_id} value={o.tenant_id}>
-                      {o.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <div>
-              <div className="mb-1.5 flex items-baseline justify-between gap-4">
-                <label
-                  htmlFor="password"
-                  className="text-sm font-medium text-foreground"
-                >
-                  Password
-                </label>
-                <Link
-                  to="/forgot-password"
-                  className="text-xs text-muted-foreground transition-colors hover:text-foreground hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="pr-10"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 px-2 text-muted-foreground hover:text-foreground"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              size="lg"
-              disabled={showLoading}
-              isLoading={showLoading}
-              className="w-full"
-            >
-              {showLoading ? 'Signing in…' : 'Sign in'}
-            </Button>
-          </form>
-
-          {/* Bottom links */}
-          <div className="mt-8 flex flex-col items-center gap-2.5 text-center">
-            <p className="text-sm text-muted-foreground">
-              Don't have an account?{' '}
-              <Link
-                to="/register"
-                className="font-medium text-foreground hover:underline"
+              <select
+                id="organisation"
+                value={chosenOrg}
+                onChange={(e) => setChosenOrg(e.target.value)}
+                className="w-full rounded-none border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1"
               >
-                Register your tenant
+                {organisations.map((o) => (
+                  <option key={o.tenant_id} value={o.tenant_id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <div className="mb-1.5 flex items-baseline justify-between gap-4">
+              <label htmlFor="password" className="text-sm font-medium text-foreground">
+                Password
+              </label>
+              <Link
+                to="/forgot-password"
+                className="text-xs text-muted-foreground transition-colors hover:text-foreground hover:underline"
+              >
+                Forgot password?
               </Link>
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                window.location.href = '/'
-              }}
-              className="inline-flex cursor-pointer items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-              aria-label="Back to home"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Back to home
-            </button>
+            </div>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-1 top-1/2 -translate-y-1/2 px-2 text-muted-foreground hover:text-foreground"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
+
+          <Button
+            type="submit"
+            size="lg"
+            disabled={showLoading}
+            isLoading={showLoading}
+            className="w-full"
+          >
+            {showLoading ? 'Signing in…' : 'Sign in'}
+          </Button>
+        </form>
+
+        {/* Bottom links */}
+        <div className="mt-8 flex flex-col items-center gap-2.5 text-center">
+          <p className="text-sm text-muted-foreground">
+            Don't have an account?{' '}
+            <Link to="/register" className="font-medium text-foreground hover:underline">
+              Register your tenant
+            </Link>
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = '/'
+            }}
+            className="inline-flex cursor-pointer items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Back to home"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to home
+          </button>
+        </div>
       </AuthCard>
     </AuthPageLayout>
   )

@@ -1,15 +1,14 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronDown } from 'lucide-react'
-import { timelineApi } from '@/lib/api-client'
-import { getTenantId, setTenantId } from '@/lib/api-client'
-import { authActions } from '@/lib/auth-store'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
+import { getTenantId, setTenantId, timelineApi } from '@/lib/api-client'
+import { authActions } from '@/lib/auth-store'
 
 export function TenantSelector() {
   const queryClient = useQueryClient()
@@ -36,9 +35,7 @@ export function TenantSelector() {
 
   if (isLoading || !tenants?.length) {
     return (
-      <span className="text-sm font-medium text-muted-foreground px-3 py-2">
-        {displayName}
-      </span>
+      <span className="text-sm font-medium text-muted-foreground px-3 py-2">{displayName}</span>
     )
   }
 

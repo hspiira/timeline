@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
-import { timelineApi } from '@/lib/api-client'
 import { FileCheck, Plus, Trash2 } from 'lucide-react'
-import { Modal } from '@/components/ui/Modal'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
-import { Input } from '@/components/ui/input'
 import { LoadingIcon } from '@/components/ui/icons'
+import { Input } from '@/components/ui/input'
+import { Modal } from '@/components/ui/Modal'
+import { timelineApi } from '@/lib/api-client'
 import type { components } from '@/lib/timeline-api'
 
 type DocumentRequirement = components['schemas']['DocumentRequirementResponse']
@@ -64,11 +64,10 @@ export function WorkflowDocumentRequirementsModal({
   const handleAdd = async () => {
     if (!addCategoryId || addMinCount < 1) return
     setAdding(true)
-    const { data, error } =
-      await timelineApi.workflows.documentRequirements.create(workflowId, {
-        document_category_id: addCategoryId,
-        min_count: addMinCount,
-      })
+    const { data, error } = await timelineApi.workflows.documentRequirements.create(workflowId, {
+      document_category_id: addCategoryId,
+      min_count: addMinCount,
+    })
     setAdding(false)
     if (error) return
     if (data) {
@@ -80,8 +79,7 @@ export function WorkflowDocumentRequirementsModal({
 
   const handleDelete = async (requirementId: string) => {
     setDeletingId(requirementId)
-    const { error } =
-      await timelineApi.workflows.documentRequirements.delete(requirementId)
+    const { error } = await timelineApi.workflows.documentRequirements.delete(requirementId)
     setDeletingId(null)
     if (error) return
     setRequirements((prev) => prev.filter((r) => r.id !== requirementId))
@@ -93,12 +91,7 @@ export function WorkflowDocumentRequirementsModal({
     id
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Document requirements"
-      maxWidth="max-w-2xl"
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title="Document requirements" maxWidth="max-w-2xl">
       <div className="space-y-4">
         {loading ? (
           <div className="flex items-center gap-2 text-muted-foreground py-4">
@@ -108,7 +101,9 @@ export function WorkflowDocumentRequirementsModal({
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
-              For workflow <span className="font-medium text-foreground">{workflowName}</span>: require documents by category before flows can proceed. Add categories and minimum counts below.
+              For workflow <span className="font-medium text-foreground">{workflowName}</span>:
+              require documents by category before flows can proceed. Add categories and minimum
+              counts below.
             </p>
 
             <div className="flex flex-wrap items-end gap-2">
@@ -125,23 +120,15 @@ export function WorkflowDocumentRequirementsModal({
                 />
               </div>
               <div className="w-24">
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Min count
-                </label>
+                <label className="block text-sm font-medium text-foreground mb-1">Min count</label>
                 <Input
                   type="number"
                   min={1}
                   value={addMinCount}
-                  onChange={(e) =>
-                    setAddMinCount(Math.max(1, parseInt(e.target.value, 10) || 1))
-                  }
+                  onChange={(e) => setAddMinCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
                 />
               </div>
-              <Button
-                size="sm"
-                disabled={!addCategoryId || adding}
-                onClick={handleAdd}
-              >
+              <Button size="sm" disabled={!addCategoryId || adding} onClick={handleAdd}>
                 {adding ? <LoadingIcon /> : <Plus className="w-4 h-4" />}
                 Add
               </Button>
@@ -161,10 +148,7 @@ export function WorkflowDocumentRequirementsModal({
                   role="list"
                 >
                   {requirements.map((r) => (
-                    <li
-                      key={r.id}
-                      className="flex items-center justify-between px-3 py-2"
-                    >
+                    <li key={r.id} className="flex items-center justify-between px-3 py-2">
                       <span className="text-sm">
                         {categoryName(r.document_category_id)} (min: {r.min_count})
                       </span>
@@ -175,11 +159,7 @@ export function WorkflowDocumentRequirementsModal({
                         disabled={deletingId === r.id}
                         onClick={() => handleDelete(r.id)}
                       >
-                        {deletingId === r.id ? (
-                          <LoadingIcon />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
+                        {deletingId === r.id ? <LoadingIcon /> : <Trash2 className="w-4 h-4" />}
                       </Button>
                     </li>
                   ))}

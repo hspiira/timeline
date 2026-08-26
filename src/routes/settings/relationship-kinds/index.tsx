@@ -1,16 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { DataTable } from '@/components/ui/DataTable'
+import { ErrorModal } from '@/components/ui/ErrorModal'
+import { FormError, FormField, FormInput, FormTextarea } from '@/components/ui/FormField'
+import { FormModalActions } from '@/components/ui/FormModalActions'
+import { Modal } from '@/components/ui/Modal'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { timelineApi } from '@/lib/api-client'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
-import { DataTable } from '@/components/ui/DataTable'
-import { Button } from '@/components/ui/button'
-import { Modal } from '@/components/ui/Modal'
-import { FormField, FormInput, FormTextarea, FormError } from '@/components/ui/FormField'
-import { FormModalActions } from '@/components/ui/FormModalActions'
-import { ConfirmModal } from '@/components/ui/ConfirmModal'
-import { ErrorModal } from '@/components/ui/ErrorModal'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/settings/relationship-kinds/')({
@@ -77,7 +77,7 @@ function RelationshipKindsPage() {
         setDisplayName(data.display_name ?? '')
         setDescription(data.description ?? '')
         setPayloadSchemaJson(
-          data.payload_schema != null ? JSON.stringify(data.payload_schema, null, 2) : ''
+          data.payload_schema != null ? JSON.stringify(data.payload_schema, null, 2) : '',
         )
         setShowModal(true)
       }
@@ -118,7 +118,11 @@ function RelationshipKindsPage() {
           payload_schema: payloadSchema,
         })
         if (apiError) {
-          setFormError(typeof apiError === 'object' && 'detail' in apiError ? String((apiError as { detail: unknown }).detail) : 'Failed to update')
+          setFormError(
+            typeof apiError === 'object' && 'detail' in apiError
+              ? String((apiError as { detail: unknown }).detail)
+              : 'Failed to update',
+          )
           return
         }
       } else {
@@ -137,7 +141,11 @@ function RelationshipKindsPage() {
           payload_schema: payloadSchema,
         })
         if (apiError) {
-          setFormError(typeof apiError === 'object' && 'detail' in apiError ? String((apiError as { detail: unknown }).detail) : 'Failed to create')
+          setFormError(
+            typeof apiError === 'object' && 'detail' in apiError
+              ? String((apiError as { detail: unknown }).detail)
+              : 'Failed to create',
+          )
           return
         }
       }
@@ -153,7 +161,11 @@ function RelationshipKindsPage() {
     try {
       const { error: apiError } = await timelineApi.relationshipKinds.delete(deleting.id)
       if (apiError) {
-        setError(typeof apiError === 'object' && 'detail' in apiError ? String((apiError as { detail: unknown }).detail) : 'Failed to delete')
+        setError(
+          typeof apiError === 'object' && 'detail' in apiError
+            ? String((apiError as { detail: unknown }).detail)
+            : 'Failed to delete',
+        )
         return
       }
       setDeleting(null)
@@ -194,12 +206,7 @@ function RelationshipKindsPage() {
       header: '',
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => openEdit(row.original)}
-            title="Edit"
-          >
+          <Button variant="ghost" size="sm" onClick={() => openEdit(row.original)} title="Edit">
             <Pencil className="w-4 h-4" />
           </Button>
           <Button
@@ -223,7 +230,8 @@ function RelationshipKindsPage() {
           <div>
             <h1 className="text-lg font-bold text-foreground">Relationship kinds</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Define allowed relationship types (e.g. client_of, parent_of) used when linking subjects.
+              Define allowed relationship types (e.g. client_of, parent_of) used when linking
+              subjects.
             </p>
           </div>
           <Button variant="primary" size="md" onClick={openCreate}>
@@ -247,7 +255,8 @@ function RelationshipKindsPage() {
           enablePagination={false}
           emptyState={{
             title: 'No relationship kinds',
-            description: 'Add kinds to restrict which relationship types can be used when linking subjects. If none are defined, any kind is allowed.',
+            description:
+              'Add kinds to restrict which relationship types can be used when linking subjects. If none are defined, any kind is allowed.',
             action: (
               <Button onClick={openCreate} variant="primary" size="md">
                 <Plus className="w-4 h-4" />
@@ -267,7 +276,11 @@ function RelationshipKindsPage() {
       >
         <form onSubmit={handleSave} className="space-y-4">
           {formError && <FormError message={formError} />}
-          <FormField label="Kind" required hint="e.g. client_of, parent_of (alphanumeric + underscore)">
+          <FormField
+            label="Kind"
+            required
+            hint="e.g. client_of, parent_of (alphanumeric + underscore)"
+          >
             <FormInput
               value={kind}
               onChange={(e) => setKind(e.target.value)}
@@ -289,7 +302,10 @@ function RelationshipKindsPage() {
               placeholder="Subject is a client of the target"
             />
           </FormField>
-          <FormField label="Payload schema (optional)" hint="JSON object for validating relationship payload">
+          <FormField
+            label="Payload schema (optional)"
+            hint="JSON object for validating relationship payload"
+          >
             <FormTextarea
               value={payloadSchemaJson}
               onChange={(e) => setPayloadSchemaJson(e.target.value)}
@@ -314,7 +330,9 @@ function RelationshipKindsPage() {
         confirmText="Delete"
         cancelText="Cancel"
         isDestructive
-        details={deleting ? { kind: deleting.kind, 'display name': deleting.display_name } : undefined}
+        details={
+          deleting ? { kind: deleting.kind, 'display name': deleting.display_name } : undefined
+        }
         onConfirm={handleConfirmDelete}
       />
 

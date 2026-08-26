@@ -7,7 +7,7 @@
 export function hasPermission(
   permissions: string[] | undefined,
   resource: string,
-  action: string
+  action: string,
 ): boolean {
   if (!permissions?.length) return false
   return (

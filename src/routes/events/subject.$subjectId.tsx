@@ -1,21 +1,32 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { Calendar, Tag, AlertCircle, Activity, FileText, Shield, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
-import { useEffect, useState, useCallback } from 'react'
 import { useStore } from '@tanstack/react-store'
+import {
+  Activity,
+  AlertCircle,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  FileText,
+  Shield,
+  Tag,
+} from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { DocumentList } from '@/components/documents/DocumentList'
+import { DocumentUpload } from '@/components/documents/DocumentUpload'
+import { DocumentViewer } from '@/components/documents/DocumentViewer'
+import { EventDocumentsModal } from '@/components/documents/EventDocumentsModal'
+import { EventDetailsModal, EventsTable } from '@/components/events'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
+import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { LoadingIcon } from '@/components/ui/icons'
+import { Skeleton, SkeletonBreadcrumbs, SkeletonEventTimeline } from '@/components/ui/Skeleton'
 import { timelineApi } from '@/lib/api-client'
 import { authStore } from '@/lib/auth-store'
-import { DocumentUpload } from '@/components/documents/DocumentUpload'
-import { DocumentList } from '@/components/documents/DocumentList'
-import { DocumentViewer } from '@/components/documents/DocumentViewer'
-import { EventsTable, EventDetailsModal } from '@/components/events'
-import { EventDocumentsModal } from '@/components/documents/EventDocumentsModal'
-import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
-import { SkeletonBreadcrumbs, SkeletonEventTimeline, Skeleton } from '@/components/ui/Skeleton'
-import { EmptyState } from '@/components/ui/EmptyState'
-import type { SubjectResponse, EventResponse, EventListResponse } from '@/lib/types'
-import { LoadingIcon } from '@/components/ui/icons'
-import { Button } from '@/components/ui/button'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
+import type { EventListResponse, EventResponse, SubjectResponse } from '@/lib/types'
 
 const PAGE_SIZE = 50
 
@@ -39,7 +50,11 @@ function SubjectEventsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<Tab>('events')
-  const [viewingDocument, setViewingDocument] = useState<{ id: string; filename: string; type: string } | null>(null)
+  const [viewingDocument, setViewingDocument] = useState<{
+    id: string
+    filename: string
+    type: string
+  } | null>(null)
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [detailsEventId, setDetailsEventId] = useState<string | null>(null)
   const [documentCounts, setDocumentCounts] = useState<Record<string, number>>({})
@@ -59,59 +74,62 @@ function SubjectEventsPage() {
     }
   }
 
-  const fetchEvents = useCallback(async (page: number) => {
-    setLoading(true)
-    try {
-      // events.list returns a flat EventListResponse[] array
-      const { data: eventsList, error: eventsError } = await timelineApi.events.list(subjectId)
+  const fetchEvents = useCallback(
+    async (page: number) => {
+      setLoading(true)
+      try {
+        // events.list returns a flat EventListResponse[] array
+        const { data: eventsList, error: eventsError } = await timelineApi.events.list(subjectId)
 
-      if (eventsError) {
-        // @ts-expect-error - openapi-fetch error handling
-        const errorMessage = eventsError?.message || 'Unable to load events'
-        setError(errorMessage)
-      } else if (eventsList) {
-        setTotalEvents(eventsList.length)
+        if (eventsError) {
+          // @ts-expect-error - openapi-fetch error handling
+          const errorMessage = eventsError?.message || 'Unable to load events'
+          setError(errorMessage)
+        } else if (eventsList) {
+          setTotalEvents(eventsList.length)
 
-        // Paginate client-side
-        const start = page * PAGE_SIZE
-        const pageItems = eventsList.slice(start, start + PAGE_SIZE)
+          // Paginate client-side
+          const start = page * PAGE_SIZE
+          const pageItems = eventsList.slice(start, start + PAGE_SIZE)
 
-        // Fetch full event details for the current page (needed for EventCard)
-        const fullEvents = await Promise.all(
-          pageItems.map(async (item: EventListResponse) => {
-            const { data } = await timelineApi.events.get(item.id)
-            return data
-          })
-        )
-        setEvents(fullEvents.filter((e): e is EventResponse => e != null))
+          // Fetch full event details for the current page (needed for EventCard)
+          const fullEvents = await Promise.all(
+            pageItems.map(async (item: EventListResponse) => {
+              const { data } = await timelineApi.events.get(item.id)
+              return data
+            }),
+          )
+          setEvents(fullEvents.filter((e): e is EventResponse => e != null))
 
-        // Load document counts for current page events
-        const documentPromises = pageItems.map(async (item: EventListResponse) => {
-          try {
-            const { data: docs, error } = await timelineApi.documents.listByEvent(item.id)
-            if (error) {
+          // Load document counts for current page events
+          const documentPromises = pageItems.map(async (item: EventListResponse) => {
+            try {
+              const { data: docs, error } = await timelineApi.documents.listByEvent(item.id)
+              if (error) {
+                return { eventId: item.id, count: 0 }
+              }
+              return { eventId: item.id, count: Array.isArray(docs) ? docs.length : 0 }
+            } catch {
               return { eventId: item.id, count: 0 }
             }
-            return { eventId: item.id, count: Array.isArray(docs) ? docs.length : 0 }
-          } catch {
-            return { eventId: item.id, count: 0 }
-          }
-        })
+          })
 
-        const documentResults = await Promise.all(documentPromises)
-        const counts: Record<string, number> = {}
-        documentResults.forEach(({ eventId, count }: { eventId: string; count: number }) => {
-          counts[eventId] = count
-        })
-        setDocumentCounts(counts)
+          const documentResults = await Promise.all(documentPromises)
+          const counts: Record<string, number> = {}
+          documentResults.forEach(({ eventId, count }: { eventId: string; count: number }) => {
+            counts[eventId] = count
+          })
+          setDocumentCounts(counts)
+        }
+      } catch (err) {
+        setError('An unexpected error occurred')
+        console.error('Error:', err)
+      } finally {
+        setLoading(false)
       }
-    } catch (err) {
-      setError('An unexpected error occurred')
-      console.error('Error:', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [subjectId])
+    },
+    [subjectId],
+  )
 
   useEffect(() => {
     if (authState.user) {
@@ -131,9 +149,7 @@ function SubjectEventsPage() {
 
     try {
       // Fetch subject details
-      const { data: subjectData, error: subjectError } = await timelineApi.subjects.get(
-        subjectId
-      )
+      const { data: subjectData, error: subjectError } = await timelineApi.subjects.get(subjectId)
 
       if (subjectError) {
         // @ts-expect-error - openapi-fetch error handling
@@ -211,26 +227,16 @@ function SubjectEventsPage() {
           <div className="w-16 h-16 rounded-none bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">
-            Unable to Load Subject
-          </h3>
+          <h3 className="text-lg font-semibold text-foreground mb-2">Unable to Load Subject</h3>
           <p className="text-muted-foreground mb-6">
             {error || 'Subject not found'}. Please check your connection and try again.
           </p>
           <div className="flex items-center justify-center gap-3">
-            <Button
-              onClick={fetchData}
-              variant="primary"
-              size="sm"
-            >
+            <Button onClick={fetchData} variant="primary" size="sm">
               <LoadingIcon />
               Retry
             </Button>
-            <Button
-              onClick={() => navigate({ to: '/subjects' })}
-              variant="ghost"
-              size="sm"
-            >
+            <Button onClick={() => navigate({ to: '/subjects' })} variant="ghost" size="sm">
               Back to Subjects
             </Button>
           </div>
@@ -250,95 +256,86 @@ function SubjectEventsPage() {
           onClose={() => setViewingDocument(null)}
         />
       )}
-        {/* Breadcrumbs */}
-        <Breadcrumbs
-          items={[
-            { label: 'Subjects', href: '/subjects' },
-            { label: subject.id },
-          ]}
-        />
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={[{ label: 'Subjects', href: '/subjects' }, { label: subject.id }]} />
 
-        {/* Subject Header */}
-        <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50 mb-4">
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground mb-1">
-                {subject.id}
-              </h1>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+      {/* Subject Header */}
+      <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50 mb-4">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground mb-1">{subject.id}</h1>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Tag className="w-3 h-3" />
+                <span className="font-medium">{subject.subject_type}</span>
+              </div>
+              {subject.external_ref && (
                 <div className="flex items-center gap-1">
-                  <Tag className="w-3 h-3" />
-                  <span className="font-medium">{subject.subject_type}</span>
+                  <span>Ref:</span>
+                  <span className="font-mono">{subject.external_ref}</span>
                 </div>
-                {subject.external_ref && (
-                  <div className="flex items-center gap-1">
-                    <span>Ref:</span>
-                    <span className="font-mono">{subject.external_ref}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  <span>{totalEvents} event{totalEvents !== 1 ? 's' : ''}</span>
-                </div>
+              )}
+              <div className="flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                <span>
+                  {totalEvents} event{totalEvents !== 1 ? 's' : ''}
+                </span>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Total Events</p>
-              <p className="text-2xl font-bold text-foreground">
-                {totalEvents}
-              </p>
-            </div>
           </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2 pt-2 border-t border-border">
-            <Button
-              onClick={() => navigate({ to: `/verify/${subjectId}` })}
-              variant="primary"
-              size="sm"
-            >
-              <Shield className="w-4 h-4" />
-              Verify Chain
-            </Button>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">Total Events</p>
+            <p className="text-2xl font-bold text-foreground">{totalEvents}</p>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-3 border-b border-border">
+        {/* Actions */}
+        <div className="flex items-center gap-2 pt-2 border-t border-border">
           <Button
-            onClick={() => setActiveTab('events')}
-            className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 ${
-              activeTab === 'events'
-                ? 'border-primary text-foreground'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
+            onClick={() => navigate({ to: `/verify/${subjectId}` })}
+            variant="primary"
+            size="sm"
           >
-            <span className="flex items-center gap-2">
-              <Activity className="w-4 h-4" />
-              Events
-            </span>
-          </Button>
-          <Button
-            onClick={() => setActiveTab('documents')}
-            className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 ${
-              activeTab === 'documents'
-                ? 'border-primary text-foreground'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Documents
-            </span>
+            <Shield className="w-4 h-4" />
+            Verify Chain
           </Button>
         </div>
+      </div>
 
-        {/* Content */}
-        {activeTab === 'events' && (
+      {/* Tabs */}
+      <div className="flex gap-1 mb-3 border-b border-border">
+        <Button
+          onClick={() => setActiveTab('events')}
+          className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 ${
+            activeTab === 'events'
+              ? 'border-primary text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            Events
+          </span>
+        </Button>
+        <Button
+          onClick={() => setActiveTab('documents')}
+          className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 ${
+            activeTab === 'documents'
+              ? 'border-primary text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Documents
+          </span>
+        </Button>
+      </div>
+
+      {/* Content */}
+      {activeTab === 'events' && (
         <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50">
-          <h2 className="text-sm font-semibold text-foreground mb-4">
-            Event Timeline
-          </h2>
+          <h2 className="text-sm font-semibold text-foreground mb-4">Event Timeline</h2>
 
           {events.length === 0 ? (
             <EmptyState
@@ -364,7 +361,8 @@ function SubjectEventsPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
               <div className="text-xs text-muted-foreground">
-                Showing {currentPage * PAGE_SIZE + 1}-{Math.min((currentPage + 1) * PAGE_SIZE, totalEvents)} of {totalEvents} events
+                Showing {currentPage * PAGE_SIZE + 1}-
+                {Math.min((currentPage + 1) * PAGE_SIZE, totalEvents)} of {totalEvents} events
               </div>
               <div className="flex items-center gap-1">
                 <Button
@@ -410,10 +408,10 @@ function SubjectEventsPage() {
             </div>
           )}
         </div>
-        )}
+      )}
 
-        {/* Documents Tab */}
-        {activeTab === 'documents' && (
+      {/* Documents Tab */}
+      {activeTab === 'documents' && (
         <div className="space-y-4">
           {/* Documents List */}
           <div className="bg-card/80 backdrop-blur-sm rounded-none p-4 border border-border/50">
@@ -433,22 +431,23 @@ function SubjectEventsPage() {
             />
           </div>
         </div>
-        )}
+      )}
 
-        {/* Event Details Modal */}
-        {detailsEventId && events.length > 0 && (() => {
-          const event = events.find(e => e.id === detailsEventId)
+      {/* Event Details Modal */}
+      {detailsEventId &&
+        events.length > 0 &&
+        (() => {
+          const event = events.find((e) => e.id === detailsEventId)
           return event ? (
-            <EventDetailsModal
-              event={event}
-              onClose={() => setDetailsEventId(null)}
-            />
+            <EventDetailsModal event={event} onClose={() => setDetailsEventId(null)} />
           ) : null
         })()}
 
-        {/* Event Documents Modal */}
-        {selectedEventId && events.length > 0 && (() => {
-          const event = events.find(e => e.id === selectedEventId)
+      {/* Event Documents Modal */}
+      {selectedEventId &&
+        events.length > 0 &&
+        (() => {
+          const event = events.find((e) => e.id === selectedEventId)
           return event ? (
             <EventDocumentsModal
               eventId={event.id}

@@ -1,15 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect, useCallback } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { AlertCircle, ChevronLeft, ChevronRight, ClipboardList, Loader2 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
+import { DataTable } from '@/components/ui/DataTable'
+import { Input } from '@/components/ui/input'
 import { useFetchWithError } from '@/hooks/useFetchWithError'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { timelineApi } from '@/lib/api-client'
 import { formatDateTimeSafe } from '@/lib/format-date'
-import { ClipboardList, ChevronLeft, ChevronRight, Loader2, AlertCircle } from 'lucide-react'
-import { DataTable } from '@/components/ui/DataTable'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { SingleSelectCombobox } from '@/components/ui/combobox'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/settings/audit-log/')({
@@ -31,7 +31,6 @@ const RESOURCE_TYPES = [
   'tenant',
   'audit',
 ]
-
 
 function AuditLogPage() {
   const authState = useRequireAuth()
@@ -101,7 +100,8 @@ function AuditLogPage() {
         <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
         <h2 className="text-lg font-semibold text-foreground mb-2">Access denied</h2>
         <p className="text-muted-foreground text-sm max-w-md mx-auto">
-          You do not have permission to view the audit log. Contact your administrator if you need access.
+          You do not have permission to view the audit log. Contact your administrator if you need
+          access.
         </p>
       </div>
     )
@@ -120,16 +120,12 @@ function AuditLogPage() {
     {
       accessorKey: 'user_id',
       header: 'User',
-      cell: ({ row }) => (
-        <span className="text-sm font-mono">{row.original.user_id ?? '—'}</span>
-      ),
+      cell: ({ row }) => <span className="text-sm font-mono">{row.original.user_id ?? '—'}</span>,
     },
     {
       accessorKey: 'action',
       header: 'Action',
-      cell: ({ row }) => (
-        <span className="text-sm font-medium">{row.original.action}</span>
-      ),
+      cell: ({ row }) => <span className="text-sm font-medium">{row.original.action}</span>,
     },
     {
       accessorKey: 'resource_type',
@@ -142,7 +138,10 @@ function AuditLogPage() {
       accessorKey: 'resource_id',
       header: 'Resource ID',
       cell: ({ row }) => (
-        <span className="text-sm font-mono truncate max-w-[120px] block" title={row.original.resource_id ?? ''}>
+        <span
+          className="text-sm font-mono truncate max-w-[120px] block"
+          title={row.original.resource_id ?? ''}
+        >
           {row.original.resource_id ?? '—'}
         </span>
       ),

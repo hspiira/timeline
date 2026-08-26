@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
 import { Link } from '@tanstack/react-router'
+import { Link2, Plus, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import SubjectSelector from '@/components/subjects/SubjectSelector'
+import { Button } from '@/components/ui/button'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { FormField } from '@/components/ui/FormField'
 import { timelineApi } from '@/lib/api-client'
 import { formatDateTimeSafe } from '@/lib/format-date'
-import { Button } from '@/components/ui/button'
-import { FormField } from '@/components/ui/FormField'
-import { SingleSelectCombobox } from '@/components/ui/combobox'
-import SubjectSelector from '@/components/subjects/SubjectSelector'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { Link2, Plus, Trash2 } from 'lucide-react'
 import type { components } from '@/lib/timeline-api'
 
 type SubjectRelationshipListItem = components['schemas']['SubjectRelationshipListItem']
@@ -102,9 +102,7 @@ export function SubjectRelationshipsTab({
     ? kinds.map((k) => ({ value: k.kind, label: k.display_name || k.kind }))
     : []
   const kindSelectOptions =
-    kindOptions.length > 0
-      ? [{ value: '', label: 'Select kind' }, ...kindOptions]
-      : []
+    kindOptions.length > 0 ? [{ value: '', label: 'Select kind' }, ...kindOptions] : []
 
   if (loading) {
     return (

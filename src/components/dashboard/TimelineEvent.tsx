@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
 import { FileText } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { LoadingIcon } from '@/components/ui/icons'
 import { timelineApi } from '@/lib/api-client'
 import { formatEventTime } from '@/lib/format-date'
 import type { EventResponse } from '@/lib/types'
-import { LoadingIcon } from '@/components/ui/icons'
-import { Button } from '@/components/ui/button'
 
 interface TimelineEventProps {
   event: EventResponse
@@ -21,14 +21,14 @@ export function TimelineEvent({
   isHovered,
   onToggle,
   onHover,
-  onViewDocuments
+  onViewDocuments,
 }: TimelineEventProps) {
   const [documentCount, setDocumentCount] = useState<number | null>(null)
   const [loadingDocuments, setLoadingDocuments] = useState(false)
   const showPayload = isExpanded || isHovered
 
   const checkDocuments = useCallback(async () => {
-    if (documentCount !== null) return // Already fetched 
+    if (documentCount !== null) return // Already fetched
     setLoadingDocuments(true)
     try {
       const { data, error } = await timelineApi.documents.listByEvent(event.id)
@@ -74,7 +74,9 @@ export function TimelineEvent({
             <span className="font-mono text-xs bg-linear-to-r from-slate-600 to-slate-700 dark:from-slate-700 dark:to-slate-800 text-slate-100 px-2 py-0.5 rounded-none">
               {event.subject_id.slice(0, 8)}
             </span>
-            <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">{event.event_type}</span>
+            <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+              {event.event_type}
+            </span>
 
             {/* Document Indicator */}
             {loadingDocuments && (

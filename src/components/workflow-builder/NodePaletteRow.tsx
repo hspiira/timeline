@@ -1,6 +1,6 @@
+import { CircleX, GitBranch, MousePointerClick, Play, Zap } from 'lucide-react'
 import { nodeRegistry } from '@/lib/workflow-builder/node-registry'
 import type { NodeType } from '@/lib/workflow-builder/types'
-import { Zap, MousePointerClick, GitBranch, Play, CircleX } from 'lucide-react'
 
 const NODE_META: Record<
   string,

@@ -1,8 +1,8 @@
 import { Link } from '@tanstack/react-router'
-import { CheckCircle, FileText, ChevronRight, Link2, Copy, Check } from 'lucide-react'
+import { Check, CheckCircle, ChevronRight, Copy, FileText, Link2 } from 'lucide-react'
 import { useState } from 'react'
-import type { EventResponse } from '@/lib/types'
 import { formatEventDate, formatEventTime } from '@/lib/format-date'
+import type { EventResponse } from '@/lib/types'
 
 // Column definitions - single source of truth
 const columns = [
@@ -19,7 +19,7 @@ const columns = [
 
 const colStyles = columns.reduce(
   (acc, col) => ({ ...acc, [col.key]: `${col.width} text-${col.align}` }),
-  {} as Record<string, string>
+  {} as Record<string, string>,
 )
 
 export interface EventBlockProps {
@@ -31,7 +31,12 @@ export interface EventBlockProps {
   onEventClick?: (event: EventResponse) => void
 }
 
-function HashCell({ hash, isLink, copiedHash, onCopy }: {
+function HashCell({
+  hash,
+  isLink,
+  copiedHash,
+  onCopy,
+}: {
   hash: string | null | undefined
   isLink?: boolean
   copiedHash: string | null
@@ -78,8 +83,16 @@ function CellLink({
       <span
         role="button"
         tabIndex={0}
-        onClick={(e) => { e.preventDefault(); onEventClick(event) }}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEventClick(event) } }}
+        onClick={(e) => {
+          e.preventDefault()
+          onEventClick(event)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onEventClick(event)
+          }
+        }}
         className={className}
       >
         {children}
@@ -93,7 +106,13 @@ function CellLink({
   )
 }
 
-export function EventBlockRow({ event, index, isGenesis = false, documentCount = 0, onEventClick }: EventBlockProps) {
+export function EventBlockRow({
+  event,
+  index,
+  isGenesis = false,
+  documentCount = 0,
+  onEventClick,
+}: EventBlockProps) {
   const [copiedHash, setCopiedHash] = useState<string | null>(null)
   const linkParams = { subjectId: event.subject_id, eventId: event.id }
 
@@ -106,16 +125,27 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
   }
 
   const eventDate = new Date(event.event_time)
-  const cell = 'py-2.5 px-3 bg-card group-hover:bg-muted/30 border-y border-border/50 transition-colors'
+  const cell =
+    'py-2.5 px-3 bg-card group-hover:bg-muted/30 border-y border-border/50 transition-colors'
 
   return (
     <tr className="group cursor-pointer">
       <td className={`${cell} ${colStyles.block} border-l rounded-none`}>
-        <CellLink to="/subjects/$subjectId/events/$eventId" params={linkParams} onEventClick={onEventClick} event={event} className="flex items-center justify-center">
-          <div className={`w-7 h-7 rounded-none flex items-center justify-center ${
-            isGenesis ? 'bg-primary/20 border-2 border-primary' : 'bg-muted border border-border'
-          }`}>
-            <span className={`font-semibold ${isGenesis ? 'text-[10px] text-primary' : 'text-xs text-muted-foreground'}`}>
+        <CellLink
+          to="/subjects/$subjectId/events/$eventId"
+          params={linkParams}
+          onEventClick={onEventClick}
+          event={event}
+          className="flex items-center justify-center"
+        >
+          <div
+            className={`w-7 h-7 rounded-none flex items-center justify-center ${
+              isGenesis ? 'bg-primary/20 border-2 border-primary' : 'bg-muted border border-border'
+            }`}
+          >
+            <span
+              className={`font-semibold ${isGenesis ? 'text-[10px] text-primary' : 'text-xs text-muted-foreground'}`}
+            >
               {isGenesis ? 'G' : index.toString().padStart(2, '0')}
             </span>
           </div>
@@ -123,7 +153,13 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
       </td>
 
       <td className={`${cell} ${colStyles.type}`}>
-        <CellLink to="/subjects/$subjectId/events/$eventId" params={linkParams} onEventClick={onEventClick} event={event} className="flex items-center gap-2">
+        <CellLink
+          to="/subjects/$subjectId/events/$eventId"
+          params={linkParams}
+          onEventClick={onEventClick}
+          event={event}
+          className="flex items-center gap-2"
+        >
           <span className="font-medium text-sm text-foreground">{event.event_type}</span>
           {isGenesis && (
             <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary rounded-none shrink-0">
@@ -134,19 +170,39 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
       </td>
 
       <td className={`${cell} ${colStyles.version}`}>
-        <CellLink to="/subjects/$subjectId/events/$eventId" params={linkParams} onEventClick={onEventClick} event={event} className="block">
+        <CellLink
+          to="/subjects/$subjectId/events/$eventId"
+          params={linkParams}
+          onEventClick={onEventClick}
+          event={event}
+          className="block"
+        >
           <span className="text-xs text-muted-foreground">v{event.schema_version}</span>
         </CellLink>
       </td>
 
       <td className={`${cell} ${colStyles.date} text-xs text-muted-foreground whitespace-nowrap`}>
-        <CellLink to="/subjects/$subjectId/events/$eventId" params={linkParams} onEventClick={onEventClick} event={event} className="block">
+        <CellLink
+          to="/subjects/$subjectId/events/$eventId"
+          params={linkParams}
+          onEventClick={onEventClick}
+          event={event}
+          className="block"
+        >
           {formatEventDate(eventDate)}
         </CellLink>
       </td>
 
-      <td className={`${cell} ${colStyles.time} text-xs font-mono text-muted-foreground whitespace-nowrap`}>
-        <CellLink to="/subjects/$subjectId/events/$eventId" params={linkParams} onEventClick={onEventClick} event={event} className="block">
+      <td
+        className={`${cell} ${colStyles.time} text-xs font-mono text-muted-foreground whitespace-nowrap`}
+      >
+        <CellLink
+          to="/subjects/$subjectId/events/$eventId"
+          params={linkParams}
+          onEventClick={onEventClick}
+          event={event}
+          className="block"
+        >
           {formatEventTime(eventDate)}
         </CellLink>
       </td>
@@ -157,16 +213,33 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
 
       <td className={`${cell} ${colStyles.prevHash}`}>
         {isGenesis ? (
-          <CellLink to="/subjects/$subjectId/events/$eventId" params={linkParams} onEventClick={onEventClick} event={event} className="block">
+          <CellLink
+            to="/subjects/$subjectId/events/$eventId"
+            params={linkParams}
+            onEventClick={onEventClick}
+            event={event}
+            className="block"
+          >
             <span className="text-xs text-muted-foreground">—</span>
           </CellLink>
         ) : (
-          <HashCell hash={event.payload.previous_hash as string} isLink copiedHash={copiedHash} onCopy={copyHash} />
+          <HashCell
+            hash={event.payload.previous_hash as string}
+            isLink
+            copiedHash={copiedHash}
+            onCopy={copyHash}
+          />
         )}
       </td>
 
       <td className={`${cell} ${colStyles.docs}`}>
-        <CellLink to="/subjects/$subjectId/events/$eventId" params={linkParams} onEventClick={onEventClick} event={event} className="flex items-center justify-center">
+        <CellLink
+          to="/subjects/$subjectId/events/$eventId"
+          params={linkParams}
+          onEventClick={onEventClick}
+          event={event}
+          className="flex items-center justify-center"
+        >
           {documentCount > 0 ? (
             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded-none">
               <FileText className="w-2.5 h-2.5" />
@@ -179,7 +252,13 @@ export function EventBlockRow({ event, index, isGenesis = false, documentCount =
       </td>
 
       <td className={`${cell} ${colStyles.action} border-r rounded-none`}>
-        <CellLink to="/subjects/$subjectId/events/$eventId" params={linkParams} onEventClick={onEventClick} event={event} className="flex items-center justify-center gap-1">
+        <CellLink
+          to="/subjects/$subjectId/events/$eventId"
+          params={linkParams}
+          onEventClick={onEventClick}
+          event={event}
+          className="flex items-center justify-center gap-1"
+        >
           <CheckCircle className="w-4 h-4 text-green-500" />
           <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
         </CellLink>
@@ -210,7 +289,7 @@ export function EventBlockChain({
 
   // Sort events by time (oldest first) to determine block indices
   const sortedByTime = [...events].sort(
-    (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
+    (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime(),
   )
 
   // Calculate global block indices
@@ -236,7 +315,7 @@ export function EventBlockChain({
 
   // Display latest first
   const displayEvents = [...events].sort(
-    (a, b) => new Date(b.event_time).getTime() - new Date(a.event_time).getTime()
+    (a, b) => new Date(b.event_time).getTime() - new Date(a.event_time).getTime(),
   )
 
   return (
@@ -247,7 +326,10 @@ export function EventBlockChain({
           <thead>
             <tr className="text-xs font-medium text-muted-foreground">
               {columns.map((col) => (
-                <th key={col.key} className={`py-2 px-3 font-medium ${col.width} text-${col.align}`}>
+                <th
+                  key={col.key}
+                  className={`py-2 px-3 font-medium ${col.width} text-${col.align}`}
+                >
                   {col.label}
                 </th>
               ))}

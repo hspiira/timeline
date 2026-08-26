@@ -29,47 +29,44 @@ export function useActivityFeed({
   /**
    * Fetch first page of activities from API (server-side skip/limit).
    */
-  const fetchActivities = useCallback(
-    async () => {
-      setLoading(true)
-      setError(null)
+  const fetchActivities = useCallback(async () => {
+    setLoading(true)
+    setError(null)
 
-      try {
-        const { data: events, error: apiError } = await timelineApi.events.listAll({
-          skip: 0,
-          limit: pageSize,
-        })
+    try {
+      const { data: events, error: apiError } = await timelineApi.events.listAll({
+        skip: 0,
+        limit: pageSize,
+      })
 
-        if (apiError) {
-          setError('Failed to load activities')
-          return
-        }
-
-        if (!events || !Array.isArray(events)) {
-          setFeed({ items: [], hasMore: false, total: 0 })
-          return
-        }
-
-        const activities = events
-          .map(event => eventToActivity(event))
-          .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-
-        const hasMore = events.length === pageSize && events.length + 0 < MAX_TOTAL_ITEMS
-
-        setFeed({
-          items: activities,
-          hasMore,
-          total: activities.length,
-          lastFetch: new Date(),
-        })
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error')
-      } finally {
-        setLoading(false)
+      if (apiError) {
+        setError('Failed to load activities')
+        return
       }
-    },
-    [pageSize]
-  )
+
+      if (!events || !Array.isArray(events)) {
+        setFeed({ items: [], hasMore: false, total: 0 })
+        return
+      }
+
+      const activities = events
+        .map((event) => eventToActivity(event))
+        .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+
+      const hasMore = events.length === pageSize && events.length + 0 < MAX_TOTAL_ITEMS
+
+      setFeed({
+        items: activities,
+        hasMore,
+        total: activities.length,
+        lastFetch: new Date(),
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setLoading(false)
+    }
+  }, [pageSize])
 
   /**
    * Load next page and append (server-side pagination).
@@ -89,17 +86,17 @@ export function useActivityFeed({
       })
 
       if (apiError || !events || !Array.isArray(events)) {
-        setFeed(prev => ({ ...prev, hasMore: false }))
+        setFeed((prev) => ({ ...prev, hasMore: false }))
         return
       }
 
       const newActivities = events
-        .map(event => eventToActivity(event))
+        .map((event) => eventToActivity(event))
         .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
 
       const hasMore = events.length === pageSize && skip + events.length < MAX_TOTAL_ITEMS
 
-      setFeed(prev => ({
+      setFeed((prev) => ({
         ...prev,
         items: [...prev.items, ...newActivities],
         hasMore,
@@ -123,7 +120,7 @@ export function useActivityFeed({
    * Add new activity to the feed
    */
   const addActivity = useCallback((activity: Activity) => {
-    setFeed(prev => ({
+    setFeed((prev) => ({
       ...prev,
       items: [activity, ...prev.items],
       total: prev.total + 1,
@@ -134,11 +131,9 @@ export function useActivityFeed({
    * Update an activity
    */
   const updateActivity = useCallback((id: string, updates: Partial<Activity>) => {
-    setFeed(prev => ({
+    setFeed((prev) => ({
       ...prev,
-      items: prev.items.map(item =>
-        item.id === id ? { ...item, ...updates } : item
-      ),
+      items: prev.items.map((item) => (item.id === id ? { ...item, ...updates } : item)),
     }))
   }, [])
 
@@ -146,9 +141,9 @@ export function useActivityFeed({
    * Remove an activity
    */
   const removeActivity = useCallback((id: string) => {
-    setFeed(prev => ({
+    setFeed((prev) => ({
       ...prev,
-      items: prev.items.filter(item => item.id !== id),
+      items: prev.items.filter((item) => item.id !== id),
       total: prev.total - 1,
     }))
   }, [])
@@ -183,17 +178,10 @@ export function useActivityFeed({
 /**
  * Apply filters to activities
  */
-function applyActivityFilters(
-  activities: Activity[],
-  filter: ActivityFilter
-): Activity[] {
-  return activities.filter(activity => {
+function applyActivityFilters(activities: Activity[], filter: ActivityFilter): Activity[] {
+  return activities.filter((activity) => {
     // Filter by actions
-    if (
-      filter.actions &&
-      filter.actions.length > 0 &&
-      !filter.actions.includes(activity.action)
-    ) {
+    if (filter.actions && filter.actions.length > 0 && !filter.actions.includes(activity.action)) {
       return false
     }
 

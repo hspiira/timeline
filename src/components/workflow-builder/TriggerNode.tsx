@@ -1,10 +1,13 @@
-import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react'
+import { Handle, type NodeProps, Position, useConnection } from '@xyflow/react'
 import { Zap } from 'lucide-react'
 import type { WorkflowNodeData } from '@/lib/workflow-builder/flow-adapter'
 import { nodeRegistry } from '@/lib/workflow-builder/node-registry'
-import { WorkflowNodeShell, HANDLE_CLASS } from './WorkflowNodeShell'
+import { HANDLE_CLASS, WorkflowNodeShell } from './WorkflowNodeShell'
 
-export function TriggerNode({ data, selected }: NodeProps<import('@xyflow/react').Node<WorkflowNodeData>>) {
+export function TriggerNode({
+  data,
+  selected,
+}: NodeProps<import('@xyflow/react').Node<WorkflowNodeData>>) {
   const node = data.workflowNode
   const eventType = (node.configuration?.eventType as string) || ''
   const title = eventType || 'New trigger'

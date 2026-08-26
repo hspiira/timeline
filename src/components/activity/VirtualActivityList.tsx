@@ -62,19 +62,19 @@ export function VirtualActivityList({
           height: totalSize,
         }}
       >
-        {items.map(virtualItem => {
+        {items.map((virtualItem) => {
           const activity = activities[virtualItem.index]
           if (!activity) return null
 
           return (
             <div
               key={virtualItem.key}
-              style={{  
-                position: 'absolute',  
-                top: 0,  
-                left: 0,  
-                width: '100%',  
-                transform: `translateY(${virtualItem.start}px)`,  
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualItem.start}px)`,
               }}
               className="px-3 py-2"
             >

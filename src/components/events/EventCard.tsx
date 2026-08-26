@@ -1,6 +1,6 @@
-import { Calendar, User, Clock, FileText, Eye } from 'lucide-react'
-import type { EventResponse } from '@/lib/types'
+import { Calendar, Clock, Eye, FileText, User } from 'lucide-react'
 import { formatEventDateTime } from '@/lib/format-date'
+import type { EventResponse } from '@/lib/types'
 
 export interface EventCardProps {
   event: EventResponse
@@ -69,17 +69,17 @@ export function EventCard({
               </div>
             </div>
 
-            {/* Payload Preview */}  
-            {event.payload && (  
-              <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-none border border-slate-200 dark:border-slate-700 overflow-x-auto">  
-                <pre className="text-xs text-foreground/90 whitespace-pre-wrap wrap-break-word max-h-32 overflow-y-auto">  
-                  {(() => {  
-                    const str = JSON.stringify(event.payload, null, 2)  
-                    return str.length > 500 ? str.slice(0, 500) + '\n...' : str  
-                  })()}  
-                </pre>  
-              </div>  
-            )} 
+            {/* Payload Preview */}
+            {event.payload && (
+              <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-none border border-slate-200 dark:border-slate-700 overflow-x-auto">
+                <pre className="text-xs text-foreground/90 whitespace-pre-wrap wrap-break-word max-h-32 overflow-y-auto">
+                  {(() => {
+                    const str = JSON.stringify(event.payload, null, 2)
+                    return str.length > 500 ? str.slice(0, 500) + '\n...' : str
+                  })()}
+                </pre>
+              </div>
+            )}
           </div>
         </div>
       </div>

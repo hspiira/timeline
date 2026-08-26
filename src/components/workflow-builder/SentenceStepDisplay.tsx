@@ -6,8 +6,8 @@
 
 import {
   getSentenceSegments,
-  substituteSentence,
   type SentenceStepConfig,
+  substituteSentence,
 } from '@/lib/workflow-builder/sentence-templates'
 
 export interface SentenceStepDisplayProps {
@@ -53,7 +53,7 @@ export function SentenceStepDisplay({
           >
             {seg.displayValue ?? `{{${seg.value}}}`}
           </span>
-        )
+        ),
       )}
     </span>
   )

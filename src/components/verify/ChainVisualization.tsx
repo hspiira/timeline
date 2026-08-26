@@ -1,4 +1,4 @@
-import { CheckCircle, AlertTriangle, Link2, Copy, ChevronDown, ChevronUp } from 'lucide-react'
+import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Copy, Link2 } from 'lucide-react'
 import { useState } from 'react'
 import { formatFullDateTime } from '@/lib/format-date'
 import type { components } from '@/lib/timeline-api'
@@ -45,7 +45,13 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
 
   const truncateHash = (hash: string, length: number = 32) => hash.slice(0, length)
 
-  const HashDisplay = ({ label, hash, hashKey, isError = false, isMissing = false }: {
+  const HashDisplay = ({
+    label,
+    hash,
+    hashKey,
+    isError = false,
+    isMissing = false,
+  }: {
     label: string
     hash: string | null
     hashKey: string
@@ -57,7 +63,9 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
     if (!hash && isMissing) {
       return (
         <div className="flex items-center gap-2">
-          <span className="font-medium text-xs shrink-0 text-red-700 dark:text-red-300">{label}:</span>
+          <span className="font-medium text-xs shrink-0 text-red-700 dark:text-red-300">
+            {label}:
+          </span>
           <div className="text-xs px-2 py-1 rounded-none bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 italic">
             [Missing - Event Tampered]
           </div>
@@ -71,7 +79,9 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
 
     return (
       <div className="flex items-center gap-2 group/hash">
-        <span className={`font-medium text-xs shrink-0 ${isError ? 'text-red-700 dark:text-red-300' : 'text-muted-foreground'}`}>
+        <span
+          className={`font-medium text-xs shrink-0 ${isError ? 'text-red-700 dark:text-red-300' : 'text-muted-foreground'}`}
+        >
           {label}:
         </span>
         <code
@@ -155,7 +165,9 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
                 {/* Index and Event Type */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-xs font-semibold text-muted-foreground">#{index.toString().padStart(3, '0')}</span>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      #{index.toString().padStart(3, '0')}
+                    </span>
                     <h3 className="font-semibold text-foreground text-sm">{event.event_type}</h3>
                   </div>
                 </div>
@@ -180,20 +192,28 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
                 {/* Time Row */}
                 <div className="flex items-center gap-2 text-xs">
                   <span className="font-medium text-muted-foreground shrink-0">Time:</span>
-                  <span className="text-muted-foreground">{formatFullDateTime(event.event_time)}</span>
+                  <span className="text-muted-foreground">
+                    {formatFullDateTime(event.event_time)}
+                  </span>
                 </div>
 
                 {/* Event ID Row */}
                 <div className="flex items-center gap-2 text-xs">
                   <span className="font-medium text-muted-foreground shrink-0">Event ID:</span>
-                  <code className="font-mono text-muted-foreground flex-1 break-all">{event.id.slice(0, 20)}…</code>
+                  <code className="font-mono text-muted-foreground flex-1 break-all">
+                    {event.id.slice(0, 20)}…
+                  </code>
                 </div>
 
                 {/* Hash Information */}
                 {(event.previous_hash || event.expected_hash || event.actual_hash) && (
                   <div className="space-y-2 mt-3 pt-2.5 border-t border-border/50">
                     {!genesis && event.previous_hash && (
-                      <HashDisplay label="Previous Hash" hash={event.previous_hash} hashKey={`${index}-prev`} />
+                      <HashDisplay
+                        label="Previous Hash"
+                        hash={event.previous_hash}
+                        hashKey={`${index}-prev`}
+                      />
                     )}
 
                     {event.expected_hash && (

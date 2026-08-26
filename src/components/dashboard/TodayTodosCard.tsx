@@ -1,9 +1,9 @@
 import { Link } from '@tanstack/react-router'
+import { addDays, format, isSameMonth, isToday, startOfWeek } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { format, startOfWeek, addDays, isToday, isSameMonth } from 'date-fns'
-import { DashboardCard } from './DashboardCard'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { DashboardCard } from './DashboardCard'
 
 /** Minimal event for today list */
 interface TodayEvent {
@@ -20,7 +20,10 @@ interface TodayTodosCardProps {
 
 export function TodayTodosCard({ todayEvents = [], loading = false }: TodayTodosCardProps) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
-  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart])
+  const weekDays = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
+    [weekStart],
+  )
   const today = new Date()
 
   const items = useMemo(() => {
@@ -35,13 +38,18 @@ export function TodayTodosCard({ todayEvents = [], loading = false }: TodayTodos
     <DashboardCard
       title="Today's to-dos"
       action={
-        <Link to="/events" className="text-xs text-muted-foreground hover:text-[var(--dashboard-accent)]">
+        <Link
+          to="/events"
+          className="text-xs text-muted-foreground hover:text-[var(--dashboard-accent)]"
+        >
           View all &gt;
         </Link>
       }
     >
       <div className="space-y-4">
-        <p className="text-sm font-medium text-foreground tabular-nums">{format(today, 'yyyy/MM/dd')}</p>
+        <p className="text-sm font-medium text-foreground tabular-nums">
+          {format(today, 'yyyy/MM/dd')}
+        </p>
 
         {/* Mini week calendar */}
         <div className="flex items-center justify-between gap-1">

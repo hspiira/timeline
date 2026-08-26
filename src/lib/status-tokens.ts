@@ -18,9 +18,19 @@ export const statusTokenClasses: Record<StatusKind, { bg: string; text: string }
 export function toStatusKind(status: string | null | undefined): StatusKind {
   if (!status) return 'unknown'
   const s = status.toLowerCase()
-  if (s === 'valid' || s === 'running' || s === 'ok' || s === 'healthy' || s === 'sealed' || s === 'completed') return 'ok'
-  if (s === 'degraded' || s === 'pending_approval' || s === 'approved' || s === 'broken') return 'warn'
-  if (s === 'chain_break' || s === 'repaired' || s === 'failed' || s === 'stopped') return s === 'repaired' ? 'repair' : 'error'
+  if (
+    s === 'valid' ||
+    s === 'running' ||
+    s === 'ok' ||
+    s === 'healthy' ||
+    s === 'sealed' ||
+    s === 'completed'
+  )
+    return 'ok'
+  if (s === 'degraded' || s === 'pending_approval' || s === 'approved' || s === 'broken')
+    return 'warn'
+  if (s === 'chain_break' || s === 'repaired' || s === 'failed' || s === 'stopped')
+    return s === 'repaired' ? 'repair' : 'error'
   if (s === 'repair' || s === 'repaired') return 'repair'
   return 'unknown'
 }

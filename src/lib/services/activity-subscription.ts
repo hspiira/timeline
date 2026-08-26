@@ -20,10 +20,7 @@ class ActivitySubscriptionService {
   /**
    * Subscribe to activity updates
    */
-  subscribe(
-    callback: (activity: Activity) => void,
-    filter?: ActivityFilter
-  ): () => void {
+  subscribe(callback: (activity: Activity) => void, filter?: ActivityFilter): () => void {
     const id = `subscriber_${++this.subscriptionId}`
     this.subscribers.set(id, { id, callback, filter })
 
@@ -51,7 +48,7 @@ class ActivitySubscriptionService {
    * Notify subscribers about deleted activity
    */
   notifyActivityRemoval(activityId: string) {
-    this.subscribers.forEach(subscriber => {
+    this.subscribers.forEach((subscriber) => {
       // Can't filter on removal, just notify
       subscriber.callback({
         id: activityId,
@@ -63,7 +60,7 @@ class ActivitySubscriptionService {
    * Internal: notify matching subscribers
    */
   private notifySubscribers(activity: Activity, _type: 'new' | 'update') {
-    this.subscribers.forEach(subscriber => {
+    this.subscribers.forEach((subscriber) => {
       // Check if activity matches subscriber's filter
       if (subscriber.filter && !this.matchesFilter(activity, subscriber.filter)) {
         return
@@ -85,10 +82,7 @@ class ActivitySubscriptionService {
       return false
     }
 
-    if (
-      filter.resourceTypes?.length &&
-      !filter.resourceTypes.includes(activity.resourceType)
-    ) {
+    if (filter.resourceTypes?.length && !filter.resourceTypes.includes(activity.resourceType)) {
       return false
     }
 
@@ -101,10 +95,7 @@ class ActivitySubscriptionService {
     }
 
     if (filter.dateRange) {
-      if (
-        activity.timestamp < filter.dateRange.from ||
-        activity.timestamp > filter.dateRange.to
-      ) {
+      if (activity.timestamp < filter.dateRange.from || activity.timestamp > filter.dateRange.to) {
         return false
       }
     }
@@ -148,7 +139,7 @@ export const activitySubscriptionService = new ActivitySubscriptionService()
  */
 export function useActivitySubscriptions(
   callback: (activity: Activity) => void,
-  filter?: ActivityFilter
+  filter?: ActivityFilter,
 ) {
   // Subscribe on mount
   const unsubscribe = activitySubscriptionService.subscribe(callback, filter)

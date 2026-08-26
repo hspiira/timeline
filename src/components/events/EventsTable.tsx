@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
-import { FileText, Eye, ArrowUpRight } from 'lucide-react'
-import type { EventResponse } from '@/lib/types'
+import { ArrowUpRight, Eye, FileText } from 'lucide-react'
 import { formatEventDate, formatEventTime } from '@/lib/format-date'
+import type { EventResponse } from '@/lib/types'
 
 export interface EventsTableProps {
   events: EventResponse[]

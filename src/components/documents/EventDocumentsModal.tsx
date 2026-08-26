@@ -1,15 +1,15 @@
 import { Plus, X } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
+import type { JsonSchema } from '@/components/shared/JsonSchemaForm'
+import { JsonSchemaForm } from '@/components/shared/JsonSchemaForm'
+import { Button } from '@/components/ui/button'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
+import { LoadingIcon } from '@/components/ui/icons'
 import { timelineApi } from '@/lib/api-client'
 import { getApiErrorMessage } from '@/lib/api-utils'
 import type { components } from '@/lib/timeline-api'
 import { DocumentList } from './DocumentList'
 import { EventDocumentUpload } from './EventDocumentUpload'
-import { Button } from '@/components/ui/button'
-import { SingleSelectCombobox } from '@/components/ui/combobox'
-import { JsonSchemaForm } from '@/components/shared/JsonSchemaForm'
-import type { JsonSchema } from '@/components/shared/JsonSchemaForm'
-import { LoadingIcon } from '@/components/ui/icons'
 
 export interface EventDocumentsModalProps {
   eventId: string
@@ -27,7 +27,7 @@ export function EventDocumentsModal({
   subjectId,
   eventType,
   onClose,
-  onDocumentsUpdated
+  onDocumentsUpdated,
 }: EventDocumentsModalProps) {
   const titleId = useId()
   const [showUpload, setShowUpload] = useState(false)
@@ -60,7 +60,9 @@ export function EventDocumentsModal({
       .catch(() => {
         if (!cancelled) setCategoriesLoading(false)
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [showUpload])
 
   // Fetch full category when selection changes (for metadata_schema)
@@ -81,7 +83,9 @@ export function EventDocumentsModal({
       .catch(() => {
         if (!cancelled) setCategoryFull(null)
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [selectedCategoryId])
 
   // Handle Escape key to close modal
@@ -103,7 +107,11 @@ export function EventDocumentsModal({
 
   const effectiveDocumentType = (): string => {
     if (categories.length > 0 && selectedCategoryId) {
-      return categoryFull?.category_name ?? categories.find((c) => c.id === selectedCategoryId)?.category_name ?? 'evidence'
+      return (
+        categoryFull?.category_name ??
+        categories.find((c) => c.id === selectedCategoryId)?.category_name ??
+        'evidence'
+      )
     }
     return 'evidence'
   }
@@ -134,7 +142,7 @@ export function EventDocumentsModal({
             throw new Error('Invalid response from server')
           }
           return data.id
-        })
+        }),
       )
 
       // Collect successful uploads and failed files
@@ -157,7 +165,9 @@ export function EventDocumentsModal({
 
       // If some failed, warn user but proceed with successful uploads
       if (failures.length > 0) {
-        setError(`Some files failed to upload:\n${failures.join('\n')}\n\nProceeding with ${documentIds.length} successful upload(s).`)
+        setError(
+          `Some files failed to upload:\n${failures.join('\n')}\n\nProceeding with ${documentIds.length} successful upload(s).`,
+        )
       }
 
       // Create a new "document_update" event to maintain audit trail
@@ -170,7 +180,7 @@ export function EventDocumentsModal({
           original_event_id: eventId,
           original_event_type: eventType,
           document_ids: documentIds,
-          action: 'documents_added'
+          action: 'documents_added',
         },
       }
 
@@ -194,7 +204,12 @@ export function EventDocumentsModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose} onKeyDown={(e) => e.key === 'Escape' && !uploading && onClose()} role="presentation">
+    <div
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      onClick={onClose}
+      onKeyDown={(e) => e.key === 'Escape' && !uploading && onClose()}
+      role="presentation"
+    >
       <div
         className="bg-background border border-amber-200 dark:border-amber-900 rounded-none shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -206,7 +221,9 @@ export function EventDocumentsModal({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-amber-200 dark:border-amber-900 bg-linear-to-r from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20">
           <div>
-            <h2 id={titleId} className="font-semibold text-foreground">Event Documents</h2>
+            <h2 id={titleId} className="font-semibold text-foreground">
+              Event Documents
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5">{eventId.slice(0, 8)}</p>
           </div>
 
@@ -240,9 +257,12 @@ export function EventDocumentsModal({
           {showUpload && (
             <div className="p-3 bg-linear-to-r from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-none space-y-3">
               <div>
-                <h4 className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">Add Additional Documents</h4>
+                <h4 className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">
+                  Add Additional Documents
+                </h4>
                 <p className="text-xs text-blue-800 dark:text-blue-300 mb-3">
-                  A new "document_update" event will be created to maintain the audit trail. The original event and its documents remain unchanged.
+                  A new "document_update" event will be created to maintain the audit trail. The
+                  original event and its documents remain unchanged.
                 </p>
               </div>
 
@@ -254,7 +274,9 @@ export function EventDocumentsModal({
               ) : categories.length > 0 ? (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-foreground/90 mb-1">Document type</label>
+                    <label className="block text-sm font-medium text-foreground/90 mb-1">
+                      Document type
+                    </label>
                     <SingleSelectCombobox
                       value={selectedCategoryId}
                       onValueChange={setSelectedCategoryId}
@@ -273,7 +295,9 @@ export function EventDocumentsModal({
                   </div>
                   {categoryFull?.metadata_schema && (
                     <div>
-                      <label className="block text-sm font-medium text-foreground/90 mb-1">Metadata (optional)</label>
+                      <label className="block text-sm font-medium text-foreground/90 mb-1">
+                        Metadata (optional)
+                      </label>
                       <JsonSchemaForm
                         schema={categoryFull.metadata_schema as JsonSchema}
                         value={metadata}

@@ -9,7 +9,10 @@ export function RecentActivityCard(props: RecentActivityCardProps) {
     <DashboardCard
       title="Recent activity"
       action={
-        <Link to="/events" className="text-xs text-muted-foreground hover:text-[var(--dashboard-accent)]">
+        <Link
+          to="/events"
+          className="text-xs text-muted-foreground hover:text-[var(--dashboard-accent)]"
+        >
           View all &gt;
         </Link>
       }

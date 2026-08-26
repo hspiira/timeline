@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { ConnectorsHealthPage } from '@/components/connectors/ConnectorsHealthPage'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 
 export const Route = createFileRoute('/settings/connectors/')({
   beforeLoad: () => {

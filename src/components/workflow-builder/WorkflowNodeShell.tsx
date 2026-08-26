@@ -1,6 +1,6 @@
 import { Handle, Position, useConnection } from '@xyflow/react'
-import type { ReactNode } from 'react'
 import { GripVertical } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 export type BadgeVariant = 'emerald' | 'amber' | 'blue' | 'violet' | 'rose'
 
@@ -9,12 +9,10 @@ const BADGE_COLORS: Record<BadgeVariant, string> = {
     'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60',
   amber:
     'bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60',
-  blue:
-    'bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60',
+  blue: 'bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60',
   violet:
     'bg-violet-50 text-violet-700 border-violet-200/80 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800/60',
-  rose:
-    'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60',
+  rose: 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60',
 }
 
 export const HANDLE_CLASS =
@@ -54,7 +52,9 @@ export function WorkflowNodeShell({
   const connection = useConnection()
   const isConnecting = connection?.inProgress === true
   const showTargetHandles = isConnecting || selected
-  const targetHandleVisible = showTargetHandles ? HANDLE_TARGET_CLASS : '!bg-muted-foreground/30 !border-2 !border-card'
+  const targetHandleVisible = showTargetHandles
+    ? HANDLE_TARGET_CLASS
+    : '!bg-muted-foreground/30 !border-2 !border-card'
 
   return (
     <div
@@ -82,7 +82,9 @@ export function WorkflowNodeShell({
         <div className="min-w-0 flex-1 text-left">
           <p className="text-[13px] font-medium text-card-foreground leading-snug">{title}</p>
           {description && (
-            <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed">{description}</p>
+            <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed">
+              {description}
+            </p>
           )}
           {status && (
             <span className="mt-1.5 inline-block rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">

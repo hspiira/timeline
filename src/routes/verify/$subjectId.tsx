@@ -1,19 +1,30 @@
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { useEffect, useCallback, useState, useMemo } from 'react'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { useFetchWithError } from '@/hooks/useFetchWithError'
 import { useQuery } from '@tanstack/react-query'
-import { timelineApi } from '@/lib/api-client'
-import { formatFullDateTime } from '@/lib/format-date'
-import { CheckCircle, AlertTriangle, AlertCircle, DownloadIcon, Wrench, ChevronDown, ChevronRight, ChevronLeft, Boxes, FileCheck } from 'lucide-react'
-import { ChainVisualization } from '@/components/verify/ChainVisualization'
-import { StatusBadge } from '@/components/ui/StatusBadge'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import {
+  AlertCircle,
+  AlertTriangle,
+  Boxes,
+  CheckCircle,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  DownloadIcon,
+  FileCheck,
+  Wrench,
+} from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
-import { SkeletonBreadcrumbs, Skeleton } from '@/components/ui/Skeleton'
-import type { components } from '@/lib/timeline-api'
 import { Button } from '@/components/ui/button'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
+import { Skeleton, SkeletonBreadcrumbs } from '@/components/ui/Skeleton'
+import { StatusBadge } from '@/components/ui/StatusBadge'
+import { ChainVisualization } from '@/components/verify/ChainVisualization'
+import { useFetchWithError } from '@/hooks/useFetchWithError'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { timelineApi } from '@/lib/api-client'
+import { formatFullDateTime } from '@/lib/format-date'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
+import type { components } from '@/lib/timeline-api'
 
 const VERIFY_PAGE_SIZE = 20
 
@@ -47,9 +58,7 @@ function VerificationTableRow({
   const hashShort = hash !== '—' ? `${hash.slice(0, 12)}…` : '—'
   return (
     <>
-      <tr
-        className={`border-b border-border/30 ${!event.is_valid ? 'bg-status-warn/10' : ''}`}
-      >
+      <tr className={`border-b border-border/30 ${!event.is_valid ? 'bg-status-warn/10' : ''}`}>
         <td className="py-1.5 pr-2 font-mono text-xs">{event.sequence}</td>
         <td className="py-1.5 pr-2">{event.event_type}</td>
         <td className="py-1.5 pr-2">
@@ -68,7 +77,11 @@ function VerificationTableRow({
             className="p-0.5 rounded hover:bg-muted"
             aria-expanded={isExpanded}
           >
-            {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            {isExpanded ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
           </button>
         </td>
       </tr>
@@ -77,10 +90,14 @@ function VerificationTableRow({
           <td colSpan={6} className="py-2 px-3 text-xs">
             <div className="grid gap-1 font-mono">
               {event.expected_hash != null && (
-                <div>Expected: <span className="font-mono break-all">{event.expected_hash}</span></div>
+                <div>
+                  Expected: <span className="font-mono break-all">{event.expected_hash}</span>
+                </div>
               )}
               {event.actual_hash != null && (
-                <div>Actual: <span className="font-mono break-all">{event.actual_hash}</span></div>
+                <div>
+                  Actual: <span className="font-mono break-all">{event.actual_hash}</span>
+                </div>
               )}
               <div className="flex flex-wrap gap-2 mt-2">
                 <Button variant="outline" size="sm" className="w-fit" onClick={onViewProof}>
@@ -122,7 +139,7 @@ function VerifyPage() {
 
   const fetchVerification = useCallback(
     () => timelineApi.integrity.verifySubjectDetail(subjectId),
-    [subjectId]
+    [subjectId],
   )
 
   const {
@@ -268,7 +285,13 @@ function VerifyPage() {
             <h3 className="font-semibold text-destructive text-xs">Verification Failed</h3>
             <p className="text-xs text-destructive mt-0.5">{error}</p>
           </div>
-          <Button type="button" variant="destructive" size="sm" onClick={() => refetch()} className="shrink-0">
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={() => refetch()}
+            className="shrink-0"
+          >
             Retry
           </Button>
         </div>
@@ -280,7 +303,10 @@ function VerifyPage() {
           {epochs.length > 0 && (
             <div className="bg-card/80 rounded-none border border-border/50 p-3 mb-3">
               <h2 className="text-sm font-semibold text-foreground mb-2">Epochs</h2>
-              <p className="text-xs text-muted-foreground mb-2">Per-epoch status and event counts. Use the detail table below for full chain verification.</p>
+              <p className="text-xs text-muted-foreground mb-2">
+                Per-epoch status and event counts. Use the detail table below for full chain
+                verification.
+              </p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm border-collapse">
                   <thead>
@@ -300,7 +326,9 @@ function VerifyPage() {
                           <StatusBadge status={epoch.status} label={epoch.status} />
                         </td>
                         <td className="py-2 pr-2">{epoch.event_count}</td>
-                        <td className="py-2 pr-2 text-muted-foreground">{formatFullDateTime(epoch.opened_at)}</td>
+                        <td className="py-2 pr-2 text-muted-foreground">
+                          {formatFullDateTime(epoch.opened_at)}
+                        </td>
                         <td className="py-2 pr-2 text-muted-foreground">
                           {epoch.sealed_at ? formatFullDateTime(epoch.sealed_at) : '—'}
                         </td>
@@ -338,7 +366,9 @@ function VerifyPage() {
                 variant="outline"
                 size="sm"
                 className="shrink-0"
-                onClick={() => navigate({ to: '/subjects/$subjectId/epochs', params: { subjectId } })}
+                onClick={() =>
+                  navigate({ to: '/subjects/$subjectId/epochs', params: { subjectId } })
+                }
               >
                 <Boxes className="w-3.5 h-3.5" />
                 Epochs
@@ -347,7 +377,12 @@ function VerifyPage() {
                 variant="outline"
                 size="sm"
                 className="shrink-0"
-                onClick={() => navigate({ to: '/integrity/repairs/new', search: { subject_id: subjectId, break_seq: undefined } })}
+                onClick={() =>
+                  navigate({
+                    to: '/integrity/repairs/new',
+                    search: { subject_id: subjectId, break_seq: undefined },
+                  })
+                }
               >
                 <Wrench className="w-3.5 h-3.5" />
                 Initiate Repair
@@ -356,10 +391,29 @@ function VerifyPage() {
 
             {/* Compact Stats */}
             <div className="flex flex-wrap gap-3 mb-2 text-sm">
-              <span className="text-muted-foreground">Total Events: <span className="font-bold text-foreground">{verification.total_events}</span></span>
-              <span className="text-muted-foreground">Valid Events: <span className="font-bold text-status-ok">{verification.valid_events}</span></span>
-              <span className="text-muted-foreground">Invalid Events: <span className="font-bold text-status-error">{verification.invalid_events}</span></span>
-              <span className="text-muted-foreground">Integrity: <span className={`font-bold ${verification.is_chain_valid ? 'text-status-ok' : 'text-status-error'}`}>{verification.total_events > 0 ? Math.round((verification.valid_events / verification.total_events) * 100) : 0}%</span></span>
+              <span className="text-muted-foreground">
+                Total Events:{' '}
+                <span className="font-bold text-foreground">{verification.total_events}</span>
+              </span>
+              <span className="text-muted-foreground">
+                Valid Events:{' '}
+                <span className="font-bold text-status-ok">{verification.valid_events}</span>
+              </span>
+              <span className="text-muted-foreground">
+                Invalid Events:{' '}
+                <span className="font-bold text-status-error">{verification.invalid_events}</span>
+              </span>
+              <span className="text-muted-foreground">
+                Integrity:{' '}
+                <span
+                  className={`font-bold ${verification.is_chain_valid ? 'text-status-ok' : 'text-status-error'}`}
+                >
+                  {verification.total_events > 0
+                    ? Math.round((verification.valid_events / verification.total_events) * 100)
+                    : 0}
+                  %
+                </span>
+              </span>
             </div>
 
             <p className="text-xs text-muted-foreground">Subject ID: {subjectId}</p>
@@ -369,37 +423,44 @@ function VerifyPage() {
           </div>
 
           {/* First break callout — roadmap: chain break location indicator */}
-          {verification.events && verification.events.length > 0 && (() => {
-            const firstInvalid = verification.events.find((e) => e.is_valid === false)
-            return firstInvalid ? (
-              <div className="mb-3 p-3 rounded-none border border-status-error/50 bg-status-error/10 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-status-error shrink-0" />
-                <span className="text-sm text-foreground">
-                  First break at event seq{' '}
-                  <Link
-                    to="/subjects/$subjectId/proof/$eventSeq"
-                    params={{ subjectId, eventSeq: String(firstInvalid.sequence) }}
-                    className="font-mono font-semibold text-primary hover:underline"
-                  >
-                    {firstInvalid.sequence}
-                  </Link>
-                  {firstInvalid.event_id && (
-                    <span className="text-muted-foreground"> (event_id: {firstInvalid.event_id})</span>
-                  )}
-                </span>
-              </div>
-            ) : null
-          })()}
+          {verification.events &&
+            verification.events.length > 0 &&
+            (() => {
+              const firstInvalid = verification.events.find((e) => e.is_valid === false)
+              return firstInvalid ? (
+                <div className="mb-3 p-3 rounded-none border border-status-error/50 bg-status-error/10 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-status-error shrink-0" />
+                  <span className="text-sm text-foreground">
+                    First break at event seq{' '}
+                    <Link
+                      to="/subjects/$subjectId/proof/$eventSeq"
+                      params={{ subjectId, eventSeq: String(firstInvalid.sequence) }}
+                      className="font-mono font-semibold text-primary hover:underline"
+                    >
+                      {firstInvalid.sequence}
+                    </Link>
+                    {firstInvalid.event_id && (
+                      <span className="text-muted-foreground">
+                        {' '}
+                        (event_id: {firstInvalid.event_id})
+                      </span>
+                    )}
+                  </span>
+                </div>
+              ) : null
+            })()}
 
           {/* Verification table: Seq, Type, Status, Hash, Error (roadmap) */}
           {verification.events && verification.events.length > 0 && (
             <div className="bg-card/80 rounded-none border border-border/50 p-3 mb-3">
               <h2 className="text-sm font-semibold text-foreground mb-2">Verification Detail</h2>
               <div className="mb-2 flex flex-wrap items-center gap-2">
-                <label className="text-sm font-medium text-foreground/90 whitespace-nowrap">Status:</label>
+                <label className="text-sm font-medium text-foreground/90 whitespace-nowrap">
+                  Status:
+                </label>
                 <SingleSelectCombobox
                   value={filterStatus}
-                  onValueChange={(v) => setFilterStatus((v === 'valid' || v === 'break') ? v : '')}
+                  onValueChange={(v) => setFilterStatus(v === 'valid' || v === 'break' ? v : '')}
                   options={[
                     { value: '', label: 'All' },
                     { value: 'valid', label: 'Valid' },
@@ -434,9 +495,23 @@ function VerifyPage() {
                         event={event}
                         subjectId={subjectId}
                         isExpanded={expandedEventId === event.event_id}
-                        onToggle={() => setExpandedEventId((id) => (id === event.event_id ? null : event.event_id))}
-                        onInitiateRepair={() => navigate({ to: '/integrity/repairs/new', search: { subject_id: subjectId, break_seq: String(event.sequence) } })}
-                        onViewProof={() => navigate({ to: '/subjects/$subjectId/proof/$eventSeq', params: { subjectId, eventSeq: String(event.sequence) } })}
+                        onToggle={() =>
+                          setExpandedEventId((id) =>
+                            id === event.event_id ? null : event.event_id,
+                          )
+                        }
+                        onInitiateRepair={() =>
+                          navigate({
+                            to: '/integrity/repairs/new',
+                            search: { subject_id: subjectId, break_seq: String(event.sequence) },
+                          })
+                        }
+                        onViewProof={() =>
+                          navigate({
+                            to: '/subjects/$subjectId/proof/$eventSeq',
+                            params: { subjectId, eventSeq: String(event.sequence) },
+                          })
+                        }
                       />
                     ))}
                   </tbody>
@@ -504,21 +579,19 @@ function VerifyPage() {
           {verification.invalid_events > 0 && (
             <div className="bg-destructive/10 border border-destructive/50 rounded-none p-3 mb-3">
               <h2 className="text-sm font-semibold text-destructive mb-2">
-                Chain Integrity Issues ({verification.invalid_events} {verification.invalid_events === 1 ? 'issue' : 'issues'})
+                Chain Integrity Issues ({verification.invalid_events}{' '}
+                {verification.invalid_events === 1 ? 'issue' : 'issues'})
               </h2>
               <p className="text-xs text-destructive mb-2">
-                {verification.invalid_events} event{verification.invalid_events !== 1 ? 's' : ''} failed verification. See the Visual Chain Overview above for details.
+                {verification.invalid_events} event{verification.invalid_events !== 1 ? 's' : ''}{' '}
+                failed verification. See the Visual Chain Overview above for details.
               </p>
             </div>
           )}
 
           {/* Export Button */}
           <div className="flex justify-center">
-            <Button
-              onClick={handleExportReport}
-              variant="primary"
-              size="sm"
-            >
+            <Button onClick={handleExportReport} variant="primary" size="sm">
               <DownloadIcon />
               Export Report
             </Button>

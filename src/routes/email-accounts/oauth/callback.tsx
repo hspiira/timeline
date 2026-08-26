@@ -1,10 +1,10 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
+import { AlertTriangle, CheckCircle, Mail, XCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { CheckCircle, XCircle, Mail, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LoadingIcon } from '@/components/ui/icons'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 
 export const Route = createFileRoute('/email-accounts/oauth/callback')({
   beforeLoad: () => {
@@ -40,7 +40,7 @@ function OAuthCallbackPage() {
     if (searchParams.code && searchParams.state) {
       setStatus('info')
       setErrorMessage(
-        'OAuth callback received directly. The backend redirect_uri should point to the API callback endpoint, not the frontend. Please contact your administrator to update the OAuth configuration.'
+        'OAuth callback received directly. The backend redirect_uri should point to the API callback endpoint, not the frontend. Please contact your administrator to update the OAuth configuration.',
       )
       return
     }
@@ -54,7 +54,9 @@ function OAuthCallbackPage() {
     } else {
       // No clear indicator - user navigated here directly
       setStatus('info')
-      setErrorMessage('This page handles OAuth callbacks. Please start the connection process from the email accounts page.')
+      setErrorMessage(
+        'This page handles OAuth callbacks. Please start the connection process from the email accounts page.',
+      )
     }
   }, [searchParams])
 
@@ -89,7 +91,11 @@ function OAuthCallbackPage() {
           </div>
           <h1 className="text-lg font-bold text-foreground mb-2">OAuth Callback</h1>
           <p className="text-sm text-muted-foreground mb-6">{errorMessage}</p>
-          <Button onClick={() => navigate({ to: '/email-accounts/create' })} variant="primary" size="md">
+          <Button
+            onClick={() => navigate({ to: '/email-accounts/create' })}
+            variant="primary"
+            size="md"
+          >
             Connect Email Account
           </Button>
         </div>
@@ -99,7 +105,8 @@ function OAuthCallbackPage() {
 
   if (status === 'error') {
     const displayError =
-      errorMessage || 'The OAuth authorization was not completed. This could be because you denied access or the authorization expired.'
+      errorMessage ||
+      'The OAuth authorization was not completed. This could be because you denied access or the authorization expired.'
 
     return (
       <div className="max-w-md mx-auto">
@@ -113,7 +120,11 @@ function OAuthCallbackPage() {
             <Button onClick={handleTryAgain} variant="primary" size="md">
               Try Again
             </Button>
-            <Button onClick={() => navigate({ to: '/email-accounts' })} variant="secondary" size="md">
+            <Button
+              onClick={() => navigate({ to: '/email-accounts' })}
+              variant="secondary"
+              size="md"
+            >
               Back to Email Accounts
             </Button>
           </div>
@@ -141,7 +152,9 @@ function OAuthCallbackPage() {
           )}
         </p>
         {searchParams.provider && (
-          <p className="text-xs text-muted-foreground mb-6 capitalize">Provider: {searchParams.provider}</p>
+          <p className="text-xs text-muted-foreground mb-6 capitalize">
+            Provider: {searchParams.provider}
+          </p>
         )}
         <div className="flex items-center justify-center gap-2">
           <Button onClick={handleViewAccounts} variant="primary" size="md">

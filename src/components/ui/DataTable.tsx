@@ -1,14 +1,9 @@
-import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  type ColumnDef,
-} from '@tanstack/react-table'
+import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from './button'
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 /**
  * DataTable Component - Unified table component for all data display needs
@@ -145,7 +140,8 @@ const colorSchemes: Record<string, ColorScheme> = {
   },
 }
 
-const SUBJECTS_VIRTUAL_GRID_COLUMNS = 'minmax(180px,2fr) minmax(80px,1fr) 90px 70px minmax(90px,1fr) minmax(140px,1fr) 44px'
+const SUBJECTS_VIRTUAL_GRID_COLUMNS =
+  'minmax(180px,2fr) minmax(80px,1fr) 90px 70px minmax(90px,1fr) minmax(140px,1fr) 44px'
 
 export function DataTable<TData>({
   data,
@@ -178,12 +174,22 @@ export function DataTable<TData>({
 
   const pageSizeOptions = [5, 10, 20, 50]
 
-  const useVirtual =
-    enableVirtualization && data.length > virtualScrollThreshold
+  const useVirtual = enableVirtualization && data.length > virtualScrollThreshold
 
   // Apply compact padding if not explicitly specified
-  const effectiveRowPadding = rowPadding ?? (compact ? 'py-1 sm:py-2 px-2 sm:px-3' : variant === 'subjects' ? 'py-2 px-4' : 'py-2 sm:py-3 px-2 sm:px-4')
-  const effectiveHeaderPadding = variant === 'subjects' ? 'py-2 px-4' : (compact ? 'py-1.5 sm:py-2 px-2 sm:px-3' : 'py-2 sm:py-3 px-2 sm:px-4')
+  const effectiveRowPadding =
+    rowPadding ??
+    (compact
+      ? 'py-1 sm:py-2 px-2 sm:px-3'
+      : variant === 'subjects'
+        ? 'py-2 px-4'
+        : 'py-2 sm:py-3 px-2 sm:px-4')
+  const effectiveHeaderPadding =
+    variant === 'subjects'
+      ? 'py-2 px-4'
+      : compact
+        ? 'py-1.5 sm:py-2 px-2 sm:px-3'
+        : 'py-2 sm:py-3 px-2 sm:px-4'
 
   // When virtualizing, table uses full data; otherwise apply pagination
   const tableData = useMemo(() => {
@@ -235,27 +241,23 @@ export function DataTable<TData>({
   const hasData = !isEmpty && (useVirtual ? data.length > 0 : rows.length > 0)
 
   if (!hasData) {
-    return (
-      emptyState ? (
-        <div className={`rounded-none border ${scheme.border} p-6 text-center`}>
-          {emptyState.icon && <emptyState.icon className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />}
-          {emptyState.title && (
-            <h3 className="text-sm font-semibold text-foreground mb-2">
-              {emptyState.title}
-            </h3>
-          )}
-          {emptyState.description && (
-            <p className="text-sm text-muted-foreground mb-4">
-              {emptyState.description}
-            </p>
-          )}
-          {emptyState.action && <div>{emptyState.action}</div>}
-        </div>
-      ) : (
-        <div className={`rounded-none border ${scheme.border} p-8 text-center`}>
-          <p className="text-sm text-muted-foreground">No data to display</p>
-        </div>
-      )
+    return emptyState ? (
+      <div className={`rounded-none border ${scheme.border} p-6 text-center`}>
+        {emptyState.icon && (
+          <emptyState.icon className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
+        )}
+        {emptyState.title && (
+          <h3 className="text-sm font-semibold text-foreground mb-2">{emptyState.title}</h3>
+        )}
+        {emptyState.description && (
+          <p className="text-sm text-muted-foreground mb-4">{emptyState.description}</p>
+        )}
+        {emptyState.action && <div>{emptyState.action}</div>}
+      </div>
+    ) : (
+      <div className={`rounded-none border ${scheme.border} p-8 text-center`}>
+        <p className="text-sm text-muted-foreground">No data to display</p>
+      </div>
     )
   }
 
@@ -273,10 +275,17 @@ export function DataTable<TData>({
       typeof virtualScrollHeight === 'number' ? `${virtualScrollHeight}px` : virtualScrollHeight
 
     return (
-      <div className={`overflow-hidden ${isSubjectsVariant ? 'rounded-none bg-card/80 backdrop-blur-sm' : `rounded-none border ${scheme.border}`}`}>
+      <div
+        className={`overflow-hidden ${isSubjectsVariant ? 'rounded-none bg-card/80 backdrop-blur-sm' : `rounded-none border ${scheme.border}`}`}
+      >
         <div className="overflow-x-auto">
-          <table className={`w-full min-w-max ${isSubjectsVariant ? 'text-sm' : 'text-xs sm:text-sm'}`} style={{ tableLayout: 'fixed' }}>
-            <thead className={`${scheme.header} ${!isSubjectsVariant ? `border-b ${scheme.border}` : ''} ${sticky ? 'sticky top-0 z-10 bg-card/95 backdrop-blur-sm' : ''}`}>
+          <table
+            className={`w-full min-w-max ${isSubjectsVariant ? 'text-sm' : 'text-xs sm:text-sm'}`}
+            style={{ tableLayout: 'fixed' }}
+          >
+            <thead
+              className={`${scheme.header} ${!isSubjectsVariant ? `border-b ${scheme.border}` : ''} ${sticky ? 'sticky top-0 z-10 bg-card/95 backdrop-blur-sm' : ''}`}
+            >
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
@@ -286,10 +295,7 @@ export function DataTable<TData>({
                     >
                       {header.isPlaceholder
                         ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                        : flexRender(header.column.columnDef.header, header.getContext())}
                     </th>
                   ))}
                 </tr>
@@ -344,10 +350,16 @@ export function DataTable<TData>({
   }
 
   return (
-    <div className={`overflow-hidden ${isSubjectsVariant ? 'rounded-none bg-card/80 backdrop-blur-sm' : `rounded-none border ${scheme.border}`}`}>
+    <div
+      className={`overflow-hidden ${isSubjectsVariant ? 'rounded-none bg-card/80 backdrop-blur-sm' : `rounded-none border ${scheme.border}`}`}
+    >
       <div className="overflow-x-auto">
-        <table className={`w-full min-w-max ${isSubjectsVariant ? 'text-sm' : 'text-xs sm:text-sm'}`}>
-          <thead className={`${scheme.header} ${!isSubjectsVariant ? `border-b ${scheme.border}` : ''} ${sticky ? 'sticky top-0 z-10 bg-card/95 backdrop-blur-sm' : ''}`}>
+        <table
+          className={`w-full min-w-max ${isSubjectsVariant ? 'text-sm' : 'text-xs sm:text-sm'}`}
+        >
+          <thead
+            className={`${scheme.header} ${!isSubjectsVariant ? `border-b ${scheme.border}` : ''} ${sticky ? 'sticky top-0 z-10 bg-card/95 backdrop-blur-sm' : ''}`}
+          >
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
@@ -357,10 +369,7 @@ export function DataTable<TData>({
                   >
                     {header.isPlaceholder
                       ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                      : flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
               </tr>
@@ -396,8 +405,12 @@ export function DataTable<TData>({
 
       {/* Pagination Controls */}
       {enablePagination && data.length > 0 && (
-        <div className={`flex flex-col sm:flex-row items-center justify-between border-t border-border bg-muted/20 ${compact ? 'gap-2 px-3 py-2' : 'gap-3 px-4 py-3'}`}>
-          <div className={`flex items-center ${compact ? 'gap-1' : 'gap-2'} ${compact ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
+        <div
+          className={`flex flex-col sm:flex-row items-center justify-between border-t border-border bg-muted/20 ${compact ? 'gap-2 px-3 py-2' : 'gap-3 px-4 py-3'}`}
+        >
+          <div
+            className={`flex items-center ${compact ? 'gap-1' : 'gap-2'} ${compact ? 'text-xs' : 'text-sm'} text-muted-foreground`}
+          >
             <span>Show</span>
             <select
               value={pageSize}
@@ -416,7 +429,9 @@ export function DataTable<TData>({
             <span>rows per page</span>
           </div>
 
-          <div className={`flex items-center ${compact ? 'gap-1' : 'gap-2'} ${compact ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
+          <div
+            className={`flex items-center ${compact ? 'gap-1' : 'gap-2'} ${compact ? 'text-xs' : 'text-sm'} text-muted-foreground`}
+          >
             <span>
               {data.length === 0
                 ? '0 items'

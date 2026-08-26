@@ -3,11 +3,7 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ className = '' }: SkeletonProps) {
-  return (
-    <div
-      className={`bg-muted animate-pulse rounded-none ${className}`}
-    />
-  )
+  return <div className={`bg-muted animate-pulse rounded-none ${className}`} />
 }
 
 export function SkeletonText() {

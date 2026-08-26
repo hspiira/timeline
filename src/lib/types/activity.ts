@@ -58,53 +58,56 @@ export interface ActivityFilter {
 /**
  * Activity Action Metadata - configuration for each action type
  */
-export const ACTIVITY_CONFIG: Record<ActivityAction, {
-  label: string
-  icon: string
-  color: string
-  priority: ActivityPriority
-}> = {
+export const ACTIVITY_CONFIG: Record<
+  ActivityAction,
+  {
+    label: string
+    icon: string
+    color: string
+    priority: ActivityPriority
+  }
+> = {
   created: {
     label: 'Created',
     icon: 'Plus',
     color: 'bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-300',
-    priority: 'medium'
+    priority: 'medium',
   },
   updated: {
     label: 'Updated',
     icon: 'Edit',
     color: 'bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300',
-    priority: 'low'
+    priority: 'low',
   },
   deleted: {
     label: 'Deleted',
     icon: 'Trash2',
     color: 'bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-300',
-    priority: 'high'
+    priority: 'high',
   },
   viewed: {
     label: 'Viewed',
     icon: 'Eye',
     color: 'bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-300',
-    priority: 'low'
+    priority: 'low',
   },
   documented: {
     label: 'Documented',
     icon: 'FileText',
     color: 'bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300',
-    priority: 'medium'
+    priority: 'medium',
   },
   verified: {
     label: 'Verified',
     icon: 'CheckCircle',
     color: 'bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-300',
-    priority: 'high'
+    priority: 'high',
   },
   assigned: {
     label: 'Assigned',
     icon: 'User',
     color: 'bg-purple-100 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300',
-    priority: 'medium'
+    priority: 'medium',
   },
 }
 

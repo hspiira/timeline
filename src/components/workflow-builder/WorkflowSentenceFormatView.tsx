@@ -3,15 +3,15 @@
  * conditions, mandatory/optional, and hierarchical sub-steps. Use for agent-style run views.
  */
 
+import { Check, Circle, Loader2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import {
-  type WorkflowStepSentence,
-  type WorkflowSentenceFormat,
   getSentenceSegments,
-  type StepStatus,
   type StepRequirement,
+  type StepStatus,
+  type WorkflowSentenceFormat,
+  type WorkflowStepSentence,
 } from '@/lib/workflow-builder/workflow-sentence-format'
-import { Check, Circle, Loader2 } from 'lucide-react'
 
 // --- Status icon ---
 
@@ -19,7 +19,12 @@ function StatusIcon({ status }: { status: StepStatus }) {
   const size = 'w-4 h-4'
   const baseClass = 'shrink-0 text-muted-foreground'
   if (status === 'completed') {
-    return <Check className={`${size} ${baseClass} text-emerald-600 dark:text-emerald-400`} aria-label="Completed" />
+    return (
+      <Check
+        className={`${size} ${baseClass} text-emerald-600 dark:text-emerald-400`}
+        aria-label="Completed"
+      />
+    )
   }
   if (status === 'in_progress') {
     return (
@@ -30,11 +35,7 @@ function StatusIcon({ status }: { status: StepStatus }) {
     )
   }
   return (
-    <Circle
-      className={`${size} ${baseClass} opacity-60`}
-      strokeWidth={2}
-      aria-label="Pending"
-    />
+    <Circle className={`${size} ${baseClass} opacity-60`} strokeWidth={2} aria-label="Pending" />
   )
 }
 
@@ -80,7 +81,7 @@ function SentenceWithChips({
           >
             {seg.displayValue ?? `{{${seg.value}}}`}
           </span>
-        )
+        ),
       )}
     </span>
   )
@@ -103,14 +104,18 @@ function StepRow({
     <div className="flex flex-col gap-0.5">
       {/* Optional condition line (e.g. "When connected to Datadog successfully ✓") */}
       {step.condition != null && step.condition.sentenceTemplate.trim() && (
-        <div
-          className="flex items-center gap-2 py-0.5"
-          style={{ paddingLeft: indent + 24 }}
-        >
+        <div className="flex items-center gap-2 py-0.5" style={{ paddingLeft: indent + 24 }}>
           {step.condition.met === true ? (
-            <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            <Check
+              className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400"
+              aria-hidden
+            />
           ) : (
-            <Circle className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" strokeWidth={2} aria-hidden />
+            <Circle
+              className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50"
+              strokeWidth={2}
+              aria-hidden
+            />
           )}
           <SentenceWithChips
             template={step.condition.sentenceTemplate}
@@ -162,11 +167,7 @@ function StepList({
         <div key={step.id}>
           <StepRow step={step} depth={depth} showRequirement={showRequirement} />
           {step.subSteps != null && step.subSteps.length > 0 && (
-            <StepList
-              steps={step.subSteps}
-              depth={depth + 1}
-              showRequirement={showRequirement}
-            />
+            <StepList steps={step.subSteps} depth={depth + 1} showRequirement={showRequirement} />
           )}
         </div>
       ))}
@@ -201,7 +202,7 @@ export function WorkflowSentenceFormatView({
 
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
-      {(title != null && title !== '') && (
+      {title != null && title !== '' && (
         <div className="flex items-center gap-2 pb-1">
           {header}
           <span className="text-sm font-medium text-foreground">{title}</span>

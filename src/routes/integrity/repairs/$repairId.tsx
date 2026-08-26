@@ -1,14 +1,14 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { timelineApi } from '@/lib/api-client'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
-import { SkeletonBreadcrumbs, Skeleton } from '@/components/ui/Skeleton'
-import { Button } from '@/components/ui/button'
 import { AlertCircle, CheckCircle } from 'lucide-react'
-import type { components } from '@/lib/timeline-api'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
+import { Button } from '@/components/ui/button'
+import { Skeleton, SkeletonBreadcrumbs } from '@/components/ui/Skeleton'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { timelineApi } from '@/lib/api-client'
 import { getApiErrorDisplay } from '@/lib/api-utils'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
+import type { components } from '@/lib/timeline-api'
 
 type ChainRepairResponse = components['schemas']['ChainRepairResponse']
 type ChainRepairStatus = components['schemas']['ChainRepairStatus']
@@ -48,7 +48,11 @@ function RepairDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const { data: repair, isLoading, error } = useQuery({
+  const {
+    data: repair,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['integrity', 'repair', repairId],
     queryFn: async () => {
       const res = await timelineApi.integrity.repair.get(repairId)
@@ -58,7 +62,9 @@ function RepairDetailPage() {
     enabled: !!authState.user && !!repairId,
     refetchInterval: (query) => {
       const data = query.state.data
-      return data && data.repair_status !== 'Completed' && data.repair_status !== 'Failed' ? 10_000 : false
+      return data && data.repair_status !== 'Completed' && data.repair_status !== 'Failed'
+        ? 10_000
+        : false
     },
   })
 
@@ -79,14 +85,18 @@ function RepairDetailPage() {
   })
 
   const currentStep = repair ? stepIndex(repair.repair_status) : 0
-  const isInitiator = repair && authState.user && repair.repair_initiated_by === authState.user.username
+  const isInitiator =
+    repair && authState.user && repair.repair_initiated_by === authState.user.username
   const canApprove = repair && repair.repair_status === 'Pending Approval' && !isInitiator
   const canComplete = repair && repair.repair_status === 'Approved'
 
   const completeError = completeMutation.error
     ? getApiErrorDisplay(
-        { error: completeMutation.error as { detail?: string }, status: (completeMutation.error as { response?: { status?: number } })?.response?.status },
-        'Complete failed'
+        {
+          error: completeMutation.error as { detail?: string },
+          status: (completeMutation.error as { response?: { status?: number } })?.response?.status,
+        },
+        'Complete failed',
       ).message
     : null
 
@@ -107,7 +117,9 @@ function RepairDetailPage() {
   if (error || !repair) {
     return (
       <>
-        <Breadcrumbs items={[{ label: 'Chain Repairs', href: '/integrity/repairs' }, { label: 'Detail' }]} />
+        <Breadcrumbs
+          items={[{ label: 'Chain Repairs', href: '/integrity/repairs' }, { label: 'Detail' }]}
+        />
         <div className="p-3 bg-destructive/10 border border-destructive/50 rounded-none flex items-center gap-2 text-sm text-destructive">
           <AlertCircle className="w-4 h-4 shrink-0" />
           {error ? String(error) : 'Repair not found'}
@@ -118,8 +130,11 @@ function RepairDetailPage() {
 
   const approveError = approveMutation.error
     ? getApiErrorDisplay(
-        { error: approveMutation.error as { detail?: string }, status: (approveMutation.error as { response?: { status?: number } })?.response?.status },
-        'Approve failed'
+        {
+          error: approveMutation.error as { detail?: string },
+          status: (approveMutation.error as { response?: { status?: number } })?.response?.status,
+        },
+        'Approve failed',
       ).message
     : null
 
@@ -132,7 +147,9 @@ function RepairDetailPage() {
         ]}
       />
       <div className="mb-4">
-        <h1 className="text-lg font-bold text-foreground">Chain Repair — {repairId.slice(0, 12)}…</h1>
+        <h1 className="text-lg font-bold text-foreground">
+          Chain Repair — {repairId.slice(0, 12)}…
+        </h1>
       </div>
 
       {/* Stepper */}
@@ -144,12 +161,16 @@ function RepairDetailPage() {
             <div key={step.key} className="flex items-center gap-2">
               <div
                 className={`flex items-center justify-center w-8 h-8 rounded-none border text-xs font-medium ${
-                  done ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted border-border'
+                  done
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-muted border-border'
                 } ${isCurrent ? 'ring-2 ring-primary ring-offset-2' : ''}`}
               >
                 {done ? <CheckCircle className="w-4 h-4" /> : i + 1}
               </div>
-              <span className={`text-sm ${done ? 'text-foreground' : 'text-muted-foreground'}`}>{step.label}</span>
+              <span className={`text-sm ${done ? 'text-foreground' : 'text-muted-foreground'}`}>
+                {step.label}
+              </span>
               {i < STEPS.length - 1 && <span className="text-muted-foreground">→</span>}
             </div>
           )
@@ -196,7 +217,8 @@ function RepairDetailPage() {
 
       {repair.approval_required && repair.repair_status === 'Pending Approval' && isInitiator && (
         <div className="p-3 bg-status-warn/10 border border-status-warn/50 rounded-none text-sm text-muted-foreground mb-4">
-          Approval required. You cannot approve your own repair. Logged in as: {authState.user.username}
+          Approval required. You cannot approve your own repair. Logged in as:{' '}
+          {authState.user.username}
         </div>
       )}
 
@@ -231,7 +253,15 @@ function RepairDetailPage() {
             Complete Repair
           </Button>
         )}
-        <Button variant="outline" onClick={() => navigate({ to: '/integrity/repairs', search: { subject_id: undefined, break_seq: undefined } })}>
+        <Button
+          variant="outline"
+          onClick={() =>
+            navigate({
+              to: '/integrity/repairs',
+              search: { subject_id: undefined, break_seq: undefined },
+            })
+          }
+        >
           Back to list
         </Button>
       </div>

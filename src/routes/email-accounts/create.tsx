@@ -1,13 +1,22 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { useState, useEffect } from 'react'
+import {
+  ArrowLeft,
+  CheckCircle,
+  Cloud,
+  ExternalLink,
+  Inbox,
+  Lock,
+  Mail,
+  Server,
+} from 'lucide-react'
+import { useEffect, useState } from 'react'
+import SubjectSelector from '@/components/subjects/SubjectSelector'
+import { Button } from '@/components/ui/button'
+import { ErrorIcon, LoadingIcon } from '@/components/ui/icons'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
-import { ArrowLeft, Mail, Lock, Server, CheckCircle, Cloud, Inbox, ExternalLink } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
-import SubjectSelector from '@/components/subjects/SubjectSelector'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/email-accounts/create')({
@@ -138,7 +147,7 @@ function CreateEmailAccountPage() {
     // Check if OAuth is configured for this provider
     if (!isOAuthConfigured(provider)) {
       setError(
-        `OAuth for ${PROVIDERS[provider].name} is not configured. Please contact your administrator to set up OAuth credentials, or use IMAP authentication.`
+        `OAuth for ${PROVIDERS[provider].name} is not configured. Please contact your administrator to set up OAuth credentials, or use IMAP authentication.`,
       )
       return
     }
@@ -235,11 +244,13 @@ function CreateEmailAccountPage() {
           username: email,
           password: password,
         },
-        connection_params: imapServer ? {
-          imap_host: imapServer,
-          imap_port: parseInt(imapPort, 10),
-          use_ssl: useSsl,
-        } : undefined,
+        connection_params: imapServer
+          ? {
+              imap_host: imapServer,
+              imap_port: parseInt(imapPort, 10),
+              use_ssl: useSsl,
+            }
+          : undefined,
       }
 
       const { data, error: apiError } = await timelineApi.emailAccounts.create(accountData)
@@ -256,7 +267,8 @@ function CreateEmailAccountPage() {
         navigate({ to: '/email-accounts' })
       }
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Unexpected error creating email account'
+      const errorMsg =
+        err instanceof Error ? err.message : 'Unexpected error creating email account'
       setError(errorMsg)
       toast.error('Error connecting', errorMsg)
     } finally {
@@ -422,7 +434,8 @@ function CreateEmailAccountPage() {
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    For Gmail, iCloud, and Yahoo, use an app-specific password instead of your regular password
+                    For Gmail, iCloud, and Yahoo, use an app-specific password instead of your
+                    regular password
                   </p>
                 </div>
 
@@ -513,13 +526,15 @@ function CreateEmailAccountPage() {
               >
                 {isOAuthConfigured(selectedProvider as 'gmail' | 'outlook') ? (
                   <p className="text-sm text-blue-900 dark:text-blue-200">
-                    Clicking "Connect" will redirect you to {PROVIDERS[selectedProvider].name} to authorize access to
-                    your email account. You'll be returned here after granting permission.
+                    Clicking "Connect" will redirect you to {PROVIDERS[selectedProvider].name} to
+                    authorize access to your email account. You'll be returned here after granting
+                    permission.
                   </p>
                 ) : (
                   <p className="text-sm text-amber-900 dark:text-amber-200">
-                    OAuth for {PROVIDERS[selectedProvider].name} is not configured by your administrator. Please contact
-                    them to set up OAuth credentials, or choose a different provider.
+                    OAuth for {PROVIDERS[selectedProvider].name} is not configured by your
+                    administrator. Please contact them to set up OAuth credentials, or choose a
+                    different provider.
                   </p>
                 )}
               </div>
@@ -529,7 +544,9 @@ function CreateEmailAccountPage() {
             <div className="flex items-center gap-2 pt-2">
               <Button
                 type="submit"
-                disabled={loading || (PROVIDERS[selectedProvider].authType === 'imap' && !connectionTested)}
+                disabled={
+                  loading || (PROVIDERS[selectedProvider].authType === 'imap' && !connectionTested)
+                }
                 variant="primary"
                 size="md"
               >

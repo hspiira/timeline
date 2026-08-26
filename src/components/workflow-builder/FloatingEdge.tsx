@@ -3,7 +3,7 @@
  * on the correct side of each node and avoid overlapping the card.
  */
 
-import { getSmoothStepPath, BaseEdge, type EdgeProps } from '@xyflow/react'
+import { BaseEdge, type EdgeProps, getSmoothStepPath } from '@xyflow/react'
 import type { WorkflowEdgeData } from '@/lib/workflow-builder/flow-adapter'
 
 export function FloatingEdge(props: EdgeProps<import('@xyflow/react').Edge<WorkflowEdgeData>>) {

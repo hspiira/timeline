@@ -3,8 +3,8 @@
  * Traverses from trigger, emits actions + conditions in execution order.
  */
 
-import type { Workflow, WorkflowEdge } from './types'
 import { nodeRegistry } from './node-registry'
+import type { Workflow, WorkflowEdge } from './types'
 
 export interface WorkflowActionItem {
   type: string
@@ -15,17 +15,16 @@ export interface WorkflowActionItem {
  * Traverse from startId and append action items in order.
  * For conditions we emit one condition entry then recurse into true then false branches.
  */
-function collectActions(
-  workflow: Workflow,
-  startId: string,
-  out: WorkflowActionItem[]
-): void {
+function collectActions(workflow: Workflow, startId: string, out: WorkflowActionItem[]): void {
   const node = workflow.nodes.find((n) => n.id === startId)
   if (!node) return
   const desc = nodeRegistry.getOptional(node.type)
   if (desc?.isTrigger || desc?.isTerminal) return
   if (desc?.isCondition) {
-    out.push({ type: 'condition', params: { expression: (node.configuration?.expression as string) ?? '' } })
+    out.push({
+      type: 'condition',
+      params: { expression: (node.configuration?.expression as string) ?? '' },
+    })
     const edges = workflow.edges.filter((e) => e.from === node.id) as WorkflowEdge[]
     const trueEdge = edges.find((e) => e.label === 'true')
     const falseEdge = edges.find((e) => e.label === 'false')
@@ -34,9 +33,10 @@ function collectActions(
     return
   }
   // action or integration_action
-  const type = node.type === 'integration_action'
-    ? (node.configuration?.operation as string) || node.type
-    : (node.configuration?.actionType as string) || node.type
+  const type =
+    node.type === 'integration_action'
+      ? (node.configuration?.operation as string) || node.type
+      : (node.configuration?.actionType as string) || node.type
   const params = (node.configuration?.params as Record<string, unknown>) ?? {}
   out.push({ type, params: Object.keys(params).length ? params : null })
   const nextIds = [

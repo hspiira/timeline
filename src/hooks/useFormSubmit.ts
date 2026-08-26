@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useCallback, useState } from 'react'
 
 export interface UseFormSubmitOptions<T> {
   onSuccess?: (result: T) => void
@@ -37,7 +37,7 @@ export function useFormSubmit(options?: UseFormSubmitOptions<unknown>): UseFormS
         setLoading(false)
       }
     },
-    [options]
+    [options],
   )
 
   return { execute, loading, error, setError, clearError }

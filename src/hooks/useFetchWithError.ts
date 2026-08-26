@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { getApiErrorDisplay, isAuthOrPermissionError } from '@/lib/api-utils'
 
 export interface UseFetchWithErrorOptions {
@@ -22,7 +22,7 @@ export interface UseFetchWithErrorResult<T> {
  */
 export function useFetchWithError<T>(
   fetcher: () => Promise<{ data?: T | null; error?: unknown; response?: Response }>,
-  options: UseFetchWithErrorOptions = {}
+  options: UseFetchWithErrorOptions = {},
 ): UseFetchWithErrorResult<T> {
   const { defaultErrorMessage = 'An error occurred', enabled = true } = options
   const [data, setData] = useState<T | null>(null)
@@ -43,7 +43,7 @@ export function useFetchWithError<T>(
       if (result.error != null) {
         const display = getApiErrorDisplay(
           { error: result.error, status: result.response?.status },
-          defaultErrorMessage
+          defaultErrorMessage,
         )
         const noAccess = isAuthOrPermissionError(display, result.response?.status)
         setHasNoAccess(noAccess)

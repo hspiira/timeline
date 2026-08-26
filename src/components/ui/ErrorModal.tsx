@@ -1,6 +1,6 @@
 import { AlertCircle } from 'lucide-react'
-import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/button'
+import { Modal } from '@/components/ui/Modal'
 
 export interface ErrorModalProps {
   /** When true, the modal is visible. */
@@ -13,12 +13,7 @@ export interface ErrorModalProps {
   message: string
 }
 
-export function ErrorModal({
-  open,
-  onClose,
-  title = 'Error',
-  message,
-}: ErrorModalProps) {
+export function ErrorModal({ open, onClose, title = 'Error', message }: ErrorModalProps) {
   return (
     <Modal
       isOpen={open}

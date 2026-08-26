@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { Mail, ClipboardList, GitBranch, TrendingUp, Users, FileText } from 'lucide-react'
+import { ClipboardList, FileText, GitBranch, Mail, TrendingUp, Users } from 'lucide-react'
 import { DashboardCard } from './DashboardCard'
 
 const APPS = [

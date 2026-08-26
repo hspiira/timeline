@@ -1,4 +1,4 @@
-import { X, AlertCircle, CheckCircle2, AlertTriangle, Info } from 'lucide-react'
+import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react'
 import { useEffect } from 'react'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info'

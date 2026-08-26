@@ -1,5 +1,5 @@
 import createClient from 'openapi-fetch'
-import type { paths, components } from './timeline-api'
+import type { components, paths } from './timeline-api'
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -79,7 +79,8 @@ function redirectToLogin(opts?: { sessionExpired?: boolean }) {
 
 const baseFetch = typeof fetch !== 'undefined' ? fetch : globalThis.fetch
 const customFetch: typeof fetch = async (input, init) => {
-  const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input)
+  const url =
+    typeof input === 'string' ? input : input instanceof Request ? input.url : String(input)
   const isRefresh = url.includes('/api/v1/auth/refresh')
   let res = await baseFetch(input, init)
   if (res.status === 401 && !isRefresh && typeof window !== 'undefined') {
@@ -268,13 +269,7 @@ export const timelineApi = {
   },
 
   subjects: {
-    list: (
-      params?: {
-        skip?: number
-        limit?: number
-        subject_type?: string
-      }
-    ) =>
+    list: (params?: { skip?: number; limit?: number; subject_type?: string }) =>
       client.GET('/api/v1/subjects', {
         params: { query: params },
       }),
@@ -284,7 +279,7 @@ export const timelineApi = {
       }),
     getState: (
       subjectId: string,
-      params?: { as_of?: string | null; workflow_instance_id?: string | null }
+      params?: { as_of?: string | null; workflow_instance_id?: string | null },
     ) =>
       client.GET('/api/v1/subjects/{subject_id}/state', {
         params: { path: { subject_id: subjectId }, query: params },
@@ -293,10 +288,7 @@ export const timelineApi = {
       client.POST('/api/v1/subjects/{subject_id}/export', {
         params: { path: { subject_id: subjectId } },
       }),
-    erasure: (
-      subjectId: string,
-      data: components['schemas']['SubjectErasureRequest']
-    ) =>
+    erasure: (subjectId: string, data: components['schemas']['SubjectErasureRequest']) =>
       client.POST('/api/v1/subjects/{subject_id}/erasure', {
         params: { path: { subject_id: subjectId } },
         body: data,
@@ -328,14 +320,14 @@ export const timelineApi = {
         as_source?: boolean
         as_target?: boolean
         relationship_kind?: string | null
-      }
+      },
     ) =>
       client.GET('/api/v1/subjects/{subject_id}/relationships', {
         params: { path: { subject_id: subjectId }, query: params },
       }),
     addRelationship: (
       subjectId: string,
-      body: components['schemas']['SubjectRelationshipCreateRequest']
+      body: components['schemas']['SubjectRelationshipCreateRequest'],
     ) =>
       client.POST('/api/v1/subjects/{subject_id}/relationships', {
         params: { path: { subject_id: subjectId } },
@@ -343,7 +335,7 @@ export const timelineApi = {
       }),
     removeRelationship: (
       subjectId: string,
-      query: { target_subject_id: string; relationship_kind: string }
+      query: { target_subject_id: string; relationship_kind: string },
     ) =>
       client.DELETE('/api/v1/subjects/{subject_id}/relationships', {
         params: { path: { subject_id: subjectId }, query },
@@ -358,10 +350,7 @@ export const timelineApi = {
       }),
     create: (data: components['schemas']['RelationshipKindCreateRequest']) =>
       client.POST('/api/v1/relationship-kinds', { body: data }),
-    update: (
-      kindId: string,
-      data: components['schemas']['RelationshipKindUpdateRequest']
-    ) =>
+    update: (kindId: string, data: components['schemas']['RelationshipKindUpdateRequest']) =>
       client.PATCH('/api/v1/relationship-kinds/{kind_id}', {
         params: { path: { kind_id: kindId } },
         body: data,
@@ -383,10 +372,7 @@ export const timelineApi = {
       }),
     create: (data: components['schemas']['DocumentCategoryCreateRequest']) =>
       client.POST('/api/v1/document-categories', { body: data }),
-    update: (
-      id: string,
-      data: components['schemas']['DocumentCategoryUpdateRequest']
-    ) =>
+    update: (id: string, data: components['schemas']['DocumentCategoryUpdateRequest']) =>
       client.PATCH('/api/v1/document-categories/{category_id}', {
         params: { path: { category_id: id } },
         body: data,
@@ -423,10 +409,7 @@ export const timelineApi = {
       }),
     create: (data: components['schemas']['SubjectTypeCreateRequest']) =>
       client.POST('/api/v1/subject-types', { body: data }),
-    update: (
-      id: string,
-      data: components['schemas']['SubjectTypeUpdateRequest']
-    ) =>
+    update: (id: string, data: components['schemas']['SubjectTypeUpdateRequest']) =>
       client.PATCH('/api/v1/subject-types/{subject_type_id}', {
         params: { path: { subject_type_id: id } },
         body: data,
@@ -459,10 +442,8 @@ export const timelineApi = {
       client.GET('/api/v1/events/verify/{subject_id}', {
         params: { path: { subject_id: subjectId } },
       }),
-    verifyTenant: () =>
-      client.GET('/api/v1/events/verify/tenant/all'),
-    startVerificationJob: () =>
-      client.POST('/api/v1/events/verify/tenant/all/start'),
+    verifyTenant: () => client.GET('/api/v1/events/verify/tenant/all'),
+    startVerificationJob: () => client.POST('/api/v1/events/verify/tenant/all/start'),
     getVerificationJobStatus: (jobId: string) =>
       client.GET('/api/v1/events/verify/tenant/jobs/{job_id}', {
         params: { path: { job_id: jobId } },
@@ -510,10 +491,7 @@ export const timelineApi = {
       }),
     create: (data: components['schemas']['EventTransitionRuleCreateRequest']) =>
       client.POST('/api/v1/event-transition-rules', { body: data }),
-    update: (
-      ruleId: string,
-      data: components['schemas']['EventTransitionRuleUpdate']
-    ) =>
+    update: (ruleId: string, data: components['schemas']['EventTransitionRuleUpdate']) =>
       client.PATCH('/api/v1/event-transition-rules/{rule_id}', {
         params: { path: { rule_id: ruleId } },
         body: data,
@@ -555,7 +533,10 @@ export const timelineApi = {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => null)
-          return { data: null, error: errorData || { message: `Upload failed with status ${response.status}` } }
+          return {
+            data: null,
+            error: errorData || { message: `Upload failed with status ${response.status}` },
+          }
         }
 
         const responseData = await response.json()
@@ -617,26 +598,21 @@ export const timelineApi = {
         }),
       create: (
         workflowId: string,
-        data: components['schemas']['DocumentRequirementCreateRequest']
+        data: components['schemas']['DocumentRequirementCreateRequest'],
       ) =>
         client.POST('/api/v1/workflows/{workflow_id}/document-requirements', {
           params: { path: { workflow_id: workflowId } },
           body: data,
         }),
       delete: (requirementId: string) =>
-        client.DELETE(
-          '/api/v1/workflows/document-requirements/{requirement_id}',
-          { params: { path: { requirement_id: requirementId } } }
-        ),
+        client.DELETE('/api/v1/workflows/document-requirements/{requirement_id}', {
+          params: { path: { requirement_id: requirementId } },
+        }),
     },
   },
 
   flows: {
-    list: (params?: {
-      skip?: number
-      limit?: number
-      workflow_id?: string | null
-    }) =>
+    list: (params?: { skip?: number; limit?: number; workflow_id?: string | null }) =>
       client.GET('/api/v1/flows', { params: { query: params } }),
     get: (id: string) =>
       client.GET('/api/v1/flows/{flow_id}', {
@@ -644,10 +620,7 @@ export const timelineApi = {
       }),
     create: (data: components['schemas']['FlowCreateRequest']) =>
       client.POST('/api/v1/flows', { body: data }),
-    update: (
-      id: string,
-      data: components['schemas']['FlowUpdateRequest']
-    ) =>
+    update: (id: string, data: components['schemas']['FlowUpdateRequest']) =>
       client.PUT('/api/v1/flows/{flow_id}', {
         params: { path: { flow_id: id } },
         body: data,
@@ -656,10 +629,7 @@ export const timelineApi = {
       client.GET('/api/v1/flows/{flow_id}/subjects', {
         params: { path: { flow_id: flowId } },
       }),
-    addSubjects: (
-      flowId: string,
-      data: components['schemas']['FlowAddSubjectsRequest']
-    ) =>
+    addSubjects: (flowId: string, data: components['schemas']['FlowAddSubjectsRequest']) =>
       client.POST('/api/v1/flows/{flow_id}/subjects', {
         params: { path: { flow_id: flowId } },
         body: data,
@@ -689,10 +659,7 @@ export const timelineApi = {
       }),
     create: (data: components['schemas']['NamingTemplateCreateRequest']) =>
       client.POST('/api/v1/naming-templates', { body: data }),
-    update: (
-      id: string,
-      data: components['schemas']['NamingTemplateUpdateRequest']
-    ) =>
+    update: (id: string, data: components['schemas']['NamingTemplateUpdateRequest']) =>
       client.PUT('/api/v1/naming-templates/{template_id}', {
         params: { path: { template_id: id } },
         body: data,
@@ -786,10 +753,7 @@ export const timelineApi = {
       client.GET('/api/v1/tenants/{tenant_id}/projections', {
         params: { path: { tenant_id: tenantId } },
       }),
-    create: (
-      tenantId: string,
-      data: components['schemas']['ProjectionDefinitionCreateRequest']
-    ) =>
+    create: (tenantId: string, data: components['schemas']['ProjectionDefinitionCreateRequest']) =>
       client.POST('/api/v1/tenants/{tenant_id}/projections', {
         params: { path: { tenant_id: tenantId } },
         body: data,
@@ -799,46 +763,34 @@ export const timelineApi = {
       name: string,
       version: number,
       subjectId: string,
-      params?: { as_of?: string | null }
+      params?: { as_of?: string | null },
     ) =>
-      client.GET(
-        '/api/v1/tenants/{tenant_id}/projections/{name}/{version}/subjects/{subject_id}',
-        {
-          params: {
-            path: { tenant_id: tenantId, name, version, subject_id: subjectId },
-            query: params,
-          },
-        }
-      ),
+      client.GET('/api/v1/tenants/{tenant_id}/projections/{name}/{version}/subjects/{subject_id}', {
+        params: {
+          path: { tenant_id: tenantId, name, version, subject_id: subjectId },
+          query: params,
+        },
+      }),
     listStates: (
       tenantId: string,
       name: string,
       version: number,
-      params?: { skip?: number; limit?: number }
+      params?: { skip?: number; limit?: number },
     ) =>
-      client.GET(
-        '/api/v1/tenants/{tenant_id}/projections/{name}/{version}/states',
-        {
-          params: {
-            path: { tenant_id: tenantId, name, version },
-            query: params,
-          },
-        }
-      ),
+      client.GET('/api/v1/tenants/{tenant_id}/projections/{name}/{version}/states', {
+        params: {
+          path: { tenant_id: tenantId, name, version },
+          query: params,
+        },
+      }),
     deactivate: (tenantId: string, name: string, version: number) =>
-      client.DELETE(
-        '/api/v1/tenants/{tenant_id}/projections/{name}/{version}',
-        {
-          params: { path: { tenant_id: tenantId, name, version } },
-        }
-      ),
+      client.DELETE('/api/v1/tenants/{tenant_id}/projections/{name}/{version}', {
+        params: { path: { tenant_id: tenantId, name, version } },
+      }),
     rebuild: (tenantId: string, name: string, version: number) =>
-      client.POST(
-        '/api/v1/tenants/{tenant_id}/projections/{name}/{version}/rebuild',
-        {
-          params: { path: { tenant_id: tenantId, name, version } },
-        }
-      ),
+      client.POST('/api/v1/tenants/{tenant_id}/projections/{name}/{version}/rebuild', {
+        params: { path: { tenant_id: tenantId, name, version } },
+      }),
   },
 
   oauthProviders: {
@@ -867,7 +819,7 @@ export const timelineApi = {
       }),
     rotateCredentials: (
       configId: string,
-      data: components['schemas']['OAuthConfigRotateRequest']
+      data: components['schemas']['OAuthConfigRotateRequest'],
     ) =>
       client.POST('/api/v1/oauth-providers/{config_id}/rotate', {
         params: { path: { config_id: configId } },

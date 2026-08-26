@@ -1,26 +1,26 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState, useCallback } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { useToast } from '@/hooks/useToast'
-import { useFetchWithError } from '@/hooks/useFetchWithError'
-import { timelineApi } from '@/lib/api-client'
 import {
-  Loader2,
-  Shield,
-  Plus,
   CheckCircle,
-  XCircle,
-  UserPlus,
-  Mail,
-  User,
   Eye,
   EyeOff,
+  Loader2,
+  Mail,
+  Plus,
+  Shield,
+  User,
+  UserPlus,
+  XCircle,
 } from 'lucide-react'
-import { Modal } from '@/components/ui/Modal'
-import { FormError } from '@/components/ui/FormField'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/DataTable'
+import { FormError } from '@/components/ui/FormField'
+import { Modal } from '@/components/ui/Modal'
+import { useFetchWithError } from '@/hooks/useFetchWithError'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { useToast } from '@/hooks/useToast'
+import { timelineApi } from '@/lib/api-client'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/settings/users/')({
@@ -172,7 +172,10 @@ function UsersPage() {
           onClose={() => setManagingRolesUser(null)}
           onSuccess={() => {
             setManagingRolesUser(null)
-            toast.success('Roles updated', `Roles for ${managingRolesUser.username} have been updated`)
+            toast.success(
+              'Roles updated',
+              `Roles for ${managingRolesUser.username} have been updated`,
+            )
           }}
           onError={setError}
         />
@@ -199,7 +202,9 @@ function UsersPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
         <div>
           <h1 className="text-lg font-bold text-foreground">Users</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Manage tenant users and their roles</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Manage tenant users and their roles
+          </p>
         </div>
         {!hasNoAccess && (
           <Button onClick={() => setShowCreateModal(true)} variant="primary">
@@ -307,7 +312,8 @@ function CreateUserModal({
       })
 
       if (apiError) {
-        const errorMsg = (apiError as any)?.message || (apiError as any)?.detail || 'Failed to create user'
+        const errorMsg =
+          (apiError as any)?.message || (apiError as any)?.detail || 'Failed to create user'
         setError(errorMsg)
         onError(errorMsg)
       } else if (data) {
@@ -404,11 +410,7 @@ function CreateUserModal({
           >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full sm:w-auto"
-          >
+          <Button type="submit" disabled={loading} className="w-full sm:w-auto">
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             <UserPlus className="w-4 h-4" />
             Create User

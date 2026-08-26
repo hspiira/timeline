@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface UseDebouncedSearchOptions {
   delay?: number
@@ -25,10 +25,7 @@ interface UseDebouncedSearchOptions {
  * />
  * ```
  */
-export function useDebouncedSearch({
-  delay = 300,
-  onSearch,
-}: UseDebouncedSearchOptions) {
+export function useDebouncedSearch({ delay = 300, onSearch }: UseDebouncedSearchOptions) {
   const [query, setQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)

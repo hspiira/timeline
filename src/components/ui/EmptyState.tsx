@@ -1,4 +1,4 @@
-import { LucideIcon } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { Button } from './button'
 
 export interface EmptyStateProps {
@@ -29,17 +29,11 @@ export function EmptyState({
       </div>
       <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
       {description && (
-        <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
-          {description}
-        </p>
+        <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">{description}</p>
       )}
       {(action || secondaryAction) && (
         <div className="flex items-center gap-3">
-          {action && (
-            <Button onClick={action.onClick}>
-              {action.label}
-            </Button>
-          )}
+          {action && <Button onClick={action.onClick}>{action.label}</Button>}
           {secondaryAction && (
             <Button variant="outline" onClick={secondaryAction.onClick}>
               {secondaryAction.label}

@@ -1,11 +1,7 @@
-import { useState } from 'react'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { CURATED_ICONS, ICON_NAMES, getCuratedIcon } from '@/lib/curated-lucide-icons'
 import { ChevronDown } from 'lucide-react'
+import { useState } from 'react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { CURATED_ICONS, getCuratedIcon, ICON_NAMES } from '@/lib/curated-lucide-icons'
 import { cn } from '@/lib/utils'
 
 interface IconPickerProps {
@@ -38,7 +34,7 @@ export function IconPicker({
           className={cn(
             'flex items-center gap-2 w-full h-10 pl-2.5 pr-3 py-2 rounded-none border border-input bg-background text-sm text-left transition-colors',
             'hover:bg-muted/50 hover:border-muted-foreground/30',
-            disabled && 'opacity-50 cursor-not-allowed'
+            disabled && 'opacity-50 cursor-not-allowed',
           )}
         >
           <span className="flex items-center justify-center w-8 h-8 shrink-0 rounded-md border border-border bg-muted/30">
@@ -70,20 +66,17 @@ export function IconPicker({
                 'flex flex-col items-center justify-center gap-0.5 min-w-[2.25rem] min-h-[2.25rem] rounded-md border-2 shrink-0 transition-all',
                 !value
                   ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border hover:border-muted-foreground/40 hover:bg-muted/50 text-muted-foreground'
+                  : 'border-border hover:border-muted-foreground/40 hover:bg-muted/50 text-muted-foreground',
               )}
             >
-              <span className="text-[10px] font-medium uppercase tracking-wider">
-                None
-              </span>
+              <span className="text-[10px] font-medium uppercase tracking-wider">None</span>
             </button>
           )}
           {ICON_NAMES.map((name) => {
             const Icon = CURATED_ICONS[name]
             if (!Icon) return null
             const isSelected =
-              value === name ||
-              (value && value.toLowerCase() === name.toLowerCase())
+              value === name || (value && value.toLowerCase() === name.toLowerCase())
             return (
               <button
                 key={name}
@@ -94,7 +87,7 @@ export function IconPicker({
                   'flex items-center justify-center min-w-[2.25rem] min-h-[2.25rem] rounded-md border-2 shrink-0 transition-all',
                   isSelected
                     ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-transparent hover:border-muted-foreground/30 hover:bg-muted/50 text-muted-foreground hover:text-foreground'
+                    : 'border-transparent hover:border-muted-foreground/30 hover:bg-muted/50 text-muted-foreground hover:text-foreground',
                 )}
               >
                 <Icon className="w-4 h-4" />

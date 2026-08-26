@@ -1,7 +1,7 @@
 import { CalendarPlus, Clock, Code, Eye, FileText, User, UserPlus, X } from 'lucide-react'
 import { useState } from 'react'
-import { Modal } from '@/components/ui/Modal'
 import { DocumentList } from '@/components/documents/DocumentList'
+import { Modal } from '@/components/ui/Modal'
 import { formatDateTimeSafe, formatFullDateTime } from '@/lib/format-date'
 import type { EventResponse } from '@/lib/types'
 import { PayloadModernView } from './PayloadModernView'
@@ -43,101 +43,97 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
 
       {/* Content */}
       <div className="space-y-4">
-          {/* Event Metadata */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-3 bg-muted/50 rounded-none border border-border/50">
-              <div className="flex items-center gap-2 mb-1">
-                <User className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">Subject ID</span>
-              </div>
-              <p className="text-sm font-mono text-foreground">{event.subject_id}</p>
+        {/* Event Metadata */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-3 bg-muted/50 rounded-none border border-border/50">
+            <div className="flex items-center gap-2 mb-1">
+              <User className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">Subject ID</span>
             </div>
+            <p className="text-sm font-mono text-foreground">{event.subject_id}</p>
+          </div>
 
-            <div className="p-3 bg-muted/50 rounded-none border border-border/50">
-              <div className="flex items-center gap-2 mb-1">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">Event Time</span>
-              </div>
-              <p className="text-sm text-foreground">
-                {formatFullDateTime(event.event_time)}
-              </p>
+          <div className="p-3 bg-muted/50 rounded-none border border-border/50">
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">Event Time</span>
             </div>
+            <p className="text-sm text-foreground">{formatFullDateTime(event.event_time)}</p>
+          </div>
 
-            {hasCreatedBy && (
-              <div className="p-3 bg-muted/50 rounded-none border border-border/50">
-                <div className="flex items-center gap-2 mb-1">
-                  <UserPlus className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground">Created by</span>
-                </div>
-                <p className="text-sm text-foreground">{ev.created_by}</p>
-              </div>
-            )}
-
+          {hasCreatedBy && (
             <div className="p-3 bg-muted/50 rounded-none border border-border/50">
               <div className="flex items-center gap-2 mb-1">
-                <CalendarPlus className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">Record created</span>
+                <UserPlus className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground">Created by</span>
               </div>
-              <p className="text-sm text-foreground">
-                {formatDateTimeSafe(ev.created_at)}
-              </p>
+              <p className="text-sm text-foreground">{ev.created_by}</p>
+            </div>
+          )}
+
+          <div className="p-3 bg-muted/50 rounded-none border border-border/50">
+            <div className="flex items-center gap-2 mb-1">
+              <CalendarPlus className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">Record created</span>
+            </div>
+            <p className="text-sm text-foreground">{formatDateTimeSafe(ev.created_at)}</p>
+          </div>
+        </div>
+
+        {/* Payload */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">Event Data</h3>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => setViewMode('modern')}
+                className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-none transition-colors ${
+                  viewMode === 'modern'
+                    ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                    : 'text-muted-foreground hover:bg-muted border border-transparent hover:border-border/50'
+                }`}
+                title="Modern view"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                Modern
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('json')}
+                className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-none transition-colors ${
+                  viewMode === 'json'
+                    ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                    : 'text-muted-foreground hover:bg-muted border border-transparent hover:border-border/50'
+                }`}
+                title="JSON view"
+              >
+                <Code className="w-3.5 h-3.5" />
+                JSON
+              </button>
             </div>
           </div>
 
-          {/* Payload */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold">Event Data</h3>
-              <div className="flex gap-1">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('modern')}
-                  className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-none transition-colors ${
-                    viewMode === 'modern'
-                      ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
-                      : 'text-muted-foreground hover:bg-muted border border-transparent hover:border-border/50'
-                  }`}
-                  title="Modern view"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  Modern
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('json')}
-                  className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-none transition-colors ${
-                    viewMode === 'json'
-                      ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
-                      : 'text-muted-foreground hover:bg-muted border border-transparent hover:border-border/50'
-                  }`}
-                  title="JSON view"
-                >
-                  <Code className="w-3.5 h-3.5" />
-                  JSON
-                </button>
-              </div>
+          {viewMode === 'modern' && event.payload && (
+            <div className="bg-slate-50 dark:bg-slate-900/30 rounded-none border border-slate-200 dark:border-slate-700 p-3">
+              <PayloadModernView payload={event.payload} />
             </div>
+          )}
 
-            {viewMode === 'modern' && event.payload && (
-              <div className="bg-slate-50 dark:bg-slate-900/30 rounded-none border border-slate-200 dark:border-slate-700 p-3">
-                <PayloadModernView payload={event.payload} />
-              </div>
-            )}
+          {viewMode === 'json' && event.payload && (
+            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-none border border-slate-200 dark:border-slate-700 p-3">
+              <pre className="text-xs text-foreground/90 overflow-x-auto">
+                {JSON.stringify(event.payload, null, 2)}
+              </pre>
+            </div>
+          )}
 
-            {viewMode === 'json' && event.payload && (
-              <div className="bg-slate-50 dark:bg-slate-900/50 rounded-none border border-slate-200 dark:border-slate-700 p-3">
-                <pre className="text-xs text-foreground/90 overflow-x-auto">
-                  {JSON.stringify(event.payload, null, 2)}
-                </pre>
-              </div>
-            )}
-
-            {!event.payload && (
-              <div className="bg-slate-50 dark:bg-slate-900/30 rounded-none border border-slate-200 dark:border-slate-700 p-3">
-                <p className="text-xs text-muted-foreground italic">No payload data</p>
-              </div>
-            )}
-          </div>
+          {!event.payload && (
+            <div className="bg-slate-50 dark:bg-slate-900/30 rounded-none border border-slate-200 dark:border-slate-700 p-3">
+              <p className="text-xs text-muted-foreground italic">No payload data</p>
+            </div>
+          )}
+        </div>
 
         {/* Documents — label always shows count; list container hidden when count is 0 */}
         <div>
@@ -146,11 +142,7 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
             Linked Documents: {documentCount ?? '…'}
           </h3>
           {documentCount !== 0 && (
-            <DocumentList
-              eventId={event.id}
-              readOnly={true}
-              onDocumentsLoaded={setDocumentCount}
-            />
+            <DocumentList eventId={event.id} readOnly={true} onDocumentsLoaded={setDocumentCount} />
           )}
         </div>
       </div>

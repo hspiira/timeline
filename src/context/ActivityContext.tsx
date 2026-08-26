@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useCallback, useState } from 'react'
+import React, { createContext, type ReactNode, useCallback, useState } from 'react'
 
 interface ActivityContextType {
   selected: string | null
@@ -19,7 +19,7 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   const toggleExpanded = useCallback((id: string) => {
-    setExpanded(prev => {
+    setExpanded((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(id)) {
         newSet.delete(id)
@@ -50,11 +50,7 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
     setHoveredId,
   }
 
-  return (
-    <ActivityContext.Provider value={value}>
-      {children}
-    </ActivityContext.Provider>
-  )
+  return <ActivityContext.Provider value={value}>{children}</ActivityContext.Provider>
 }
 
 export function useActivityContext() {

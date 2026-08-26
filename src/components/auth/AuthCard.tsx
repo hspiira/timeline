@@ -23,12 +23,7 @@ export function AuthCard({
 }) {
   return (
     <div className={cn('w-full max-w-md bg-white/[0.07] px-8 py-10', className)}>
-      <img
-        src="/logo.svg"
-        alt=""
-        className="mx-auto mb-8 h-8 w-8"
-        aria-hidden
-      />
+      <img src="/logo.svg" alt="" className="mx-auto mb-8 h-8 w-8" aria-hidden />
       {children}
     </div>
   )

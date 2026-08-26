@@ -69,28 +69,41 @@ function toDatetimeLocalInputValue(value: unknown): string {
 }
 
 /** Get conditionally required field names based on current value (allOf if/then with single-property const). */
-function getConditionalRequired(schema: JsonSchema | undefined, value: Record<string, unknown>): string[] {
+function getConditionalRequired(
+  schema: JsonSchema | undefined,
+  value: Record<string, unknown>,
+): string[] {
   const out: string[] = []
   const allOf = schema?.allOf
   if (!Array.isArray(allOf)) return out
   for (const block of allOf) {
     const ifProps = block.if?.properties
     const thenRequired = block.then?.required
-    if (!ifProps || typeof ifProps !== 'object' || !Array.isArray(thenRequired) || thenRequired.length === 0) continue
+    if (
+      !ifProps ||
+      typeof ifProps !== 'object' ||
+      !Array.isArray(thenRequired) ||
+      thenRequired.length === 0
+    )
+      continue
     const keys = Object.keys(ifProps)
     if (keys.length !== 1) continue
     const triggerKey = keys[0]
     const constraint = ifProps[triggerKey]
     const expected = constraint?.const
     const actual = value[triggerKey]
-    const match = actual === expected || (expected !== undefined && String(actual) === String(expected))
+    const match =
+      actual === expected || (expected !== undefined && String(actual) === String(expected))
     if (match) out.push(...thenRequired)
   }
   return out
 }
 
 /** Base required + conditionally required from allOf given current value. */
-export function getEffectiveRequiredFields(schema: JsonSchema | undefined, value: Record<string, unknown>): string[] {
+export function getEffectiveRequiredFields(
+  schema: JsonSchema | undefined,
+  value: Record<string, unknown>,
+): string[] {
   const base = schema?.required ?? []
   const conditional = getConditionalRequired(schema, value)
   return [...new Set([...base, ...conditional])]
@@ -132,12 +145,7 @@ function toDisplayValue(value: unknown): string {
   return value === undefined || value === null ? '' : String(value)
 }
 
-export function JsonSchemaForm({
-  schema,
-  value,
-  onChange,
-  errors = {},
-}: JsonSchemaFormProps) {
+export function JsonSchemaForm({ schema, value, onChange, errors = {} }: JsonSchemaFormProps) {
   const properties = useMemo((): Record<string, FieldSchema> => {
     if (!schema?.properties) return {}
     return schema.properties
@@ -193,60 +201,60 @@ export function JsonSchemaForm({
                   {isReq && <span className="text-red-500 ml-1">*</span>}
                 </label>
                 {fieldSchema.enum ? (
-              <SingleSelectCombobox
-                value={toDisplayValue(fieldValue)}
-                onValueChange={(v) => handleChange(fieldName, v)}
-                options={[
-                  { value: '', label: `Select ${fieldName}` },
-                  ...fieldSchema.enum.map((opt: unknown) => {
-                    const s = String(opt)
-                    return { value: s, label: s }
-                  }),
-                ]}
-                placeholder={`Select ${fieldName}`}
-                error={fieldError}
-                className={inputClassName(Boolean(fieldError))}
-              />
-            ) : fieldSchema.type === 'number' || fieldSchema.type === 'integer' ? (
-              <input
-                type="number"
-                value={
-                  fieldValue === undefined || fieldValue === ''
-                    ? ''
-                    : typeof fieldValue === 'number'
-                      ? fieldValue
-                      : Number(fieldValue) || ''
-                }
-                onChange={(e) => {
-                  const val = e.target.value
-                  handleChange(fieldName, val === '' ? undefined : parseFloat(val))
-                }}
-                placeholder={fieldSchema.default ? `(default: ${fieldSchema.default})` : ''}
-                className={inputClassName(Boolean(fieldError))}
-                required={isReq}
-                step={fieldSchema.type === 'integer' ? '1' : 'any'}
-              />
-            ) : fieldType === 'date' ? (
-              <input
-                type="date"
-                value={toDateInputValue(fieldValue)}
-                onChange={(e) => handleChange(fieldName, e.target.value || undefined)}
-                className={inputClassName(Boolean(fieldError))}
-                required={isReq}
-              />
-            ) : fieldType === 'datetime-local' ? (
-              <input
-                type="datetime-local"
-                value={toDatetimeLocalInputValue(fieldValue)}
-                onChange={(e) =>
-                  handleChange(
-                    fieldName,
-                    e.target.value ? new Date(e.target.value).toISOString() : undefined,
-                  )
-                }
-                className={inputClassName(Boolean(fieldError))}
-                required={isReq}
-              />
+                  <SingleSelectCombobox
+                    value={toDisplayValue(fieldValue)}
+                    onValueChange={(v) => handleChange(fieldName, v)}
+                    options={[
+                      { value: '', label: `Select ${fieldName}` },
+                      ...fieldSchema.enum.map((opt: unknown) => {
+                        const s = String(opt)
+                        return { value: s, label: s }
+                      }),
+                    ]}
+                    placeholder={`Select ${fieldName}`}
+                    error={fieldError}
+                    className={inputClassName(Boolean(fieldError))}
+                  />
+                ) : fieldSchema.type === 'number' || fieldSchema.type === 'integer' ? (
+                  <input
+                    type="number"
+                    value={
+                      fieldValue === undefined || fieldValue === ''
+                        ? ''
+                        : typeof fieldValue === 'number'
+                          ? fieldValue
+                          : Number(fieldValue) || ''
+                    }
+                    onChange={(e) => {
+                      const val = e.target.value
+                      handleChange(fieldName, val === '' ? undefined : parseFloat(val))
+                    }}
+                    placeholder={fieldSchema.default ? `(default: ${fieldSchema.default})` : ''}
+                    className={inputClassName(Boolean(fieldError))}
+                    required={isReq}
+                    step={fieldSchema.type === 'integer' ? '1' : 'any'}
+                  />
+                ) : fieldType === 'date' ? (
+                  <input
+                    type="date"
+                    value={toDateInputValue(fieldValue)}
+                    onChange={(e) => handleChange(fieldName, e.target.value || undefined)}
+                    className={inputClassName(Boolean(fieldError))}
+                    required={isReq}
+                  />
+                ) : fieldType === 'datetime-local' ? (
+                  <input
+                    type="datetime-local"
+                    value={toDatetimeLocalInputValue(fieldValue)}
+                    onChange={(e) =>
+                      handleChange(
+                        fieldName,
+                        e.target.value ? new Date(e.target.value).toISOString() : undefined,
+                      )
+                    }
+                    className={inputClassName(Boolean(fieldError))}
+                    required={isReq}
+                  />
                 ) : (
                   <input
                     type={fieldType}

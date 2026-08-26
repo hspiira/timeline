@@ -1,13 +1,12 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useQuery } from '@tanstack/react-query'
-import { timelineApi } from '@/lib/api-client'
-import { getTenantId } from '@/lib/api-client'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
-import { Skeleton } from '@/components/ui/Skeleton'
-import { Button } from '@/components/ui/button'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Database, Plus } from 'lucide-react'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { getTenantId, timelineApi } from '@/lib/api-client'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 
 export const Route = createFileRoute('/projections/')({
   beforeLoad: () => {
@@ -34,9 +33,7 @@ function ProjectionsPage() {
 
   if (!tenantId) {
     return (
-      <div className="p-4 text-sm text-muted-foreground">
-        Select a tenant to view projections.
-      </div>
+      <div className="p-4 text-sm text-muted-foreground">Select a tenant to view projections.</div>
     )
   }
 
@@ -45,11 +42,7 @@ function ProjectionsPage() {
       <Breadcrumbs items={[{ label: 'Projections' }]} />
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-bold text-foreground">Projections</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate({ to: '/projections/new' })}
-        >
+        <Button variant="outline" size="sm" onClick={() => navigate({ to: '/projections/new' })}>
           <Plus className="w-4 h-4" />
           New Projection
         </Button>
@@ -82,9 +75,13 @@ function ProjectionsPage() {
                   <td className="py-2 px-3 font-mono">{p.last_event_seq}</td>
                   <td className="py-2 px-3 text-muted-foreground text-xs">
                     {/* system_latest_seq is optional from the API; not in OpenAPI ProjectionDefinitionResponse yet. Add to backend spec and run generate:api to type it. */}
-                    {typeof (p as unknown as { system_latest_seq?: number }).system_latest_seq === 'number'
+                    {typeof (p as unknown as { system_latest_seq?: number }).system_latest_seq ===
+                    'number'
                       ? (() => {
-                          const q = p as unknown as { last_event_seq: number; system_latest_seq: number }
+                          const q = p as unknown as {
+                            last_event_seq: number
+                            system_latest_seq: number
+                          }
                           const lag = q.system_latest_seq - q.last_event_seq
                           return lag <= 0 ? 'Up to date' : `${lag} events behind`
                         })()

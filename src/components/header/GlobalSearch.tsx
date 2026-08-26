@@ -1,8 +1,8 @@
-import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Search } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export function GlobalSearch() {
   const [q, setQ] = useState('')
@@ -29,7 +29,13 @@ export function GlobalSearch() {
           aria-label="Global search"
         />
       </div>
-      <Button type="submit" size="sm" variant="ghost" className="shrink-0 h-9 px-2" aria-label="Go to search">
+      <Button
+        type="submit"
+        size="sm"
+        variant="ghost"
+        className="shrink-0 h-9 px-2"
+        aria-label="Go to search"
+      >
         <Search className="w-4 h-4" />
       </Button>
     </form>

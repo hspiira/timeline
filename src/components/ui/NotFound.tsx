@@ -3,7 +3,7 @@
  */
 
 import { Link } from '@tanstack/react-router'
-import { Home, ArrowLeft, FileQuestion } from 'lucide-react'
+import { ArrowLeft, FileQuestion, Home } from 'lucide-react'
 
 export interface NotFoundProps {
   title?: string
@@ -51,14 +51,12 @@ export function NotFound({
 
   if (fullPage) {
     return (
-      <div className={`min-h-screen bg-background flex items-center justify-center px-4 ${className}`}>
+      <div
+        className={`min-h-screen bg-background flex items-center justify-center px-4 ${className}`}
+      >
         <div className="max-w-md w-full bg-card text-card-foreground p-8 rounded-none border border-border shadow-sm">
           <div className="text-center">
-            <FileQuestion
-              size={48}
-              className="text-muted-foreground mx-auto mb-4"
-              aria-hidden
-            />
+            <FileQuestion size={48} className="text-muted-foreground mx-auto mb-4" aria-hidden />
             <h1 className="text-2xl font-bold text-foreground mb-2">{title}</h1>
             <p className="text-muted-foreground mb-6">{message}</p>
             {actions}

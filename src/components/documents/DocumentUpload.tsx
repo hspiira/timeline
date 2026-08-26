@@ -1,13 +1,13 @@
-import { useState, useRef, useEffect } from 'react'
-import { Upload, X, CheckCircle } from 'lucide-react'
+import { CheckCircle, Upload, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import type { JsonSchema } from '@/components/shared/JsonSchemaForm'
+import { JsonSchemaForm } from '@/components/shared/JsonSchemaForm'
+import { Button } from '@/components/ui/button'
+import { SingleSelectCombobox } from '@/components/ui/combobox'
+import { ErrorIcon, LoadingIcon } from '@/components/ui/icons'
+import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
 import { getApiErrorMessage } from '@/lib/api-utils'
-import { useToast } from '@/hooks/useToast'
-import { SingleSelectCombobox } from '@/components/ui/combobox'
-import { LoadingIcon, ErrorIcon } from '@/components/ui/icons'
-import { Button } from '@/components/ui/button'
-import { JsonSchemaForm } from '@/components/shared/JsonSchemaForm'
-import type { JsonSchema } from '@/components/shared/JsonSchemaForm'
 import type { components } from '@/lib/timeline-api'
 
 export interface DocumentUploadProps {
@@ -131,7 +131,11 @@ export function DocumentUpload({
 
   const effectiveDocumentType = (): string => {
     if (categories.length > 0 && selectedCategoryId) {
-      return categoryFull?.category_name ?? categories.find((c) => c.id === selectedCategoryId)?.category_name ?? 'other'
+      return (
+        categoryFull?.category_name ??
+        categories.find((c) => c.id === selectedCategoryId)?.category_name ??
+        'other'
+      )
     }
     return documentType
   }
@@ -142,7 +146,11 @@ export function DocumentUpload({
         const error = 'Subject ID is required to upload documents'
         onError?.(error)
         toast.error('Upload failed', error)
-        setFiles((prev) => prev.map((f) => (f.id === uploadingFile.id ? { ...f, status: 'error', error, progress: 0 } : f)))
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.id === uploadingFile.id ? { ...f, status: 'error', error, progress: 0 } : f,
+          ),
+        )
         return
       }
 
@@ -151,11 +159,17 @@ export function DocumentUpload({
         const error = 'Document type is required'
         onError?.(error)
         toast.error('Upload failed', error)
-        setFiles((prev) => prev.map((f) => (f.id === uploadingFile.id ? { ...f, status: 'error', error, progress: 0 } : f)))
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.id === uploadingFile.id ? { ...f, status: 'error', error, progress: 0 } : f,
+          ),
+        )
         return
       }
 
-      setFiles((prev) => prev.map((f) => (f.id === uploadingFile.id ? { ...f, status: 'uploading' } : f)))
+      setFiles((prev) =>
+        prev.map((f) => (f.id === uploadingFile.id ? { ...f, status: 'uploading' } : f)),
+      )
 
       const formData = new FormData()
       formData.append('file', file)
@@ -179,8 +193,10 @@ export function DocumentUpload({
       const progressInterval = setInterval(() => {
         setFiles((prev) =>
           prev.map((f) =>
-            f.id === uploadingFile.id && f.progress < 90 ? { ...f, progress: f.progress + Math.random() * 30 } : f
-          )
+            f.id === uploadingFile.id && f.progress < 90
+              ? { ...f, progress: f.progress + Math.random() * 30 }
+              : f,
+          ),
         )
       }, 300)
 
@@ -200,17 +216,33 @@ export function DocumentUpload({
 
         const errorMessage = getApiErrorMessage(error, 'Upload failed')
 
-        setFiles((prev) => prev.map((f) => (f.id === uploadingFile.id ? { ...f, status: 'error', error: errorMessage, progress: 0 } : f)))
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.id === uploadingFile.id
+              ? { ...f, status: 'error', error: errorMessage, progress: 0 }
+              : f,
+          ),
+        )
         onError?.(errorMessage)
         toast.error('Upload failed', errorMessage)
       } else if (data) {
-        setFiles((prev) => prev.map((f) => (f.id === uploadingFile.id ? { ...f, status: 'success', progress: 100 } : f)))
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.id === uploadingFile.id ? { ...f, status: 'success', progress: 100 } : f,
+          ),
+        )
         onUploadComplete?.(data.id)
         toast.success('Document uploaded', file.name)
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unexpected error during upload'
-      setFiles((prev) => prev.map((f) => (f.id === uploadingFile.id ? { ...f, status: 'error', error: errorMessage, progress: 0 } : f)))
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === uploadingFile.id
+            ? { ...f, status: 'error', error: errorMessage, progress: 0 }
+            : f,
+        ),
+      )
       onError?.(errorMessage)
       toast.error('Upload error', errorMessage)
     }
@@ -241,8 +273,8 @@ export function DocumentUpload({
 
     setFiles((prev) => [...prev, ...newFiles])
     // Start uploads after files are added to state
-    newFiles.forEach((uploadingFile) => {  
-      uploadFile(uploadingFile.file, uploadingFile)  
+    newFiles.forEach((uploadingFile) => {
+      uploadFile(uploadingFile.file, uploadingFile)
     })
   }
 
@@ -282,9 +314,7 @@ export function DocumentUpload({
     <div className="space-y-4">
       {/* Document type / category selector */}
       <div>
-        <label className="block text-sm font-medium text-foreground/90 mb-2">
-          Document type
-        </label>
+        <label className="block text-sm font-medium text-foreground/90 mb-2">Document type</label>
         {categoriesLoading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
             <LoadingIcon size="sm" />
@@ -321,18 +351,16 @@ export function DocumentUpload({
       </div>
 
       {/* Optional metadata when category has schema */}
-      {useCategories && metadataSchema && Object.keys(metadataSchema.properties ?? {}).length > 0 && (
-        <div>
-          <label className="block text-sm font-medium text-foreground/90 mb-2">
-            Metadata (optional)
-          </label>
-          <JsonSchemaForm
-            schema={metadataSchema}
-            value={metadata}
-            onChange={setMetadata}
-          />
-        </div>
-      )}
+      {useCategories &&
+        metadataSchema &&
+        Object.keys(metadataSchema.properties ?? {}).length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-foreground/90 mb-2">
+              Metadata (optional)
+            </label>
+            <JsonSchemaForm schema={metadataSchema} value={metadata} onChange={setMetadata} />
+          </div>
+        )}
 
       {/* Upload Area */}
       <div
@@ -358,7 +386,9 @@ export function DocumentUpload({
             <p className="font-medium text-foreground">Drag and drop files here</p>
             <p className="text-sm text-muted-foreground">or click to select files</p>
           </div>
-          <p className="text-xs text-muted-foreground">Max 100MB per file. Supported: PDF, images, Word, Excel</p>
+          <p className="text-xs text-muted-foreground">
+            Max 100MB per file. Supported: PDF, images, Word, Excel
+          </p>
         </div>
 
         <Button
@@ -376,18 +406,27 @@ export function DocumentUpload({
       {files.length > 0 && (
         <div className="space-y-2">
           {files.map((uploadingFile) => (
-            <div key={uploadingFile.id} className="flex items-center gap-3 p-3 bg-card rounded-none border border-border/50">
+            <div
+              key={uploadingFile.id}
+              className="flex items-center gap-3 p-3 bg-card rounded-none border border-border/50"
+            >
               {/* Status Icon */}
               <div className="shrink-0">
-                {uploadingFile.status === 'uploading' && <LoadingIcon size="lg" className="text-primary" />}
-                {uploadingFile.status === 'success' && <CheckCircle className="w-5 h-5 text-green-500" />}
+                {uploadingFile.status === 'uploading' && (
+                  <LoadingIcon size="lg" className="text-primary" />
+                )}
+                {uploadingFile.status === 'success' && (
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                )}
                 {uploadingFile.status === 'error' && <ErrorIcon className="text-red-500" />}
               </div>
 
               {/* File Info */}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{uploadingFile.file.name}</p>
-                <p className="text-xs text-muted-foreground">{(uploadingFile.file.size / 1024 / 1024).toFixed(2)}MB</p>
+                <p className="text-xs text-muted-foreground">
+                  {(uploadingFile.file.size / 1024 / 1024).toFixed(2)}MB
+                </p>
 
                 {/* Progress Bar */}
                 {uploadingFile.status === 'uploading' && (
@@ -421,12 +460,7 @@ export function DocumentUpload({
 
           {/* Clear Completed */}
           {files.some((f) => f.status === 'success') && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearCompleted}
-              className="text-xs"
-            >
+            <Button variant="ghost" size="sm" onClick={clearCompleted} className="text-xs">
               Clear completed
             </Button>
           )}

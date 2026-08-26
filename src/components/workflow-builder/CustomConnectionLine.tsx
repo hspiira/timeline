@@ -3,7 +3,7 @@
  * Uses smooth-step path for consistency with FloatingEdge.
  */
 
-import { getSmoothStepPath, type ConnectionLineComponentProps } from '@xyflow/react'
+import { type ConnectionLineComponentProps, getSmoothStepPath } from '@xyflow/react'
 import type { WorkflowNodeData } from '@/lib/workflow-builder/flow-adapter'
 
 export function CustomConnectionLine({

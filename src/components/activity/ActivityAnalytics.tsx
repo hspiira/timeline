@@ -1,7 +1,7 @@
-import { useActivityAnalytics } from '@/hooks/useActivityAnalytics'
-import type { Activity } from '@/lib/types/activity'
 import { BarChart3, TrendingUp, Users, Zap } from 'lucide-react'
 import { StatCard } from '@/components/shared/StatCard'
+import { useActivityAnalytics } from '@/hooks/useActivityAnalytics'
+import type { Activity } from '@/lib/types/activity'
 
 // User ID prefix length (e.g., "user_" = 5 characters)
 const USER_ID_PREFIX_LENGTH = 5

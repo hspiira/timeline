@@ -1,7 +1,7 @@
-import * as React from 'react'
-import { cva, type VariantProps } from 'class-variance-authority'
 import { Slot } from '@radix-ui/react-slot'
+import { cva, type VariantProps } from 'class-variance-authority'
 import { Loader2 } from 'lucide-react'
+import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
@@ -17,18 +17,15 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          'bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary/30',
-        primary:
-          'bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary/30',
+        default: 'bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary/30',
+        primary: 'bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary/30',
         destructive:
           'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-destructive/30',
         outline:
           'border border-input bg-background text-foreground hover:bg-muted/30 focus:ring-ring/30',
         secondary:
           'bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-secondary/30',
-        ghost:
-          'hover:bg-accent hover:text-accent-foreground focus:ring-ring/20',
+        ghost: 'hover:bg-accent hover:text-accent-foreground focus:ring-ring/20',
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {
@@ -47,7 +44,7 @@ const buttonVariants = cva(
       variant: 'default',
       size: 'default',
     },
-  }
+  },
 )
 
 function Button({
@@ -93,9 +90,7 @@ function Button({
       disabled={disabled ?? showLoading}
       {...props}
     >
-      {showLoading && (
-        <Loader2 className="size-4 animate-spin shrink-0" />
-      )}
+      {showLoading && <Loader2 className="size-4 animate-spin shrink-0" />}
       {children}
     </Comp>
   )

@@ -1,4 +1,4 @@
-import { addToast, ToastItem } from '@/lib/toast-store'
+import { addToast, type ToastItem } from '@/lib/toast-store'
 
 export function useToast() {
   return {

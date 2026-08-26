@@ -1,18 +1,14 @@
 'use client'
 
+import { CalendarIcon } from 'lucide-react'
 import * as React from 'react'
+import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { FormField } from '@/components/ui/FormField'
 import { Input } from '@/components/ui/input'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { Button } from '@/components/ui/button'
-import { CalendarIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { formatEventDate } from '@/lib/format-date'
+import { cn } from '@/lib/utils'
 
 function isValidDate(date: Date | undefined): boolean {
   if (!date) return false
@@ -29,11 +25,7 @@ function parseUKDate(raw: string): Date | null {
     if (Number.isNaN(d) || Number.isNaN(m) || Number.isNaN(y)) return null
     const month = m - 1
     const parsed = new Date(y, month, d)
-    if (
-      parsed.getFullYear() !== y ||
-      parsed.getMonth() !== month ||
-      parsed.getDate() !== d
-    )
+    if (parsed.getFullYear() !== y || parsed.getMonth() !== month || parsed.getDate() !== d)
       return null
     return parsed
   }
@@ -88,7 +80,7 @@ export function DatePicker({
           className={cn(
             'w-[280px] justify-start text-left font-normal rounded-none',
             !date && 'text-muted-foreground',
-            className
+            className,
           )}
           disabled={disabled}
         >

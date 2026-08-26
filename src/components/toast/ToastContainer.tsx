@@ -1,6 +1,6 @@
 import { useStore } from '@tanstack/react-store'
-import { Toast, ToastType } from './Toast'
-import { toastStore, removeToast } from '@/lib/toast-store'
+import { removeToast, toastStore } from '@/lib/toast-store'
+import { Toast, type ToastType } from './Toast'
 
 export function ToastContainer() {
   const state = useStore(toastStore)

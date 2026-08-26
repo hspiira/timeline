@@ -1,16 +1,16 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { useEffect, useState, useMemo, useCallback } from 'react'
-import { useStore } from '@tanstack/react-store'
 import { useQuery } from '@tanstack/react-query'
-import { authStore } from '@/lib/auth-store'
-import { LandingPage } from '@/components/landing/LandingPage'
-import { StatsGrid, type StatsGridProps } from '@/components/dashboard/StatsGrid'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { useStore } from '@tanstack/react-store'
+import { Activity, AlertCircle, Circle, Loader2, RefreshCw, Shield } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard'
+import { StatsGrid, type StatsGridProps } from '@/components/dashboard/StatsGrid'
+import { LandingPage } from '@/components/landing/LandingPage'
 import { useEventStream } from '@/hooks/useActivitySubscription'
 import { useHasSystemAccess } from '@/hooks/useHasSystemAccess'
-import { Loader2, AlertCircle, RefreshCw, Activity, Shield, Circle } from 'lucide-react'
-import { timelineApi, getAuthToken, getTenantId, getApiBaseUrl } from '@/lib/api-client'
+import { getApiBaseUrl, getAuthToken, getTenantId, timelineApi } from '@/lib/api-client'
 import { getApiErrorDisplay } from '@/lib/api-utils'
+import { authStore } from '@/lib/auth-store'
 import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import type { components } from '@/lib/timeline-api'
 import type { WorkflowResponse } from '@/lib/types'
@@ -18,7 +18,13 @@ import { cn } from '@/lib/utils'
 
 type DashboardStatsResponse = components['schemas']['DashboardStatsResponse']
 
-type ConnectorHealthItem = { connector_id?: string; status?: string; last_event_at?: string; error?: string; lag?: number }
+type ConnectorHealthItem = {
+  connector_id?: string
+  status?: string
+  last_event_at?: string
+  error?: string
+  lag?: number
+}
 
 export const Route = createFileRoute('/')({
   beforeLoad: () => {
@@ -50,7 +56,12 @@ function ChainIntegrityCard() {
   const authState = useStore(authStore)
   const { data: summary } = useQuery({
     queryKey: ['integrity', 'summary'],
-    queryFn: async (): Promise<{ healthy: number; broken: number; unverified: number; lastVerified: string | null } | null> => {
+    queryFn: async (): Promise<{
+      healthy: number
+      broken: number
+      unverified: number
+      lastVerified: string | null
+    } | null> => {
       const baseUrl = getApiBaseUrl()
       const token = getAuthToken()
       const tenantId = getTenantId()
@@ -168,7 +179,7 @@ function HomePage() {
 
   const connectorList = (connectorsData?.connectors ?? []) as ConnectorHealthItem[]
   const activeConnectors = connectorList.filter(
-    (c) => c.status === 'running' || c.status === 'ok'
+    (c) => c.status === 'running' || c.status === 'ok',
   ).length
 
   const eventsToday = useMemo(() => {
@@ -199,7 +210,7 @@ function HomePage() {
         const status = val.response?.status
         const display = getApiErrorDisplay(
           { error: val.error, status },
-          status === 403 ? 'Access denied to dashboard' : 'Failed to load dashboard stats'
+          status === 403 ? 'Access denied to dashboard' : 'Failed to load dashboard stats',
         )
         newErrors.push({ field: 'analytics', message: display.message })
       } else if (analyticsResult.status === 'rejected') {
@@ -216,7 +227,9 @@ function HomePage() {
       setErrors(newErrors)
     } catch (err) {
       console.error('Unexpected error fetching dashboard:', err)
-      setErrors([{ field: 'analytics', message: 'An unexpected error occurred while loading dashboard' }])
+      setErrors([
+        { field: 'analytics', message: 'An unexpected error occurred while loading dashboard' },
+      ])
     } finally {
       setLoading(false)
     }
@@ -333,7 +346,9 @@ function HomePage() {
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-foreground text-sm mb-1">Some data couldn’t be loaded</h3>
+                <h3 className="font-semibold text-foreground text-sm mb-1">
+                  Some data couldn’t be loaded
+                </h3>
                 <ul className="space-y-0.5 text-xs text-muted-foreground mb-3">
                   {errors.map((error) => (
                     <li key={error.field}>
@@ -358,31 +373,36 @@ function HomePage() {
           {loadingStats ? (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-24 rounded-none border border-border bg-muted/30 animate-pulse" />
+                <div
+                  key={i}
+                  className="h-24 rounded-none border border-border bg-muted/30 animate-pulse"
+                />
               ))}
             </div>
           ) : (
-          <StatsGrid
-            {...({
-              totalSubjects,
-              totalEvents,
-              eventsToday,
-              activeConnectors,
-              totalConnectors: connectorList.length,
-              openRepairs,
-              subjectsByType: data.stats?.subjects_by_type,
-              eventsByType: data.stats?.events_by_type,
-              showConnectorStat: hasSystemAccess !== false,
-            } satisfies StatsGridProps)}
-          />
+            <StatsGrid
+              {...({
+                totalSubjects,
+                totalEvents,
+                eventsToday,
+                activeConnectors,
+                totalConnectors: connectorList.length,
+                openRepairs,
+                subjectsByType: data.stats?.subjects_by_type,
+                eventsByType: data.stats?.events_by_type,
+                showConnectorStat: hasSystemAccess !== false,
+              } satisfies StatsGridProps)}
+            />
           )}
         </div>
 
         {/* Integrity summary + Connector strip (Connectors card gated by hasSystemAccess) */}
-        <div className={cn(
-          'grid grid-cols-1 gap-4 md:gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500',
-          hasSystemAccess !== false ? 'lg:grid-cols-12' : ''
-        )}>
+        <div
+          className={cn(
+            'grid grid-cols-1 gap-4 md:gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500',
+            hasSystemAccess !== false ? 'lg:grid-cols-12' : '',
+          )}
+        >
           <div className={hasSystemAccess !== false ? 'lg:col-span-4' : 'lg:col-span-12'}>
             <ChainIntegrityCard />
           </div>
@@ -411,7 +431,9 @@ function HomePage() {
                             'inline-flex items-center gap-1.5 px-2 py-1 rounded-none border text-xs',
                             isOk && 'border-status-ok/50 bg-status-ok/10 text-status-ok',
                             isWarn && 'border-status-warn/50 bg-status-warn/10 text-status-warn',
-                            !isOk && !isWarn && 'border-status-error/50 bg-status-error/10 text-status-error'
+                            !isOk &&
+                              !isWarn &&
+                              'border-status-error/50 bg-status-error/10 text-status-error',
                           )}
                         >
                           <Circle className="w-2 h-2 fill-current" />

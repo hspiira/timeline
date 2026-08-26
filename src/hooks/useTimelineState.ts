@@ -6,7 +6,7 @@ export function useTimelineState() {
   const [hoveredEvent, setHoveredEvent] = useState<string | null>(null)
 
   const toggleDate = (date: string) => {
-    setCollapsedDates(prev => {
+    setCollapsedDates((prev) => {
       const next = new Set(prev)
       next.has(date) ? next.delete(date) : next.add(date)
       return next
@@ -14,7 +14,7 @@ export function useTimelineState() {
   }
 
   const toggleEvent = (eventId: string) => {
-    setExpandedEvents(prev => {
+    setExpandedEvents((prev) => {
       const next = new Set(prev)
       next.has(eventId) ? next.delete(eventId) : next.add(eventId)
       return next
@@ -27,6 +27,6 @@ export function useTimelineState() {
     hoveredEvent,
     setHoveredEvent,
     toggleDate,
-    toggleEvent
+    toggleEvent,
   }
 }

@@ -1,31 +1,31 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState, useCallback } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { useToast } from '@/hooks/useToast'
-import { useFetchWithError } from '@/hooks/useFetchWithError'
-import { timelineApi } from '@/lib/api-client'
 import {
-  Plus,
-  Trash2,
-  SquarePen,
-  CheckCircle,
-  XCircle,
-  Loader2,
-  Key,
   Activity,
-  Mail,
+  CheckCircle,
   Cloud,
+  Copy,
   ExternalLink,
   Eye,
   EyeOff,
-  Copy,
+  Key,
+  Loader2,
+  Mail,
+  Plus,
+  SquarePen,
+  Trash2,
+  XCircle,
 } from 'lucide-react'
-import { ConfirmModal } from '@/components/ui/ConfirmModal'
-import { Modal } from '@/components/ui/Modal'
-import { FormError } from '@/components/ui/FormField'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { DataTable } from '@/components/ui/DataTable'
+import { FormError } from '@/components/ui/FormField'
+import { Modal } from '@/components/ui/Modal'
+import { useFetchWithError } from '@/hooks/useFetchWithError'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { useToast } from '@/hooks/useToast'
+import { timelineApi } from '@/lib/api-client'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/settings/oauth-providers/')({
@@ -36,7 +36,10 @@ type OAuthProviderConfig = components['schemas']['OAuthConfigResponse']
 type OAuthProviderCreate = components['schemas']['OAuthConfigCreateRequest']
 type OAuthProviderUpdate = components['schemas']['OAuthConfigUpdate']
 
-const PROVIDER_INFO: Record<string, { name: string; icon: typeof Mail; color: string; defaultScopes: string[] }> = {
+const PROVIDER_INFO: Record<
+  string,
+  { name: string; icon: typeof Mail; color: string; defaultScopes: string[] }
+> = {
   gmail: {
     name: 'Gmail',
     icon: Mail,
@@ -85,7 +88,9 @@ function OAuthProvidersPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProvider, setEditingProvider] = useState<OAuthProviderConfig | null>(null)
   const [deletingProviderId, setDeletingProviderId] = useState<string | null>(null)
-  const [confirmingDelete, setConfirmingDelete] = useState<{ id: string; name: string } | null>(null)
+  const [confirmingDelete, setConfirmingDelete] = useState<{ id: string; name: string } | null>(
+    null,
+  )
   const [checkingHealth, setCheckingHealth] = useState<string | null>(null)
 
   const handleDeleteClick = (provider: OAuthProviderConfig) => {
@@ -126,7 +131,10 @@ function OAuthProvidersPage() {
       const { data, error: apiError } = await timelineApi.oauthProviders.getHealth(provider.id)
 
       if (apiError) {
-        toast.error('Health check failed', (apiError as any)?.message || 'Could not check provider health')
+        toast.error(
+          'Health check failed',
+          (apiError as any)?.message || 'Could not check provider health',
+        )
       } else if (data) {
         if (data.health_status === 'healthy') {
           toast.success('Provider healthy', `${provider.display_name} is operational`)
@@ -149,7 +157,11 @@ function OAuthProvidersPage() {
       header: 'Provider',
       cell: ({ row }) => {
         const provider = row.original
-        const info = PROVIDER_INFO[provider.provider_type] || { name: provider.provider_type, icon: Key, color: 'text-gray-600' }
+        const info = PROVIDER_INFO[provider.provider_type] || {
+          name: provider.provider_type,
+          icon: Key,
+          color: 'text-gray-600',
+        }
         const Icon = info.icon
         return (
           <div className="flex items-center gap-2">
@@ -185,9 +197,7 @@ function OAuthProvidersPage() {
           )
         }
         if (status) {
-          return (
-            <span className="text-xs text-amber-600 dark:text-amber-400">{status}</span>
-          )
+          return <span className="text-xs text-amber-600 dark:text-amber-400">{status}</span>
         }
         return <span className="text-xs text-muted-foreground">—</span>
       },
@@ -279,7 +289,7 @@ function OAuthProvidersPage() {
           onClose={() => setEditingProvider(null)}
           onSuccess={(updatedProvider) => {
             setProviders((prev) =>
-              prev.map((p) => (p.id === updatedProvider.id ? updatedProvider : p))
+              prev.map((p) => (p.id === updatedProvider.id ? updatedProvider : p)),
             )
             setEditingProvider(null)
             setError(null)
@@ -300,7 +310,8 @@ function OAuthProvidersPage() {
               Limited Access
             </h3>
             <p className="text-sm text-amber-800 dark:text-amber-200 mt-0.5">
-              You don't have permission to manage OAuth providers. You can view but cannot create or modify.
+              You don't have permission to manage OAuth providers. You can view but cannot create or
+              modify.
             </p>
           </div>
         </div>
@@ -324,9 +335,12 @@ function OAuthProvidersPage() {
 
       {/* Info Box */}
       <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-none">
-        <h3 className="font-semibold text-blue-900 dark:text-blue-100 text-sm mb-1">Setup Instructions</h3>
+        <h3 className="font-semibold text-blue-900 dark:text-blue-100 text-sm mb-1">
+          Setup Instructions
+        </h3>
         <p className="text-sm text-blue-800 dark:text-blue-200">
-          To enable OAuth for email providers, you need to create OAuth credentials in the provider's developer console:
+          To enable OAuth for email providers, you need to create OAuth credentials in the
+          provider's developer console:
         </p>
         <ul className="text-sm text-blue-800 dark:text-blue-200 mt-2 space-y-1 list-disc list-inside">
           <li>
@@ -422,10 +436,10 @@ function OAuthProviderFormModal({
   const [clientId, setClientId] = useState('')
   const [clientSecret, setClientSecret] = useState('')
   const [redirectUri, setRedirectUri] = useState(
-    `${window.location.origin.replace(':3000', ':8000')}/api/oauth-providers/${providerType}/callback`
+    `${window.location.origin.replace(':3000', ':8000')}/api/oauth-providers/${providerType}/callback`,
   )
   const [scopes, setScopes] = useState<string>(
-    provider ? '' : (PROVIDER_INFO[providerType]?.defaultScopes || []).join('\n')
+    provider ? '' : (PROVIDER_INFO[providerType]?.defaultScopes || []).join('\n'),
   )
   const [displayName, setDisplayName] = useState(provider?.display_name || '')
   const [loading, setLoading] = useState(false)
@@ -435,7 +449,9 @@ function OAuthProviderFormModal({
   // Update redirect URI when provider type changes (only for new providers)
   useEffect(() => {
     if (!provider) {
-      setRedirectUri(`${window.location.origin.replace(':3000', ':8000')}/api/oauth-providers/${providerType}/callback`)
+      setRedirectUri(
+        `${window.location.origin.replace(':3000', ':8000')}/api/oauth-providers/${providerType}/callback`,
+      )
       setScopes((PROVIDER_INFO[providerType]?.defaultScopes || []).join('\n'))
     }
   }, [providerType, provider])
@@ -477,10 +493,16 @@ function OAuthProviderFormModal({
           updateData.redirect_uri = redirectUri.trim()
         }
         if (scopes.trim()) {
-          updateData.tenant_configured_scopes = scopes.split('\n').map(s => s.trim()).filter(Boolean)
+          updateData.tenant_configured_scopes = scopes
+            .split('\n')
+            .map((s) => s.trim())
+            .filter(Boolean)
         }
 
-        const { data, error: apiError } = await timelineApi.oauthProviders.update(provider.id, updateData)
+        const { data, error: apiError } = await timelineApi.oauthProviders.update(
+          provider.id,
+          updateData,
+        )
 
         if (apiError) {
           const errorMsg = (apiError as any)?.message || 'Failed to update OAuth provider'
@@ -496,7 +518,12 @@ function OAuthProviderFormModal({
           client_id: clientId.trim(),
           client_secret: clientSecret.trim(),
           redirect_uri: redirectUri.trim(),
-          scopes: scopes.trim() ? scopes.split('\n').map(s => s.trim()).filter(Boolean) : undefined,
+          scopes: scopes.trim()
+            ? scopes
+                .split('\n')
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : undefined,
         }
 
         const { data, error: apiError } = await timelineApi.oauthProviders.create(createData)
@@ -514,7 +541,11 @@ function OAuthProviderFormModal({
     }
   }
 
-  const info = PROVIDER_INFO[providerType] || { name: providerType, icon: Key, color: 'text-gray-600' }
+  const info = PROVIDER_INFO[providerType] || {
+    name: providerType,
+    icon: Key,
+    color: 'text-gray-600',
+  }
   const Icon = info.icon
 
   return (
@@ -685,11 +716,7 @@ function OAuthProviderFormModal({
           >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full sm:w-auto"
-          >
+          <Button type="submit" disabled={loading} className="w-full sm:w-auto">
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             {provider ? 'Update Provider' : 'Create Provider'}
           </Button>

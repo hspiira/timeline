@@ -3,9 +3,9 @@
  * Used as the top-level shell so runtime errors don’t white-screen the app.
  */
 
-import { Component, type ReactNode } from 'react'
-import { AlertCircle, Home } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
+import { AlertCircle, Home } from 'lucide-react'
+import { Component, type ReactNode } from 'react'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -50,14 +50,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <div className="min-h-screen bg-background flex items-center justify-center px-4">
           <div className="max-w-md w-full bg-card text-card-foreground p-8 rounded-none border border-border shadow-sm">
             <div className="text-center">
-              <AlertCircle
-                size={48}
-                className="text-destructive mx-auto mb-4"
-                aria-hidden
-              />
-              <h1 className="text-2xl font-bold text-foreground mb-2">
-                Something went wrong
-              </h1>
+              <AlertCircle size={48} className="text-destructive mx-auto mb-4" aria-hidden />
+              <h1 className="text-2xl font-bold text-foreground mb-2">Something went wrong</h1>
               <p className="text-muted-foreground mb-6">
                 An unexpected error occurred. Try refreshing the page or return to the dashboard.
               </p>

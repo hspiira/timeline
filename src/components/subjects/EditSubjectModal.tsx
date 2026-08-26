@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
-import { useToast } from '@/hooks/useToast'
-import { useFormSubmit } from '@/hooks/useFormSubmit'
-import { FormField, FormInput, FormError } from '@/components/ui/FormField'
+import { useEffect, useState } from 'react'
+import type { JsonSchema } from '@/components/shared/JsonSchemaForm'
+import { JsonSchemaForm, validateJsonSchema } from '@/components/shared/JsonSchemaForm'
+import { FormError, FormField, FormInput } from '@/components/ui/FormField'
 import { FormModalActions } from '@/components/ui/FormModalActions'
 import { Modal } from '@/components/ui/Modal'
-import { JsonSchemaForm, validateJsonSchema } from '@/components/shared/JsonSchemaForm'
-import type { JsonSchema } from '@/components/shared/JsonSchemaForm'
+import { useFormSubmit } from '@/hooks/useFormSubmit'
+import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
 import type { components } from '@/lib/timeline-api'
 
@@ -29,7 +29,7 @@ interface EditSubjectModalProps {
     subjectId: string,
     externalRef?: string,
     displayName?: string,
-    attributes?: Record<string, unknown>
+    attributes?: Record<string, unknown>,
   ) => Promise<boolean>
 }
 
@@ -60,9 +60,7 @@ export function EditSubjectModal({
   const [externalRef, setExternalRef] = useState(subject.external_ref ?? '')
   const [displayName, setDisplayName] = useState(subject.display_name ?? '')
   const [attributes, setAttributes] = useState<Record<string, unknown>>(
-    subject.attributes && typeof subject.attributes === 'object'
-      ? { ...subject.attributes }
-      : {}
+    subject.attributes && typeof subject.attributes === 'object' ? { ...subject.attributes } : {},
   )
   const [attributeErrors, setAttributeErrors] = useState<Record<string, string>>({})
   const [attributeSchema, setAttributeSchema] = useState<JsonSchema | null>(null)
@@ -75,9 +73,7 @@ export function EditSubjectModal({
     setExternalRef(subject.external_ref ?? '')
     setDisplayName(subject.display_name ?? '')
     setAttributes(
-      subject.attributes && typeof subject.attributes === 'object'
-        ? { ...subject.attributes }
-        : {}
+      subject.attributes && typeof subject.attributes === 'object' ? { ...subject.attributes } : {},
     )
     setAttributeErrors({})
   }, [subject.id, subject.external_ref, subject.display_name, subject.attributes])
@@ -137,8 +133,8 @@ export function EditSubjectModal({
         subject.id,
         externalRef || undefined,
         displayName || undefined,
-        Object.keys(attributes).length ? attributes : undefined
-      )
+        Object.keys(attributes).length ? attributes : undefined,
+      ),
     )
 
     if (success) {
@@ -152,12 +148,7 @@ export function EditSubjectModal({
   }
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Edit Subject"
-      maxWidth="max-w-4xl"
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title="Edit Subject" maxWidth="max-w-4xl">
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
           {error && <FormError message={error} />}
@@ -171,10 +162,7 @@ export function EditSubjectModal({
 
           {/* Display name + External Reference in two equal columns */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField
-              label="Display name"
-              hint="Optional human-readable label for this subject"
-            >
+            <FormField label="Display name" hint="Optional human-readable label for this subject">
               <FormInput
                 type="text"
                 value={displayName}
@@ -198,9 +186,7 @@ export function EditSubjectModal({
           </div>
 
           {/* Attributes (schema-driven when type has schema) */}
-          {schemaLoading && (
-            <p className="text-sm text-muted-foreground">Loading type schema...</p>
-          )}
+          {schemaLoading && <p className="text-sm text-muted-foreground">Loading type schema...</p>}
           {!schemaLoading && attributeSchema && (
             <FormField label="Attributes" hint="Custom fields for this subject type">
               <JsonSchemaForm

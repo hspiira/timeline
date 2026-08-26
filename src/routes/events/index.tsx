@@ -1,34 +1,47 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { Plus, Calendar, Table2, List, FileStack, Search, Filter, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
-import { ErrorIcon } from '@/components/ui/icons'
-import { useEffect, useState, useRef, useMemo } from 'react'
 import { useStore } from '@tanstack/react-store'
-import { authStore } from '@/lib/auth-store'
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  FileStack,
+  Filter,
+  List,
+  Plus,
+  Search,
+  Table2,
+  X,
+} from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { EventDocumentsModal } from '@/components/documents/EventDocumentsModal'
 import {
-  EventDetailsModal,
   EventDetailPanel,
+  EventDetailsModal,
+  EventsLoadingSentinel,
+  EventsSearchEmptyMessage,
   EventsTable,
   EventsTimeline,
-  EventsSearchEmptyMessage,
-  EventsLoadingSentinel,
 } from '@/components/events'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { Skeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Combobox,
-  ComboboxInput,
   ComboboxContent,
-  ComboboxList,
-  ComboboxItem,
   ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
 } from '@/components/ui/combobox'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorIcon } from '@/components/ui/icons'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { useEventsList, EVENTS_PAGE_SIZE, useEventTypes, useIsLg } from '@/hooks'
+import { EVENTS_PAGE_SIZE, useEventsList, useEventTypes, useIsLg } from '@/hooks'
+import { authStore } from '@/lib/auth-store'
 import { findEventById } from '@/lib/events'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import type { EventResponse } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -124,7 +137,7 @@ function EventsPage() {
         if (!entries[0]?.isIntersecting) return
         loadMoreRef.current()
       },
-      { root: scrollEl, rootMargin: '200px', threshold: 0 }
+      { root: scrollEl, rootMargin: '200px', threshold: 0 },
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
@@ -182,9 +195,7 @@ function EventsPage() {
           <div className="w-12 h-12 rounded-none bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-2">
             <ErrorIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
           </div>
-          <h3 className="text-sm font-semibold text-foreground mb-1">
-            Unable to Load Events
-          </h3>
+          <h3 className="text-sm font-semibold text-foreground mb-1">Unable to Load Events</h3>
           <p className="text-sm text-muted-foreground mb-3">
             {error}. Please check your connection and try again.
           </p>
@@ -210,9 +221,7 @@ function EventsPage() {
       <div className="flex items-center justify-between shrink-0 mb-3">
         <div>
           <h1 className="text-lg font-bold text-foreground mb-0.5">Events</h1>
-          <p className="text-sm text-muted-foreground">
-            Browse and manage all timeline events
-          </p>
+          <p className="text-sm text-muted-foreground">Browse and manage all timeline events</p>
         </div>
         <div className="flex items-center gap-3">
           <ToggleGroup
@@ -258,7 +267,7 @@ function EventsPage() {
         <div
           className={cn(
             'bg-card/95 backdrop-blur-sm rounded-none border-x border-t border-border/60 flex flex-col min-h-0 flex-1 overflow-hidden',
-            'max-h-[calc(100vh-12rem)]'
+            'max-h-[calc(100vh-12rem)]',
           )}
         >
           <div className="flex flex-nowrap items-center gap-0 shrink-0 border-b border-border/50 bg-muted/30 overflow-visible">
@@ -324,7 +333,10 @@ function EventsPage() {
           {viewMode === 'timeline' && isLg ? (
             <div className="flex flex-1 min-h-0">
               <div className="flex-1 min-w-0 flex flex-col min-h-0 overflow-hidden relative">
-                <div ref={scrollContainerRef} className="px-4 pt-4 pb-0 flex-1 min-h-0 overflow-y-auto">
+                <div
+                  ref={scrollContainerRef}
+                  className="px-4 pt-4 pb-0 flex-1 min-h-0 overflow-y-auto"
+                >
                   {filteredEvents.length === 0 ? (
                     <EventsSearchEmptyMessage />
                   ) : (
@@ -363,7 +375,10 @@ function EventsPage() {
             </div>
           ) : (
             <div className="flex-1 min-h-0 overflow-hidden relative flex flex-col">
-              <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-0">
+              <div
+                ref={scrollContainerRef}
+                className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-0"
+              >
                 <div>
                   {filteredEvents.length === 0 ? (
                     <EventsSearchEmptyMessage />
@@ -386,7 +401,8 @@ function EventsPage() {
                 <div className="flex items-center justify-between shrink-0 px-4 py-3 border-t border-border/50 bg-muted/30">
                   <div className="text-xs text-muted-foreground">
                     Showing {tablePage * EVENTS_PAGE_SIZE + 1}–
-                    {Math.min((tablePage + 1) * EVENTS_PAGE_SIZE, totalCount ?? 0)} of {totalCount} events
+                    {Math.min((tablePage + 1) * EVENTS_PAGE_SIZE, totalCount ?? 0)} of {totalCount}{' '}
+                    events
                   </div>
                   <div className="flex items-center gap-1">
                     <Button
@@ -436,31 +452,33 @@ function EventsPage() {
         </div>
       )}
 
-      {selectedEventId && events.length > 0 && (() => {
-        const event = findEventById(events, selectedEventId)
-        return event ? (
-          <EventDocumentsModal
-            eventId={event.id}
-            subjectId={event.subject_id}
-            eventType={event.event_type}
-            onClose={() => setSelectedEventId(null)}
-            onDocumentsUpdated={() => {
-              setSelectedEventId(null)
-              refetch()
-            }}
-          />
-        ) : null
-      })()}
+      {selectedEventId &&
+        events.length > 0 &&
+        (() => {
+          const event = findEventById(events, selectedEventId)
+          return event ? (
+            <EventDocumentsModal
+              eventId={event.id}
+              subjectId={event.subject_id}
+              eventType={event.event_type}
+              onClose={() => setSelectedEventId(null)}
+              onDocumentsUpdated={() => {
+                setSelectedEventId(null)
+                refetch()
+              }}
+            />
+          ) : null
+        })()}
 
-      {detailsEventId && events.length > 0 && !(viewMode === 'timeline' && isLg) && (() => {
-        const event = findEventById(events, detailsEventId)
-        return event ? (
-          <EventDetailsModal
-            event={event}
-            onClose={() => setDetailsEventId(null)}
-          />
-        ) : null
-      })()}
+      {detailsEventId &&
+        events.length > 0 &&
+        !(viewMode === 'timeline' && isLg) &&
+        (() => {
+          const event = findEventById(events, detailsEventId)
+          return event ? (
+            <EventDetailsModal event={event} onClose={() => setDetailsEventId(null)} />
+          ) : null
+        })()}
     </div>
   )
 }

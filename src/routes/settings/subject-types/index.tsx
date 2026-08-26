@@ -1,20 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
+import { CheckCircle, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { AttributeSchemaBuilder } from '@/components/ui/AttributeSchemaBuilder'
+import { Button } from '@/components/ui/button'
+import { ColorSwatchPicker } from '@/components/ui/ColorSwatchPicker'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { DataTable } from '@/components/ui/DataTable'
+import { ErrorModal } from '@/components/ui/ErrorModal'
+import { FormField, FormInput } from '@/components/ui/FormField'
+import { FormModalActions } from '@/components/ui/FormModalActions'
+import { IconPicker } from '@/components/ui/IconPicker'
+import { Modal } from '@/components/ui/Modal'
+import { Textarea } from '@/components/ui/textarea'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { timelineApi } from '@/lib/api-client'
-import { Plus, Pencil, Trash2, CheckCircle } from 'lucide-react'
-import { DataTable } from '@/components/ui/DataTable'
-import { Button } from '@/components/ui/button'
-import { Modal } from '@/components/ui/Modal'
-import { FormField, FormInput } from '@/components/ui/FormField'
-import { Textarea } from '@/components/ui/textarea'
-import { FormModalActions } from '@/components/ui/FormModalActions'
-import { ConfirmModal } from '@/components/ui/ConfirmModal'
-import { IconPicker } from '@/components/ui/IconPicker'
-import { ColorSwatchPicker } from '@/components/ui/ColorSwatchPicker'
-import { AttributeSchemaBuilder } from '@/components/ui/AttributeSchemaBuilder'
-import { ErrorModal } from '@/components/ui/ErrorModal'
 import type { components } from '@/lib/timeline-api'
 
 export const Route = createFileRoute('/settings/subject-types/')({
@@ -95,9 +95,7 @@ function SubjectTypesPage() {
         setTypeName(data.type_name)
         setDisplayName(data.display_name ?? '')
         setDescription(data.description ?? '')
-        setSchemaJson(
-          data.schema != null ? JSON.stringify(data.schema, null, 2) : ''
-        )
+        setSchemaJson(data.schema != null ? JSON.stringify(data.schema, null, 2) : '')
         setIsActive(data.is_active)
         setIcon(data.icon ?? '')
         setColor(data.color ?? '')
@@ -147,10 +145,7 @@ function SubjectTypesPage() {
           has_timeline: has_timeline,
           allow_documents: allow_documents,
         }
-        const { data, error: apiError } = await timelineApi.subjectTypes.update(
-          editing.id,
-          body
-        )
+        const { data, error: apiError } = await timelineApi.subjectTypes.update(editing.id, body)
         if (apiError) {
           const msg =
             typeof apiError === 'object' && 'detail' in apiError
@@ -160,9 +155,7 @@ function SubjectTypesPage() {
           return
         }
         if (data) {
-          setItems((prev) =>
-            prev.map((s) => (s.id === data.id ? { ...s, ...data } : s))
-          )
+          setItems((prev) => prev.map((s) => (s.id === data.id ? { ...s, ...data } : s)))
           closeModal()
         }
       } else {
@@ -177,8 +170,7 @@ function SubjectTypesPage() {
           has_timeline,
           allow_documents,
         }
-        const { data, error: apiError } =
-          await timelineApi.subjectTypes.create(body)
+        const { data, error: apiError } = await timelineApi.subjectTypes.create(body)
         if (apiError) {
           const msg =
             typeof apiError === 'object' && 'detail' in apiError
@@ -215,9 +207,7 @@ function SubjectTypesPage() {
   const handleDeleteConfirm = async () => {
     if (!deleting) return
     try {
-      const { error: apiError } = await timelineApi.subjectTypes.delete(
-        deleting.id
-      )
+      const { error: apiError } = await timelineApi.subjectTypes.delete(deleting.id)
       if (apiError) throw new Error('Failed to delete')
       setItems((prev) => prev.filter((s) => s.id !== deleting.id))
       setDeleting(null)
@@ -234,27 +224,21 @@ function SubjectTypesPage() {
       accessorKey: 'type_name',
       header: 'Type',
       cell: ({ row }) => (
-        <span className="font-medium text-foreground">
-          {row.original.type_name}
-        </span>
+        <span className="font-medium text-foreground">{row.original.type_name}</span>
       ),
     },
     {
       accessorKey: 'display_name',
       header: 'Display Name',
       cell: ({ row }) => (
-        <span className="text-muted-foreground">
-          {row.original.display_name || '—'}
-        </span>
+        <span className="text-muted-foreground">{row.original.display_name || '—'}</span>
       ),
     },
     {
       accessorKey: 'version',
       header: 'Version',
       cell: ({ row }) => (
-        <span className="text-muted-foreground text-sm">
-          v{row.original.version}
-        </span>
+        <span className="text-muted-foreground text-sm">v{row.original.version}</span>
       ),
     },
     {
@@ -286,12 +270,7 @@ function SubjectTypesPage() {
       header: 'Actions',
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            title="Edit"
-            onClick={() => openEdit(row.original)}
-          >
+          <Button variant="ghost" size="sm" title="Edit" onClick={() => openEdit(row.original)}>
             <Pencil className="w-4 h-4" />
           </Button>
           <Button
@@ -322,9 +301,7 @@ function SubjectTypesPage() {
                 handleSubmit()
               }}
             >
-              {formError && (
-                <p className="text-sm text-destructive mb-2">{formError}</p>
-              )}
+              {formError && <p className="text-sm text-destructive mb-2">{formError}</p>}
               <FormModalActions
                 onCancel={closeModal}
                 submitLabel={editing ? 'Save' : 'Create'}
@@ -374,20 +351,12 @@ function SubjectTypesPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full min-w-0 m-0 justify-items-stretch">
               <div className="min-w-0">
                 <FormField label="Icon" hint="Shown in subject list and cards">
-                  <IconPicker
-                    value={icon}
-                    onChange={setIcon}
-                    allowClear={true}
-                  />
+                  <IconPicker value={icon} onChange={setIcon} allowClear={true} />
                 </FormField>
               </div>
               <div className="min-w-0">
                 <FormField label="Color" hint="Theme for this type">
-                  <ColorSwatchPicker
-                    value={color}
-                    onChange={setColor}
-                    allowClear={true}
-                  />
+                  <ColorSwatchPicker value={color} onChange={setColor} allowClear={true} />
                 </FormField>
               </div>
             </div>
@@ -434,7 +403,7 @@ function SubjectTypesPage() {
           cancelText="Cancel"
           isDestructive={true}
           details={{
-            'Type': deleting.type_name,
+            Type: deleting.type_name,
             'Display name': deleting.display_name || '—',
           }}
           onConfirm={handleDeleteConfirm}

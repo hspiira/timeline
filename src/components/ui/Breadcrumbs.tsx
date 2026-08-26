@@ -1,5 +1,5 @@
-import { ChevronRight } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
+import { ChevronRight } from 'lucide-react'
 
 export interface BreadcrumbItem {
   label: string
@@ -15,9 +15,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
     <nav className="flex items-center gap-2 text-sm mb-4 text-muted-foreground">
       {items.map((item, index) => (
         <div key={index} className="flex items-center gap-2">
-          {index > 0 && (
-            <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
-          )}
+          {index > 0 && <ChevronRight className="w-4 h-4 text-muted-foreground/50" />}
           {item.href ? (
             <Link
               to={item.href}

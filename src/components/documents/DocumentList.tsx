@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Download, Trash2, FileIcon, Eye } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
+import { Download, Eye, FileIcon, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { DataTable } from '@/components/ui/DataTable'
+import { ErrorIcon } from '@/components/ui/icons'
+import { SkeletonDocumentList } from '@/components/ui/Skeleton'
+import { useToast } from '@/hooks/useToast'
 import { timelineApi } from '@/lib/api-client'
 import { getApiErrorMessage } from '@/lib/api-utils'
-import { DocumentViewer } from './DocumentViewer'
-import { useToast } from '@/hooks/useToast'
-import { ConfirmModal } from '@/components/ui/ConfirmModal'
-import { SkeletonDocumentList } from '@/components/ui/Skeleton'
-import { ErrorIcon } from '@/components/ui/icons'
-import { Button } from '@/components/ui/button'
-import { DataTable } from '@/components/ui/DataTable'
 import type { components } from '@/lib/timeline-api'
+import { DocumentViewer } from './DocumentViewer'
 
 export interface DocumentListProps {
   subjectId?: string
@@ -48,13 +48,26 @@ function getFileSize(doc: Document): number {
   return doc.file_size || 0
 }
 
-export function DocumentList({ subjectId, eventId, readOnly, onDelete, onError, onDocumentsLoaded }: DocumentListProps) {
+export function DocumentList({
+  subjectId,
+  eventId,
+  readOnly,
+  onDelete,
+  onError,
+  onDocumentsLoaded,
+}: DocumentListProps) {
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [viewingDocument, setViewingDocument] = useState<{ id: string; filename: string; type: string } | null>(null)
-  const [confirmingDelete, setConfirmingDelete] = useState<{ id: string; filename: string } | null>(null)
+  const [viewingDocument, setViewingDocument] = useState<{
+    id: string
+    filename: string
+    type: string
+  } | null>(null)
+  const [confirmingDelete, setConfirmingDelete] = useState<{ id: string; filename: string } | null>(
+    null,
+  )
   const toast = useToast()
 
   // Define columns for DataTable
@@ -115,12 +128,7 @@ export function DocumentList({ subjectId, eventId, readOnly, onDelete, onError, 
         const doc = row.original
         return (
           <div className="flex items-center justify-end gap-0.5 sm:gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleView(doc)}
-              title="View document"
-            >
+            <Button variant="ghost" size="sm" onClick={() => handleView(doc)} title="View document">
               <Eye className="w-3 sm:w-4 h-3 sm:h-4" />
             </Button>
             <Button
@@ -140,7 +148,9 @@ export function DocumentList({ subjectId, eventId, readOnly, onDelete, onError, 
                 title="Delete"
                 isLoading={deleting === doc.id}
               >
-                {deleting !== doc.id && <Trash2 className="w-3 sm:w-4 h-3 sm:h-4 text-destructive" />}
+                {deleting !== doc.id && (
+                  <Trash2 className="w-3 sm:w-4 h-3 sm:h-4 text-destructive" />
+                )}
               </Button>
             )}
           </div>

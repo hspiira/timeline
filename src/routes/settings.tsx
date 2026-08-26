@@ -1,10 +1,23 @@
-import { useEffect } from 'react'
 import { createFileRoute, Outlet, useLocation, useNavigate } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { useHasAuditAccess } from '@/hooks/useHasAuditAccess'
 import type { LucideIcon } from 'lucide-react'
-import { ShieldCheck, ShieldOff, Braces, Zap, Users, KeyRound, Layers, FolderOpen, ClipboardList, GitBranch, Link2, FileText } from 'lucide-react'
+import {
+  Braces,
+  ClipboardList,
+  FileText,
+  FolderOpen,
+  GitBranch,
+  KeyRound,
+  Layers,
+  Link2,
+  ShieldCheck,
+  ShieldOff,
+  Users,
+  Zap,
+} from 'lucide-react'
+import { useEffect } from 'react'
+import { useHasAuditAccess } from '@/hooks/useHasAuditAccess'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
 
 type NavItem = { path: string; label: string; icon: LucideIcon; description: string }
 
@@ -12,43 +25,103 @@ const SETTINGS_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: 'Access control',
     items: [
-      { path: '/settings/roles', label: 'Roles', icon: ShieldCheck, description: 'Manage roles and their permissions' },
-      { path: '/settings/permissions', label: 'Permissions', icon: ShieldOff, description: 'Manage system permissions' },
-      { path: '/settings/users', label: 'Users', icon: Users, description: 'Manage user permissions and roles' },
+      {
+        path: '/settings/roles',
+        label: 'Roles',
+        icon: ShieldCheck,
+        description: 'Manage roles and their permissions',
+      },
+      {
+        path: '/settings/permissions',
+        label: 'Permissions',
+        icon: ShieldOff,
+        description: 'Manage system permissions',
+      },
+      {
+        path: '/settings/users',
+        label: 'Users',
+        icon: Users,
+        description: 'Manage user permissions and roles',
+      },
     ],
   },
   {
     label: 'Data model',
     items: [
-      { path: '/settings/schemas', label: 'Event Schemas', icon: Braces, description: 'Manage JSON schemas' },
-      { path: '/settings/event-transition-rules', label: 'Transition rules', icon: GitBranch, description: 'Require prior event types before creating an event' },
-      { path: '/settings/subject-types', label: 'Subject Types', icon: Layers, description: 'Configure subject types and attributes' },
-      { path: '/settings/relationship-kinds', label: 'Relationship kinds', icon: Link2, description: 'Allowed relationship types when linking subjects' },
+      {
+        path: '/settings/schemas',
+        label: 'Event Schemas',
+        icon: Braces,
+        description: 'Manage JSON schemas',
+      },
+      {
+        path: '/settings/event-transition-rules',
+        label: 'Transition rules',
+        icon: GitBranch,
+        description: 'Require prior event types before creating an event',
+      },
+      {
+        path: '/settings/subject-types',
+        label: 'Subject Types',
+        icon: Layers,
+        description: 'Configure subject types and attributes',
+      },
+      {
+        path: '/settings/relationship-kinds',
+        label: 'Relationship kinds',
+        icon: Link2,
+        description: 'Allowed relationship types when linking subjects',
+      },
     ],
   },
   {
     label: 'Documents',
     items: [
-      { path: '/settings/document-categories', label: 'Document Categories', icon: FolderOpen, description: 'Configure document categories and retention' },
+      {
+        path: '/settings/document-categories',
+        label: 'Document Categories',
+        icon: FolderOpen,
+        description: 'Configure document categories and retention',
+      },
     ],
   },
   {
     label: 'Automation',
     items: [
-      { path: '/settings/workflows', label: 'Workflows', icon: Zap, description: 'Automation & triggers' },
-      { path: '/settings/naming-templates', label: 'Naming templates', icon: FileText, description: 'Flow, subject & document name templates' },
+      {
+        path: '/settings/workflows',
+        label: 'Workflows',
+        icon: Zap,
+        description: 'Automation & triggers',
+      },
+      {
+        path: '/settings/naming-templates',
+        label: 'Naming templates',
+        icon: FileText,
+        description: 'Flow, subject & document name templates',
+      },
     ],
   },
   {
     label: 'Audit',
     items: [
-      { path: '/settings/audit-log', label: 'Audit log', icon: ClipboardList, description: 'View tenant audit log' },
+      {
+        path: '/settings/audit-log',
+        label: 'Audit log',
+        icon: ClipboardList,
+        description: 'View tenant audit log',
+      },
     ],
   },
   {
     label: 'Integrations',
     items: [
-      { path: '/settings/oauth-providers', label: 'OAuth Providers', icon: KeyRound, description: 'Email OAuth credentials' },
+      {
+        path: '/settings/oauth-providers',
+        label: 'OAuth Providers',
+        icon: KeyRound,
+        description: 'Email OAuth credentials',
+      },
     ],
   },
 ]
@@ -106,12 +179,16 @@ function SettingsLayout() {
                           key={item.path}
                           onClick={() => navigate({ to: item.path })}
                           className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-none transition-colors text-left border-l-2 ${
-                            active ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-muted'
+                            active
+                              ? 'border-primary bg-primary/5'
+                              : 'border-transparent hover:bg-muted'
                           }`}
                         >
                           <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
                           <div className="flex-1 min-w-0">
-                            <div className={`text-sm font-medium ${active ? 'text-foreground' : 'text-foreground/80'}`}>
+                            <div
+                              className={`text-sm font-medium ${active ? 'text-foreground' : 'text-foreground/80'}`}
+                            >
                               {item.label}
                             </div>
                           </div>

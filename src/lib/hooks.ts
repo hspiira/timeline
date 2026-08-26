@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
+import { useEffect } from 'react'
 import { authStore } from './auth-store'
 
 /**

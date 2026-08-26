@@ -1,39 +1,38 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  ReactFlow,
-  ReactFlowProvider,
-  Background,
-  Controls,
-  useNodesState,
-  useEdgesState,
-  useUpdateNodeInternals,
   addEdge,
-  MarkerType,
-  type Connection,
-  type Node,
-  type ReactFlowInstance,
-  Panel,
+  Background,
   BackgroundVariant,
+  type Connection,
+  Controls,
+  MarkerType,
+  type Node,
+  Panel,
+  ReactFlow,
+  type ReactFlowInstance,
+  ReactFlowProvider,
+  useEdgesState,
+  useNodesState,
+  useUpdateNodeInternals,
 } from '@xyflow/react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import '@xyflow/react/dist/style.css'
+import { ArrowDown, ArrowRight } from 'lucide-react'
+import { generateEdgeId, validateConnection } from '@/lib/workflow-builder/edge-manager'
 import {
-  workflowToFlow,
   flowToWorkflow,
   type WorkflowNodeData,
+  workflowToFlow,
 } from '@/lib/workflow-builder/flow-adapter'
-import type { Workflow } from '@/lib/workflow-builder/types'
-import { createNode } from '@/lib/workflow-builder/types'
-import { validateConnection, generateEdgeId } from '@/lib/workflow-builder/edge-manager'
 import { nodeRegistry } from '@/lib/workflow-builder/node-registry'
-import { TriggerNode } from './TriggerNode'
+import type { NodeType, Workflow } from '@/lib/workflow-builder/types'
+import { createNode } from '@/lib/workflow-builder/types'
 import { ActionNode } from './ActionNode'
-import { IntegrationActionNode } from './IntegrationActionNode'
 import { ConditionNode } from './ConditionNode'
-import { TerminalNode } from './TerminalNode'
-import { FloatingEdge } from './FloatingEdge'
 import { CustomConnectionLine } from './CustomConnectionLine'
-import type { NodeType } from '@/lib/workflow-builder/types'
-import { ArrowRight, ArrowDown } from 'lucide-react'
+import { FloatingEdge } from './FloatingEdge'
+import { IntegrationActionNode } from './IntegrationActionNode'
+import { TerminalNode } from './TerminalNode'
+import { TriggerNode } from './TriggerNode'
 
 const nodeTypes = {
   trigger: TriggerNode,
@@ -136,13 +135,12 @@ function WorkflowBuilderCanvasInner({
         connection.source!,
         connection.target!,
         label,
-        allowCircular
+        allowCircular,
       )
       if (!validation.valid) {
         return
       }
-      const displayLabel =
-        label === 'true' ? 'is true' : label === 'false' ? 'is false' : label
+      const displayLabel = label === 'true' ? 'is true' : label === 'false' ? 'is false' : label
       setEdges((eds) =>
         addEdge(
           {
@@ -153,11 +151,11 @@ function WorkflowBuilderCanvasInner({
               label: displayLabel,
             }),
           },
-          eds
-        )
+          eds,
+        ),
       )
     },
-    [nodes, edges, workflowId, workflowName, allowCircular, setEdges]
+    [nodes, edges, workflowId, workflowName, allowCircular, setEdges],
   )
 
   const onDrop = useCallback(
@@ -182,7 +180,7 @@ function WorkflowBuilderCanvasInner({
       setNodes((nds) => nds.concat(newNode))
       onSelectionChange?.(id)
     },
-    [setNodes, onSelectionChange]
+    [setNodes, onSelectionChange],
   )
 
   const onDragOver = useCallback((e: React.DragEvent) => {
@@ -207,7 +205,12 @@ function WorkflowBuilderCanvasInner({
     const instance = flowInstanceRef.current
     if (!instance) return
     const t = setTimeout(() => {
-      flowInstanceRef.current?.fitView({ padding: 0.25, duration: 300, minZoom: 0.15, maxZoom: 1.5 })
+      flowInstanceRef.current?.fitView({
+        padding: 0.25,
+        duration: 300,
+        minZoom: 0.15,
+        maxZoom: 1.5,
+      })
     }, 100)
     return () => clearTimeout(t)
   }, [workflow.nodes.length, workflow.edges.length])
@@ -217,7 +220,7 @@ function WorkflowBuilderCanvasInner({
       const selected = params.nodes.find((n) => n.selected)
       onSelectionChange?.(selected?.id ?? null)
     },
-    [onSelectionChange]
+    [onSelectionChange],
   )
 
   const applyLayout = useCallback(
@@ -251,12 +254,12 @@ function WorkflowBuilderCanvasInner({
                 : { x: 0, y: i * spacing }
               : node.position
           return { ...node, position: pos }
-        })
+        }),
       )
       setLayoutDirection(direction)
       setTimeout(() => flowInstanceRef.current?.fitView({ padding: 0.25, duration: 300 }), 50)
     },
-    [nodes, edges, setNodes]
+    [nodes, edges, setNodes],
   )
 
   return (

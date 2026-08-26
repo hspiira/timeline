@@ -10,10 +10,7 @@ const ALPHANUMERIC_UNDERSCORE = /^[a-zA-Z0-9_]+$/
  * @param fieldName - Display name for error message (e.g. "Event type", "Subject type")
  * @returns Error message or null if valid
  */
-export function validateAlphanumericUnderscore(
-  value: string,
-  fieldName: string
-): string | null {
+export function validateAlphanumericUnderscore(value: string, fieldName: string): string | null {
   const trimmed = value.trim()
   if (!trimmed) {
     return `${fieldName} is required`

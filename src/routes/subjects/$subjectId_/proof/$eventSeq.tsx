@@ -1,15 +1,15 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { requireAuthBeforeLoad } from '@/lib/route-auth'
 import { useQuery } from '@tanstack/react-query'
-import { timelineApi } from '@/lib/api-client'
-import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
-import { SkeletonBreadcrumbs, Skeleton } from '@/components/ui/Skeleton'
-import { Button } from '@/components/ui/button'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { AlertCircle, Copy, Check } from 'lucide-react'
+import { createFileRoute } from '@tanstack/react-router'
+import { AlertCircle, Check, Copy } from 'lucide-react'
 import { useState } from 'react'
-import type { components } from '@/lib/timeline-api'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
+import { Button } from '@/components/ui/button'
+import { Skeleton, SkeletonBreadcrumbs } from '@/components/ui/Skeleton'
 import { MerkleProofTree } from '@/components/verify/MerkleProofTree'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { timelineApi } from '@/lib/api-client'
+import { requireAuthBeforeLoad } from '@/lib/route-auth'
+import type { components } from '@/lib/timeline-api'
 
 type MerkleProofResponse = components['schemas']['MerkleProofResponse']
 
@@ -26,7 +26,11 @@ function ProofPage() {
   const eventSeqNum = Number(eventSeq)
   const [copied, setCopied] = useState(false)
 
-  const { data: proof, isLoading, error } = useQuery({
+  const {
+    data: proof,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['integrity', 'proof', eventSeqNum],
     queryFn: async () => {
       const res = await timelineApi.integrity.getProof(eventSeqNum)
@@ -93,9 +97,7 @@ function ProofPage() {
         ]}
       />
       <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-lg font-bold text-foreground">
-          Merkle Proof — seq:{proof.event_seq}
-        </h1>
+        <h1 className="text-lg font-bold text-foreground">Merkle Proof — seq:{proof.event_seq}</h1>
         <Button variant="outline" size="sm" onClick={copyProofJson}>
           {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
           Copy Proof JSON
