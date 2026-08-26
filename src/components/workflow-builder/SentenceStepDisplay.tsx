@@ -41,9 +41,11 @@ export function SentenceStepDisplay({
     <span className={`inline-flex flex-wrap items-baseline gap-x-1 gap-y-0.5 ${className}`}>
       {segments.map((seg, i) =>
         seg.type === 'text' ? (
+          // biome-ignore lint/suspicious/noArrayIndexKey: read-only list, replaced wholesale rather than reordered in place.
           <span key={i}>{seg.value}</span>
         ) : (
           <span
+            // biome-ignore lint/suspicious/noArrayIndexKey: read-only list, replaced wholesale rather than reordered in place.
             key={i}
             className="inline-flex rounded-md border border-border bg-muted/60 px-1.5 py-0.5 text-[11px] font-medium text-foreground/90"
           >

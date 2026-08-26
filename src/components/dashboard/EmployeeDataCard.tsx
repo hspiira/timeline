@@ -60,6 +60,7 @@ export function EmployeeDataCard({
         <ul className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
           {loading
             ? Array.from({ length: 8 }).map((_, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length loading placeholder; the list never reorders.
                 <li key={i} className="flex justify-between gap-2">
                   <Skeleton className="h-4 w-16" />
                   <Skeleton className="h-4 w-8" />

@@ -681,7 +681,7 @@ export function SchemaFormModal({
                 </label>
                 <div id={enumValuesId} className="space-y-2 mb-2">
                   {(editingField.enum || []).map((value, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
+                    <div key={value} className="flex items-center gap-2">
                       <Input
                         type="text"
                         value={value}

@@ -67,6 +67,7 @@ export function MerkleProofTree({ proof, className }: MerkleProofTreeProps) {
         {steps.map((step, i) => {
           const y = nodeY(i + 1)
           return (
+            // biome-ignore lint/suspicious/noArrayIndexKey: read-only list, replaced wholesale rather than reordered in place.
             <g key={i}>
               <line
                 x1={cx}

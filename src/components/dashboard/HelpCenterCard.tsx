@@ -36,6 +36,7 @@ export function HelpCenterCard() {
         </div>
         <ul className="space-y-2">
           {Array.from({ length: SKELETON_LINKS }).map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length loading placeholder; the list never reorders.
             <li key={i}>
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-3 w-4/5 mt-1" />

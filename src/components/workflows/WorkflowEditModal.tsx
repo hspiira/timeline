@@ -234,6 +234,7 @@ export function WorkflowEditModal({ workflow, onClose, onSave }: WorkflowEditMod
                           <ul className="mt-2 space-y-1">
                             {step.tasks.map((task, ti) => (
                               <li
+                                // biome-ignore lint/suspicious/noArrayIndexKey: read-only list, replaced wholesale rather than reordered in place.
                                 key={ti}
                                 className="flex items-center gap-2 text-xs text-muted-foreground"
                               >

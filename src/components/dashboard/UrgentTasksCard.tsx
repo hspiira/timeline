@@ -64,6 +64,7 @@ export function UrgentTasksCard({ count = 0, onRefresh, loading = false }: Urgen
         <ul className="flex-1 space-y-2 min-w-0">
           {loading
             ? Array.from({ length: SKELETON_ITEMS }).map((_, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length loading placeholder; the list never reorders.
                 <li key={i}>
                   <Skeleton className="h-4 w-full mb-1" />
                   <Skeleton className="h-3 w-3/4" />

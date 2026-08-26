@@ -183,8 +183,8 @@ export function WorkflowRequirementsForm({
 
       {showErrors.length > 0 && (
         <ul className="text-sm text-destructive list-disc list-inside">
-          {showErrors.map((err, i) => (
-            <li key={i}>{err}</li>
+          {showErrors.map((err) => (
+            <li key={err}>{err}</li>
           ))}
         </ul>
       )}

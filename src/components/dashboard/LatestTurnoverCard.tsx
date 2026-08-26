@@ -36,6 +36,7 @@ export function LatestTurnoverCard() {
         </div>
         <ul className="space-y-3">
           {Array.from({ length: SKELETON_ROWS }).map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length loading placeholder; the list never reorders.
             <li key={i} className="flex items-center gap-3">
               <Skeleton className="w-9 h-9 rounded-full shrink-0" />
               <div className="flex-1 min-w-0">

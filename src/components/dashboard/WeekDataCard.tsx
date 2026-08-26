@@ -109,6 +109,7 @@ export function WeekDataCard({
           <ul className="space-y-1 text-xs flex-1 min-w-0">
             {loading
               ? Array.from({ length: 5 }).map((_, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length loading placeholder; the list never reorders.
                   <li key={i} className="flex items-center gap-2">
                     <Skeleton className="w-2 h-2 rounded-sm" />
                     <Skeleton className="h-3 flex-1 max-w-[80px]" />

@@ -100,6 +100,7 @@ export function TodayTodosCard({ todayEvents = [], loading = false }: TodayTodos
         <ul className="space-y-2 border-t border-border/40 pt-3">
           {loading
             ? Array.from({ length: 3 }).map((_, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length loading placeholder; the list never reorders.
                 <li key={i} className="flex gap-2">
                   <Skeleton className="h-4 w-10 shrink-0" />
                   <div className="flex-1">

@@ -45,6 +45,7 @@ function PayloadValueDisplay({ value, depth = 0 }: { value: PayloadValue; depth?
         <span>
           [
           {value.map((item, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: read-only list, replaced wholesale rather than reordered in place.
             <span key={i}>
               <PayloadValueDisplay value={item as PayloadValue} depth={depth + 1} />
               {i < value.length - 1 ? ', ' : ''}
@@ -60,6 +61,7 @@ function PayloadValueDisplay({ value, depth = 0 }: { value: PayloadValue; depth?
         <span className="text-muted-foreground">[</span>
         <div className="space-y-1" style={{ paddingLeft: `${indentCh}ch` }}>
           {value.map((item, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: read-only list, replaced wholesale rather than reordered in place.
             <div key={i}>
               <PayloadValueDisplay value={item as PayloadValue} depth={depth + 1} />
               {i < value.length - 1 ? ',' : ''}

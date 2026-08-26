@@ -320,7 +320,7 @@ export function AttributeSchemaBuilder({
           )}
           {fields.map((field, index) => (
             <div
-              key={index}
+              key={field.key}
               className="flex flex-wrap items-center gap-2 py-1.5 px-2 rounded-md bg-background/60 hover:bg-background/80"
             >
               <input
@@ -417,6 +417,7 @@ export function AttributeSchemaBuilder({
                   .map((f) => f.key)
                 return (
                   <div
+                    // biome-ignore lint/suspicious/noArrayIndexKey: read-only list, replaced wholesale rather than reordered in place.
                     key={ruleIndex}
                     className="flex flex-wrap items-center gap-2 py-1.5 px-2 rounded-md bg-muted/30"
                   >

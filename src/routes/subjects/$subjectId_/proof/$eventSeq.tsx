@@ -114,6 +114,7 @@ function ProofPage() {
               <code className="break-all">{truncate(proof.leaf_hash, 24)}</code>
             </div>
             {proof.steps.map((step, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: read-only list, replaced wholesale rather than reordered in place.
               <div key={i} className="flex items-center gap-2 pl-4">
                 <span className="text-muted-foreground shrink-0">
                   Step {i + 1} — {step.is_left_sibling ? 'left' : 'right'} sibling:

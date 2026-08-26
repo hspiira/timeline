@@ -295,6 +295,7 @@ function StepRow({
       {step.tasks.length > 0 && (
         <ul className="space-y-1">
           {step.tasks.map((task, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: read-only list, replaced wholesale rather than reordered in place.
             <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
               <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-60" />
               <span>{task.name}</span>

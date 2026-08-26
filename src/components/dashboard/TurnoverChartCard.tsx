@@ -127,6 +127,7 @@ export function TurnoverChartCard({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length loading placeholder; the list never reorders.
               <div key={i} className="p-3 border border-border/40 rounded-none">
                 <Skeleton className="h-3 w-16 mb-2" />
                 <Skeleton className="h-7 w-12" />

@@ -392,8 +392,8 @@ function FlowDetailPage() {
                 compliance.blocked_reasons &&
                 compliance.blocked_reasons.length > 0 && (
                   <ul className="list-disc list-inside text-sm text-amber-600 dark:text-amber-400">
-                    {compliance.blocked_reasons.map((r, i) => (
-                      <li key={i}>{r}</li>
+                    {compliance.blocked_reasons.map((r) => (
+                      <li key={r}>{r}</li>
                     ))}
                   </ul>
                 )
