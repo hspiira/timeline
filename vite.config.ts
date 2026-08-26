@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
@@ -34,6 +35,12 @@ const config = defineConfig({
         ]
       : []),
   ],
+  test: {
+    // e2e/ holds Playwright specs. Vitest's default patterns match them, and it
+    // then fails on the @playwright/test import rather than reporting no tests.
+    exclude: ['**/node_modules/**', '**/dist/**', '**/.output/**', 'e2e/**'],
+    passWithNoTests: true,
+  },
 })
 
 export default config
