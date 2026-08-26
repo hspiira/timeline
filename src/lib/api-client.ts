@@ -752,6 +752,14 @@ export const timelineApi = {
         params: { path: { event_seq: eventSeq } },
       }),
     repair: {
+      list: (params?: {
+        skip?: number
+        limit?: number
+        repair_status?: components['schemas']['ChainRepairStatus']
+      }) =>
+        client.GET('/api/v1/tenants/integrity/repair', {
+          params: { query: params ?? {} },
+        }),
       initiate: (data: components['schemas']['ChainRepairCreateRequest']) =>
         client.POST('/api/v1/tenants/integrity/repair', { body: data }),
       get: (repairId: string) =>

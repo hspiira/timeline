@@ -153,6 +153,19 @@ function HomePage() {
     enabled: !!authState.user,
     refetchInterval: 15_000,
   })
+  const { data: pendingRepairs } = useQuery({
+    queryKey: ['integrity', 'repairs', 'pending-approval'],
+    queryFn: async () => {
+      const res = await timelineApi.integrity.repair.list({
+        limit: 1,
+        repair_status: 'Pending Approval',
+      })
+      return res.error ? 0 : (res.data?.total ?? 0)
+    },
+    enabled: !!authState.user,
+    refetchInterval: 60_000,
+  })
+
   const connectorList = (connectorsData?.connectors ?? []) as ConnectorHealthItem[]
   const activeConnectors = connectorList.filter(
     (c) => c.status === 'running' || c.status === 'ok'
@@ -269,7 +282,7 @@ function HomePage() {
 
   const loadingStats = data.stats === null && errors.length === 0
   const totalSubjects = data.stats?.total_subjects ?? 0
-  const openRepairs = 0 // TODO: replace when backend adds GET .../integrity/repair?status=PENDING_APPROVAL
+  const openRepairs = pendingRepairs ?? 0
 
   return (
     <div className="dashboard-page min-h-[calc(100vh-4rem)] relative">

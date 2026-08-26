@@ -739,7 +739,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List Chain Repairs
+         * @description List the tenant's chain repair records, newest break first.
+         */
+        get: operations["list_chain_repairs_api_v1_tenants_integrity_repair_get"];
         put?: never;
         /**
          * Initiate Chain Repair
@@ -2807,6 +2811,20 @@ export interface components {
             break_reason: string;
             /** Repair Reference */
             repair_reference?: string | null;
+        };
+        /**
+         * ChainRepairListResponse
+         * @description Paginated list of chain repair records.
+         */
+        ChainRepairListResponse: {
+            /** Items */
+            items: components["schemas"]["ChainRepairResponse"][];
+            /** Skip */
+            skip: number;
+            /** Limit */
+            limit: number;
+            /** Total */
+            total: number;
         };
         /**
          * ChainRepairResponse
@@ -6501,6 +6519,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChainRepairResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_chain_repairs_api_v1_tenants_integrity_repair_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+                /** @description Filter by repair status, e.g. Pending Approval */
+                repair_status?: components["schemas"]["ChainRepairStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainRepairListResponse"];
                 };
             };
             /** @description Validation Error */
