@@ -112,9 +112,11 @@ export function useSyncProgress({
       const apiUrl = getApiBaseUrl()
       const wsProtocol = apiUrl.startsWith('https') ? 'wss:' : 'ws:'
       const apiHost = new URL(apiUrl).host
-      const wsUrl = `${wsProtocol}//${apiHost}/api/v1/ws?token=${encodeURIComponent(token)}`
+      const wsUrl = `${wsProtocol}//${apiHost}/api/v1/ws`
 
-      wsRef.current = new WebSocket(wsUrl)
+      // The token is offered as a subprotocol rather than a query parameter, which
+      // would otherwise be written to proxy and server access logs.
+      wsRef.current = new WebSocket(wsUrl, ['bearer', token])
 
       wsRef.current.onopen = () => {
         console.log('Sync progress WebSocket connected')
