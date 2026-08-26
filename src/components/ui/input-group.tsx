@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 
 function InputGroup({ className, ...props }: React.ComponentProps<'div'>) {
   return (
+    // biome-ignore lint/a11y/useSemanticElements: a fieldset would need a legend and brings its own box; this is an inline wrapper around one control and its addons.
     <div
       data-slot="input-group"
       role="group"
@@ -58,8 +59,9 @@ function InputGroupAddon({
   ...props
 }: React.ComponentProps<'div'> & VariantProps<typeof inputGroupAddonVariants>) {
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: clicking the addon forwards focus to the input, which is a pointer convenience; keyboard users reach the input directly.
+    // biome-ignore lint/a11y/useKeyWithClickEvents: same reason.
     <div
-      role="group"
       data-slot="input-group-addon"
       data-align={align}
       className={cn(inputGroupAddonVariants({ align }), className)}

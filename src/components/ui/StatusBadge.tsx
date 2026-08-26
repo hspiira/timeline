@@ -44,6 +44,7 @@ export function StatusBadge({ status, label, className, dotOnly }: StatusBadgePr
           className,
         )}
         title={displayLabel}
+        role="img"
         aria-label={displayLabel}
       />
     )

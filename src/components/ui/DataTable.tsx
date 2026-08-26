@@ -314,9 +314,10 @@ export function DataTable<TData>({
                 const rowId = getRowId?.(row.original)
                 const isSelected = selectedRowId != null && rowId != null && selectedRowId === rowId
                 return (
+                  // biome-ignore lint/a11y/noStaticElementInteractions: the row click repeats the link inside the row, which is what keyboard users reach; the row holds controls of its own so it cannot be a button.
+                  // biome-ignore lint/a11y/useKeyWithClickEvents: same reason.
                   <div
                     key={virtualItem.key}
-                    role="row"
                     ref={isSelected ? selectedVirtualRowRef : undefined}
                     onClick={() => onRowClick?.(row.original)}
                     className={`grid transition-colors ${scheme.hoverBg} ${isSubjectsVariant ? 'border-b border-border/40' : scheme.rowBorder} ${onRowClick ? 'cursor-pointer' : ''} ${isSelected ? selectedRowBg : ''} ${getRowClassName?.(row.original) ?? ''}`}
@@ -333,7 +334,6 @@ export function DataTable<TData>({
                     {row.getVisibleCells().map((cell) => (
                       <div
                         key={cell.id}
-                        role="gridcell"
                         className={`${effectiveRowPadding} ${responsiveText ? 'text-xs sm:text-sm' : ''} min-w-0 truncate`}
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
