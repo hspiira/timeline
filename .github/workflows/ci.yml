@@ -34,45 +34,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        # Absolute: a build failure means the app does not run at all.
-        run: pnpm build
-
-      # No test step yet, on purpose. There are no test files, and `vitest run
-      # --passWithNoTests` still exits 1 here: it reports "Tests closed successfully"
-      # then hangs for ten seconds on "something prevents Vite server from exiting"
-      # and fails. A step that always fails teaches everyone to ignore CI. Add this
-      # back with the first real test, and expect to sort out that shutdown warning
-      # (usually a devtools or plugin handle left open) at the same time.
-
-      - name: Types must not get worse
-        # Ratcheted: there is existing debt, mostly router search-param and workflow
-        # action union mismatches. Once this reaches zero, fold `tsc --noEmit` into
-        # the build script and delete this step.
-        run: |
-          BASELINE=$(cat ci/tsc-baseline.txt)
-          COUNT=$(pnpm exec tsc --noEmit -p tsconfig.json 2>&1 | grep -c "error TS" || true)
-          echo "type errors: $COUNT (baseline $BASELINE)"
-          if [ "$COUNT" -gt "$BASELINE" ]; then
-            pnpm exec tsc --noEmit -p tsconfig.json || true
-            echo "::error::Type errors rose from $BASELINE to $COUNT."
-            exit 1
-          fi
-          if [ "$COUNT" -lt "$BASELINE" ]; then
-            echo "::notice::Type errors down to $COUNT. Update ci/tsc-baseline.txt to lock it in."
-          fi
-
-      - name: Lint must not get worse
-        run: |
-          BASELINE=$(cat ci/biome-baseline.txt)
-          COUNT=$(pnpm exec biome check src 2>&1 | grep -oE "Found [0-9]+ (warnings|errors)" | grep -oE "[0-9]+" | paste -sd+ - | bc || echo 0)
-          COUNT=${COUNT:-0}
-          echo "biome findings: $COUNT (baseline $BASELINE)"
-          if [ "$COUNT" -gt "$BASELINE" ]; then
-            pnpm exec biome check src || true
-            echo "::error::Lint findings rose from $BASELINE to $COUNT."
-            exit 1
-          fi
-          if [ "$COUNT" -lt "$BASELINE" ]; then
-            echo "::notice::Lint findings down to $COUNT. Update ci/biome-baseline.txt to lock it in."
-          fi
+      - name: Verify
+        # Build, then the ratcheted type and lint checks. All three live in
+        # scripts/verify.mjs so the same command reproduces CI locally; it emits
+        # ::error:: and ::notice:: annotations when it detects Actions.
+        #
+        # Build is absolute: a failure means the app does not run at all. Types
+        # and lint are ratcheted against ci/*-baseline.txt because the repo
+        # carries existing debt. Once a baseline reaches zero, drop the ratchet
+        # in the script and fail on any finding.
+        #
+        # No test step yet, on purpose. There are no test files, and `vitest run
+        # --passWithNoTests` still exits 1 here: it reports "Tests closed
+        # successfully" then hangs for ten seconds on "something prevents Vite
+        # server from exiting" and fails. A step that always fails teaches
+        # everyone to ignore CI. Add this to verify.mjs with the first real test,
+        # and expect to sort out that shutdown warning (usually a devtools or
+        # plugin handle left open) at the same time.
+        run: pnpm verify

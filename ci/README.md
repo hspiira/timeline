@@ -1,8 +1,9 @@
 # CI baselines
 
-Each file holds the current number of outstanding findings for one check. CI fails if
-the count rises above the recorded number, and prints a notice when it falls so the
-baseline can be lowered.
+Each file holds the current number of outstanding findings for one check. `pnpm verify`
+runs the checks and CI runs nothing but that same command, so local and CI answers
+match. It fails if a count rises above the recorded number, and prints a notice when
+one falls so the baseline can be lowered.
 
 This is deliberate. The repository carries existing debt, and a check that fails from
 its first run gets switched off rather than fixed. A ratchet stops new problems
@@ -12,7 +13,7 @@ Lower a baseline whenever CI says you can. Do not raise one to make a build pass
 
 | File | Check | Goal |
 |------|-------|------|
-| `tsc-baseline.txt` | `tsc --noEmit` | 0, then fold `tsc --noEmit` into the build script and drop the ratchet |
+| `tsc-baseline.txt` | `tsc --noEmit` | 0, then drop the ratchet in `scripts/verify.mjs` and fail on any error |
 | `biome-baseline.txt` | `biome check src` (errors + warnings) | 0, then fail on any finding |
 
 ## About the biome number
