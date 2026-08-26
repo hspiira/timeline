@@ -194,7 +194,7 @@ export const authActions = {
         isLoading: false,
         error: null,
       }))
-    } catch (error) {
+    } catch {
       setAuthToken(null)
       setTenantId(null)
       authStore.setState({

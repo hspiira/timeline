@@ -450,7 +450,7 @@ function NamingTemplatesPage() {
                   size="sm"
                   className="text-xs font-mono"
                   onClick={() =>
-                    setTemplateString((s) => s + (s && !s.endsWith('-') ? '-' : '') + `{${key}}`)
+                    setTemplateString((s) => `${s}${s && !s.endsWith('-') ? '-' : ''}{${key}}`)
                   }
                 >
                   + {label}

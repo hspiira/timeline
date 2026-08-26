@@ -118,8 +118,6 @@ function OAuthProvidersPage() {
 
       setProviders((prev) => prev.filter((p) => p.id !== confirmingDelete.id))
       toast.success('Provider deleted', `"${confirmingDelete.name}" has been deleted`)
-    } catch (err) {
-      throw err
     } finally {
       setDeletingProviderId(null)
     }

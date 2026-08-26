@@ -103,7 +103,7 @@ function StepRow({
   return (
     <div className="flex flex-col gap-0.5">
       {/* Optional condition line (e.g. "When connected to Datadog successfully ✓") */}
-      {step.condition != null && step.condition.sentenceTemplate.trim() && (
+      {step.condition?.sentenceTemplate.trim() && (
         <div className="flex items-center gap-2 py-0.5" style={{ paddingLeft: indent + 24 }}>
           {step.condition.met === true ? (
             <Check

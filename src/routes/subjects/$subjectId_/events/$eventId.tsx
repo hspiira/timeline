@@ -298,7 +298,7 @@ function EventDetailPage() {
       <Breadcrumbs
         items={[
           { label: 'Subjects', href: '/subjects' },
-          { label: subjectId.slice(0, 8) + '...', href: `/subjects/${subjectId}` },
+          { label: `${subjectId.slice(0, 8)}...`, href: `/subjects/${subjectId}` },
           { label: `Event #${currentIndex.toString().padStart(3, '0')}` },
         ]}
       />

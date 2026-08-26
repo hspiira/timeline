@@ -17,7 +17,7 @@ export interface EventsTableProps {
 function payloadSnippet(payload: EventResponse['payload'], maxLen = 80): string {
   if (!payload || typeof payload !== 'object') return '—'
   const str = JSON.stringify(payload)
-  return str.length <= maxLen ? str : str.slice(0, maxLen) + '…'
+  return str.length <= maxLen ? str : `${str.slice(0, maxLen)}…`
 }
 
 export function EventsTable({

@@ -115,8 +115,6 @@ function RolesPage() {
 
       setRoles((prev) => prev.filter((r) => r.id !== confirmingDelete.id))
       toast.success('Role deleted', `"${confirmingDelete.name}" has been deleted`)
-    } catch (err) {
-      throw err
     } finally {
       setDeletingRoleId(null)
     }

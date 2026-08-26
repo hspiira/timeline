@@ -104,8 +104,6 @@ function PermissionsPage() {
 
       setPermissions((prev) => prev.filter((p) => p.id !== confirmingDelete.id))
       toast.success('Permission deleted', `"${confirmingDelete.code}" has been deleted`)
-    } catch (err) {
-      throw err
     } finally {
       setDeletingPermId(null)
     }

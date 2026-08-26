@@ -17,7 +17,7 @@ export interface ExecutionContext {
 export type ActionExecutor = (
   node: WorkflowNode,
   context: ExecutionContext,
-) => Promise<Record<string, unknown> | void>
+) => Promise<Record<string, unknown> | undefined>
 
 /** Condition evaluator: expression + context -> boolean */
 export type ConditionEvaluator = (expression: string, context: ExecutionContext) => boolean

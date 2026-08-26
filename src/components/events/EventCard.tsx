@@ -75,7 +75,7 @@ export function EventCard({
                 <pre className="text-xs text-foreground/90 whitespace-pre-wrap wrap-break-word max-h-32 overflow-y-auto">
                   {(() => {
                     const str = JSON.stringify(event.payload, null, 2)
-                    return str.length > 500 ? str.slice(0, 500) + '\n...' : str
+                    return str.length > 500 ? `${str.slice(0, 500)}\n...` : str
                   })()}
                 </pre>
               </div>

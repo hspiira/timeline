@@ -163,15 +163,10 @@ export function DocumentList({
     setLoading(true)
     setError(null)
     try {
-      let response
-
-      if (subjectId) {
-        response = await timelineApi.documents.listBySubject(subjectId)
-      } else if (eventId) {
-        response = await timelineApi.documents.listByEvent(eventId)
-      } else {
-        return
-      }
+      if (!subjectId && !eventId) return
+      const response = subjectId
+        ? await timelineApi.documents.listBySubject(subjectId)
+        : await timelineApi.documents.listByEvent(eventId as string)
 
       if (response.error) {
         const errorMsg = getApiErrorMessage(response.error, 'Failed to load documents')

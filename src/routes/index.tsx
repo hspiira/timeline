@@ -267,6 +267,13 @@ function HomePage() {
     }
   }, [authState.user, fetchDashboard])
 
+  const greeting = useMemo(() => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Good morning'
+    if (h < 18) return 'Good afternoon'
+    return 'Good evening'
+  }, [])
+
   if (authState.isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -285,13 +292,6 @@ function HomePage() {
   const hasErrors = errors.length > 0
   const username = authState.user.username ?? 'there'
   const totalEvents = data.stats?.total_events ?? 0
-
-  const greeting = useMemo(() => {
-    const h = new Date().getHours()
-    if (h < 12) return 'Good morning'
-    if (h < 18) return 'Good afternoon'
-    return 'Good evening'
-  }, [])
 
   const loadingStats = data.stats === null && errors.length === 0
   const totalSubjects = data.stats?.total_subjects ?? 0

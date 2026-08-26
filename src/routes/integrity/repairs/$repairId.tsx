@@ -143,7 +143,7 @@ function RepairDetailPage() {
       <Breadcrumbs
         items={[
           { label: 'Chain Repairs', href: '/integrity/repairs' },
-          { label: repairId.slice(0, 8) + '…' },
+          { label: `${repairId.slice(0, 8)}…` },
         ]}
       />
       <div className="mb-4">

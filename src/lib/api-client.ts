@@ -522,7 +522,7 @@ export const timelineApi = {
         const headers: Record<string, string> = {}
         const token = getAuthToken()
         const tid = getTenantId()
-        if (token) headers['Authorization'] = `Bearer ${token}`
+        if (token) headers.Authorization = `Bearer ${token}`
         if (tid) headers['X-Tenant-ID'] = tid
 
         const response = await fetch(url, {

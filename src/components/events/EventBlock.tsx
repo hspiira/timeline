@@ -17,9 +17,8 @@ const columns = [
   { key: 'action', label: '', width: 'w-16', align: 'center' },
 ] as const
 
-const colStyles = columns.reduce(
-  (acc, col) => ({ ...acc, [col.key]: `${col.width} text-${col.align}` }),
-  {} as Record<string, string>,
+const colStyles: Record<string, string> = Object.fromEntries(
+  columns.map((col) => [col.key, `${col.width} text-${col.align}`]),
 )
 
 export interface EventBlockProps {

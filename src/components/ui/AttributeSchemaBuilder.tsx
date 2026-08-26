@@ -92,6 +92,7 @@ function rulesToAllOf(rules: ConditionalRule[]): AllOfBlock[] | undefined {
   if (filtered.length === 0) return undefined
   return filtered.map((r) => ({
     if: { properties: { [r.triggerField]: { const: r.triggerValue } } },
+    // biome-ignore lint/suspicious/noThenProperty: JSON Schema's if/then keyword.
     then: { required: r.requiredFields },
   }))
 }

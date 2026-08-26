@@ -130,12 +130,13 @@ export function EventDocumentUpload({ onFilesChanged, onError }: EventDocumentUp
         </div>
 
         <Button
-          children={<Upload className="w-4 h-4" />}
           variant="ghost"
           onClick={() => inputRef.current?.click()}
           className="absolute inset-0 opacity-0"
           aria-label="Upload files"
-        />
+        >
+          <Upload className="w-4 h-4" />
+        </Button>
       </div>
 
       {/* File List */}

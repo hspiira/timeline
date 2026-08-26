@@ -212,7 +212,7 @@ function CreateFlowPage() {
         toast.success('Flow created', data.name)
         navigate({ to: '/flows/$flowId', params: { flowId: data.id } })
       }
-    } catch (err) {
+    } catch {
       setSubmitError('An unexpected error occurred')
       setSubmitting(false)
     }
