@@ -238,31 +238,28 @@ function ActivityFeedContent({
       )}
 
       {/* Activity items - Virtual or Standard - Only shown when activities exist */}
-      {hasActivities && (
-        <>
-          {useVirtualScrolling ? (
-            <VirtualActivityList
-              activities={feed.items}
-              selectedId={selected}
-              expandedIds={expanded}
+      {hasActivities &&
+        (useVirtualScrolling ? (
+          <VirtualActivityList
+            activities={feed.items}
+            selectedId={selected}
+            expandedIds={expanded}
+            onSelect={setSelected}
+            onExpand={toggleExpanded}
+            height={600}
+            itemHeight={100}
+          />
+        ) : (
+          feed.items.map((activity) => (
+            <ActivityRenderer
+              key={activity.id}
+              activity={activity}
+              isSelected={selected === activity.id}
               onSelect={setSelected}
               onExpand={toggleExpanded}
-              height={600}
-              itemHeight={100}
             />
-          ) : (
-            feed.items.map((activity) => (
-              <ActivityRenderer
-                key={activity.id}
-                activity={activity}
-                isSelected={selected === activity.id}
-                onSelect={setSelected}
-                onExpand={toggleExpanded}
-              />
-            ))
-          )}
-        </>
-      )}
+          ))
+        ))}
 
       {/* Load more button */}
       {hasActivities && feed.hasMore && (

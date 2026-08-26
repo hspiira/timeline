@@ -17,6 +17,102 @@ interface ChainVisualizationProps {
   tamperedIndices: number[]
 }
 
+const truncateHash = (hash: string, length: number = 32) => hash.slice(0, length)
+
+interface HashDisplayProps {
+  label: string
+  hash: string | null
+  isError?: boolean
+  isMissing?: boolean
+  isExpanded: boolean
+  isCopied: boolean
+  onToggle: () => void
+  onCopy: () => void
+}
+
+function HashDisplay({
+  label,
+  hash,
+  isError = false,
+  isMissing = false,
+  isExpanded,
+  isCopied,
+  onToggle,
+  onCopy,
+}: HashDisplayProps) {
+  if (!hash) {
+    if (!isMissing) return null
+
+    return (
+      <div className="flex items-center gap-2">
+        <span className="font-medium text-xs shrink-0 text-red-700 dark:text-red-300">
+          {label}:
+        </span>
+        <div className="text-xs px-2 py-1 rounded-none bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 italic">
+          [Missing - Event Tampered]
+        </div>
+      </div>
+    )
+  }
+
+  const displayHash = isExpanded ? hash : truncateHash(hash)
+
+  return (
+    <div className="flex items-center gap-2 group/hash">
+      <span
+        className={`font-medium text-xs shrink-0 ${isError ? 'text-red-700 dark:text-red-300' : 'text-muted-foreground'}`}
+      >
+        {label}:
+      </span>
+      <button
+        type="button"
+        className={`text-xs font-mono break-all flex-1 text-left px-2 py-1 rounded-none cursor-pointer transition-colors ${
+          isError
+            ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30'
+            : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+        }`}
+        onClick={onToggle}
+        title={hash}
+      >
+        <code>
+          {displayHash}
+          {hash.length > 32 && !isExpanded && <span className="text-muted-foreground/60">…</span>}
+        </code>
+      </button>
+      <div className="flex items-center gap-0.5 opacity-0 group-hover/hash:opacity-100 transition-opacity shrink-0">
+        <button
+          type="button"
+          onClick={onCopy}
+          className="p-1 hover:bg-muted rounded-none transition-colors"
+          title="Copy"
+          aria-label="Copy hash"
+        >
+          {isCopied ? (
+            <span className="text-xs font-bold text-green-600">✓</span>
+          ) : (
+            <Copy className="w-3 h-3 text-muted-foreground" />
+          )}
+        </button>
+        {hash.length > 32 && (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="p-1 hover:bg-muted rounded-none transition-colors"
+            title={isExpanded ? 'Collapse' : 'Expand'}
+            aria-label={isExpanded ? 'Collapse' : 'Expand'}
+          >
+            {isExpanded ? (
+              <ChevronUp className="w-3 h-3 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-3 h-3 text-muted-foreground" />
+            )}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function ChainVisualization({ events, tamperedIndices }: ChainVisualizationProps) {
   const [expandedHashes, setExpandedHashes] = useState<Set<string>>(new Set())
   const [copiedHash, setCopiedHash] = useState<string | null>(null)
@@ -41,93 +137,6 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
     navigator.clipboard.writeText(text)
     setCopiedHash(text)
     setTimeout(() => setCopiedHash(null), 2000)
-  }
-
-  const truncateHash = (hash: string, length: number = 32) => hash.slice(0, length)
-
-  const HashDisplay = ({
-    label,
-    hash,
-    hashKey,
-    isError = false,
-    isMissing = false,
-  }: {
-    label: string
-    hash: string | null
-    hashKey: string
-    isError?: boolean
-    isMissing?: boolean
-  }) => {
-    if (!hash && !isMissing) return null
-
-    if (!hash && isMissing) {
-      return (
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-xs shrink-0 text-red-700 dark:text-red-300">
-            {label}:
-          </span>
-          <div className="text-xs px-2 py-1 rounded-none bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 italic">
-            [Missing - Event Tampered]
-          </div>
-        </div>
-      )
-    }
-
-    const isExpanded = isHashExpanded(hashKey)
-    const displayHash = isExpanded ? hash : truncateHash(hash!)
-    const isCopied = copiedHash === hash
-
-    return (
-      <div className="flex items-center gap-2 group/hash">
-        <span
-          className={`font-medium text-xs shrink-0 ${isError ? 'text-red-700 dark:text-red-300' : 'text-muted-foreground'}`}
-        >
-          {label}:
-        </span>
-        <code
-          className={`text-xs font-mono break-all flex-1 px-2 py-1 rounded-none cursor-pointer transition-colors ${
-            isError
-              ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30'
-              : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-          }`}
-          onClick={() => toggleHashExpanded(hashKey)}
-          title={hash!}
-        >
-          {displayHash}
-          {hash!.length > 32 && !isExpanded && <span className="text-muted-foreground/60">…</span>}
-        </code>
-        <div className="flex items-center gap-0.5 opacity-0 group-hover/hash:opacity-100 transition-opacity shrink-0">
-          <button
-            type="button"
-            onClick={() => copyToClipboard(hash!)}
-            className="p-1 hover:bg-muted rounded-none transition-colors"
-            title="Copy"
-            aria-label="Copy hash"
-          >
-            {isCopied ? (
-              <span className="text-xs font-bold text-green-600">✓</span>
-            ) : (
-              <Copy className="w-3 h-3 text-muted-foreground" />
-            )}
-          </button>
-          {hash!.length > 32 && (
-            <button
-              type="button"
-              onClick={() => toggleHashExpanded(hashKey)}
-              className="p-1 hover:bg-muted rounded-none transition-colors"
-              title={isExpanded ? 'Collapse' : 'Expand'}
-              aria-label={isExpanded ? 'Collapse' : 'Expand'}
-            >
-              {isExpanded ? (
-                <ChevronUp className="w-3 h-3 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-3 h-3 text-muted-foreground" />
-              )}
-            </button>
-          )}
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -214,7 +223,10 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
                       <HashDisplay
                         label="Previous Hash"
                         hash={event.previous_hash}
-                        hashKey={`${index}-prev`}
+                        isExpanded={isHashExpanded(`${index}-prev`)}
+                        isCopied={copiedHash === event.previous_hash}
+                        onToggle={() => toggleHashExpanded(`${index}-prev`)}
+                        onCopy={() => copyToClipboard(event.previous_hash ?? '')}
                       />
                     )}
 
@@ -222,7 +234,10 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
                       <HashDisplay
                         label={tampered ? 'Expected Hash' : 'Hash'}
                         hash={event.expected_hash}
-                        hashKey={`${index}-expected`}
+                        isExpanded={isHashExpanded(`${index}-expected`)}
+                        isCopied={copiedHash === event.expected_hash}
+                        onToggle={() => toggleHashExpanded(`${index}-expected`)}
+                        onCopy={() => copyToClipboard(event.expected_hash)}
                         isError={tampered}
                       />
                     )}
@@ -231,7 +246,10 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
                       <HashDisplay
                         label="Actual Hash"
                         hash={event.actual_hash}
-                        hashKey={`${index}-actual`}
+                        isExpanded={isHashExpanded(`${index}-actual`)}
+                        isCopied={copiedHash === event.actual_hash}
+                        onToggle={() => toggleHashExpanded(`${index}-actual`)}
+                        onCopy={() => copyToClipboard(event.actual_hash)}
                         isError={true}
                         isMissing={!event.actual_hash}
                       />
