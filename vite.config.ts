@@ -36,8 +36,7 @@ const config = defineConfig({
       : []),
   ],
   test: {
-    // e2e/ holds Playwright specs. Vitest's default patterns match them, and it
-    // then fails on the @playwright/test import rather than reporting no tests.
+    // Vitest's defaults match the Playwright specs in e2e/ and die on their import.
     exclude: ['**/node_modules/**', '**/dist/**', '**/.output/**', 'e2e/**'],
     passWithNoTests: true,
   },
