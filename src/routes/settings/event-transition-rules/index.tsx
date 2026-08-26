@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ArrowRight, GitBranch, Pencil, Plus, Trash2, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { optionsFromStrings, SingleSelectCombobox } from '@/components/ui/combobox'
@@ -100,11 +100,7 @@ function EventTransitionRulesPage() {
   const [customPriorInput, setCustomPriorInput] = useState('')
   const [description, setDescription] = useState('')
 
-  useEffect(() => {
-    if (authState.user) fetchList()
-  }, [authState.user])
-
-  const fetchList = async () => {
+  const fetchList = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -122,7 +118,11 @@ function EventTransitionRulesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (authState.user) fetchList()
+  }, [authState.user, fetchList])
 
   const openCreate = () => {
     setEditing(null)

@@ -444,11 +444,7 @@ function ManageUserRolesModal({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchUserRoles()
-  }, [user.id])
-
-  const fetchUserRoles = async () => {
+  const fetchUserRoles = useCallback(async () => {
     setLoading(true)
     try {
       const { data, error: apiError } = await timelineApi.users.getRoles(user.id)
@@ -461,7 +457,11 @@ function ManageUserRolesModal({
     } finally {
       setLoading(false)
     }
-  }
+  }, [user.id])
+
+  useEffect(() => {
+    fetchUserRoles()
+  }, [fetchUserRoles])
 
   const handleSave = async () => {
     setSaving(true)

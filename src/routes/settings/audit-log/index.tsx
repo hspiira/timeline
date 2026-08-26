@@ -85,7 +85,7 @@ function AuditLogPage() {
 
   useEffect(() => {
     if (authState.user) refetch()
-  }, [authState.user, refetch, skip, resourceType, userId, fromTs, toTs])
+  }, [authState.user, refetch])
 
   const items = fetched?.items ?? []
   const hasMore = items.length === PAGE_SIZE

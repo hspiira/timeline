@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { CheckCircle, Pencil, Plus, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AttributeSchemaBuilder } from '@/components/ui/AttributeSchemaBuilder'
 import { Button } from '@/components/ui/button'
 import { ColorSwatchPicker } from '@/components/ui/ColorSwatchPicker'
@@ -47,11 +47,7 @@ function SubjectTypesPage() {
   const [has_timeline, setHasTimeline] = useState(true)
   const [allow_documents, setAllowDocuments] = useState(true)
 
-  useEffect(() => {
-    if (authState.user) fetchList()
-  }, [authState.user])
-
-  const fetchList = async () => {
+  const fetchList = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -69,7 +65,11 @@ function SubjectTypesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (authState.user) fetchList()
+  }, [authState.user, fetchList])
 
   const openCreate = () => {
     setEditing(null)

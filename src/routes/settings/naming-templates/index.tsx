@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
@@ -162,11 +162,7 @@ function NamingTemplatesPage() {
     return t.scope_id
   }
 
-  useEffect(() => {
-    if (authState.user) fetchList()
-  }, [authState.user])
-
-  const fetchList = async () => {
+  const fetchList = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -184,7 +180,11 @@ function NamingTemplatesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (authState.user) fetchList()
+  }, [authState.user, fetchList])
 
   const openCreate = () => {
     setEditing(null)

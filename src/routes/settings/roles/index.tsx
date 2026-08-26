@@ -77,7 +77,7 @@ function RolesPage() {
 
   useEffect(() => {
     if (authState.user) refetch()
-  }, [authState.user, includeInactive, refetch])
+  }, [authState.user, refetch])
 
   useEffect(() => {
     if (fetchedData) {

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { CheckCircle, Pencil, Plus, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { DataTable } from '@/components/ui/DataTable'
@@ -40,11 +40,7 @@ function DocumentCategoriesPage() {
   const [default_retention_days, setDefaultRetentionDays] = useState<string>('')
   const [is_active, setIsActive] = useState(true)
 
-  useEffect(() => {
-    if (authState.user) fetchList()
-  }, [authState.user])
-
-  const fetchList = async () => {
+  const fetchList = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -62,7 +58,11 @@ function DocumentCategoriesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (authState.user) fetchList()
+  }, [authState.user, fetchList])
 
   const openCreate = () => {
     setEditing(null)

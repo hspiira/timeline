@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { DataTable } from '@/components/ui/DataTable'
@@ -36,11 +36,7 @@ function RelationshipKindsPage() {
   const [description, setDescription] = useState('')
   const [payloadSchemaJson, setPayloadSchemaJson] = useState('')
 
-  useEffect(() => {
-    if (authState.user) fetchList()
-  }, [authState.user])
-
-  const fetchList = async () => {
+  const fetchList = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -55,7 +51,11 @@ function RelationshipKindsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (authState.user) fetchList()
+  }, [authState.user, fetchList])
 
   const openCreate = () => {
     setEditing(null)

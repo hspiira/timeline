@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { CheckCircle, Eye, Plus, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { SchemaFormModal } from '@/components/schemas/SchemaFormModal'
 import { SchemaViewModal } from '@/components/schemas/SchemaViewModal'
 import { Button } from '@/components/ui/button'
@@ -33,27 +33,7 @@ function SchemasPage() {
     [],
   )
 
-  useEffect(() => {
-    if (authState.user) {
-      fetchSchemas()
-    }
-  }, [authState.user])
-
-  useEffect(() => {
-    if (authState.user && showCreateModal) {
-      timelineApi.subjectTypes.list({ limit: 500 }).then(({ data }) => {
-        const list = Array.isArray(data) ? data : []
-        setSubjectTypes(
-          list.map((t) => ({
-            type_name: t.type_name,
-            display_name: t.display_name ?? t.type_name,
-          })),
-        )
-      })
-    }
-  }, [authState.user, showCreateModal])
-
-  const fetchSchemas = async () => {
+  const fetchSchemas = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -72,7 +52,27 @@ function SchemasPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (authState.user) {
+      fetchSchemas()
+    }
+  }, [authState.user, fetchSchemas])
+
+  useEffect(() => {
+    if (authState.user && showCreateModal) {
+      timelineApi.subjectTypes.list({ limit: 500 }).then(({ data }) => {
+        const list = Array.isArray(data) ? data : []
+        setSubjectTypes(
+          list.map((t) => ({
+            type_name: t.type_name,
+            display_name: t.display_name ?? t.type_name,
+          })),
+        )
+      })
+    }
+  }, [authState.user, showCreateModal])
 
   const handleCreateSchema = async (
     eventType: string,
