@@ -80,23 +80,16 @@ function CellLink({
 }) {
   if (onEventClick) {
     return (
-      <span
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         onClick={(e) => {
           e.preventDefault()
           onEventClick(event)
         }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            onEventClick(event)
-          }
-        }}
         className={className}
       >
         {children}
-      </span>
+      </button>
     )
   }
   return (

@@ -1,4 +1,4 @@
-import { useNavigate } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { Activity, ArrowRight, Calendar, SquarePen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -22,12 +22,6 @@ function getDisplayName(subjectType: string, config?: SubjectTypeListItem[]): st
 }
 
 export function SubjectsGrid({ data, onEdit, subjectTypeConfig }: SubjectsGridProps) {
-  const navigate = useNavigate()
-
-  const handleSubjectClick = (subjectId: string) => {
-    navigate({ to: `/subjects/${subjectId}` })
-  }
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {data.map((subject) => {
@@ -38,8 +32,7 @@ export function SubjectsGrid({ data, onEdit, subjectTypeConfig }: SubjectsGridPr
         return (
           <div
             key={subject.id}
-            onClick={() => handleSubjectClick(subject.id)}
-            className={`bg-card/80 rounded-none border transition-all cursor-pointer overflow-hidden group hover:border-border/40 ${
+            className={`relative bg-card/80 rounded-none border transition-all cursor-pointer overflow-hidden group hover:border-border/40 ${
               (subject.integrityStatus ?? '') === 'broken'
                 ? 'border-status-warn/50 bg-status-warn/5'
                 : 'border-border/25'
@@ -126,13 +119,17 @@ export function SubjectsGrid({ data, onEdit, subjectTypeConfig }: SubjectsGridPr
 
             {/* Footer with action hint */}
             <div className="px-4 py-3 bg-muted/30 border-t border-border/20 flex items-center justify-between group-hover:bg-muted/50 transition-colors">
-              <span className="text-xs font-medium text-muted-foreground">View details</span>
-              <div className="flex items-center gap-2">
+              <Link
+                to="/subjects/$subjectId"
+                params={{ subjectId: subject.id }}
+                search={{ tab: 'events', event_id: undefined }}
+                className="text-xs font-medium text-muted-foreground after:absolute after:inset-0"
+              >
+                View details
+              </Link>
+              <div className="relative flex items-center gap-2">
                 <Button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onEdit?.(subject)
-                  }}
+                  onClick={() => onEdit?.(subject)}
                   variant="ghost"
                   size="sm"
                   title="Edit subject"

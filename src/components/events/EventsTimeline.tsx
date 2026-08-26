@@ -77,6 +77,7 @@ export function EventsTimeline({
               const isSelected = selectedEventId === event.id
 
               return (
+                // biome-ignore lint/a11y/noStaticElementInteractions: the row carries links and buttons of its own, so it cannot be a button; it takes the role and key handling instead.
                 <div
                   key={event.id}
                   role={onSelectEvent ? 'button' : undefined}
