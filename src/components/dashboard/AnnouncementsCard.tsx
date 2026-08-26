@@ -7,11 +7,7 @@ export function AnnouncementsCard() {
   return (
     <DashboardCard
       title="Announcements"
-      action={
-        <a href="#" className="text-xs text-muted-foreground hover:text-[var(--dashboard-accent)]">
-          View all &gt;
-        </a>
-      }
+      action={<span className="text-xs text-muted-foreground">View all &gt;</span>}
     >
       <ul className="space-y-3">
         {Array.from({ length: SKELETON_ITEMS }).map((_, i) => (

@@ -11,11 +11,7 @@ export function HelpCenterCard() {
   return (
     <DashboardCard
       title="Help center"
-      action={
-        <a href="#" className="text-xs text-muted-foreground hover:text-[var(--dashboard-accent)]">
-          View all &gt;
-        </a>
-      }
+      action={<span className="text-xs text-muted-foreground">View all &gt;</span>}
     >
       <div className="space-y-4">
         <div className="flex gap-1 border-b border-border/40 -mb-2">
