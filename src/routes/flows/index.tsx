@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { AlertCircle, GitBranch, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { FlowsTable } from '@/components/flows/FlowsTable'
 import { Button } from '@/components/ui/button'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
@@ -18,6 +18,7 @@ export const Route = createFileRoute('/flows/')({
 })
 
 function FlowsPage() {
+  const workflowId = useId()
   const navigate = useNavigate()
   const [workflowFilter, setWorkflowFilter] = useState<string>('')
 
@@ -99,8 +100,11 @@ function FlowsPage() {
       </div>
 
       <div className="mb-4 flex items-center gap-2">
-        <label className="text-sm font-medium text-foreground/90">Workflow:</label>
+        <label htmlFor={workflowId} className="text-sm font-medium text-foreground/90">
+          Workflow:
+        </label>
         <SingleSelectCombobox
+          id={workflowId}
           value={workflowFilter}
           onValueChange={setWorkflowFilter}
           options={workflowOptions}

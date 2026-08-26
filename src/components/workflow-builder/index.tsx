@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createEmptyWorkflow, validateWorkflow, type Workflow } from '@/lib/workflow-builder'
@@ -18,6 +18,7 @@ export function WorkflowBuilder({
   onSave,
   allowCircular = false,
 }: WorkflowBuilderProps) {
+  const workflowNameId = useId()
   const [workflow, setWorkflow] = useState<Workflow>(() =>
     createEmptyWorkflow(workflowId, initialName),
   )
@@ -30,10 +31,14 @@ export function WorkflowBuilder({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-4">
         <div className="min-w-[200px]">
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
+          <label
+            htmlFor={workflowNameId}
+            className="block text-xs font-medium text-muted-foreground mb-1"
+          >
             Workflow name
           </label>
           <Input
+            id={workflowNameId}
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Workflow name"

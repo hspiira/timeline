@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { Activity, AlertCircle, Grid3x3, Plus, Search, Table2, Users } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { CreateSubjectModal } from '@/components/subjects/CreateSubjectModal'
 import { EditSubjectModal } from '@/components/subjects/EditSubjectModal'
 import { SubjectsGrid } from '@/components/subjects/SubjectsGrid'
@@ -30,6 +30,8 @@ export const Route = createFileRoute('/subjects/')({
 type ViewMode = 'grid' | 'table'
 
 function SubjectsPage() {
+  const filterByTypeId = useId()
+  const integrityId = useId()
   const queryClient = useQueryClient()
   const toast = useToast()
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -298,10 +300,13 @@ function SubjectsPage() {
         <div className="w-full lg:w-auto flex flex-wrap items-center gap-2 sm:gap-3">
           {filterTypeOptions.length > 0 && (
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-              <label className="text-sm font-medium text-foreground/90 whitespace-nowrap">
+              <label
+                htmlFor={filterByTypeId}
+                className="text-sm font-medium text-foreground/90 whitespace-nowrap"
+              >
                 Filter by type:
               </label>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div id={filterByTypeId} className="flex items-center gap-2 w-full sm:w-auto">
                 <SingleSelectCombobox
                   value={filterType}
                   onValueChange={setFilterType}
@@ -330,10 +335,14 @@ function SubjectsPage() {
             </div>
           )}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-foreground/90 whitespace-nowrap">
+            <label
+              htmlFor={integrityId}
+              className="text-sm font-medium text-foreground/90 whitespace-nowrap"
+            >
               Integrity:
             </label>
             <SingleSelectCombobox
+              id={integrityId}
               value={filterIntegrity}
               onValueChange={setFilterIntegrity}
               options={[

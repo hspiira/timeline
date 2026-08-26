@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { AlertCircle, History, Wrench } from 'lucide-react'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -23,6 +23,7 @@ export const Route = createFileRoute('/projections/$name/$version')({
 type ProjectionDefinitionResponse = components['schemas']['ProjectionDefinitionResponse']
 
 function ProjectionStatePage() {
+  const subjectIdId = useId()
   useRequireAuth()
   const queryClient = useQueryClient()
   const { name, version } = Route.useParams()
@@ -168,8 +169,11 @@ function ProjectionStatePage() {
 
       {!subject_id && (
         <div className="mb-4 flex gap-2 items-center">
-          <label className="text-sm text-muted-foreground">Subject ID</label>
+          <label htmlFor={subjectIdId} className="text-sm text-muted-foreground">
+            Subject ID
+          </label>
           <input
+            id={subjectIdId}
             type="text"
             value={subjectId}
             onChange={(e) => setSubjectId(e.target.value)}

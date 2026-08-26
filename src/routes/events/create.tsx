@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, Calendar, Tag, User } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { EventDocumentUpload } from '@/components/documents/EventDocumentUpload'
 import { EventTypeSelector } from '@/components/events'
 import { JsonSchemaForm } from '@/components/shared/JsonSchemaForm'
@@ -33,6 +33,10 @@ interface CreateEventState {
 }
 
 function CreateEventPage() {
+  const eventTimeId = useId()
+  const eventTypeId = useId()
+  const recordingAsId = useId()
+  const subjectId = useId()
   const authState = useRequireAuth()
   const navigate = useNavigate()
 
@@ -375,10 +379,14 @@ function CreateEventPage() {
           </h2>
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
+              <label
+                htmlFor={subjectId}
+                className="block text-sm font-medium text-foreground mb-1.5"
+              >
                 Subject <span className="text-destructive">*</span>
               </label>
               <SubjectSelector
+                id={subjectId}
                 value={state.subjectId}
                 onChange={(value) => setState((prev) => ({ ...prev, subjectId: value }))}
               />
@@ -388,10 +396,13 @@ function CreateEventPage() {
             </div>
 
             <div className="min-h-[3.5rem]">
-              <label className="block text-sm font-medium text-foreground mb-1.5">
+              <label
+                htmlFor={eventTypeId}
+                className="block text-sm font-medium text-foreground mb-1.5"
+              >
                 Event Type <span className="text-destructive">*</span>
               </label>
-              <div className="flex items-stretch gap-2">
+              <div id={eventTypeId} className="flex items-stretch gap-2">
                 <div className="flex-1 min-w-0">
                   <EventTypeSelector
                     value={state.eventType}
@@ -410,12 +421,16 @@ function CreateEventPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
+              <label
+                htmlFor={eventTimeId}
+                className="block text-sm font-medium text-foreground mb-1.5"
+              >
                 <span className="inline-flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5" /> Event time
                 </span>
               </label>
               <Input
+                id={eventTimeId}
                 type="datetime-local"
                 value={state.eventTime}
                 onChange={(e) => setState((prev) => ({ ...prev, eventTime: e.target.value }))}
@@ -427,12 +442,18 @@ function CreateEventPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+              <label
+                htmlFor={recordingAsId}
+                className="block text-sm font-medium text-muted-foreground mb-1.5"
+              >
                 <span className="inline-flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5" /> Recording as
                 </span>
               </label>
-              <div className="px-2.5 py-1.5 rounded-none border border-border/50 bg-muted/30 text-sm text-foreground">
+              <div
+                id={recordingAsId}
+                className="px-2.5 py-1.5 rounded-none border border-border/50 bg-muted/30 text-sm text-foreground"
+              >
                 {authState.user?.username ?? '—'}
                 {authState.user?.email && (
                   <span className="text-muted-foreground ml-1.5">({authState.user.email})</span>

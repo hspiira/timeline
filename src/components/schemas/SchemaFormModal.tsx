@@ -1,5 +1,5 @@
 import { Eye, EyeOff, Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
 import { FormError, FormField, FormInput, FormTextarea } from '@/components/ui/FormField'
@@ -63,6 +63,11 @@ export function SchemaFormModal({
   title,
   subjectTypes = [],
 }: SchemaFormModalProps) {
+  const enumValuesId = useId()
+  const formatOptionalId = useId()
+  const maximumOptionalId = useId()
+  const minimumOptionalId = useId()
+  const regexPatternOptionalId = useId()
   const [eventType, setEventType] = useState('')
   const [fields, setFields] = useState<SchemaField[]>([])
   const [allowedSubjectTypes, setAllowedSubjectTypes] = useState<string[]>([])
@@ -668,10 +673,13 @@ export function SchemaFormModal({
             {/* Enum Values - for enum type */}
             {editingField.type === 'enum' && (
               <div>
-                <label className="block text-sm font-medium text-foreground/90 mb-2">
+                <label
+                  htmlFor={enumValuesId}
+                  className="block text-sm font-medium text-foreground/90 mb-2"
+                >
                   Enum Values <span className="text-destructive">*</span>
                 </label>
-                <div className="space-y-2 mb-2">
+                <div id={enumValuesId} className="space-y-2 mb-2">
                   {(editingField.enum || []).map((value, idx) => (
                     <div key={idx} className="flex items-center gap-2">
                       <Input
@@ -718,10 +726,14 @@ export function SchemaFormModal({
             {(editingField.type === 'number' || editingField.type === 'integer') && (
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-foreground/90 mb-2">
+                  <label
+                    htmlFor={minimumOptionalId}
+                    className="block text-sm font-medium text-foreground/90 mb-2"
+                  >
                     Minimum (optional)
                   </label>
                   <Input
+                    id={minimumOptionalId}
                     type="number"
                     value={editingField.minimum !== undefined ? editingField.minimum : ''}
                     onChange={(e) =>
@@ -734,10 +746,14 @@ export function SchemaFormModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground/90 mb-2">
+                  <label
+                    htmlFor={maximumOptionalId}
+                    className="block text-sm font-medium text-foreground/90 mb-2"
+                  >
                     Maximum (optional)
                   </label>
                   <Input
+                    id={maximumOptionalId}
                     type="number"
                     value={editingField.maximum !== undefined ? editingField.maximum : ''}
                     onChange={(e) =>
@@ -755,10 +771,14 @@ export function SchemaFormModal({
             {/* Format - for string types */}
             {editingField.type === 'string' && (
               <div>
-                <label className="block text-sm font-medium text-foreground/90 mb-2">
+                <label
+                  htmlFor={formatOptionalId}
+                  className="block text-sm font-medium text-foreground/90 mb-2"
+                >
                   Format (optional)
                 </label>
                 <SingleSelectCombobox
+                  id={formatOptionalId}
                   value={editingField.format || ''}
                   onValueChange={(v) =>
                     setEditingField({
@@ -779,10 +799,14 @@ export function SchemaFormModal({
             {/* Pattern - for string types */}
             {editingField.type === 'string' && (
               <div>
-                <label className="block text-sm font-medium text-foreground/90 mb-2">
+                <label
+                  htmlFor={regexPatternOptionalId}
+                  className="block text-sm font-medium text-foreground/90 mb-2"
+                >
                   Regex Pattern (optional)
                 </label>
                 <Input
+                  id={regexPatternOptionalId}
                   type="text"
                   value={editingField.pattern || ''}
                   onChange={(e) =>

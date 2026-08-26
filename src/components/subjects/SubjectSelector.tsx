@@ -4,6 +4,7 @@ import { timelineApi } from '@/lib/api-client'
 import type { SubjectResponse } from '@/lib/types'
 
 type Props = {
+  id?: string
   value?: string
   onChange: (v: string) => void
   /** Exclude this subject id from the list. */
@@ -14,6 +15,7 @@ type Props = {
 }
 
 export default function SubjectSelector({
+  id,
   value = '',
   onChange,
   placeholder = 'Select subject',
@@ -64,6 +66,7 @@ export default function SubjectSelector({
     <div>
       {error && <p className="text-sm text-destructive mb-2">{error}</p>}
       <SingleSelectCombobox
+        id={id}
         value={value}
         onValueChange={onChange}
         options={options}

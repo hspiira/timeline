@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { CheckCircle, FileCheck, Network, Pause, Play, Plus, SquarePen, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { DataTable } from '@/components/ui/DataTable'
@@ -24,6 +24,7 @@ type WorkflowCreate = components['schemas']['WorkflowCreateRequest']
 type WorkflowUpdate = components['schemas']['WorkflowUpdate']
 
 function WorkflowsPage() {
+  const filterByTriggerId = useId()
   const authState = useRequireAuth()
   const toast = useToast()
   const [workflows, setWorkflows] = useState<Workflow[]>([])
@@ -407,10 +408,11 @@ function WorkflowsPage() {
       {eventTypes.length > 0 && (
         <div className="bg-card/80 backdrop-blur-sm rounded-none p-2.5 border border-border/50 mb-3">
           <div className="flex flex-wrap items-center gap-2">
-            <label className="text-sm font-medium text-foreground/90">
+            <label htmlFor={filterByTriggerId} className="text-sm font-medium text-foreground/90">
               Filter by trigger event type:
             </label>
             <select
+              id={filterByTriggerId}
               value={filterEventType}
               onChange={(e) => setFilterEventType(e.target.value)}
               className="px-3 py-1.5 bg-background border border-input rounded-none text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"

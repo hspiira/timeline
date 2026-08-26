@@ -4,7 +4,7 @@
  */
 
 import { Plus, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import {
   Accordion,
   AccordionContent,
@@ -43,6 +43,7 @@ export function WorkflowRequirementsForm({
   errors = [],
   compact: _compact = false,
 }: WorkflowRequirementsFormProps) {
+  const oncheckedchangeRequireDocumentId = useId()
   const validation = validateWorkflowRequirements(value)
   const showErrors = errors.length > 0 ? errors : validation.errors
 
@@ -303,7 +304,10 @@ export function WorkflowRequirementsForm({
                             placeholder="Task name"
                             className="flex-1 min-w-0 h-8 text-sm border-0 bg-muted/20 focus-visible:ring-2 rounded"
                           />
-                          <label className="flex items-center gap-1.5 shrink-0 text-xs text-muted-foreground cursor-pointer whitespace-nowrap">
+                          <label
+                            htmlFor={oncheckedchangeRequireDocumentId}
+                            className="flex items-center gap-1.5 shrink-0 text-xs text-muted-foreground cursor-pointer whitespace-nowrap"
+                          >
                             <Checkbox
                               checked={(task.documentIds?.length ?? 0) > 0}
                               onCheckedChange={(checked) =>
@@ -313,6 +317,7 @@ export function WorkflowRequirementsForm({
                             Require document
                           </label>
                           <Button
+                            id={oncheckedchangeRequireDocumentId}
                             type="button"
                             variant="ghost"
                             size="sm"

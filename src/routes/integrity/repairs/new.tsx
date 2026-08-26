@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AlertCircle, ChevronRight, FileWarning } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { Button } from '@/components/ui/button'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
@@ -27,6 +27,10 @@ export const Route = createFileRoute('/integrity/repairs/new')({
 })
 
 function NewRepairPage() {
+  const epochFieldId = useId()
+  const breakAtEventId = useId()
+  const reasonId = useId()
+  const referenceId = useId()
   useRequireAuth()
   const { subject_id, break_seq } = Route.useSearch()
   const navigate = useNavigate()
@@ -180,9 +184,15 @@ function NewRepairPage() {
           {step === 1 && (
             <>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Epoch ID *</label>
+                <label
+                  htmlFor={epochFieldId}
+                  className="block text-sm font-medium text-foreground mb-1"
+                >
+                  Epoch ID *
+                </label>
                 {subject_id && epochs.length > 0 ? (
                   <select
+                    id={epochFieldId}
                     value={epochId}
                     onChange={(e) => setEpochId(e.target.value)}
                     className="w-full px-3 py-2 rounded-none border border-border bg-background text-foreground text-sm"
@@ -197,6 +207,7 @@ function NewRepairPage() {
                   </select>
                 ) : (
                   <input
+                    id={epochFieldId}
                     type="text"
                     value={epochId}
                     onChange={(e) => setEpochId(e.target.value)}
@@ -208,10 +219,14 @@ function NewRepairPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
+                <label
+                  htmlFor={breakAtEventId}
+                  className="block text-sm font-medium text-foreground mb-1"
+                >
                   Break at event seq *
                 </label>
                 <input
+                  id={breakAtEventId}
                   type="number"
                   min={1}
                   value={breakAtEventSeq || ''}
@@ -222,8 +237,14 @@ function NewRepairPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Reason *</label>
+                <label
+                  htmlFor={reasonId}
+                  className="block text-sm font-medium text-foreground mb-1"
+                >
+                  Reason *
+                </label>
                 <textarea
+                  id={reasonId}
                   value={breakReason}
                   onChange={(e) => setBreakReason(e.target.value)}
                   placeholder="e.g. Hash mismatch detected on event seq …"
@@ -278,10 +299,14 @@ function NewRepairPage() {
                 </label>
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
+                <label
+                  htmlFor={referenceId}
+                  className="block text-sm font-medium text-foreground mb-1"
+                >
                   Reference {requiresLegalReference && '*'}
                 </label>
                 <input
+                  id={referenceId}
                   type="text"
                   value={repairReference}
                   onChange={(e) => setRepairReference(e.target.value)}

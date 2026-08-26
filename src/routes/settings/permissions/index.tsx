@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Eye, Loader2, Plus, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
@@ -36,6 +36,7 @@ const RESOURCE_TYPES = [
 const ACTION_TYPES = ['create', 'read', 'update', 'delete', 'assign', 'verify']
 
 function PermissionsPage() {
+  const filterByResourceId = useId()
   const authState = useRequireAuth()
   const toast = useToast()
   const [permissions, setPermissions] = useState<PermissionResponse[]>([])
@@ -252,8 +253,11 @@ function PermissionsPage() {
       {/* Filter */}
       <div className="mb-3 p-2.5 bg-card/80 backdrop-blur-sm rounded-none border border-border/50">
         <div className="flex flex-wrap items-center gap-2">
-          <label className="text-sm font-medium text-foreground/90">Filter by resource:</label>
+          <label htmlFor={filterByResourceId} className="text-sm font-medium text-foreground/90">
+            Filter by resource:
+          </label>
           <select
+            id={filterByResourceId}
             value={filterResource}
             onChange={(e) => setFilterResource(e.target.value)}
             className="px-3 py-1.5 bg-background border border-input rounded-none text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -326,6 +330,10 @@ function PermissionFormModal({
   onSuccess: (permission: PermissionResponse) => void
   onError: (error: string) => void
 }) {
+  const actionId = useId()
+  const descriptionId = useId()
+  const generatedCodeId = useId()
+  const resourceId = useId()
   const [resource, setResource] = useState('')
   const [action, setAction] = useState('')
   const [description, setDescription] = useState('')
@@ -384,10 +392,11 @@ function PermissionFormModal({
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-foreground/90 mb-2">
+          <label htmlFor={resourceId} className="block text-sm font-medium text-foreground/90 mb-2">
             Resource <span className="text-destructive">*</span>
           </label>
           <SingleSelectCombobox
+            id={resourceId}
             value={resource}
             onValueChange={setResource}
             options={[
@@ -401,10 +410,11 @@ function PermissionFormModal({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-foreground/90 mb-2">
+          <label htmlFor={actionId} className="block text-sm font-medium text-foreground/90 mb-2">
             Action <span className="text-destructive">*</span>
           </label>
           <SingleSelectCombobox
+            id={actionId}
             value={action}
             onValueChange={setAction}
             options={[
@@ -418,10 +428,14 @@ function PermissionFormModal({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-foreground/90 mb-2">
+          <label
+            htmlFor={generatedCodeId}
+            className="block text-sm font-medium text-foreground/90 mb-2"
+          >
             Generated Code
           </label>
           <input
+            id={generatedCodeId}
             type="text"
             value={resource && action ? `${resource}:${action}` : ''}
             readOnly
@@ -431,8 +445,14 @@ function PermissionFormModal({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-foreground/90 mb-2">Description</label>
+          <label
+            htmlFor={descriptionId}
+            className="block text-sm font-medium text-foreground/90 mb-2"
+          >
+            Description
+          </label>
           <textarea
+            id={descriptionId}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe what this permission grants..."

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import SubjectSelector from '@/components/subjects/SubjectSelector'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { Button } from '@/components/ui/button'
@@ -67,6 +67,9 @@ function placeholderOptionsFromSchema(
 }
 
 function CreateFlowPage() {
+  const subjectOptionalId = useId()
+  const subjectTypeOptionalId = useId()
+  const workflowFieldId = useId()
   const navigate = useNavigate()
   const toast = useToast()
   const [name, setName] = useState('')
@@ -234,10 +237,13 @@ function CreateFlowPage() {
               </p>
               {!subjectId && (
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
+                  <label
+                    htmlFor={subjectTypeOptionalId}
+                    className="block text-sm font-medium text-foreground mb-1"
+                  >
                     Subject type (optional)
                   </label>
-                  <p className="text-xs text-muted-foreground mb-1.5">
+                  <p id={subjectTypeOptionalId} className="text-xs text-muted-foreground mb-1.5">
                     Choose a subject type to use its attribute labels and dropdown options for the
                     fields below.
                   </p>
@@ -336,8 +342,14 @@ function CreateFlowPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Workflow</label>
+            <label
+              htmlFor={workflowFieldId}
+              className="block text-sm font-medium text-foreground mb-1"
+            >
+              Workflow
+            </label>
             <SingleSelectCombobox
+              id={workflowFieldId}
               value={workflowId}
               onValueChange={setWorkflowId}
               options={workflowOptions}
@@ -348,10 +360,14 @@ function CreateFlowPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+            <label
+              htmlFor={subjectOptionalId}
+              className="block text-sm font-medium text-foreground mb-1"
+            >
               Subject (optional)
             </label>
             <SubjectSelector
+              id={subjectOptionalId}
               value={subjectId}
               onChange={setSubjectId}
               placeholder="Link a subject to this flow"

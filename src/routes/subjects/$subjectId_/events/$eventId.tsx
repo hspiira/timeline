@@ -17,7 +17,7 @@ import {
   Network,
   Play,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { DocumentList } from '@/components/documents/DocumentList'
 import { PayloadModernView } from '@/components/events'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
@@ -266,13 +266,16 @@ function EventDetailPage() {
     value: string | null
     fieldKey: string
   }) => {
+    const fieldId = useId()
     if (!value) return null
     const isCopied = copiedField === fieldKey
 
     return (
       <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">{label}</label>
-        <div className="flex items-center gap-2 group">
+        <label htmlFor={fieldId} className="text-xs font-medium text-muted-foreground">
+          {label}
+        </label>
+        <div id={fieldId} className="flex items-center gap-2 group">
           <code className="flex-1 font-mono text-xs bg-muted/50 px-3 py-2 rounded-none break-all">
             {value}
           </code>
@@ -421,7 +424,7 @@ function EventDetailPage() {
 
             {isGenesis ? (
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Previous Hash</label>
+                <span className="text-xs font-medium text-muted-foreground">Previous Hash</span>
                 <div className="px-3 py-2 bg-primary/5 border border-primary/20 rounded-none text-xs text-primary">
                   Genesis block - no previous hash
                 </div>

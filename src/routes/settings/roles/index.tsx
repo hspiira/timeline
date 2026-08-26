@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { CheckCircle, Loader2, Plus, Shield, SquarePen, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { DataTable } from '@/components/ui/DataTable'
@@ -380,6 +380,9 @@ function RoleFormModal({
   onError: (error: string) => void
   allPermissions: PermissionResponse[]
 }) {
+  const codeId = useId()
+  const descriptionId = useId()
+  const nameId = useId()
   const [name, setName] = useState(role?.name || '')
   const [description, setDescription] = useState(role?.description || '')
   const [code, setCode] = useState(role?.code || '')
@@ -451,10 +454,11 @@ function RoleFormModal({
       <form onSubmit={handleSubmit} className="space-y-5">
         {!role && (
           <div>
-            <label className="block text-sm font-medium text-foreground/90 mb-2">
+            <label htmlFor={codeId} className="block text-sm font-medium text-foreground/90 mb-2">
               Code <span className="text-destructive">*</span>
             </label>
             <input
+              id={codeId}
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value)}
@@ -469,10 +473,11 @@ function RoleFormModal({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-foreground/90 mb-2">
+          <label htmlFor={nameId} className="block text-sm font-medium text-foreground/90 mb-2">
             Name <span className="text-destructive">*</span>
           </label>
           <input
+            id={nameId}
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -483,8 +488,14 @@ function RoleFormModal({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-foreground/90 mb-2">Description</label>
+          <label
+            htmlFor={descriptionId}
+            className="block text-sm font-medium text-foreground/90 mb-2"
+          >
+            Description
+          </label>
           <textarea
+            id={descriptionId}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe what this role can do..."

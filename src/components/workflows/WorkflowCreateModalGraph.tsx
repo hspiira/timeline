@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
 import { ErrorAlert } from '@/components/ui/ErrorAlert'
@@ -38,6 +38,10 @@ export function WorkflowCreateModalGraph({
   onSubmit,
   title = 'Create workflow',
 }: WorkflowCreateModalProps) {
+  const descriptionOptionalId = useId()
+  const startFromId = useId()
+  const whenThisWorkflowId = useId()
+  const workflowNameId = useId()
   const workflowContext = useWorkflowEngineContext()
   const { eventTypes, loading: loadingEventTypes } = workflowContext
   const [workflow, setWorkflow] = useState<Workflow>(() =>
@@ -159,10 +163,14 @@ export function WorkflowCreateModalGraph({
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-4">
           <div className="min-w-[200px]">
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
+            <label
+              htmlFor={startFromId}
+              className="block text-xs font-medium text-muted-foreground mb-1"
+            >
               Start from
             </label>
             <SingleSelectCombobox
+              id={startFromId}
               value={selectedTemplateId ?? ''}
               onValueChange={(value) => {
                 const templateId = value || null
@@ -192,10 +200,14 @@ export function WorkflowCreateModalGraph({
         </div>
         <div className="flex flex-wrap items-end gap-4">
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
+            <label
+              htmlFor={workflowNameId}
+              className="block text-xs font-medium text-muted-foreground mb-1"
+            >
               Workflow name
             </label>
             <Input
+              id={workflowNameId}
               value={name}
               onChange={(e) => {
                 setName(e.target.value)
@@ -210,10 +222,14 @@ export function WorkflowCreateModalGraph({
             )}
           </div>
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
+            <label
+              htmlFor={descriptionOptionalId}
+              className="block text-xs font-medium text-muted-foreground mb-1"
+            >
               Description (optional)
             </label>
             <Input
+              id={descriptionOptionalId}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Short description"
@@ -221,10 +237,13 @@ export function WorkflowCreateModalGraph({
             />
           </div>
           <div className="min-w-[200px]">
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
+            <label
+              htmlFor={whenThisWorkflowId}
+              className="block text-xs font-medium text-muted-foreground mb-1"
+            >
               When this workflow runs
             </label>
-            <p className="text-[11px] text-muted-foreground/80 mb-1">
+            <p id={whenThisWorkflowId} className="text-[11px] text-muted-foreground/80 mb-1">
               This workflow runs when an event of this type is created.
             </p>
             <SingleSelectCombobox

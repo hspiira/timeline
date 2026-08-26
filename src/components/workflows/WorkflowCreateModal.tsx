@@ -26,7 +26,7 @@ import {
   Trash2,
   Zap,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
 import { ErrorAlert } from '@/components/ui/ErrorAlert'
@@ -315,6 +315,7 @@ function ActionShape({
   onParamsInputChange: (value: string) => void
   disabled?: boolean
 }) {
+  const paramsId = useId()
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: step.id })
 
   const style = {
@@ -381,10 +382,14 @@ function ActionShape({
           )}
         </div>
         <div className="px-3 py-2 bg-muted/30" onClick={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium text-foreground uppercase tracking-wide mb-1">
+          <label
+            htmlFor={paramsId}
+            className="block text-xs font-medium text-foreground uppercase tracking-wide mb-1"
+          >
             Params
           </label>
           <Input
+            id={paramsId}
             type="text"
             placeholder='{"key": "value"}'
             value={paramsInput}
@@ -582,6 +587,9 @@ export function WorkflowCreateModal({
   onSubmit,
   title = 'Create workflow',
 }: WorkflowCreateModalProps) {
+  const descriptionOptionalId = useId()
+  const flowDirectionId = useId()
+  const workflowNameId = useId()
   const { types: eventTypes, loading: loadingEventTypes } = useEventTypes()
 
   const [name, setName] = useState('')
@@ -798,10 +806,14 @@ export function WorkflowCreateModal({
         {/* Workflow name + description: compact bar above canvas */}
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
+            <label
+              htmlFor={workflowNameId}
+              className="block text-xs font-medium text-muted-foreground mb-1"
+            >
               Workflow name
             </label>
             <Input
+              id={workflowNameId}
               value={name}
               onChange={(e) => {
                 setName(e.target.value)
@@ -816,10 +828,14 @@ export function WorkflowCreateModal({
             )}
           </div>
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
+            <label
+              htmlFor={descriptionOptionalId}
+              className="block text-xs font-medium text-muted-foreground mb-1"
+            >
               Description (optional)
             </label>
             <Input
+              id={descriptionOptionalId}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Short description"
@@ -827,10 +843,14 @@ export function WorkflowCreateModal({
             />
           </div>
           <div className="shrink-0">
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
+            <label
+              htmlFor={flowDirectionId}
+              className="block text-xs font-medium text-muted-foreground mb-1"
+            >
               Flow direction
             </label>
             <SingleSelectCombobox
+              id={flowDirectionId}
               value={flowDirection}
               onValueChange={(v) => setFlowDirection((v || 'lr') as FlowDirection)}
               options={[

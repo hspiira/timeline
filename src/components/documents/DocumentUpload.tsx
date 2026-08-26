@@ -314,7 +314,7 @@ export function DocumentUpload({
     <div className="space-y-4">
       {/* Document type / category selector */}
       <div>
-        <label className="block text-sm font-medium text-foreground/90 mb-2">Document type</label>
+        <span className="block text-sm font-medium text-foreground/90 mb-2">Document type</span>
         {categoriesLoading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
             <LoadingIcon size="sm" />
@@ -355,9 +355,9 @@ export function DocumentUpload({
         metadataSchema &&
         Object.keys(metadataSchema.properties ?? {}).length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-foreground/90 mb-2">
+            <span className="block text-sm font-medium text-foreground/90 mb-2">
               Metadata (optional)
-            </label>
+            </span>
             <JsonSchemaForm schema={metadataSchema} value={metadata} onChange={setMetadata} />
           </div>
         )}

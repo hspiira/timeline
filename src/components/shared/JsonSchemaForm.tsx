@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
 
 export interface FieldSchema {
@@ -142,6 +142,7 @@ function toDisplayValue(value: unknown): string {
 }
 
 export function JsonSchemaForm({ schema, value, onChange, errors = {} }: JsonSchemaFormProps) {
+  const formId = useId()
   const properties = useMemo((): Record<string, FieldSchema> => {
     if (!schema?.properties) return {}
     return schema.properties
@@ -174,6 +175,7 @@ export function JsonSchemaForm({ schema, value, onChange, errors = {} }: JsonSch
         const fieldValue = value[fieldName] ?? ''
         const fieldError = errors[fieldName]
         const description = fieldSchema.description ?? fieldSchema.title
+        const fieldId = `${formId}-${fieldName}`
 
         return (
           <div key={fieldName}>
@@ -192,12 +194,13 @@ export function JsonSchemaForm({ schema, value, onChange, errors = {} }: JsonSch
               </label>
             ) : (
               <>
-                <label className="block text-sm font-medium mb-1">
+                <label htmlFor={fieldId} className="block text-sm font-medium mb-1">
                   {description || fieldName}
                   {isReq && <span className="text-red-500 ml-1">*</span>}
                 </label>
                 {fieldSchema.enum ? (
                   <SingleSelectCombobox
+                    id={fieldId}
                     value={toDisplayValue(fieldValue)}
                     onValueChange={(v) => handleChange(fieldName, v)}
                     options={[

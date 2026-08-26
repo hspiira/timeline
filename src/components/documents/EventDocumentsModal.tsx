@@ -30,6 +30,7 @@ export function EventDocumentsModal({
   onDocumentsUpdated,
 }: EventDocumentsModalProps) {
   const titleId = useId()
+  const documentTypeId = useId()
   const [showUpload, setShowUpload] = useState(false)
   const [stagedFiles, setStagedFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
@@ -274,10 +275,14 @@ export function EventDocumentsModal({
               ) : categories.length > 0 ? (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-foreground/90 mb-1">
+                    <label
+                      htmlFor={documentTypeId}
+                      className="block text-sm font-medium text-foreground/90 mb-1"
+                    >
                       Document type
                     </label>
                     <SingleSelectCombobox
+                      id={documentTypeId}
                       value={selectedCategoryId}
                       onValueChange={setSelectedCategoryId}
                       options={categories.map((c) => ({
@@ -295,9 +300,9 @@ export function EventDocumentsModal({
                   </div>
                   {categoryFull?.metadata_schema && (
                     <div>
-                      <label className="block text-sm font-medium text-foreground/90 mb-1">
+                      <span className="block text-sm font-medium text-foreground/90 mb-1">
                         Metadata (optional)
-                      </label>
+                      </span>
                       <JsonSchemaForm
                         schema={categoryFull.metadata_schema as JsonSchema}
                         value={metadata}

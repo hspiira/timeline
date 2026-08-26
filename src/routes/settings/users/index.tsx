@@ -12,7 +12,7 @@ import {
   UserPlus,
   XCircle,
 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/DataTable'
 import { FormError } from '@/components/ui/FormField'
@@ -250,6 +250,9 @@ function CreateUserModal({
   onSuccess: (user: UserResponse) => void
   onError: (error: string) => void
 }) {
+  const emailId = useId()
+  const passwordId = useId()
+  const usernameId = useId()
   const authState = useRequireAuth()
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -338,10 +341,10 @@ function CreateUserModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Username */}
         <div>
-          <label className="block text-sm font-medium text-foreground/90 mb-2">
+          <label htmlFor={usernameId} className="block text-sm font-medium text-foreground/90 mb-2">
             Username <span className="text-destructive">*</span>
           </label>
-          <div className="relative">
+          <div id={usernameId} className="relative">
             <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
@@ -356,10 +359,10 @@ function CreateUserModal({
 
         {/* Email */}
         <div>
-          <label className="block text-sm font-medium text-foreground/90 mb-2">
+          <label htmlFor={emailId} className="block text-sm font-medium text-foreground/90 mb-2">
             Email <span className="text-destructive">*</span>
           </label>
-          <div className="relative">
+          <div id={emailId} className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="email"
@@ -374,10 +377,10 @@ function CreateUserModal({
 
         {/* Password */}
         <div>
-          <label className="block text-sm font-medium text-foreground/90 mb-2">
+          <label htmlFor={passwordId} className="block text-sm font-medium text-foreground/90 mb-2">
             Password <span className="text-destructive">*</span>
           </label>
-          <div className="relative">
+          <div id={passwordId} className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
               value={password}

@@ -271,6 +271,8 @@ function optionsFromStrings(
 }
 
 interface SingleSelectComboboxProps {
+  /** Applied to the input so a label can point at it with htmlFor. */
+  id?: string
   value: string
   onValueChange: (value: string) => void
   options: SingleSelectOption[]
@@ -284,6 +286,7 @@ interface SingleSelectComboboxProps {
 }
 
 function SingleSelectCombobox({
+  id,
   value,
   onValueChange,
   options,
@@ -319,6 +322,7 @@ function SingleSelectCombobox({
         }
       >
         <ComboboxInput
+          id={id}
           placeholder={placeholder}
           showTrigger
           showClear={clearable && !!value}

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { AlertCircle, ChevronLeft, ChevronRight, Loader2, Wrench } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
 import { DataTable } from '@/components/ui/DataTable'
@@ -38,6 +38,7 @@ function statusToken(status: ChainRepairStatus): string {
 }
 
 function RepairsPage() {
+  const statusId = useId()
   const authState = useRequireAuth()
   const navigate = useNavigate()
   const { subject_id, break_seq } = Route.useSearch()
@@ -199,8 +200,11 @@ function RepairsPage() {
 
       <div className="flex flex-wrap items-end gap-3 p-4 rounded-lg border border-border bg-muted/30">
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Status</label>
+          <label htmlFor={statusId} className="text-xs font-medium text-muted-foreground">
+            Status
+          </label>
           <SingleSelectCombobox
+            id={statusId}
             value={status || 'all'}
             onValueChange={(v) => {
               setStatus(v === 'all' ? '' : (v as ChainRepairStatus))

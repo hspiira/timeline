@@ -4,7 +4,7 @@
  */
 
 import { ChevronRight, FileText, ListTodo, Pencil } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ErrorAlert } from '@/components/ui/ErrorAlert'
@@ -25,6 +25,7 @@ interface WorkflowEditModalProps {
 }
 
 export function WorkflowEditModal({ workflow, onClose, onSave }: WorkflowEditModalProps) {
+  const setisactiveVTrueId = useId()
   const [name, setName] = useState(workflow.name)
   const [description, setDescription] = useState(workflow.description ?? '')
   const [executionOrder, setExecutionOrder] = useState(workflow.execution_order ?? 0)
@@ -74,7 +75,10 @@ export function WorkflowEditModal({ workflow, onClose, onSave }: WorkflowEditMod
       footer={
         <div className="flex flex-wrap items-center justify-between gap-6">
           <div className="flex flex-wrap items-center gap-8">
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <label
+              htmlFor={setisactiveVTrueId}
+              className="flex items-center gap-2.5 cursor-pointer select-none"
+            >
               <Checkbox
                 checked={isActive}
                 onCheckedChange={(v) => setIsActive(v === true)}
@@ -82,7 +86,7 @@ export function WorkflowEditModal({ workflow, onClose, onSave }: WorkflowEditMod
               />
               <span className="text-sm font-medium text-foreground">Active</span>
             </label>
-            <div className="flex items-center gap-2">
+            <div id={setisactiveVTrueId} className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Run order</span>
               <Input
                 type="number"

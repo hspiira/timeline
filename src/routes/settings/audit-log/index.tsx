@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { AlertCircle, ChevronLeft, ChevronRight, ClipboardList, Loader2 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
 import { DataTable } from '@/components/ui/DataTable'
@@ -33,6 +33,10 @@ const RESOURCE_TYPES = [
 ]
 
 function AuditLogPage() {
+  const fromIsoId = useId()
+  const resourceTypeId = useId()
+  const toIsoId = useId()
+  const userIdId = useId()
   const authState = useRequireAuth()
   const [skip, setSkip] = useState(0)
   const [resourceType, setResourceType] = useState<string>('')
@@ -213,8 +217,11 @@ function AuditLogPage() {
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-3 p-4 rounded-lg border border-border bg-muted/30">
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Resource type</label>
+          <label htmlFor={resourceTypeId} className="text-xs font-medium text-muted-foreground">
+            Resource type
+          </label>
           <SingleSelectCombobox
+            id={resourceTypeId}
             value={resourceType || 'all'}
             onValueChange={(v) => setResourceType(v === 'all' ? '' : v)}
             options={[
@@ -226,8 +233,11 @@ function AuditLogPage() {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-muted-foreground">User ID</label>
+          <label htmlFor={userIdId} className="text-xs font-medium text-muted-foreground">
+            User ID
+          </label>
           <Input
+            id={userIdId}
             placeholder="User ID"
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
@@ -235,8 +245,11 @@ function AuditLogPage() {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-muted-foreground">From (ISO)</label>
+          <label htmlFor={fromIsoId} className="text-xs font-medium text-muted-foreground">
+            From (ISO)
+          </label>
           <Input
+            id={fromIsoId}
             placeholder="YYYY-MM-DDTHH:mm"
             value={fromTs}
             onChange={(e) => setFromTs(e.target.value)}
@@ -244,8 +257,11 @@ function AuditLogPage() {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-muted-foreground">To (ISO)</label>
+          <label htmlFor={toIsoId} className="text-xs font-medium text-muted-foreground">
+            To (ISO)
+          </label>
           <Input
+            id={toIsoId}
             placeholder="YYYY-MM-DDTHH:mm"
             value={toTs}
             onChange={(e) => setToTs(e.target.value)}

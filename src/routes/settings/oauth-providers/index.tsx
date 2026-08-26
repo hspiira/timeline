@@ -16,7 +16,7 @@ import {
   Trash2,
   XCircle,
 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { DataTable } from '@/components/ui/DataTable'
@@ -430,6 +430,12 @@ function OAuthProviderFormModal({
   onSuccess: (provider: OAuthProviderConfig) => void
   onError: (error: string) => void
 }) {
+  const clientIdId = useId()
+  const clientSecretId = useId()
+  const displayNameId = useId()
+  const providerTypeId = useId()
+  const redirectUriId = useId()
+  const scopesOnePerId = useId()
   const [providerType, setProviderType] = useState(provider?.provider_type || 'gmail')
   const [clientId, setClientId] = useState('')
   const [clientSecret, setClientSecret] = useState('')
@@ -561,10 +567,13 @@ function OAuthProviderFormModal({
         {/* Provider Type */}
         {!provider && (
           <div>
-            <label className="block text-sm font-medium text-foreground/90 mb-2">
+            <label
+              htmlFor={providerTypeId}
+              className="block text-sm font-medium text-foreground/90 mb-2"
+            >
               Provider Type <span className="text-destructive">*</span>
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div id={providerTypeId} className="grid grid-cols-2 gap-2">
               {Object.entries(PROVIDER_INFO).map(([type, typeInfo]) => {
                 const TypeIcon = typeInfo.icon
                 return (
@@ -606,10 +615,11 @@ function OAuthProviderFormModal({
 
         {/* Client ID */}
         <div>
-          <label className="block text-sm font-medium text-foreground/90 mb-2">
+          <label htmlFor={clientIdId} className="block text-sm font-medium text-foreground/90 mb-2">
             Client ID {!provider && <span className="text-destructive">*</span>}
           </label>
           <input
+            id={clientIdId}
             type="text"
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
@@ -621,10 +631,13 @@ function OAuthProviderFormModal({
 
         {/* Client Secret */}
         <div>
-          <label className="block text-sm font-medium text-foreground/90 mb-2">
+          <label
+            htmlFor={clientSecretId}
+            className="block text-sm font-medium text-foreground/90 mb-2"
+          >
             Client Secret {!provider && <span className="text-destructive">*</span>}
           </label>
-          <div className="relative">
+          <div id={clientSecretId} className="relative">
             <input
               type={showSecret ? 'text' : 'password'}
               value={clientSecret}
@@ -645,10 +658,13 @@ function OAuthProviderFormModal({
 
         {/* Redirect URI */}
         <div>
-          <label className="block text-sm font-medium text-foreground/90 mb-2">
+          <label
+            htmlFor={redirectUriId}
+            className="block text-sm font-medium text-foreground/90 mb-2"
+          >
             Redirect URI {!provider && <span className="text-destructive">*</span>}
           </label>
-          <div className="relative">
+          <div id={redirectUriId} className="relative">
             <input
               type="text"
               value={redirectUri}
@@ -673,10 +689,14 @@ function OAuthProviderFormModal({
 
         {/* Scopes */}
         <div>
-          <label className="block text-sm font-medium text-foreground/90 mb-2">
+          <label
+            htmlFor={scopesOnePerId}
+            className="block text-sm font-medium text-foreground/90 mb-2"
+          >
             Scopes <span className="text-muted-foreground">(one per line)</span>
           </label>
           <textarea
+            id={scopesOnePerId}
             value={scopes}
             onChange={(e) => setScopes(e.target.value)}
             placeholder="Leave empty for default scopes"
@@ -689,10 +709,14 @@ function OAuthProviderFormModal({
         {/* Display Name (only for editing) */}
         {provider && (
           <div>
-            <label className="block text-sm font-medium text-foreground/90 mb-2">
+            <label
+              htmlFor={displayNameId}
+              className="block text-sm font-medium text-foreground/90 mb-2"
+            >
               Display Name
             </label>
             <input
+              id={displayNameId}
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}

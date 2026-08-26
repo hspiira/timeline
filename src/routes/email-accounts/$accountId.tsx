@@ -13,7 +13,7 @@ import {
   Trash2,
   XCircle,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { ErrorIcon, LoadingIcon } from '@/components/ui/icons'
@@ -85,6 +85,9 @@ function getOAuthStatusInfo(status: string | null | undefined): {
 }
 
 function EmailAccountDetailPage() {
+  const emailAddressId = useId()
+  const providerId = useId()
+  const syncStatusId = useId()
   const { accountId } = Route.useParams()
   const authState = useRequireAuth()
   const navigate = useNavigate()
@@ -302,22 +305,28 @@ function EmailAccountDetailPage() {
         <div className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Email Address</label>
-              <div className="flex items-center gap-2 mt-1">
+              <label htmlFor={emailAddressId} className="text-sm font-medium text-muted-foreground">
+                Email Address
+              </label>
+              <div id={emailAddressId} className="flex items-center gap-2 mt-1">
                 <Mail className="w-4 h-4 text-muted-foreground" />
                 <p className="text-foreground text-sm">{account.email_address}</p>
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Provider</label>
-              <div className="flex items-center gap-2 mt-1">
+              <label htmlFor={providerId} className="text-sm font-medium text-muted-foreground">
+                Provider
+              </label>
+              <div id={providerId} className="flex items-center gap-2 mt-1">
                 <Server className="w-4 h-4 text-muted-foreground" />
                 <p className="text-foreground text-sm capitalize">{account.provider_type}</p>
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Sync Status</label>
-              <div className="flex items-center gap-2 mt-1">
+              <label htmlFor={syncStatusId} className="text-sm font-medium text-muted-foreground">
+                Sync Status
+              </label>
+              <div id={syncStatusId} className="flex items-center gap-2 mt-1">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
                 <p className="text-foreground text-sm capitalize">{account.sync_status}</p>
               </div>

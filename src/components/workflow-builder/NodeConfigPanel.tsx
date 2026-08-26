@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import SubjectSelector from '@/components/subjects/SubjectSelector'
 import { Button } from '@/components/ui/button'
 import { optionsFromStrings, SingleSelectCombobox } from '@/components/ui/combobox'
@@ -24,6 +24,8 @@ function ConditionConfig({
   expression: string
   onUpdate: (updates: Record<string, unknown>) => void
 }) {
+  const ifAdvancedId = useId()
+  const whenThenFollowId = useId()
   const [forceAdvanced, setForceAdvanced] = useState(false)
   useEffect(() => {
     setForceAdvanced(false)
@@ -46,8 +48,11 @@ function ConditionConfig({
     const validation = validateConditionExpression(expression)
     return (
       <div className="space-y-2">
-        <label className="block text-xs font-medium text-muted-foreground">If… (advanced)</label>
+        <label htmlFor={ifAdvancedId} className="block text-xs font-medium text-muted-foreground">
+          If… (advanced)
+        </label>
         <Input
+          id={ifAdvancedId}
           value={expression}
           onChange={(e) => onUpdate({ expression: e.target.value })}
           placeholder="e.g. payload.amount > 100"
@@ -69,10 +74,10 @@ function ConditionConfig({
 
   return (
     <div className="space-y-2">
-      <label className="block text-xs font-medium text-muted-foreground">
+      <label htmlFor={whenThenFollowId} className="block text-xs font-medium text-muted-foreground">
         When… (then follow Yes, else follow No)
       </label>
-      <div className="space-y-1.5">
+      <div id={whenThenFollowId} className="space-y-1.5">
         <Input
           value={field}
           onChange={(e) => handleSimpleChange(e.target.value, operator, value)}
@@ -121,14 +126,30 @@ function ActionConfig({
   workflowContext?: import('@/hooks/useWorkflowEngineContext').WorkflowEngineContextValue
   onUpdate: (updates: Record<string, unknown>) => void
 }) {
+  const attributeUpdatesOptionalId = useId()
+  const bodyId = useId()
+  const eventTypeId = useId()
+  const extraPayloadOptionalId = useId()
+  const paramsJsonId = useId()
+  const relationshipKindId = useId()
+  const settingsJsonId = useId()
+  const sourceSubjectId = useId()
+  const subject2Id = useId()
+  const subjectId = useId()
+  const subjectOptionalId = useId()
+  const targetSubjectId = useId()
+  const toId = useId()
   const [showJson, setShowJson] = useState(false)
   const paramsStr = Object.keys(params).length === 0 ? '' : JSON.stringify(params, null, 2)
 
   if (showJson) {
     return (
       <div className="space-y-2">
-        <label className="block text-xs font-medium text-muted-foreground">Settings (JSON)</label>
+        <label htmlFor={settingsJsonId} className="block text-xs font-medium text-muted-foreground">
+          Settings (JSON)
+        </label>
         <Textarea
+          id={settingsJsonId}
           value={paramsStr}
           onChange={(e) => {
             const raw = e.target.value.trim()
@@ -168,8 +189,14 @@ function ActionConfig({
     return (
       <div className="space-y-3">
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">Event type</label>
+          <label
+            htmlFor={eventTypeId}
+            className="block text-xs font-medium text-muted-foreground mb-1"
+          >
+            Event type
+          </label>
           <SingleSelectCombobox
+            id={eventTypeId}
             value={event_type}
             onValueChange={(v) => onUpdate({ params: { ...params, event_type: v || undefined } })}
             options={optionsFromStrings(eventTypes, { value: '', label: 'Select event type' })}
@@ -178,19 +205,27 @@ function ActionConfig({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
+          <label
+            htmlFor={subjectOptionalId}
+            className="block text-xs font-medium text-muted-foreground mb-1"
+          >
             Subject (optional)
           </label>
           <SubjectSelector
+            id={subjectOptionalId}
             value={subject_id}
             onChange={(v) => onUpdate({ params: { ...params, subject_id: v || undefined } })}
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
+          <label
+            htmlFor={extraPayloadOptionalId}
+            className="block text-xs font-medium text-muted-foreground mb-1"
+          >
             Extra payload (optional)
           </label>
           <Input
+            id={extraPayloadOptionalId}
             value={payloadStr}
             onChange={(e) => {
               const raw = e.target.value.trim()
@@ -233,8 +268,11 @@ function ActionConfig({
     return (
       <div className="space-y-3">
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">To</label>
+          <label htmlFor={toId} className="block text-xs font-medium text-muted-foreground mb-1">
+            To
+          </label>
           <Input
+            id={toId}
             value={to}
             onChange={(e) => onUpdate({ params: { ...params, to: e.target.value } })}
             placeholder="email@example.com"
@@ -242,8 +280,14 @@ function ActionConfig({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">Subject</label>
+          <label
+            htmlFor={subject2Id}
+            className="block text-xs font-medium text-muted-foreground mb-1"
+          >
+            Subject
+          </label>
           <Input
+            id={subject2Id}
             value={subject}
             onChange={(e) => onUpdate({ params: { ...params, subject: e.target.value } })}
             placeholder="Email subject"
@@ -251,8 +295,11 @@ function ActionConfig({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">Body</label>
+          <label htmlFor={bodyId} className="block text-xs font-medium text-muted-foreground mb-1">
+            Body
+          </label>
           <Textarea
+            id={bodyId}
             value={body}
             onChange={(e) => onUpdate({ params: { ...params, body: e.target.value } })}
             placeholder="Email body or template"
@@ -284,10 +331,14 @@ function ActionConfig({
     return (
       <div className="space-y-3">
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
+          <label
+            htmlFor={relationshipKindId}
+            className="block text-xs font-medium text-muted-foreground mb-1"
+          >
             Relationship kind
           </label>
           <SingleSelectCombobox
+            id={relationshipKindId}
             value={relationship_kind}
             onValueChange={(v) =>
               onUpdate({ params: { ...params, relationship_kind: v || undefined } })
@@ -298,19 +349,27 @@ function ActionConfig({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
+          <label
+            htmlFor={sourceSubjectId}
+            className="block text-xs font-medium text-muted-foreground mb-1"
+          >
             Source subject
           </label>
           <SubjectSelector
+            id={sourceSubjectId}
             value={source_subject_id}
             onChange={(v) => onUpdate({ params: { ...params, source_subject_id: v || undefined } })}
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
+          <label
+            htmlFor={targetSubjectId}
+            className="block text-xs font-medium text-muted-foreground mb-1"
+          >
             Target subject
           </label>
           <SubjectSelector
+            id={targetSubjectId}
             value={target_subject_id}
             onChange={(v) => onUpdate({ params: { ...params, target_subject_id: v || undefined } })}
           />
@@ -336,17 +395,27 @@ function ActionConfig({
     return (
       <div className="space-y-3">
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">Subject</label>
+          <label
+            htmlFor={subjectId}
+            className="block text-xs font-medium text-muted-foreground mb-1"
+          >
+            Subject
+          </label>
           <SubjectSelector
+            id={subjectId}
             value={subject_id}
             onChange={(v) => onUpdate({ params: { ...params, subject_id: v || undefined } })}
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
+          <label
+            htmlFor={attributeUpdatesOptionalId}
+            className="block text-xs font-medium text-muted-foreground mb-1"
+          >
             Attribute updates (optional)
           </label>
           <Input
+            id={attributeUpdatesOptionalId}
             value={attributesStr}
             onChange={(e) => {
               const raw = e.target.value.trim()
@@ -380,8 +449,11 @@ function ActionConfig({
   // Fallback: show JSON for unknown action types
   return (
     <div className="space-y-2">
-      <label className="block text-xs font-medium text-muted-foreground">Params (JSON)</label>
+      <label htmlFor={paramsJsonId} className="block text-xs font-medium text-muted-foreground">
+        Params (JSON)
+      </label>
       <Input
+        id={paramsJsonId}
         value={paramsStr}
         onChange={(e) => {
           const raw = e.target.value.trim()
@@ -428,6 +500,13 @@ export function NodeConfigPanel({
   templateStepTip,
   onUpdate,
 }: NodeConfigPanelProps) {
+  const descriptionOptional2Id = useId()
+  const descriptionOptional3Id = useId()
+  const descriptionOptionalId = useId()
+  const integrationId = useId()
+  const operationId = useId()
+  const whatThisStepId = useId()
+  const whenEventTypeId = useId()
   const desc = nodeRegistry.getOptional(node.type)
   if (!desc) return null
 
@@ -441,8 +520,14 @@ export function NodeConfigPanel({
     return (
       <div className="space-y-2">
         {tip && <TipBlock text={tip} />}
-        <label className="block text-xs font-medium text-muted-foreground">When event type</label>
+        <label
+          htmlFor={whenEventTypeId}
+          className="block text-xs font-medium text-muted-foreground"
+        >
+          When event type
+        </label>
         <SingleSelectCombobox
+          id={whenEventTypeId}
           value={eventType}
           onValueChange={(v) => onUpdate({ eventType: v })}
           options={optionsFromStrings(eventTypes, { value: '', label: 'When event type…' })}
@@ -455,10 +540,14 @@ export function NodeConfigPanel({
           </p>
         )}
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
+          <label
+            htmlFor={descriptionOptional3Id}
+            className="block text-xs font-medium text-muted-foreground mb-1"
+          >
             Description (optional)
           </label>
           <Input
+            id={descriptionOptional3Id}
             value={(node.configuration?.description as string) ?? ''}
             onChange={(e) => onUpdate({ description: e.target.value })}
             placeholder="e.g. When subscription is cancelled"
@@ -479,10 +568,14 @@ export function NodeConfigPanel({
           onUpdate={onUpdate}
         />
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1 mt-2">
+          <label
+            htmlFor={descriptionOptional2Id}
+            className="block text-xs font-medium text-muted-foreground mb-1 mt-2"
+          >
             Description (optional)
           </label>
           <Input
+            id={descriptionOptional2Id}
             value={(node.configuration?.description as string) ?? ''}
             onChange={(e) => onUpdate({ description: e.target.value })}
             placeholder="e.g. Did status change to cancelled?"
@@ -500,10 +593,14 @@ export function NodeConfigPanel({
       <div className="space-y-3">
         {tip && <TipBlock text={tip} />}
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
+          <label
+            htmlFor={whatThisStepId}
+            className="block text-xs font-medium text-muted-foreground mb-1"
+          >
             What this step does
           </label>
           <SingleSelectCombobox
+            id={whatThisStepId}
             value={actionType}
             onValueChange={(v) => onUpdate({ actionType: v })}
             options={WORKFLOW_ACTION_TYPE_OPTIONS}
@@ -519,10 +616,14 @@ export function NodeConfigPanel({
           onUpdate={onUpdate}
         />
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
+          <label
+            htmlFor={descriptionOptionalId}
+            className="block text-xs font-medium text-muted-foreground mb-1"
+          >
             Description (optional)
           </label>
           <Input
+            id={descriptionOptionalId}
             value={(node.configuration?.description as string) ?? ''}
             onChange={(e) => onUpdate({ description: e.target.value })}
             placeholder="e.g. Create follow-up event"
@@ -543,10 +644,14 @@ export function NodeConfigPanel({
           operation to run.
         </p>
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
+          <label
+            htmlFor={integrationId}
+            className="block text-xs font-medium text-muted-foreground mb-1"
+          >
             Integration
           </label>
           <Input
+            id={integrationId}
             value={integration}
             onChange={(e) => onUpdate({ integration: e.target.value })}
             placeholder="e.g. slack, webhook, salesforce"
@@ -554,8 +659,14 @@ export function NodeConfigPanel({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">Operation</label>
+          <label
+            htmlFor={operationId}
+            className="block text-xs font-medium text-muted-foreground mb-1"
+          >
+            Operation
+          </label>
           <Input
+            id={operationId}
             value={operation}
             onChange={(e) => onUpdate({ operation: e.target.value })}
             placeholder="e.g. post_message, send, create_record"

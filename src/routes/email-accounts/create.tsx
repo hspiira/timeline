@@ -9,7 +9,7 @@ import {
   Mail,
   Server,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import SubjectSelector from '@/components/subjects/SubjectSelector'
 import { Button } from '@/components/ui/button'
 import { ErrorIcon, LoadingIcon } from '@/components/ui/icons'
@@ -78,6 +78,11 @@ const PROVIDERS: Record<EmailProvider, ProviderConfig> = {
 }
 
 function CreateEmailAccountPage() {
+  const emailAddressId = useId()
+  const imapServerId = useId()
+  const passwordAppSpecificId = useId()
+  const portId = useId()
+  const subjectFieldId = useId()
   const authState = useRequireAuth()
   const navigate = useNavigate()
   const toast = useToast()
@@ -389,10 +394,17 @@ function CreateEmailAccountPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Subject Selection */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
+              <label
+                htmlFor={subjectFieldId}
+                className="block text-sm font-medium text-foreground mb-1.5"
+              >
                 Subject <span className="text-red-500">*</span>
               </label>
-              <SubjectSelector value={subjectId} onChange={(value) => setSubjectId(value)} />
+              <SubjectSelector
+                id={subjectFieldId}
+                value={subjectId}
+                onChange={(value) => setSubjectId(value)}
+              />
               <p className="text-xs text-muted-foreground mt-1">
                 The subject this email account will be linked to
               </p>
@@ -400,10 +412,13 @@ function CreateEmailAccountPage() {
 
             {/* Email Address */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
+              <label
+                htmlFor={emailAddressId}
+                className="block text-sm font-medium text-foreground mb-1.5"
+              >
                 Email Address <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
+              <div id={emailAddressId} className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   type="email"
@@ -421,10 +436,13 @@ function CreateEmailAccountPage() {
               <>
                 {/* Password */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">
+                  <label
+                    htmlFor={passwordAppSpecificId}
+                    className="block text-sm font-medium text-foreground mb-1.5"
+                  >
                     Password / App-Specific Password <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative">
+                  <div id={passwordAppSpecificId} className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="password"
@@ -444,10 +462,13 @@ function CreateEmailAccountPage() {
                 {/* IMAP Server */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-foreground mb-1.5">
+                    <label
+                      htmlFor={imapServerId}
+                      className="block text-sm font-medium text-foreground mb-1.5"
+                    >
                       IMAP Server <span className="text-red-500">*</span>
                     </label>
-                    <div className="relative">
+                    <div id={imapServerId} className="relative">
                       <Server className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <input
                         type="text"
@@ -460,10 +481,14 @@ function CreateEmailAccountPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">
+                    <label
+                      htmlFor={portId}
+                      className="block text-sm font-medium text-foreground mb-1.5"
+                    >
                       Port <span className="text-red-500">*</span>
                     </label>
                     <input
+                      id={portId}
                       type="number"
                       value={imapPort}
                       onChange={(e) => setImapPort(e.target.value)}

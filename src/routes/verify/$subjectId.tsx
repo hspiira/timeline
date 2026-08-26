@@ -12,7 +12,7 @@ import {
   FileCheck,
   Wrench,
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { Button } from '@/components/ui/button'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
@@ -120,6 +120,7 @@ function VerificationTableRow({
 }
 
 function VerifyPage() {
+  const statusId = useId()
   const authState = useRequireAuth()
   const navigate = useNavigate()
   const { subjectId } = Route.useParams()
@@ -455,10 +456,14 @@ function VerifyPage() {
             <div className="bg-card/80 rounded-none border border-border/50 p-3 mb-3">
               <h2 className="text-sm font-semibold text-foreground mb-2">Verification Detail</h2>
               <div className="mb-2 flex flex-wrap items-center gap-2">
-                <label className="text-sm font-medium text-foreground/90 whitespace-nowrap">
+                <label
+                  htmlFor={statusId}
+                  className="text-sm font-medium text-foreground/90 whitespace-nowrap"
+                >
                   Status:
                 </label>
                 <SingleSelectCombobox
+                  id={statusId}
                   value={filterStatus}
                   onValueChange={(v) => setFilterStatus(v === 'valid' || v === 'break' ? v : '')}
                   options={[

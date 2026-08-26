@@ -1,5 +1,5 @@
 import { AlertCircle } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { cloneElement, isValidElement, type ReactNode, useId } from 'react'
 import { Alert, AlertDescription } from './alert'
 import { Input } from './input'
 
@@ -12,13 +12,20 @@ export interface FormFieldProps {
 }
 
 export function FormField({ label, error, required = false, hint, children }: FormFieldProps) {
+  const fieldId = useId()
+  // Give the control the id the label points at, when it is a single element that
+  // has not set one itself.
+  const control = isValidElement<{ id?: string }>(children)
+    ? cloneElement(children, { id: children.props.id ?? fieldId })
+    : children
+
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-foreground/90">
+      <label htmlFor={fieldId} className="block text-sm font-medium text-foreground/90">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
-      {children}
+      {control}
       {error && (
         <div className="flex items-center gap-1.5 text-red-600 dark:text-red-300">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />

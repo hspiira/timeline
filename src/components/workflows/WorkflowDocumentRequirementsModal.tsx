@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
 import { LoadingIcon } from '@/components/ui/icons'
@@ -24,6 +24,8 @@ export function WorkflowDocumentRequirementsModal({
   isOpen,
   onClose,
 }: Props) {
+  const documentCategoryId = useId()
+  const minCountId = useId()
   const [requirements, setRequirements] = useState<DocumentRequirement[]>([])
   const [categories, setCategories] = useState<DocumentCategoryListItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -108,10 +110,14 @@ export function WorkflowDocumentRequirementsModal({
 
             <div className="flex flex-wrap items-end gap-2">
               <div className="flex-1 min-w-[200px]">
-                <label className="block text-sm font-medium text-foreground mb-1">
+                <label
+                  htmlFor={documentCategoryId}
+                  className="block text-sm font-medium text-foreground mb-1"
+                >
                   Document category
                 </label>
                 <SingleSelectCombobox
+                  id={documentCategoryId}
                   value={addCategoryId}
                   onValueChange={setAddCategoryId}
                   options={availableOptions}
@@ -120,8 +126,14 @@ export function WorkflowDocumentRequirementsModal({
                 />
               </div>
               <div className="w-24">
-                <label className="block text-sm font-medium text-foreground mb-1">Min count</label>
+                <label
+                  htmlFor={minCountId}
+                  className="block text-sm font-medium text-foreground mb-1"
+                >
+                  Min count
+                </label>
                 <Input
+                  id={minCountId}
                   type="number"
                   min={1}
                   value={addMinCount}

@@ -16,7 +16,7 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { DocumentList } from '@/components/documents/DocumentList'
 import { DocumentUpload } from '@/components/documents/DocumentUpload'
 import { DocumentViewer } from '@/components/documents/DocumentViewer'
@@ -81,6 +81,9 @@ export const Route = createFileRoute('/subjects/$subjectId')({
 })
 
 export function SubjectDetailPage() {
+  const eventTypeId = useId()
+  const fromId = useId()
+  const toId = useId()
   const { subjectId } = Route.useParams()
   const {
     tab: activeTab,
@@ -745,10 +748,14 @@ export function SubjectDetailPage() {
           {/* Event filters: type + date range. Integrity filter deferred until list API supports it. */}
           <div className="mb-3 flex flex-wrap items-center gap-3 rounded-none border border-border/40 bg-muted/10 px-3 py-2">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <label className="text-sm font-medium text-foreground/90 whitespace-nowrap">
+              <label
+                htmlFor={eventTypeId}
+                className="text-sm font-medium text-foreground/90 whitespace-nowrap"
+              >
                 Event type:
               </label>
               <SingleSelectCombobox
+                id={eventTypeId}
                 value={filterEventType}
                 onValueChange={(value) => {
                   setFilterEventType(value)
@@ -774,10 +781,14 @@ export function SubjectDetailPage() {
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <label className="text-sm font-medium text-foreground/90 whitespace-nowrap">
+              <label
+                htmlFor={fromId}
+                className="text-sm font-medium text-foreground/90 whitespace-nowrap"
+              >
                 From:
               </label>
               <input
+                id={fromId}
                 type="date"
                 value={filterDateFrom}
                 onChange={(e) => {
@@ -799,10 +810,14 @@ export function SubjectDetailPage() {
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <label className="text-sm font-medium text-foreground/90 whitespace-nowrap">
+              <label
+                htmlFor={toId}
+                className="text-sm font-medium text-foreground/90 whitespace-nowrap"
+              >
                 To:
               </label>
               <input
+                id={toId}
                 type="date"
                 value={filterDateTo}
                 onChange={(e) => {
