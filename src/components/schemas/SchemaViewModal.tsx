@@ -75,6 +75,7 @@ export function SchemaViewModal({ schema, onClose }: SchemaViewModalProps) {
         {/* View Mode Toggle */}
         <div className="flex gap-1 mb-4 border-b border-border">
           <button
+            type="button"
             onClick={() => setViewMode('simplified')}
             className={`px-3 py-2 text-sm font-medium transition-colors border-b-2 ${
               viewMode === 'simplified'
@@ -85,6 +86,7 @@ export function SchemaViewModal({ schema, onClose }: SchemaViewModalProps) {
             Field View
           </button>
           <button
+            type="button"
             onClick={() => setViewMode('json')}
             className={`px-3 py-2 text-sm font-medium transition-colors border-b-2 ${
               viewMode === 'json'
@@ -156,6 +158,7 @@ export function SchemaViewModal({ schema, onClose }: SchemaViewModalProps) {
       {/* Close Button */}
       <div className="pt-4 border-t border-border">
         <button
+          type="button"
           onClick={onClose}
           className="w-full px-4 py-2 border border-input text-foreground/90 rounded-none font-medium hover:bg-muted/30 transition-colors text-sm"
         >

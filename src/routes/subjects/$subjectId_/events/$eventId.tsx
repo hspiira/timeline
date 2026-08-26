@@ -277,6 +277,7 @@ function EventDetailPage() {
             {value}
           </code>
           <button
+            type="button"
             onClick={() => copyToClipboard(value, fieldKey)}
             className="p-2 hover:bg-muted rounded-none transition-colors opacity-0 group-hover:opacity-100"
             title="Copy"

@@ -39,6 +39,7 @@ export function EventCard({
               {/* Document Count and View Details - Same Row */}
               {hasDocuments && (
                 <button
+                  type="button"
                   onClick={onViewDocuments}
                   className="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded-none hover:bg-blue-200 dark:hover:bg-blue-900/40 transition-colors text-xs shrink-0"
                   title={`${documentCount} document${documentCount !== 1 ? 's' : ''}`}
@@ -49,6 +50,7 @@ export function EventCard({
               )}
               {onViewDetails && (
                 <button
+                  type="button"
                   onClick={onViewDetails}
                   className="px-1.5 sm:px-2 py-0.5 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-950/30 rounded-none transition-colors shrink-0"
                   title="View details"

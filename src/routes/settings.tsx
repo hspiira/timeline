@@ -176,6 +176,7 @@ function SettingsLayout() {
                       const active = isActive(item.path)
                       return (
                         <button
+                          type="button"
                           key={item.path}
                           onClick={() => navigate({ to: item.path })}
                           className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-none transition-colors text-left border-l-2 ${

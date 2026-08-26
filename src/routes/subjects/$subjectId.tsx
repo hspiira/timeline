@@ -629,6 +629,7 @@ export function SubjectDetailPage() {
       {/* Tabs — persisted in URL so reload keeps tab */}
       <div className="flex gap-1 mb-3 border-b border-border/40">
         <button
+          type="button"
           onClick={() =>
             navigate({
               to: '/subjects/$subjectId',
@@ -646,6 +647,7 @@ export function SubjectDetailPage() {
           Event Chain
         </button>
         <button
+          type="button"
           onClick={() =>
             navigate({
               to: '/subjects/$subjectId',
@@ -663,6 +665,7 @@ export function SubjectDetailPage() {
           Documents
         </button>
         <button
+          type="button"
           onClick={() =>
             navigate({
               to: '/subjects/$subjectId',
@@ -680,6 +683,7 @@ export function SubjectDetailPage() {
           State
         </button>
         <button
+          type="button"
           onClick={() =>
             navigate({
               to: '/subjects/$subjectId',
@@ -697,6 +701,7 @@ export function SubjectDetailPage() {
           Relationships
         </button>
         <button
+          type="button"
           onClick={() =>
             navigate({
               to: '/subjects/$subjectId',

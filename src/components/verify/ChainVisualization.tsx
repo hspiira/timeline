@@ -98,6 +98,7 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
         </code>
         <div className="flex items-center gap-0.5 opacity-0 group-hover/hash:opacity-100 transition-opacity shrink-0">
           <button
+            type="button"
             onClick={() => copyToClipboard(hash!)}
             className="p-1 hover:bg-muted rounded-none transition-colors"
             title="Copy"
@@ -111,6 +112,7 @@ export function ChainVisualization({ events, tamperedIndices }: ChainVisualizati
           </button>
           {hash!.length > 32 && (
             <button
+              type="button"
               onClick={() => toggleHashExpanded(hashKey)}
               className="p-1 hover:bg-muted rounded-none transition-colors"
               title={isExpanded ? 'Collapse' : 'Expand'}

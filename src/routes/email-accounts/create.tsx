@@ -281,6 +281,7 @@ function CreateEmailAccountPage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-3">
         <button
+          type="button"
           onClick={() => {
             if (step === 'configure') {
               setStep('select')
@@ -333,6 +334,7 @@ function CreateEmailAccountPage() {
 
               return (
                 <button
+                  type="button"
                   key={provider}
                   onClick={() => handleProviderSelect(provider)}
                   className="p-4 bg-card/80 backdrop-blur-sm border border-border/50 rounded-none hover:border-primary/50 hover:bg-card transition-all text-left group"

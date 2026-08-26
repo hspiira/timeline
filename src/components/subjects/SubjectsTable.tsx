@@ -123,6 +123,7 @@ export function SubjectsTable({ data, onEdit, subjectTypeConfig }: SubjectsTable
           const subject = row.original
           return (
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation()
                 onEdit?.(subject)

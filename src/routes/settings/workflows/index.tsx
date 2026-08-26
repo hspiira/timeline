@@ -267,6 +267,7 @@ function WorkflowsPage() {
         return (
           <div className="flex items-center justify-end gap-1">
             <button
+              type="button"
               onClick={() => setDocumentRequirementsWorkflow(workflow)}
               disabled={hasNoAccess}
               className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -275,6 +276,7 @@ function WorkflowsPage() {
               <FileCheck className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={() => setEditingWorkflow(workflow)}
               disabled={hasNoAccess}
               className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -283,6 +285,7 @@ function WorkflowsPage() {
               <SquarePen className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={() => handleToggleWorkflow(workflow.id, workflow.is_active)}
               disabled={toggling === workflow.id || hasNoAccess}
               className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -303,6 +306,7 @@ function WorkflowsPage() {
               )}
             </button>
             <button
+              type="button"
               onClick={() => handleDeleteClick(workflow.id, workflow.name)}
               disabled={deleting === workflow.id || hasNoAccess}
               className="p-1 text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-muted rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

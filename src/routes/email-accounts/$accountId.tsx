@@ -215,6 +215,7 @@ function EmailAccountDetailPage() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => navigate({ to: '/email-accounts' })}
             className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors"
           >

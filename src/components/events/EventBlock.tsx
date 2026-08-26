@@ -48,6 +48,7 @@ function HashCell({
       {isLink && <Link2 className="w-3 h-3 text-muted-foreground/50 shrink-0" />}
       <code className="text-xs font-mono text-muted-foreground">{hash.slice(0, 16)}...</code>
       <button
+        type="button"
         onClick={(e) => onCopy(hash, e)}
         className="opacity-0 group-hover/hash:opacity-100 transition-opacity p-0.5 hover:bg-muted rounded-none"
         title="Copy full hash"

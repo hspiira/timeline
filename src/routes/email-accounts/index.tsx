@@ -251,6 +251,7 @@ function EmailAccountsPage() {
         return (
           <div className="flex items-center justify-end gap-1">
             <button
+              type="button"
               onClick={() => handleSync(account.id, account.email_address)}
               disabled={isSyncing || !account.is_active}
               className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

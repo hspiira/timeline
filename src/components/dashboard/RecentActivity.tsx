@@ -43,6 +43,7 @@ export function RecentActivity({ eventsByDate, timeline }: RecentActivityProps) 
         return (
           <div key={date}>
             <button
+              type="button"
               onClick={() => timeline.toggleDate(date)}
               className="flex items-center gap-2 mb-4"
             >

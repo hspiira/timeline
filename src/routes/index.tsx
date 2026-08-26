@@ -357,6 +357,7 @@ function HomePage() {
                   ))}
                 </ul>
                 <button
+                  type="button"
                   onClick={fetchDashboard}
                   className="inline-flex items-center gap-2 text-xs font-medium text-foreground hover:text-primary transition-colors"
                 >
