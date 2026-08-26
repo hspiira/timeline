@@ -45,8 +45,6 @@ import { Route as SettingsDocumentCategoriesIndexRouteImport } from './routes/se
 import { Route as SettingsConnectorsIndexRouteImport } from './routes/settings/connectors/index'
 import { Route as SettingsAuditLogIndexRouteImport } from './routes/settings/audit-log/index'
 import { Route as IntegrityRepairsIndexRouteImport } from './routes/integrity/repairs/index'
-import { Route as AdminRolesIndexRouteImport } from './routes/admin/roles/index'
-import { Route as AdminPermissionsIndexRouteImport } from './routes/admin/permissions/index'
 import { Route as SubjectsSubjectIdEpochsRouteImport } from './routes/subjects/$subjectId_/epochs'
 import { Route as SettingsWorkflowsCreateRouteImport } from './routes/settings/workflows/create'
 import { Route as SettingsWorkflowsBuilderRouteImport } from './routes/settings/workflows/builder'
@@ -245,16 +243,6 @@ const IntegrityRepairsIndexRoute = IntegrityRepairsIndexRouteImport.update({
   path: '/integrity/repairs/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRolesIndexRoute = AdminRolesIndexRouteImport.update({
-  id: '/admin/roles/',
-  path: '/admin/roles/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminPermissionsIndexRoute = AdminPermissionsIndexRouteImport.update({
-  id: '/admin/permissions/',
-  path: '/admin/permissions/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SubjectsSubjectIdEpochsRoute = SubjectsSubjectIdEpochsRouteImport.update({
   id: '/subjects/$subjectId_/epochs',
   path: '/subjects/$subjectId/epochs',
@@ -342,8 +330,6 @@ export interface FileRoutesByFullPath {
   '/settings/workflows/builder': typeof SettingsWorkflowsBuilderRoute
   '/settings/workflows/create': typeof SettingsWorkflowsCreateRoute
   '/subjects/$subjectId/epochs': typeof SubjectsSubjectIdEpochsRoute
-  '/admin/permissions/': typeof AdminPermissionsIndexRoute
-  '/admin/roles/': typeof AdminRolesIndexRoute
   '/integrity/repairs/': typeof IntegrityRepairsIndexRoute
   '/settings/audit-log/': typeof SettingsAuditLogIndexRoute
   '/settings/connectors/': typeof SettingsConnectorsIndexRoute
@@ -392,8 +378,6 @@ export interface FileRoutesByTo {
   '/settings/workflows/builder': typeof SettingsWorkflowsBuilderRoute
   '/settings/workflows/create': typeof SettingsWorkflowsCreateRoute
   '/subjects/$subjectId/epochs': typeof SubjectsSubjectIdEpochsRoute
-  '/admin/permissions': typeof AdminPermissionsIndexRoute
-  '/admin/roles': typeof AdminRolesIndexRoute
   '/integrity/repairs': typeof IntegrityRepairsIndexRoute
   '/settings/audit-log': typeof SettingsAuditLogIndexRoute
   '/settings/connectors': typeof SettingsConnectorsIndexRoute
@@ -443,8 +427,6 @@ export interface FileRoutesById {
   '/settings/workflows/builder': typeof SettingsWorkflowsBuilderRoute
   '/settings/workflows/create': typeof SettingsWorkflowsCreateRoute
   '/subjects/$subjectId_/epochs': typeof SubjectsSubjectIdEpochsRoute
-  '/admin/permissions/': typeof AdminPermissionsIndexRoute
-  '/admin/roles/': typeof AdminRolesIndexRoute
   '/integrity/repairs/': typeof IntegrityRepairsIndexRoute
   '/settings/audit-log/': typeof SettingsAuditLogIndexRoute
   '/settings/connectors/': typeof SettingsConnectorsIndexRoute
@@ -495,8 +477,6 @@ export interface FileRouteTypes {
     | '/settings/workflows/builder'
     | '/settings/workflows/create'
     | '/subjects/$subjectId/epochs'
-    | '/admin/permissions/'
-    | '/admin/roles/'
     | '/integrity/repairs/'
     | '/settings/audit-log/'
     | '/settings/connectors/'
@@ -545,8 +525,6 @@ export interface FileRouteTypes {
     | '/settings/workflows/builder'
     | '/settings/workflows/create'
     | '/subjects/$subjectId/epochs'
-    | '/admin/permissions'
-    | '/admin/roles'
     | '/integrity/repairs'
     | '/settings/audit-log'
     | '/settings/connectors'
@@ -595,8 +573,6 @@ export interface FileRouteTypes {
     | '/settings/workflows/builder'
     | '/settings/workflows/create'
     | '/subjects/$subjectId_/epochs'
-    | '/admin/permissions/'
-    | '/admin/roles/'
     | '/integrity/repairs/'
     | '/settings/audit-log/'
     | '/settings/connectors/'
@@ -644,8 +620,6 @@ export interface RootRouteChildren {
   IntegrityRepairsNewRoute: typeof IntegrityRepairsNewRoute
   ProjectionsNameVersionRoute: typeof ProjectionsNameVersionRoute
   SubjectsSubjectIdEpochsRoute: typeof SubjectsSubjectIdEpochsRoute
-  AdminPermissionsIndexRoute: typeof AdminPermissionsIndexRoute
-  AdminRolesIndexRoute: typeof AdminRolesIndexRoute
   IntegrityRepairsIndexRoute: typeof IntegrityRepairsIndexRoute
   SubjectsSubjectIdEventsEventIdRoute: typeof SubjectsSubjectIdEventsEventIdRoute
   SubjectsSubjectIdProofEventSeqRoute: typeof SubjectsSubjectIdProofEventSeqRoute
@@ -905,20 +879,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IntegrityRepairsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/roles/': {
-      id: '/admin/roles/'
-      path: '/admin/roles'
-      fullPath: '/admin/roles/'
-      preLoaderRoute: typeof AdminRolesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/permissions/': {
-      id: '/admin/permissions/'
-      path: '/admin/permissions'
-      fullPath: '/admin/permissions/'
-      preLoaderRoute: typeof AdminPermissionsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/subjects/$subjectId_/epochs': {
       id: '/subjects/$subjectId_/epochs'
       path: '/subjects/$subjectId/epochs'
@@ -1062,8 +1022,6 @@ const rootRouteChildren: RootRouteChildren = {
   IntegrityRepairsNewRoute: IntegrityRepairsNewRoute,
   ProjectionsNameVersionRoute: ProjectionsNameVersionRoute,
   SubjectsSubjectIdEpochsRoute: SubjectsSubjectIdEpochsRoute,
-  AdminPermissionsIndexRoute: AdminPermissionsIndexRoute,
-  AdminRolesIndexRoute: AdminRolesIndexRoute,
   IntegrityRepairsIndexRoute: IntegrityRepairsIndexRoute,
   SubjectsSubjectIdEventsEventIdRoute: SubjectsSubjectIdEventsEventIdRoute,
   SubjectsSubjectIdProofEventSeqRoute: SubjectsSubjectIdProofEventSeqRoute,
