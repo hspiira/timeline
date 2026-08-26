@@ -13,7 +13,7 @@ import {
   Trash2,
   XCircle,
 } from 'lucide-react'
-import { useEffect, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { ErrorIcon, LoadingIcon } from '@/components/ui/icons'
@@ -101,13 +101,7 @@ function EmailAccountDetailPage() {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  useEffect(() => {
-    if (authState.user) {
-      fetchAccount()
-    }
-  }, [authState.user, accountId])
-
-  const fetchAccount = async () => {
+  const fetchAccount = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -124,7 +118,13 @@ function EmailAccountDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [accountId])
+
+  useEffect(() => {
+    if (authState.user) {
+      fetchAccount()
+    }
+  }, [authState.user, fetchAccount])
 
   const handleSync = async () => {
     if (!account) return

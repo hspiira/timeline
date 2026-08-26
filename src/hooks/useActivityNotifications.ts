@@ -31,7 +31,7 @@ export function useActivityNotifications(preferences: NotificationPreferences = 
     showForActions = ['created', 'verified'],
     showForResourceTypes = [],
     groupByResourceType: _groupByResourceType = false,
-    autoCloseDuration = 5000,
+    autoCloseDuration: _autoCloseDuration = 5000,
   } = preferences
 
   const toast = useToast()
@@ -84,7 +84,7 @@ export function useActivityNotifications(preferences: NotificationPreferences = 
 
       toast.info(title, description)
     },
-    [shouldNotify, getActionEmoji, toast, autoCloseDuration],
+    [shouldNotify, getActionEmoji, toast],
   )
 
   const notifyActivityUpdate = useCallback(

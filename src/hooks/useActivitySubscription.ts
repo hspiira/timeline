@@ -114,6 +114,8 @@ export function useActivitySubscription({
     [dispatchEvent, onError],
   )
 
+  const attemptReconnectRef = useRef<() => void>(() => {})
+
   const connect = useCallback(() => {
     if (eventSourceRef.current?.readyState === EventSource.OPEN) return
 
@@ -143,12 +145,12 @@ export function useActivitySubscription({
         setIsConnected(false)
         es.close()
         eventSourceRef.current = null
-        attemptReconnect()
+        attemptReconnectRef.current()
       }
     } catch (err) {
       console.error('Failed to create EventSource:', err)
       onError?.(err instanceof Error ? err : new Error('Failed to create EventSource'))
-      attemptReconnect()
+      attemptReconnectRef.current()
     }
   }, [handleSSEMessage, onError])
 
@@ -165,6 +167,10 @@ export function useActivitySubscription({
       connect()
     }, delay)
   }, [connect])
+
+  useEffect(() => {
+    attemptReconnectRef.current = attemptReconnect
+  }, [attemptReconnect])
 
   const subscribe = useCallback(
     (_filters?: { actions?: string[]; resourceTypes?: string[]; userId?: string }) => {
@@ -194,7 +200,7 @@ export function useActivitySubscription({
   useEffect(() => {
     if (enabled) connect()
     return () => disconnect()
-  }, [enabled, subjectId, connect, disconnect])
+  }, [enabled, connect, disconnect])
 
   return {
     isConnected,

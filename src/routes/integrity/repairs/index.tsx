@@ -75,7 +75,7 @@ function RepairsPage() {
 
   useEffect(() => {
     if (authState.user) refetch()
-  }, [authState.user, refetch, skip, status])
+  }, [authState.user, refetch])
 
   const items = fetched?.items ?? []
   const total = fetched?.total ?? 0

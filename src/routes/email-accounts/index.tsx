@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { CheckCircle, Clock, Mail, Plus, RefreshCw, Wifi, WifiOff, XCircle } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/DataTable'
 import { ErrorIcon, LoadingIcon } from '@/components/ui/icons'
@@ -89,13 +89,7 @@ function EmailAccountsPage() {
     },
   })
 
-  useEffect(() => {
-    if (authState.user) {
-      fetchAccounts()
-    }
-  }, [authState.user])
-
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -113,7 +107,13 @@ function EmailAccountsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (authState.user) {
+      fetchAccounts()
+    }
+  }, [authState.user, fetchAccounts])
 
   const handleSync = async (accountId: string, emailAddress: string) => {
     setSyncing(accountId)

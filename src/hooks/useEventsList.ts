@@ -48,6 +48,7 @@ export function useEventsList(options: UseEventsListOptions): UseEventsListResul
   const [refetchTrigger, setRefetchTrigger] = useState(0)
   const loadingMoreRef = useRef(false)
   const hasMoreRef = useRef(true)
+  const totalCountRef = useRef<number | null>(null)
 
   const effectivePage = paged ? pagedPage : page
   const isAppend = !paged && page > 0
@@ -64,12 +65,14 @@ export function useEventsList(options: UseEventsListOptions): UseEventsListResul
     setRefetchTrigger((t) => t + 1)
   }, [])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: filterEventType is the trigger; a change to it is what resets the paging.
   useEffect(() => {
     if (paged) return
     setPage(0)
     setHasMore(true)
   }, [filterEventType, paged])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refetchTrigger is a counter refetch() bumps; the body never reads it because bumping it is the whole point.
   useEffect(() => {
     if (!enabled) return
     if (isAppend) {
@@ -120,7 +123,8 @@ export function useEventsList(options: UseEventsListOptions): UseEventsListResul
           setEvents((prev) => {
             const next = [...prev, ...validEvents]
             if (validEvents.length < EVENTS_PAGE_SIZE) setHasMore(false)
-            else if (totalCount != null && next.length >= totalCount) setHasMore(false)
+            else if (totalCountRef.current != null && next.length >= totalCountRef.current)
+              setHasMore(false)
             return next
           })
         } else {
@@ -197,6 +201,7 @@ export function useEventsList(options: UseEventsListOptions): UseEventsListResul
 
   hasMoreRef.current = hasMore
   loadingMoreRef.current = loadingMore
+  totalCountRef.current = totalCount
 
   return {
     events,

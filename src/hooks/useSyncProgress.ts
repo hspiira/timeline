@@ -97,6 +97,8 @@ export function useSyncProgress({
   /**
    * Connect to WebSocket server
    */
+  const attemptReconnectRef = useRef<() => void>(() => {})
+
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       return
@@ -140,12 +142,12 @@ export function useSyncProgress({
           return
         }
 
-        attemptReconnect()
+        attemptReconnectRef.current()
       }
     } catch (err) {
       console.error('Failed to create WebSocket:', err)
       onError?.(err instanceof Error ? err : new Error('Failed to create WebSocket'))
-      attemptReconnect()
+      attemptReconnectRef.current()
     }
   }, [handleMessage, onError])
 
@@ -168,6 +170,10 @@ export function useSyncProgress({
       connect()
     }, delay)
   }, [connect])
+
+  useEffect(() => {
+    attemptReconnectRef.current = attemptReconnect
+  }, [attemptReconnect])
 
   /**
    * Disconnect from WebSocket
