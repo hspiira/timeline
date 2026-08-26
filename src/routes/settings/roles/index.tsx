@@ -568,7 +568,10 @@ function ManageRolePermissionsModal({
         })
 
         if (apiError) {
-          const errorMsg = getApiErrorDisplay({ error: apiError }, 'Failed to assign permissions').message
+          const errorMsg = getApiErrorDisplay(
+            { error: apiError },
+            'Failed to assign permissions',
+          ).message
           setError(errorMsg)
           onError(errorMsg)
           return
@@ -580,7 +583,10 @@ function ManageRolePermissionsModal({
         const { error: apiError } = await timelineApi.roles.removePermission(role.id, permId)
 
         if (apiError) {
-          const errorMsg = getApiErrorDisplay({ error: apiError }, 'Failed to remove permission').message
+          const errorMsg = getApiErrorDisplay(
+            { error: apiError },
+            'Failed to remove permission',
+          ).message
           setError(errorMsg)
           onError(errorMsg)
           return
@@ -591,7 +597,10 @@ function ManageRolePermissionsModal({
       const { data, error: fetchError } = await timelineApi.roles.get(role.id)
 
       if (fetchError) {
-        const errorMsg = getApiErrorDisplay({ error: fetchError }, 'Failed to load updated role').message
+        const errorMsg = getApiErrorDisplay(
+          { error: fetchError },
+          'Failed to load updated role',
+        ).message
         setError(errorMsg)
         onError(errorMsg)
       } else if (data) {

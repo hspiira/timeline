@@ -93,7 +93,10 @@ function PermissionsPage() {
       const { error: apiError } = await timelineApi.permissions.delete(confirmingDelete.id)
 
       if (apiError) {
-        const errorMsg = getApiErrorDisplay({ error: apiError }, 'Failed to delete permission').message
+        const errorMsg = getApiErrorDisplay(
+          { error: apiError },
+          'Failed to delete permission',
+        ).message
         setError(errorMsg)
         toast.error('Failed to delete', errorMsg)
         throw new Error(errorMsg)
@@ -355,7 +358,10 @@ function PermissionFormModal({
       })
 
       if (apiError) {
-        const errorMsg = getApiErrorDisplay({ error: apiError }, 'Failed to create permission').message
+        const errorMsg = getApiErrorDisplay(
+          { error: apiError },
+          'Failed to create permission',
+        ).message
         setError(errorMsg)
         onError(errorMsg)
       } else if (data) {
