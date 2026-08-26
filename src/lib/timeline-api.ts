@@ -207,7 +207,10 @@ export interface paths {
         };
         /**
          * Get Me
-         * @description Return the currently authenticated user from JWT.
+         * @description Return the authenticated user and the permissions they hold.
+         *
+         *     The permission list is for hiding actions in the interface only; every endpoint
+         *     still checks the caller itself.
          *
          *     Requires Authorization: Bearer <token>.
          */
@@ -4992,8 +4995,11 @@ export interface components {
             email: string;
             /** Is Active */
             is_active: boolean;
-            /** Permissions */
-            permissions?: string[];
+            /**
+             * Permissions
+             * @default []
+             */
+            permissions: string[];
         };
         /**
          * UserUpdate
@@ -6470,6 +6476,40 @@ export interface operations {
             };
         };
     };
+    list_chain_repairs_api_v1_tenants_integrity_repair_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+                /** @description Filter by repair status, e.g. Pending Approval */
+                repair_status?: components["schemas"]["ChainRepairStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainRepairListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     initiate_chain_repair_api_v1_tenants_integrity_repair_post: {
         parameters: {
             query?: never;
@@ -6521,40 +6561,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChainRepairResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_chain_repairs_api_v1_tenants_integrity_repair_get: {
-        parameters: {
-            query?: {
-                skip?: number;
-                limit?: number;
-                /** @description Filter by repair status, e.g. Pending Approval */
-                repair_status?: components["schemas"]["ChainRepairStatus"] | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChainRepairListResponse"];
                 };
             };
             /** @description Validation Error */
