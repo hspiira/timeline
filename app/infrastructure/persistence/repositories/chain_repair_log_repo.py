@@ -54,12 +54,7 @@ class ChainRepairLogRepository(BaseRepository[ChainRepairLog]):
         limit: int = 100,
         repair_status: ChainRepairStatus | None = None,
     ) -> tuple[list[ChainRepairLog], int]:
-        """List a tenant's repair records and the unpaginated total in one query.
-
-        The total comes from a window count rather than a second statement, so a
-        caller paging through the repair queue sees a total consistent with the page
-        it was given.
-        """
+        """List a tenant's repair records and the unpaginated total (window count)."""
         conditions = [ChainRepairLog.tenant_id == tenant_id]
         if repair_status is not None:
             conditions.append(ChainRepairLog.repair_status == repair_status)

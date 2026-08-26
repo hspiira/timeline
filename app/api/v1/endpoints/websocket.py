@@ -2,9 +2,7 @@
 
 Uses only the ConnectionManager on app.state (set in lifespan); no manual construction.
 Requires a valid JWT before registering the connection. The token travels in the
-Sec-WebSocket-Protocol header rather than the query string, because query strings are
-routinely recorded in proxy and server access logs and a bearer token in a log file
-outlives the request that carried it.
+Sec-WebSocket-Protocol header, not the query string, which proxies write to access logs.
 """
 
 from typing import Annotated
@@ -34,11 +32,7 @@ BEARER_SUBPROTOCOL = "bearer"
 
 
 def _token_from_subprotocol(websocket: WebSocket) -> str | None:
-    """Extract the bearer token a client offered in Sec-WebSocket-Protocol.
-
-    Clients offer two values, the marker "bearer" followed by the JWT. Anything else
-    is treated as no token at all.
-    """
+    """Extract the token from Sec-WebSocket-Protocol: bearer, <jwt>."""
     header = websocket.headers.get("sec-websocket-protocol")
     if not header:
         return None
@@ -57,9 +51,8 @@ async def _reject_websocket(
 ) -> None:
     """Accept then immediately close with code/reason so client gets a proper close frame.
 
-    The offered subprotocol is echoed back even when rejecting, because a browser fails
-    the handshake outright if the server selects none, and the client would then see a
-    generic error instead of the reason.
+    Echoes the subprotocol even when rejecting; a browser fails the handshake outright
+    if the server selects none, hiding the reason.
     """
     await websocket.accept(subprotocol=subprotocol)
     await websocket.close(code=code, reason=reason)

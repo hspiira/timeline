@@ -1,13 +1,9 @@
 """Row-level security keeps one organisation's records out of another's reach.
 
-``rls_check`` verifies that the policies and roles are configured. This verifies
-that they actually bite: with the session pointed at one organisation, the rows of
-another are not merely filtered out of the application's queries but are invisible
-to the connection itself.
+``rls_check`` verifies the policies are configured; these verify they bite.
 
-Every test here skips when the connected role can bypass row-level security, since
-a role with BYPASSRLS sees everything by design and would report a pass that means
-nothing. Run as the restricted application role to exercise them.
+Skips when the connected role bypasses RLS, which would pass for the wrong reason.
+Run as the restricted application role.
 """
 
 import uuid
@@ -40,10 +36,9 @@ async def _skip_if_role_bypasses_rls(session) -> None:
 
 
 async def _organisation_with_one_event(session) -> tuple[str, str, str]:
-    """Create an organisation holding a subject and a single event.
+    """Create an organisation with one subject and one event; returns their ids.
 
-    Returns the organisation, subject and event ids. Rows are left behind because
-    events cannot be deleted; the "iso-" prefix marks them for later pruning.
+    Rows are left behind because events cannot be deleted; "iso-" marks them.
     """
     tenant_repo = TenantRepository(session, cache_service=None, audit_service=None)
     tenant = await tenant_repo.create_tenant(
@@ -87,10 +82,8 @@ async def _organisation_with_one_event(session) -> tuple[str, str, str]:
 async def test_one_organisation_cannot_read_another_s_rows(db_session) -> None:
     """Pointed at organisation A, a raw query returns none of organisation B's rows.
 
-    The read is deliberately made in SQL rather than through a repository. A
-    repository filters by tenant id itself, so it would pass this test even if the
-    policies were dropped entirely; only the unfiltered query shows whether the
-    database is doing the work.
+    Raw SQL, not a repository: a repository filters by tenant id itself and would
+    pass even with the policies dropped.
     """
     await _skip_if_role_bypasses_rls(db_session)
 
@@ -124,10 +117,8 @@ async def test_one_organisation_cannot_read_another_s_rows(db_session) -> None:
 
 
 async def test_a_repository_cannot_reach_across_organisations(db_session) -> None:
-    """Asking for another organisation's subject by id returns nothing.
-
-    Covers the case where an id leaks and is replayed against a session belonging to
-    a different organisation.
+    """Asking for another organisation's subject by id returns nothing, in case an id
+    leaks and is replayed against a different organisation's session.
     """
     await _skip_if_role_bypasses_rls(db_session)
 
@@ -143,10 +134,8 @@ async def test_a_repository_cannot_reach_across_organisations(db_session) -> Non
 
 
 async def test_writes_cannot_be_attributed_to_another_organisation(db_session) -> None:
-    """An insert naming a different organisation is refused rather than accepted.
-
-    Without this the policies would guard reads only, and a compromised session
-    could still plant records in someone else's timeline.
+    """An insert naming a different organisation is refused, so the policies guard
+    writes and not only reads.
     """
     await _skip_if_role_bypasses_rls(db_session)
 

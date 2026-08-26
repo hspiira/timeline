@@ -1,9 +1,5 @@
-"""Adversarial tests for the guarantee the product is sold on: that a stored
-timeline cannot be altered without the alteration being apparent.
-
-The happy path is covered elsewhere. These exercise the cases an attacker or a bug
-would actually take: editing a stored event, and racing two writers at one subject
-so the chain forks into two branches that each look valid on their own.
+"""Adversarial tests for chain integrity: editing a stored event, and racing two
+writers at one subject so the chain forks into branches that each verify alone.
 """
 
 import asyncio
@@ -32,8 +28,7 @@ IMMUTABILITY_TRIGGER = "prevent_event_update_delete"
 async def _tenant_and_subject(session) -> tuple[str, str]:
     """Create a throwaway organisation and subject, returning their ids.
 
-    Rows are left behind deliberately. Events cannot be deleted, which is the
-    property under test, so nothing created here can be cleaned up afterwards.
+    Rows are left behind: events cannot be deleted, which is the property under test.
     The "chain-" prefix marks them for pruning with the administrator connection.
     """
     tenant_repo = TenantRepository(session, cache_service=None, audit_service=None)
@@ -53,11 +48,7 @@ async def _tenant_and_subject(session) -> tuple[str, str]:
 
 
 def _event_service(session, tenant_id: str) -> EventService:
-    """Build an EventService against one session, with the optional stages off.
-
-    Schema validation, workflows and epochs are irrelevant to chain linkage and
-    would only add setup that could fail for unrelated reasons.
-    """
+    """Build an EventService with the optional stages off; only linkage matters here."""
     return EventService(
         event_repo=EventRepository(session),
         hash_service=HashService(),
@@ -85,11 +76,7 @@ async def _append(service: EventService, tenant_id: str, subject_id: str, name: 
 
 
 async def test_the_database_refuses_to_alter_a_stored_event(db_session) -> None:
-    """An event cannot be updated or deleted, even by the application's own role.
-
-    Verification would catch an edit after the fact; this trigger means an ordinary
-    application compromise cannot make the edit in the first place.
-    """
+    """An event cannot be updated or deleted, even by the application's own role."""
     tenant_id, subject_id = await _tenant_and_subject(db_session)
     await db_session.commit()
 
@@ -114,14 +101,11 @@ async def test_the_database_refuses_to_alter_a_stored_event(db_session) -> None:
 
 
 async def test_verification_reports_an_event_edited_behind_the_trigger(db_session) -> None:
-    """Verification detects a payload edit made by someone who could bypass the trigger.
+    """Verification detects a payload edit made behind the immutability trigger.
 
-    The trigger stops the application; it does not stop an operator with rights over
-    the table. That is the threat the hash chain exists for, so the edit is made here
-    the only way it could really be made, by disabling the trigger first.
-
-    Skips unless the connected role may disable the trigger, which the restricted
-    application role deliberately cannot.
+    The trigger stops the application, not an operator with rights over the table,
+    which is the threat the hash chain exists for. Skips unless the connected role
+    can disable the trigger.
     """
     tenant_id, subject_id = await _tenant_and_subject(db_session)
     await db_session.commit()
@@ -173,17 +157,14 @@ async def test_verification_reports_an_event_edited_behind_the_trigger(db_sessio
 async def test_concurrent_appends_to_one_subject_do_not_fork_the_chain(db_session) -> None:
     """Two writers racing at the same subject produce one chain, not two branches.
 
-    Nothing in the schema enforces this. There is no unique constraint on
-    (subject_id, previous_hash), so the invariant rests entirely on the
-    ``SELECT ... FOR UPDATE`` taken against the subject row before the previous hash
-    is read. If that lock is ever dropped or narrowed, two events will link to the
-    same parent, both will verify in isolation, and this is what will notice.
+    No unique constraint covers (subject_id, previous_hash), so this rests entirely on
+    the ``SELECT ... FOR UPDATE`` against the subject row. Weaken that lock and two
+    events link to the same parent, each verifying fine alone.
     """
     tenant_id, subject_id = await _tenant_and_subject(db_session)
     await db_session.commit()
 
-    # Separate sessions: two writers on one connection would serialise trivially and
-    # the lock would never be contended.
+    # Separate sessions, or the lock is never contended.
     async with _database.AsyncSessionLocal() as session_a, \
             _database.AsyncSessionLocal() as session_b:
         results = await asyncio.gather(

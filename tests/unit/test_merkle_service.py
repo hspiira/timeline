@@ -165,10 +165,7 @@ class TestMerkleServiceGenerateProof:
     ) -> None:
         """A substituted leaf must not satisfy the genuine leaf's proof path.
 
-        This is the property the whole proof mechanism rests on. If a proof issued
-        for one event could also be satisfied by a different hash, an inclusion proof
-        would establish nothing, so the negative case is worth pinning as firmly as
-        the positive one.
+        If another hash could satisfy the proof, inclusion would establish nothing.
         """
         epoch_id = "ep1"
         epoch = SimpleNamespace(id=epoch_id, terminal_hash=None, genesis_hash="g" * 64)
@@ -192,8 +189,7 @@ class TestMerkleServiceGenerateProof:
         assert forged != genuine_leaf.node_hash
         assert _recompute_root(forged, path) != root
 
-        # Nor does another genuine leaf from the same tree satisfy this path: the
-        # proof binds one position, not merely membership of the epoch.
+        # Nor another genuine leaf: the proof binds a position, not epoch membership.
         other_leaf = await merkle_repo.get_leaf_by_event_seq(epoch_id, 3)
         assert other_leaf is not None
         assert _recompute_root(other_leaf.node_hash, path) != root

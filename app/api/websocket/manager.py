@@ -43,8 +43,8 @@ class ConnectionManager:
         Args:
             websocket: The WebSocket instance to accept and track.
             tenant_id: Tenant ID from JWT; used to isolate broadcasts.
-            subprotocol: Subprotocol to select in the handshake. A browser that
-                offered one fails the connection unless the server echoes it back.
+            subprotocol: Subprotocol to echo in the handshake; a browser that offered
+                one fails the connection unless the server selects it.
         """
         await websocket.accept(subprotocol=subprotocol)
         async with self._lock:

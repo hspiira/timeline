@@ -336,8 +336,7 @@ class ChainRepairService:
     ) -> tuple[list[ChainRepairRecord], int]:
         """Return a page of a tenant's repair records and the unpaginated total.
 
-        Filtering by ``PENDING_APPROVAL`` gives the approval queue, which is the only
-        way an approver can discover the repairs waiting on them.
+        Filter by ``PENDING_APPROVAL`` for the approval queue.
         """
         rows, total = await self._repair_repo.list_with_count(
             tenant_id,

@@ -310,11 +310,10 @@ async def get_me(
     current_user: Annotated[UserResult, Depends(get_current_user)],
     auth_svc: Annotated[AuthorizationService, Depends(get_authorization_service)],
 ):
-    """Return the authenticated user together with the permissions they hold.
+    """Return the authenticated user and the permissions they hold.
 
-    The permission list lets a client hide actions the caller cannot perform.
-    It is a convenience for the interface only: every endpoint still checks the
-    caller's permissions itself, so a client that ignores this list gains nothing.
+    The permission list is for hiding actions in the interface only; every endpoint
+    still checks the caller itself.
 
     Requires Authorization: Bearer <token>.
     """
