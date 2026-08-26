@@ -155,10 +155,7 @@ export function WorkflowDocumentRequirementsModal({
                   No document requirements yet. Select a category above and click Add.
                 </p>
               ) : (
-                <ul
-                  className="list-none border border-border/50 rounded-none divide-y divide-border/30 max-h-[240px] overflow-y-auto"
-                  role="list"
-                >
+                <ul className="list-none border border-border/50 rounded-none divide-y divide-border/30 max-h-[240px] overflow-y-auto">
                   {requirements.map((r) => (
                     <li key={r.id} className="flex items-center justify-between px-3 py-2">
                       <span className="text-sm">

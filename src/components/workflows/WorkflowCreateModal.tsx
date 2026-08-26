@@ -332,13 +332,10 @@ function ActionShape({
       className="flex flex-col items-center w-[280px] min-w-[280px] shrink-0"
     >
       <ShapeTypeLabel icon={ActionIcon} label={actionLabel} />
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={onSelect}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect()}
+      <fieldset
+        onFocus={onSelect}
         className={`
-          w-full rounded-xl border border-border bg-background overflow-hidden transition-all
+          w-full min-w-0 rounded-xl border border-border bg-background overflow-hidden transition-all
           ${isSelected ? 'border-primary/50 ring-2 ring-primary/20' : 'hover:border-muted-foreground/40'}
         `}
       >
@@ -357,7 +354,7 @@ function ActionShape({
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10">
             <Zap className="w-3.5 h-3.5 text-primary" />
           </div>
-          <div onClick={(e) => e.stopPropagation()} className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0">
             <SingleSelectCombobox
               value={step.type}
               onValueChange={(v) => onUpdate({ type: v })}
@@ -381,7 +378,7 @@ function ActionShape({
             </button>
           )}
         </div>
-        <div className="px-3 py-2 bg-muted/30" onClick={(e) => e.stopPropagation()}>
+        <div className="px-3 py-2 bg-muted/30">
           <label
             htmlFor={paramsId}
             className="block text-xs font-medium text-foreground uppercase tracking-wide mb-1"
@@ -402,7 +399,7 @@ function ActionShape({
             action-specific config.
           </p>
         </div>
-      </div>
+      </fieldset>
     </div>
   )
 }
@@ -497,12 +494,9 @@ function DecisionShape({
       className="flex flex-col items-center justify-center shrink-0"
     >
       <ShapeTypeLabel icon={Info} label="Check if / else" />
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={onSelect}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect()}
-        className="relative transition-colors outline-none border-0 ring-0"
+      <fieldset
+        onFocus={onSelect}
+        className="relative min-w-0 transition-colors outline-none border-0 ring-0"
       >
         <svg
           width={w}
@@ -577,7 +571,7 @@ function DecisionShape({
             </button>
           )}
         </div>
-      </div>
+      </fieldset>
     </div>
   )
 }

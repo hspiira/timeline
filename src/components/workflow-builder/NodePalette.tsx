@@ -31,6 +31,7 @@ export function NodePalette() {
           const meta = NODE_META[desc.type]
           const Icon = meta?.icon
           return (
+            // biome-ignore lint/a11y/noStaticElementInteractions: a drag source; there is no click or key equivalent to give it.
             <div
               key={desc.type}
               draggable
