@@ -146,9 +146,10 @@ function ActivityCardContainer({
   children: React.ReactNode
 }) {
   return (
-    <div
+    <button
+      type="button"
       onClick={() => onSelect?.(activity.id)}
-      className={`p-3 rounded-none border transition-colors cursor-pointer ${
+      className={`w-full text-left p-3 rounded-none border transition-colors cursor-pointer ${
         isSelected
           ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
           : 'border-border hover:border-blue-300 dark:hover:border-blue-700 hover:bg-muted/30'
@@ -192,6 +193,6 @@ function ActivityCardContainer({
             ))}
         </div>
       )}
-    </div>
+    </button>
   )
 }

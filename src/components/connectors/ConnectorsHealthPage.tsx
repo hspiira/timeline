@@ -142,14 +142,11 @@ export function ConnectorsHealthPage() {
                   key={key}
                   className="rounded-none border border-border/50 bg-card/80 overflow-hidden"
                 >
-                  <div
-                    className="p-4 flex flex-wrap items-center gap-4 cursor-pointer hover:bg-muted/20 transition-colors"
+                  <button
+                    type="button"
+                    className="w-full text-left p-4 flex flex-wrap items-center gap-4 cursor-pointer hover:bg-muted/20 transition-colors"
                     onClick={() => setExpandedId((id) => (id === key ? null : key))}
-                    onKeyDown={(e) =>
-                      e.key === 'Enter' && setExpandedId((id) => (id === key ? null : key))
-                    }
-                    role="button"
-                    tabIndex={0}
+                    aria-expanded={isExpanded}
                   >
                     <div className="flex items-center gap-1 shrink-0">
                       {isExpanded ? (
@@ -199,7 +196,7 @@ export function ConnectorsHealthPage() {
                         </ResponsiveContainer>
                       </div>
                     )}
-                  </div>
+                  </button>
                   {isExpanded && (
                     <div className="border-t border-border/50 p-4 bg-muted/10 space-y-3">
                       <h3 className="text-sm font-semibold text-foreground">Connector detail</h3>

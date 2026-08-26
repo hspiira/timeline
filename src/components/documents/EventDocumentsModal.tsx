@@ -205,16 +205,15 @@ export function EventDocumentsModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
-      onClick={onClose}
-      onKeyDown={(e) => e.key === 'Escape' && !uploading && onClose()}
-      role="presentation"
-    >
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default"
+        aria-label="Close"
+        onClick={() => !uploading && onClose()}
+      />
       <div
-        className="bg-background border border-amber-200 dark:border-amber-900 rounded-none shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
+        className="relative bg-background border border-amber-200 dark:border-amber-900 rounded-none shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

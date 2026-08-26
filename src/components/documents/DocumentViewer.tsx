@@ -157,14 +157,15 @@ export function DocumentViewer({ documentId, filename, fileType, onClose }: Docu
   // Note: DocumentViewer doesn't use the standard Modal since it needs custom header layout
   // We keep the direct DOM structure for better control over the flex layout
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
-      onClick={onClose}
-      role="presentation"
-    >
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default"
+        aria-label="Close"
+        onClick={onClose}
+      />
       <div
-        className="bg-background border border-border rounded-none shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
+        className="relative bg-background border border-border rounded-none shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
         role="dialog"
         aria-modal="true"
         aria-labelledby={documentViewerTitleId}

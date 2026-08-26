@@ -363,6 +363,7 @@ export function DocumentUpload({
         )}
 
       {/* Upload Area */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: drag and drop is a pointer-only affordance; the file input and the button overlaying this area carry the keyboard path. */}
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
