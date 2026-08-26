@@ -4992,6 +4992,8 @@ export interface components {
             email: string;
             /** Is Active */
             is_active: boolean;
+            /** Permissions */
+            permissions?: string[];
         };
         /**
          * UserUpdate
