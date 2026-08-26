@@ -33,6 +33,7 @@ export function MerkleProofTree({ proof, className }: MerkleProofTreeProps) {
       <h3 className="text-sm font-semibold text-foreground mb-2">Proof path (tree)</h3>
       <svg
         viewBox={`0 0 ${width} ${height}`}
+        role="img"
         className="w-full max-w-md h-auto block"
         aria-label="Merkle proof path from leaf to root"
       >

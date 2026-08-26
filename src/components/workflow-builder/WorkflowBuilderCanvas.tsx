@@ -103,12 +103,18 @@ function WorkflowBuilderCanvasInner({
     let cancelled = false
     const raf = requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        if (!cancelled) ids.forEach((id) => updateNodeInternals(id))
+        if (!cancelled)
+          ids.forEach((id) => {
+            updateNodeInternals(id)
+          })
       })
     })
     // After reopen, layout may not be final until the modal has opened; run again so edges stay correct
     const t = setTimeout(() => {
-      if (!cancelled) ids.forEach((id) => updateNodeInternals(id))
+      if (!cancelled)
+        ids.forEach((id) => {
+          updateNodeInternals(id)
+        })
     }, 400)
     return () => {
       cancelled = true

@@ -30,7 +30,9 @@ function reachableFromTrigger(workflow: Workflow): Set<string> {
   if (triggerNodes.length === 0) return new Set()
   const reached = new Set<string>()
   const queue = triggerNodes.map((n) => n.id)
-  queue.forEach((id) => reached.add(id))
+  queue.forEach((id) => {
+    reached.add(id)
+  })
   while (queue.length > 0) {
     const id = queue.shift()!
     const node = workflow.nodes.find((n) => n.id === id)

@@ -125,7 +125,7 @@ function BranchConnector({
     const pathD = `M 0 ${height / 2} Q ${width / 2} ${cy} ${width} ${height / 2}`
     return (
       <div className="flex items-center flex-shrink-0 relative" style={{ width: width + 8 }}>
-        <svg width={width} height={height} className="overflow-visible" aria-hidden>
+        <svg width={width} height={height} className="overflow-visible" aria-hidden="true">
           <path
             d={pathD}
             fill="none"
@@ -158,7 +158,7 @@ function BranchConnector({
       className="flex flex-col items-center flex-shrink-0 relative"
       style={{ height: height + 8 }}
     >
-      <svg width={width} height={height} className="overflow-visible" aria-hidden>
+      <svg width={width} height={height} className="overflow-visible" aria-hidden="true">
         <path
           d={pathD}
           fill="none"
@@ -504,7 +504,13 @@ function DecisionShape({
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect()}
         className="relative transition-colors outline-none border-0 ring-0"
       >
-        <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
+        <svg
+          width={w}
+          height={h}
+          viewBox={`0 0 ${w} ${h}`}
+          aria-hidden="true"
+          className="overflow-visible"
+        >
           <polygon
             points={points}
             fill="var(--card)"

@@ -219,6 +219,7 @@ function SetPasswordPage() {
                   {showPassword ? (
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
+                      aria-hidden="true"
                       width="18"
                       height="18"
                       viewBox="0 0 24 24"
@@ -232,6 +233,7 @@ function SetPasswordPage() {
                   ) : (
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
+                      aria-hidden="true"
                       width="18"
                       height="18"
                       viewBox="0 0 24 24"
