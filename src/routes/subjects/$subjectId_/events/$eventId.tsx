@@ -132,6 +132,43 @@ function EventTypeWorkflowsSection({ eventType }: { eventType: string }) {
   )
 }
 
+interface HashFieldProps {
+  label: string
+  value: string | null
+  isCopied: boolean
+  onCopy: () => void
+}
+
+function HashField({ label, value, isCopied, onCopy }: HashFieldProps) {
+  const fieldId = useId()
+  if (!value) return null
+
+  return (
+    <div className="space-y-1">
+      <label htmlFor={fieldId} className="text-xs font-medium text-muted-foreground">
+        {label}
+      </label>
+      <div id={fieldId} className="flex items-center gap-2 group">
+        <code className="flex-1 font-mono text-xs bg-muted/50 px-3 py-2 rounded-none break-all">
+          {value}
+        </code>
+        <button
+          type="button"
+          onClick={onCopy}
+          className="p-2 hover:bg-muted rounded-none transition-colors opacity-0 group-hover:opacity-100"
+          title="Copy"
+        >
+          {isCopied ? (
+            <CheckCircle className="w-4 h-4 text-green-500" />
+          ) : (
+            <Copy className="w-4 h-4 text-muted-foreground" />
+          )}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function EventDetailPage() {
   const { subjectId, eventId } = Route.useParams()
   const navigate = useNavigate()
@@ -257,44 +294,8 @@ function EventDetailPage() {
     )
   }
 
-  const HashField = ({
-    label,
-    value,
-    fieldKey,
-  }: {
-    label: string
-    value: string | null
-    fieldKey: string
-  }) => {
-    const fieldId = useId()
-    if (!value) return null
-    const isCopied = copiedField === fieldKey
-
-    return (
-      <div className="space-y-1">
-        <label htmlFor={fieldId} className="text-xs font-medium text-muted-foreground">
-          {label}
-        </label>
-        <div id={fieldId} className="flex items-center gap-2 group">
-          <code className="flex-1 font-mono text-xs bg-muted/50 px-3 py-2 rounded-none break-all">
-            {value}
-          </code>
-          <button
-            type="button"
-            onClick={() => copyToClipboard(value, fieldKey)}
-            className="p-2 hover:bg-muted rounded-none transition-colors opacity-0 group-hover:opacity-100"
-            title="Copy"
-          >
-            {isCopied ? (
-              <CheckCircle className="w-4 h-4 text-green-500" />
-            ) : (
-              <Copy className="w-4 h-4 text-muted-foreground" />
-            )}
-          </button>
-        </div>
-      </div>
-    )
-  }
+  const rawPreviousHash = event.payload?.previous_hash
+  const previousHash = typeof rawPreviousHash === 'string' ? rawPreviousHash : null
 
   return (
     <>
@@ -420,7 +421,12 @@ function EventDetailPage() {
               Cryptographic Hashes
             </h3>
 
-            <HashField label="Event Hash" value={event.hash} fieldKey="hash" />
+            <HashField
+              label="Event Hash"
+              value={event.hash}
+              isCopied={copiedField === 'hash'}
+              onCopy={() => copyToClipboard(event.hash, 'hash')}
+            />
 
             {isGenesis ? (
               <div className="space-y-1">
@@ -432,8 +438,9 @@ function EventDetailPage() {
             ) : (
               <HashField
                 label="Previous Hash"
-                value={(event.payload as any)?.previous_hash ?? null}
-                fieldKey="prev_hash"
+                value={previousHash}
+                isCopied={copiedField === 'prev_hash'}
+                onCopy={() => copyToClipboard(previousHash ?? '', 'prev_hash')}
               />
             )}
 
