@@ -3,7 +3,7 @@ import { ArrowLeft, Calendar, Tag, User } from 'lucide-react'
 import { useEffect, useId, useMemo, useState } from 'react'
 import { EventDocumentUpload } from '@/components/documents/EventDocumentUpload'
 import { EventTypeSelector } from '@/components/events'
-import { JsonSchemaForm } from '@/components/shared/JsonSchemaForm'
+import { type JsonSchema, JsonSchemaForm } from '@/components/shared/JsonSchemaForm'
 import SubjectSelector from '@/components/subjects/SubjectSelector'
 import { Button } from '@/components/ui/button'
 import { ErrorModal } from '@/components/ui/ErrorModal'
@@ -27,7 +27,7 @@ interface CreateEventState {
   subjectId: string
   eventType: string
   eventTime: string
-  payload: Record<string, any>
+  payload: Record<string, unknown>
   fieldErrors: Record<string, string>
   stagedDocuments: File[]
 }
@@ -48,7 +48,7 @@ function CreateEventPage() {
     fieldErrors: {},
     stagedDocuments: [],
   })
-  const [schema, setSchema] = useState<Record<string, any> | null>(null)
+  const [schema, setSchema] = useState<JsonSchema | null>(null)
   const [schemaVersion, setSchemaVersion] = useState<number | null>(null)
   const [schemaLoading, setSchemaLoading] = useState(false)
   const [schemaError, setSchemaError] = useState<string | null>(null)
@@ -90,16 +90,16 @@ function CreateEventPage() {
     let mounted = true
     setSchemaError(null)
 
-    const normalizeSchemaDef = (def: unknown): Record<string, any> | null => {
+    const normalizeSchemaDef = (def: unknown): JsonSchema | null => {
       if (def == null) return null
       if (typeof def === 'string') {
         try {
-          return JSON.parse(def) as Record<string, any>
+          return JSON.parse(def) as JsonSchema
         } catch {
           return null
         }
       }
-      return typeof def === 'object' && !Array.isArray(def) ? (def as Record<string, any>) : null
+      return typeof def === 'object' && !Array.isArray(def) ? (def as JsonSchema) : null
     }
 
     const applySchema = (data: { schema_definition?: unknown; version?: number }) => {
@@ -193,7 +193,7 @@ function CreateEventPage() {
     return errors
   }, [schema, state.payload])
 
-  const handlePayloadChange = (newPayload: Record<string, any>) => {
+  const handlePayloadChange = (newPayload: Record<string, unknown>) => {
     setState((prev) => ({
       ...prev,
       payload: newPayload,

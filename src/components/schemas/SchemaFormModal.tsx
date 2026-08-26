@@ -24,11 +24,27 @@ interface SchemaField {
 
 interface EditingField extends SchemaField {}
 
+type JsonSchemaProperty = {
+  type?: string
+  format?: string
+  pattern?: string
+  description?: string
+  enum?: string[]
+  minimum?: number
+  maximum?: number
+}
+
+type JsonSchemaDefinition = {
+  type?: string
+  properties?: Record<string, JsonSchemaProperty>
+  required?: string[]
+}
+
 interface SchemaFormModalProps {
   onClose: () => void
   onSubmit: (
     eventType: string,
-    definition: Record<string, any>,
+    definition: JsonSchemaDefinition,
     allowedSubjectTypes?: string[] | null,
   ) => Promise<boolean>
   title: string
@@ -80,12 +96,12 @@ export function SchemaFormModal({
   const validateEventType = (value: string): string | null =>
     validateAlphanumericUnderscore(value, 'Event type')
 
-  const generateJsonSchema = (): Record<string, any> => {
-    const properties: Record<string, any> = {}
+  const generateJsonSchema = (): JsonSchemaDefinition => {
+    const properties: Record<string, JsonSchemaProperty> = {}
     const required: string[] = []
 
     fields.forEach((field) => {
-      const fieldSchema: Record<string, any> = {}
+      const fieldSchema: JsonSchemaProperty = {}
 
       // Set type and format based on field type
       if (field.type === 'enum') {
@@ -152,7 +168,7 @@ export function SchemaFormModal({
 
   const parseJsonSchema = (jsonStr: string): boolean => {
     try {
-      const schema = JSON.parse(jsonStr)
+      const schema = JSON.parse(jsonStr) as JsonSchemaDefinition
 
       if (!schema.properties || typeof schema.properties !== 'object') {
         setError('JSON must have a "properties" object')
@@ -162,7 +178,7 @@ export function SchemaFormModal({
       const parsedFields: SchemaField[] = []
       const requiredFields = schema.required || []
 
-      Object.entries(schema.properties).forEach(([name, propSchema]: [string, any]) => {
+      Object.entries(schema.properties).forEach(([name, propSchema]) => {
         const field: SchemaField = {
           id: crypto.randomUUID(),
           name,
@@ -275,12 +291,12 @@ export function SchemaFormModal({
       return
     }
 
-    let schema: Record<string, any>
+    let schema: JsonSchemaDefinition
 
     if (editMode === 'json') {
       // Parse and validate JSON
       try {
-        schema = JSON.parse(jsonEdit)
+        schema = JSON.parse(jsonEdit) as JsonSchemaDefinition
         if (!schema.properties || typeof schema.properties !== 'object') {
           setError('JSON must have a "properties" object')
           return
