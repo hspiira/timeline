@@ -212,7 +212,7 @@ ratchet({
   brokenCheck: lint.status !== 0 && lintCount === 0,
   output: lint.output,
   detail: tally(
-    [...plain(lint.output).matchAll(/lint\/([a-z]+\/[a-zA-Z]+)/g)].map((match) => match[1]),
+    [...plain(lint.output).matchAll(/lint\/([a-zA-Z0-9]+\/[a-zA-Z0-9]+)/g)].map((match) => match[1]),
   ),
   detailLabel: 'by rule',
 });
