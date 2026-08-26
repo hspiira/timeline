@@ -2,8 +2,12 @@
 /**
  * The single verify command. CI runs this and nothing else.
  *
- * Build must pass. Types and lint are ratcheted against ci/*-baseline.txt: a
- * count above the baseline fails, a count below it prints the number to record.
+ * Build and tests must pass. Types, lint and style are ratcheted against
+ * ci/*-baseline.txt: a count above the baseline fails, a count below it prints the
+ * number to record.
+ *
+ * End-to-end tests need the app and the API running, so they are opt-in: set
+ * VERIFY_E2E=1. Without it they are reported as not run, never as passed.
  */
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -143,16 +147,61 @@ ratchet({
 });
 endGroup();
 
+// Counted apart because they mean different things. Lint findings are potential
+// defects; style findings are only the formatter disagreeing with hand-written
+// code. One number for both let 399 real findings hide behind 379 cosmetic ones.
+const countFindings = (output) =>
+  [...output.matchAll(/Found (\d+) (?:warnings?|errors?)/g)].reduce(
+    (total, match) => total + Number(match[1]),
+    0,
+  );
+
 group('lint');
-const biome = run(['exec', 'biome', 'check', 'src']);
-const biomeTotals = [...biome.output.matchAll(/Found (\d+) (?:warnings?|errors?)/g)];
+const lint = run(['exec', 'biome', 'lint', 'src']);
+const lintCount = countFindings(lint.output);
 ratchet({
-  name: 'biome findings',
-  count: biomeTotals.reduce((total, match) => total + Number(match[1]), 0),
-  baselineFile: 'biome-baseline.txt',
-  brokenCheck: biome.status !== 0 && biomeTotals.length === 0,
-  output: biome.output,
+  name: 'lint findings',
+  count: lintCount,
+  baselineFile: 'biome-lint-baseline.txt',
+  brokenCheck: lint.status !== 0 && lintCount === 0,
+  output: lint.output,
 });
+endGroup();
+
+group('style');
+const style = run(['exec', 'biome', 'check', '--linter-enabled=false', 'src']);
+const styleCount = countFindings(style.output);
+ratchet({
+  name: 'style findings',
+  count: styleCount,
+  baselineFile: 'biome-style-baseline.txt',
+  brokenCheck: style.status !== 0 && styleCount === 0,
+  output: style.output,
+});
+endGroup();
+
+group('tests');
+const unit = run(['test']);
+if (unit.status === 0) {
+  console.log('tests ok');
+} else {
+  process.stdout.write(unit.output);
+  failures.push('Tests failed.');
+}
+endGroup();
+
+group('end-to-end');
+if (process.env.VERIFY_E2E === '1') {
+  const e2e = run(['test:e2e']);
+  if (e2e.status === 0) {
+    console.log('end-to-end ok');
+  } else {
+    process.stdout.write(e2e.output);
+    failures.push('End-to-end tests failed.');
+  }
+} else {
+  console.log('end-to-end not run (needs the app and API up; set VERIFY_E2E=1)');
+}
 endGroup();
 
 console.log('');

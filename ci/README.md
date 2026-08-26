@@ -14,17 +14,28 @@ Lower a baseline whenever CI says you can. Do not raise one to make a build pass
 | File | Check | Goal |
 |------|-------|------|
 | `tsc-baseline.txt` | `tsc --noEmit` | 0, then drop the ratchet in `scripts/verify.mjs` and fail on any error |
-| `biome-baseline.txt` | `biome check src` (errors + warnings) | 0, then fail on any finding |
+| `biome-lint-baseline.txt` | `biome lint src` | 0, then fail on any finding |
+| `biome-style-baseline.txt` | `biome check --linter-enabled=false src` | 0, once the source is formatted |
 
-## About the biome number
+Build and tests are absolute: no baseline, they simply have to pass. End-to-end tests
+need the app and the API running, so `pnpm verify` reports them as not run unless
+`VERIFY_E2E=1` is set.
 
-Almost all of it is formatting: the project has biome configured but the source was
-never formatted with it, so nearly every file differs on quote style and indentation.
+## Why lint and style are counted separately
 
-`pnpm exec biome check --write src` fixes the bulk in one command. It was left alone
-on purpose — it rewrites around 245 files, which would bury unrelated changes in
-review and conflict with anything in flight. Worth doing as a single commit of its
-own, on a quiet day, then lowering this baseline sharply.
+They mean different things. Lint findings are potential defects. Style findings are
+only the formatter disagreeing with hand-written code. Counted as one number, 399 real
+findings sat behind 379 cosmetic ones and no one could tell which had moved.
+
+## About the style number
+
+The source has never been run through a formatter, so it has no single style to match.
+`biome.json` now records the dominant one (two-space indent, single quotes, no
+semicolons), which matters mostly for what happens next: under the previous config,
+`biome check --write` would have converted all 246 files to tabs and double quotes.
+
+`pnpm exec biome check --write src` still fixes the bulk in one command, and is still
+worth doing as a commit of its own rather than mixed into other work.
 
 ## About the type errors
 
