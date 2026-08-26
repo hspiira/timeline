@@ -27,7 +27,7 @@ CHAIN_REPAIR_EVENT_TYPE = "CHAIN_REPAIR"
 
 
 class IChainRepairLogRepository(Protocol):
-    """Protocol for chain_repair_log persistence (initiate, approve)."""
+    """Protocol for chain_repair_log persistence (list, initiate, approve)."""
 
     async def create_log(
         self,
@@ -41,6 +41,14 @@ class IChainRepairLogRepository(Protocol):
         repair_reference: str | None,
     ) -> Any: ...
     async def get_by_id(self, repair_id: str) -> Any: ...
+    async def list_with_count(
+        self,
+        tenant_id: str,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        repair_status: ChainRepairStatus | None = None,
+    ) -> tuple[list[Any], int]: ...
     async def update_status(
         self,
         repair_id: str,
@@ -317,6 +325,27 @@ class ChainRepairService:
         if not row:
             raise ValueError(f"Repair id {repair_id!r} not found")
         return self._to_record(row)
+
+    async def list_repairs(
+        self,
+        tenant_id: str,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        repair_status: ChainRepairStatus | None = None,
+    ) -> tuple[list[ChainRepairRecord], int]:
+        """Return a page of a tenant's repair records and the unpaginated total.
+
+        Filtering by ``PENDING_APPROVAL`` gives the approval queue, which is the only
+        way an approver can discover the repairs waiting on them.
+        """
+        rows, total = await self._repair_repo.list_with_count(
+            tenant_id,
+            skip=skip,
+            limit=limit,
+            repair_status=repair_status,
+        )
+        return [self._to_record(row) for row in rows], total
 
     @staticmethod
     def _to_record(row: Any) -> ChainRepairRecord:

@@ -112,3 +112,11 @@ class ChainRepairResponse(BaseModel):
     repair_completed_at: datetime | None
     new_epoch_id: str | None
 
+
+class ChainRepairListResponse(BaseModel):
+    """Paginated list of chain repair records."""
+
+    items: list[ChainRepairResponse]
+    skip: int
+    limit: int
+    total: int
