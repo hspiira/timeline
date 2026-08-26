@@ -35,6 +35,7 @@ import { Modal } from '@/components/ui/Modal'
 import { useEventTypes } from '@/hooks/useEventTypes'
 import { useFormSubmit } from '@/hooks/useFormSubmit'
 import type { components } from '@/lib/timeline-api'
+import { toApiActions } from '@/lib/workflow-builder'
 import { getActionTypeInfo, WORKFLOW_ACTION_TYPES } from '@/lib/workflow-builder/action-types'
 
 export type FlowDirection = 'lr' | 'tb'
@@ -759,11 +760,17 @@ export function WorkflowCreateModal({
       return step ? stepToPayloadEntries(step, getStep) : []
     })
 
+    const { actions, errors: actionErrors } = toApiActions(actionsPayload)
+    if (actionErrors.length > 0) {
+      setFieldErrors({ steps: actionErrors[0] })
+      return
+    }
+
     const payload: WorkflowCreate = {
       name: name.trim(),
       description: description.trim() || undefined,
       trigger_event_type: triggerEventType,
-      actions: actionsPayload,
+      actions,
       execution_order: 0,
       is_active: isActive,
     }

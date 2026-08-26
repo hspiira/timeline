@@ -4,11 +4,7 @@
  * agent-style step display (e.g. "Searching for resources by name: [Checkout]").
  */
 
-import {
-  getSentenceSegments,
-  type SentenceStepConfig,
-  substituteSentence,
-} from '@/lib/workflow-builder/sentence-templates'
+import { getSentenceSegments, substituteSentence } from '@/lib/workflow-builder/sentence-templates'
 
 export interface SentenceStepDisplayProps {
   /** Sentence template with {{variable}} placeholders. */

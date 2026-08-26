@@ -13,6 +13,7 @@ import { WorkflowRequirementsForm } from '@/components/workflows/WorkflowRequire
 import { useFormSubmit } from '@/hooks/useFormSubmit'
 import { useWorkflowEngineContext } from '@/hooks/useWorkflowEngineContext'
 import type { components } from '@/lib/timeline-api'
+import { toApiActions } from '@/lib/workflow-builder'
 import {
   createEmptyWorkflowRequirements,
   requirementsToCreateRequest,
@@ -51,11 +52,16 @@ export function WorkflowRequirementsModal({
         setError('Trigger event type is required')
         return
       }
+      const { actions, errors: actionErrors } = toApiActions(payload.actions)
+      if (actionErrors.length > 0) {
+        setError(actionErrors[0])
+        return
+      }
       const createPayload: WorkflowCreate = {
         name: payload.name,
         description: payload.description ?? undefined,
         trigger_event_type: payload.trigger_event_type,
-        actions: payload.actions,
+        actions,
         execution_order: 0,
         is_active: isActive,
       }

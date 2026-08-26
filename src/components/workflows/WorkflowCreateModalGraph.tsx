@@ -16,6 +16,7 @@ import {
   DEFAULT_TRIGGER_NODE_ID,
   getWorkflowTemplate,
   nodeRegistry,
+  toApiActions,
   updateNode,
   validateWorkflow,
   WORKFLOW_TEMPLATES,
@@ -121,11 +122,17 @@ export function WorkflowCreateModalGraph({
       return
     }
 
+    const { actions, errors: actionErrors } = toApiActions(payloadFromGraph.actions)
+    if (actionErrors.length > 0) {
+      setFieldErrors((prev) => ({ ...prev, steps: actionErrors[0] }))
+      return
+    }
+
     const payload: WorkflowCreate = {
       name: name.trim(),
       description: description.trim() || undefined,
       trigger_event_type: triggerEventTypeFinal,
-      actions: payloadFromGraph.actions,
+      actions,
       execution_order: 0,
       is_active: isActive,
       ...(payloadFromGraph.trigger_conditions !== undefined && {

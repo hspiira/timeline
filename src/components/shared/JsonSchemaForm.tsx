@@ -125,11 +125,7 @@ export function validateJsonSchema(
   return errors
 }
 
-function isRequired(
-  schema: JsonSchema | undefined,
-  fieldName: string,
-  requiredFields: string[],
-): boolean {
+function isRequired(fieldName: string, requiredFields: string[]): boolean {
   return requiredFields.includes(fieldName)
 }
 
@@ -173,7 +169,7 @@ export function JsonSchemaForm({ schema, value, onChange, errors = {} }: JsonSch
   return (
     <div className="space-y-4">
       {Object.entries(properties).map(([fieldName, fieldSchema]) => {
-        const isReq = isRequired(schema, fieldName, requiredFields)
+        const isReq = isRequired(fieldName, requiredFields)
         const fieldType = getFieldType(fieldSchema)
         const fieldValue = value[fieldName] ?? ''
         const fieldError = errors[fieldName]

@@ -1,3 +1,4 @@
+import type { ValidationResult } from './validation'
 /**
  * Natural-language workflow requirements: no visual graph.
  * Specify: workflow title/name, steps (name + description), tasks with variables
@@ -126,10 +127,7 @@ export function requirementsToCreateRequest(
 
 // --- Validation ---
 
-export interface ValidationResult {
-  valid: boolean
-  errors: string[]
-}
+export type { ValidationResult }
 
 export function validateWorkflowRequirements(data: WorkflowRequirements): ValidationResult {
   const errors: string[] = []

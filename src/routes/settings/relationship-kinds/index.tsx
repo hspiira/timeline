@@ -92,7 +92,7 @@ function RelationshipKindsPage() {
     setFormError(null)
   }
 
-  const parsePayloadSchema = (): Record<string, unknown> | null => {
+  const parsePayloadSchema = (): Record<string, unknown> | null | undefined => {
     if (!payloadSchemaJson.trim()) return null
     try {
       return JSON.parse(payloadSchemaJson) as Record<string, unknown>
@@ -318,6 +318,7 @@ function RelationshipKindsPage() {
             onCancel={closeModal}
             loading={saving}
             submitLabel={editing ? 'Save' : 'Create'}
+            loadingLabel={editing ? 'Saving...' : 'Creating...'}
           />
         </form>
       </Modal>

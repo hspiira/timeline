@@ -13,6 +13,7 @@ import type { components } from '@/lib/timeline-api'
 import type { Workflow } from '@/lib/workflow-builder'
 import {
   nodeRegistry,
+  toApiActions,
   updateNode,
   validateWorkflow,
   workflowFromResponse,
@@ -115,6 +116,12 @@ export function WorkflowEditModalGraph({
       return
     }
 
+    const { actions, errors: actionErrors } = toApiActions(payloadFromGraph.actions)
+    if (actionErrors.length > 0) {
+      setFieldErrors((prev) => ({ ...prev, steps: actionErrors[0] }))
+      return
+    }
+
     const updateData: WorkflowUpdate & {
       trigger_event_type?: string
       actions?: NonNullable<components['schemas']['WorkflowCreateRequest']['actions']>
@@ -124,7 +131,7 @@ export function WorkflowEditModalGraph({
       execution_order: executionOrder,
       is_active: isActive,
       trigger_event_type: triggerEventTypeFinal,
-      actions: payloadFromGraph.actions,
+      actions,
       ...(workflow.triggerConditions !== undefined && {
         trigger_conditions: workflow.triggerConditions,
       }),

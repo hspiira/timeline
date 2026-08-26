@@ -50,12 +50,20 @@ const INTEGRITY_TAB_EPOCHS_LIMIT = 5
 
 type Tab = 'events' | 'documents' | 'state' | 'relationships' | 'integrity'
 
+type SubjectSearch = {
+  tab: Tab
+  event_id?: string
+  event_type?: string
+  from?: string
+  to?: string
+}
+
 export const Route = createFileRoute('/subjects/$subjectId')({
   beforeLoad: () => {
     requireAuthBeforeLoad()
   },
   component: SubjectDetailPage,
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): SubjectSearch => ({
     tab: (search.tab === 'documents'
       ? 'documents'
       : search.tab === 'state'
@@ -66,9 +74,9 @@ export const Route = createFileRoute('/subjects/$subjectId')({
             ? 'integrity'
             : 'events') as Tab,
     event_id: typeof search.event_id === 'string' ? search.event_id : undefined,
-    event_type: typeof search.event_type === 'string' ? search.event_type : '',
-    from: typeof search.from === 'string' ? search.from : '',
-    to: typeof search.to === 'string' ? search.to : '',
+    event_type: typeof search.event_type === 'string' ? search.event_type : undefined,
+    from: typeof search.from === 'string' ? search.from : undefined,
+    to: typeof search.to === 'string' ? search.to : undefined,
   }),
 })
 

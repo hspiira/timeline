@@ -10,11 +10,13 @@ type Props = {
   excludeSubjectId?: string | null
   /** Exclude these subject ids from the list (e.g. already linked to a flow). */
   excludeSubjectIds?: string[]
+  placeholder?: string
 }
 
 export default function SubjectSelector({
   value = '',
   onChange,
+  placeholder = 'Select subject',
   excludeSubjectId,
   excludeSubjectIds,
 }: Props) {
@@ -65,7 +67,7 @@ export default function SubjectSelector({
         value={value}
         onValueChange={onChange}
         options={options}
-        placeholder="Select subject"
+        placeholder={placeholder}
         disabled={loading}
         className="w-full"
       />

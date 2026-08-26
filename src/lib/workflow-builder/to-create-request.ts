@@ -3,8 +3,14 @@
  * Traverses from trigger, emits actions + conditions in execution order.
  */
 
+import type { components } from '@/lib/timeline-api'
 import { nodeRegistry } from './node-registry'
 import type { Workflow, WorkflowEdge } from './types'
+
+export type ApiWorkflowAction =
+  | components['schemas']['CreateEventAction']
+  | components['schemas']['NotifyAction']
+  | components['schemas']['CreateTaskAction']
 
 export interface WorkflowActionItem {
   type: string
@@ -79,4 +85,82 @@ export function workflowGraphToCreateRequest(workflow: Workflow): {
     result.trigger_conditions = workflow.triggerConditions
   }
   return result
+}
+
+/**
+ * Narrow builder actions to the three the API accepts, collecting a reason for each
+ * one it rejects.
+ *
+ * The builder emits whatever a node was configured with, including condition nodes,
+ * so an unsupported action reached the API as a 422 with no indication of which
+ * step caused it.
+ */
+export function toApiActions(items: WorkflowActionItem[]): {
+  actions: ApiWorkflowAction[]
+  errors: string[]
+} {
+  const actions: ApiWorkflowAction[] = []
+  const errors: string[] = []
+  const params = (item: WorkflowActionItem) => (item.params ?? {}) as Record<string, unknown>
+  const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value : null)
+
+  items.forEach((item, index) => {
+    const at = `Step ${index + 1}`
+    const p = params(item)
+
+    if (item.type === 'create_event') {
+      const eventType = text(p.event_type)
+      if (!eventType) {
+        errors.push(`${at}: create_event needs an event type`)
+        return
+      }
+      actions.push({
+        type: 'create_event',
+        params: {
+          event_type: eventType,
+          schema_version: typeof p.schema_version === 'number' ? p.schema_version : 1,
+          ...(p.payload ? { payload: p.payload as Record<string, unknown> } : {}),
+        },
+      })
+      return
+    }
+
+    if (item.type === 'notify') {
+      const role = text(p.role)
+      const template = text(p.template)
+      if (!role || !template) {
+        errors.push(`${at}: notify needs a role and a template`)
+        return
+      }
+      actions.push({
+        type: 'notify',
+        params: { role, template, ...(p.data ? { data: p.data as Record<string, unknown> } : {}) },
+      })
+      return
+    }
+
+    if (item.type === 'create_task') {
+      const title = text(p.title)
+      if (!title) {
+        errors.push(`${at}: create_task needs a title`)
+        return
+      }
+      actions.push({
+        type: 'create_task',
+        params: {
+          title,
+          ...(text(p.assigned_to_role) ? { assigned_to_role: p.assigned_to_role as string } : {}),
+          ...(text(p.assigned_to_user_id)
+            ? { assigned_to_user_id: p.assigned_to_user_id as string }
+            : {}),
+          ...(text(p.due_at) ? { due_at: p.due_at as string } : {}),
+        },
+      })
+      return
+    }
+
+    errors.push(`${at}: the API does not accept "${item.type}" actions`)
+  })
+
+  return { actions, errors }
 }
