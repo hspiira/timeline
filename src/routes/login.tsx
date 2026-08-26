@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { AuthCard } from '@/components/auth/AuthCard'
 import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
 import { Button } from '@/components/ui/button'
@@ -45,6 +45,9 @@ function rememberLastOrg(tenantId: string) {
 }
 
 function LoginPage() {
+  const emailId = useId()
+  const organisationId = useId()
+  const passwordId = useId()
   const navigate = useNavigate()
   const { redirect, sessionExpired } = Route.useSearch()
   const authState = useStore(authStore)
@@ -133,11 +136,11 @@ function LoginPage() {
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
           <div>
-            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
+            <label htmlFor={emailId} className="mb-1.5 block text-sm font-medium text-foreground">
               Email
             </label>
             <Input
-              id="email"
+              id={emailId}
               type="email"
               autoComplete="username"
               value={email}
@@ -156,13 +159,13 @@ function LoginPage() {
           {organisations.length > 1 && (
             <div>
               <label
-                htmlFor="organisation"
+                htmlFor={organisationId}
                 className="mb-1.5 block text-sm font-medium text-foreground"
               >
                 Organisation
               </label>
               <select
-                id="organisation"
+                id={organisationId}
                 value={chosenOrg}
                 onChange={(e) => setChosenOrg(e.target.value)}
                 className="w-full rounded-none border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1"
@@ -178,7 +181,7 @@ function LoginPage() {
 
           <div>
             <div className="mb-1.5 flex items-baseline justify-between gap-4">
-              <label htmlFor="password" className="text-sm font-medium text-foreground">
+              <label htmlFor={passwordId} className="text-sm font-medium text-foreground">
                 Password
               </label>
               <Link
@@ -190,7 +193,7 @@ function LoginPage() {
             </div>
             <div className="relative">
               <Input
-                id="password"
+                id={passwordId}
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

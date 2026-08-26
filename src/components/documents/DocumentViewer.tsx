@@ -1,5 +1,5 @@
 import { Download, File as FileIcon, Printer, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ErrorIcon, LoadingIcon } from '@/components/ui/icons'
 import { timelineApi } from '@/lib/api-client'
@@ -25,6 +25,7 @@ function isDownloadUrlResponse(data: unknown): data is { url: string; expires_in
 }
 
 export function DocumentViewer({ documentId, filename, fileType, onClose }: DocumentViewerProps) {
+  const documentViewerTitleId = useId()
   const [state, setState] = useState<ViewerState>('loading')
   const [error, setError] = useState<string | null>(null)
   const [content, setContent] = useState<Blob | null>(null)
@@ -166,12 +167,12 @@ export function DocumentViewer({ documentId, filename, fileType, onClose }: Docu
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="document-viewer-title"
+        aria-labelledby={documentViewerTitleId}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="flex-1 min-w-0">
-            <h2 id="document-viewer-title" className="font-semibold text-foreground truncate">
+            <h2 id={documentViewerTitleId} className="font-semibold text-foreground truncate">
               {filename}
             </h2>
             <p className="text-xs text-muted-foreground">{fileType}</p>

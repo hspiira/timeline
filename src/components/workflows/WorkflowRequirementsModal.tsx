@@ -5,7 +5,7 @@
  * Matches WorkflowCreateModal layout: wide modal, footer with "Activate after creation" and actions.
  */
 
-import { useCallback, useState } from 'react'
+import { useCallback, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ErrorAlert } from '@/components/ui/ErrorAlert'
 import { Modal } from '@/components/ui/Modal'
@@ -34,6 +34,7 @@ export function WorkflowRequirementsModal({
   onSubmit,
   title = 'Create workflow',
 }: WorkflowRequirementsModalProps) {
+  const workflowRequirementsFormId = useId()
   const { eventTypes } = useWorkflowEngineContext()
   const [requirements, setRequirements] = useState<WorkflowRequirements>(() =>
     createEmptyWorkflowRequirements(''),
@@ -97,7 +98,7 @@ export function WorkflowRequirementsModal({
             </Button>
             <Button
               type="submit"
-              form="workflow-requirements-form"
+              form={workflowRequirementsFormId}
               variant="primary"
               disabled={loading}
             >
@@ -107,7 +108,7 @@ export function WorkflowRequirementsModal({
         </div>
       }
     >
-      <form id="workflow-requirements-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <form id={workflowRequirementsFormId} onSubmit={handleSubmit} className="flex flex-col gap-6">
         <p className="text-sm text-muted-foreground">
           Define steps and tasks in plain language. No diagram required.
         </p>

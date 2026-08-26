@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ErrorIcon } from '@/components/ui/icons'
 import { DocumentList } from './DocumentList'
@@ -22,6 +22,7 @@ export function DocumentAttachmentModal({
   subjectId,
   eventType,
 }: DocumentAttachmentModalProps) {
+  const modalTitleId = useId()
   const [activeTab, setActiveTab] = useState<Tab>('upload')
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -64,12 +65,12 @@ export function DocumentAttachmentModal({
         className="bg-background border border-border rounded-none max-w-2xl w-full max-h-[90vh] overflow-auto p-6 shadow-xl"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="modal-title"
+        aria-labelledby={modalTitleId}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 id="modal-title" className="text-xl font-semibold text-foreground">
+            <h2 id={modalTitleId} className="text-xl font-semibold text-foreground">
               Attach Documents
             </h2>
             <p className="text-xs text-muted-foreground mt-1">

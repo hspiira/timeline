@@ -1,5 +1,5 @@
 import { format, subDays } from 'date-fns'
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import {
   type ChartConfig,
@@ -83,6 +83,9 @@ export function TurnoverChartCard({
   recentEvents = [],
   loading = false,
 }: TurnoverChartCardProps) {
+  const gradientPrefix = useId().replace(/:/g, '')
+  const fillEventsId = `${gradientPrefix}-events`
+  const fillSubjectsId = `${gradientPrefix}-subjects`
   const [timeRange, setTimeRange] = useState('7d')
   const days = timeRange === '30d' ? 30 : timeRange === '14d' ? 14 : 7
 
@@ -145,11 +148,11 @@ export function TurnoverChartCard({
             <ChartContainer config={chartConfig} className="h-full w-full">
               <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="fillEvents" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id={fillEventsId} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--color-events)" stopOpacity={0.8} />
                     <stop offset="95%" stopColor="var(--color-events)" stopOpacity={0.1} />
                   </linearGradient>
-                  <linearGradient id="fillSubjects" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id={fillSubjectsId} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--color-subjects)" stopOpacity={0.8} />
                     <stop offset="95%" stopColor="var(--color-subjects)" stopOpacity={0.1} />
                   </linearGradient>
@@ -180,14 +183,14 @@ export function TurnoverChartCard({
                 <Area
                   dataKey="subjects"
                   type="natural"
-                  fill="url(#fillSubjects)"
+                  fill={`url(#${fillSubjectsId})`}
                   stroke="var(--color-subjects)"
                   strokeWidth={1.5}
                 />
                 <Area
                   dataKey="events"
                   type="natural"
-                  fill="url(#fillEvents)"
+                  fill={`url(#${fillEventsId})`}
                   stroke="var(--color-events)"
                   strokeWidth={1.5}
                 />

@@ -27,6 +27,7 @@ export const Route = createFileRoute('/integrity/repairs/new')({
 })
 
 function NewRepairPage() {
+  const legalGradeId = useId()
   const epochFieldId = useId()
   const breakAtEventId = useId()
   const reasonId = useId()
@@ -289,12 +290,12 @@ function NewRepairPage() {
               <div className="flex items-center gap-2 mb-2">
                 <input
                   type="checkbox"
-                  id="legal-grade"
+                  id={legalGradeId}
                   checked={requiresLegalReference}
                   onChange={(e) => setRequiresLegalReference(e.target.checked)}
                   className="rounded border-border"
                 />
-                <label htmlFor="legal-grade" className="text-sm font-medium text-foreground">
+                <label htmlFor={legalGradeId} className="text-sm font-medium text-foreground">
                   Requires legal reference (LEGAL_GRADE)
                 </label>
               </div>

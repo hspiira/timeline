@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, CheckCircle } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -50,6 +50,8 @@ function getSetPasswordErrorMessage(apiError: unknown): string {
 }
 
 function SetPasswordPage() {
+  const passwordConfirmId = useId()
+  const passwordId = useId()
   const navigate = useNavigate()
   const { token } = Route.useSearch()
   const [password, setPassword] = useState('')
@@ -190,14 +192,14 @@ function SetPasswordPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label
-                htmlFor="password"
+                htmlFor={passwordId}
                 className="block text-sm font-medium text-foreground mb-1.5"
               >
                 Password
               </label>
               <div className="relative">
                 <Input
-                  id="password"
+                  id={passwordId}
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -246,13 +248,13 @@ function SetPasswordPage() {
             </div>
             <div>
               <label
-                htmlFor="password-confirm"
+                htmlFor={passwordConfirmId}
                 className="block text-sm font-medium text-foreground mb-1.5"
               >
                 Confirm password
               </label>
               <Input
-                id="password-confirm"
+                id={passwordConfirmId}
                 type="password"
                 value={passwordConfirm}
                 onChange={(e) => setPasswordConfirm(e.target.value)}

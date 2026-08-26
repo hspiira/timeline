@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useEventTypes } from '@/hooks/useEventTypes'
 import { useFormSubmit } from '@/hooks/useFormSubmit'
 import type { components } from '@/lib/timeline-api'
@@ -34,6 +34,7 @@ interface FormState {
 }
 
 export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModalProps) {
+  const isActiveId = useId()
   const [state, setState] = useState<FormState>({
     name: '',
     description: '',
@@ -256,7 +257,7 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
         <div className="border-t border-border pt-4 flex items-center gap-3">
           <input
             type="checkbox"
-            id="isActive"
+            id={isActiveId}
             checked={state.isActive}
             onChange={(e) =>
               setState((prev) => ({
@@ -267,7 +268,7 @@ export function WorkflowFormModal({ onClose, onSubmit, title }: WorkflowFormModa
             disabled={loading}
             className="rounded-none"
           />
-          <label htmlFor="isActive" className="text-sm font-medium text-foreground/90">
+          <label htmlFor={isActiveId} className="text-sm font-medium text-foreground/90">
             Activate workflow immediately after creation
           </label>
         </div>

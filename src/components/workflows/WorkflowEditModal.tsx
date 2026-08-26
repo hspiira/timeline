@@ -25,6 +25,9 @@ interface WorkflowEditModalProps {
 }
 
 export function WorkflowEditModal({ workflow, onClose, onSave }: WorkflowEditModalProps) {
+  const workflowEditDescId = useId()
+  const workflowEditFormId = useId()
+  const workflowEditNameId = useId()
   const setisactiveVTrueId = useId()
   const [name, setName] = useState(workflow.name)
   const [description, setDescription] = useState(workflow.description ?? '')
@@ -103,14 +106,14 @@ export function WorkflowEditModal({ workflow, onClose, onSave }: WorkflowEditMod
             <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" form="workflow-edit-form" variant="primary" disabled={loading}>
+            <Button type="submit" form={workflowEditFormId} variant="primary" disabled={loading}>
               {loading ? 'Saving…' : 'Save changes'}
             </Button>
           </div>
         </div>
       }
     >
-      <form id="workflow-edit-form" onSubmit={handleSubmit} className="flex flex-col">
+      <form id={workflowEditFormId} onSubmit={handleSubmit} className="flex flex-col">
         <section className="flex flex-col gap-4">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Overview
@@ -120,7 +123,7 @@ export function WorkflowEditModal({ workflow, onClose, onSave }: WorkflowEditMod
               <div className="p-5 space-y-4">
                 <FormField label="Name">
                   <Input
-                    id="workflow-edit-name"
+                    id={workflowEditNameId}
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -131,7 +134,7 @@ export function WorkflowEditModal({ workflow, onClose, onSave }: WorkflowEditMod
                 </FormField>
                 <FormField label="Description">
                   <FormTextarea
-                    id="workflow-edit-desc"
+                    id={workflowEditDescId}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="What this workflow does"

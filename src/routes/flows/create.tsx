@@ -67,6 +67,7 @@ function placeholderOptionsFromSchema(
 }
 
 function CreateFlowPage() {
+  const flowNameId = useId()
   const subjectOptionalId = useId()
   const subjectTypeOptionalId = useId()
   const workflowFieldId = useId()
@@ -322,11 +323,14 @@ function CreateFlowPage() {
             </>
           ) : (
             <div>
-              <label htmlFor="flow-name" className="block text-sm font-medium text-foreground mb-1">
+              <label
+                htmlFor={flowNameId}
+                className="block text-sm font-medium text-foreground mb-1"
+              >
                 Name
               </label>
               <Input
-                id="flow-name"
+                id={flowNameId}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. 2026-03-Acme-Corp or My Flow"

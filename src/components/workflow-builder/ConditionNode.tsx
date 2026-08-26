@@ -35,12 +35,14 @@ export function ConditionNode({
     >
       {/* Yes/no on all 4 sides; target handles (for incoming) only show when connecting (in shell) */}
       {/* Top */}
+      {/* biome-ignore lint/correctness/useUniqueElementIds: React Flow handle id, scoped to the node and matched by name when an edge is drawn. */}
       <Handle
         type="source"
         position={Position.Top}
         id="top-true"
         className={`!left-[48%] ${trueClass}`}
       />
+      {/* biome-ignore lint/correctness/useUniqueElementIds: React Flow handle id, scoped to the node and matched by name when an edge is drawn. */}
       <Handle
         type="source"
         position={Position.Top}
@@ -48,12 +50,14 @@ export function ConditionNode({
         className={`!left-[52%] ${falseClass}`}
       />
       {/* Bottom */}
+      {/* biome-ignore lint/correctness/useUniqueElementIds: React Flow handle id, scoped to the node and matched by name when an edge is drawn. */}
       <Handle
         type="source"
         position={Position.Bottom}
         id="bottom-true"
         className={`!left-[48%] ${trueClass}`}
       />
+      {/* biome-ignore lint/correctness/useUniqueElementIds: React Flow handle id, scoped to the node and matched by name when an edge is drawn. */}
       <Handle
         type="source"
         position={Position.Bottom}
@@ -61,12 +65,14 @@ export function ConditionNode({
         className={`!left-[52%] ${falseClass}`}
       />
       {/* Left */}
+      {/* biome-ignore lint/correctness/useUniqueElementIds: React Flow handle id, scoped to the node and matched by name when an edge is drawn. */}
       <Handle
         type="source"
         position={Position.Left}
         id="left-true"
         className={`!top-[48%] ${trueClass}`}
       />
+      {/* biome-ignore lint/correctness/useUniqueElementIds: React Flow handle id, scoped to the node and matched by name when an edge is drawn. */}
       <Handle
         type="source"
         position={Position.Left}
@@ -74,12 +80,14 @@ export function ConditionNode({
         className={`!top-[52%] ${falseClass}`}
       />
       {/* Right */}
+      {/* biome-ignore lint/correctness/useUniqueElementIds: React Flow handle id, scoped to the node and matched by name when an edge is drawn. */}
       <Handle
         type="source"
         position={Position.Right}
         id="right-true"
         className={`!top-[48%] ${trueClass}`}
       />
+      {/* biome-ignore lint/correctness/useUniqueElementIds: React Flow handle id, scoped to the node and matched by name when an edge is drawn. */}
       <Handle
         type="source"
         position={Position.Right}

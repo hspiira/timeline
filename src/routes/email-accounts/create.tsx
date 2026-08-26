@@ -78,6 +78,7 @@ const PROVIDERS: Record<EmailProvider, ProviderConfig> = {
 }
 
 function CreateEmailAccountPage() {
+  const useSslId = useId()
   const emailAddressId = useId()
   const imapServerId = useId()
   const passwordAppSpecificId = useId()
@@ -505,12 +506,12 @@ function CreateEmailAccountPage() {
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    id="use_ssl"
+                    id={useSslId}
                     checked={useSsl}
                     onChange={(e) => setUseSsl(e.target.checked)}
                     className="w-4 h-4 rounded-none border-input text-primary focus:ring-2 focus:ring-ring"
                   />
-                  <label htmlFor="use_ssl" className="text-sm font-medium text-foreground">
+                  <label htmlFor={useSslId} className="text-sm font-medium text-foreground">
                     Use SSL/TLS (recommended)
                   </label>
                 </div>

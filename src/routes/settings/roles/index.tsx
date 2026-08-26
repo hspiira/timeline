@@ -27,6 +27,7 @@ type RoleWithPermissions = RoleResponse & {
 }
 
 function RolesPage() {
+  const includeInactiveId = useId()
   const authState = useRequireAuth()
   const toast = useToast()
   const [roles, setRoles] = useState<RoleResponse[]>([])
@@ -319,12 +320,12 @@ function RolesPage() {
       <div className="mb-3 p-2.5 bg-card/80 backdrop-blur-sm rounded-none border border-border/50 flex items-center gap-2">
         <input
           type="checkbox"
-          id="includeInactive"
+          id={includeInactiveId}
           checked={includeInactive}
           onChange={(e) => setIncludeInactive(e.target.checked)}
           className="w-4 h-4 rounded-none border-input"
         />
-        <label htmlFor="includeInactive" className="text-sm text-foreground cursor-pointer">
+        <label htmlFor={includeInactiveId} className="text-sm text-foreground cursor-pointer">
           Show inactive roles
         </label>
       </div>

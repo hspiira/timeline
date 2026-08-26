@@ -100,6 +100,7 @@ export function WorkflowNodeShell({
       </div>
 
       {/* Target handles: visible dots at midpoint of each side (always visible so connectors are clear) */}
+      {/* biome-ignore lint/correctness/useUniqueElementIds: React Flow handle id, scoped to the node and matched by name when an edge is drawn. */}
       <Handle
         type="target"
         position={Position.Top}
@@ -107,6 +108,7 @@ export function WorkflowNodeShell({
         className={`!top-0 !left-1/2 !w-2.5 !h-2.5 !rounded-full !border-2 !border-card !-translate-x-1/2 !-translate-y-1/2 ${targetHandleVisible}`}
         style={showTargetHandles ? { background: 'hsl(var(--primary) / 0.5)' } : undefined}
       />
+      {/* biome-ignore lint/correctness/useUniqueElementIds: React Flow handle id, scoped to the node and matched by name when an edge is drawn. */}
       <Handle
         type="target"
         position={Position.Right}
@@ -114,6 +116,7 @@ export function WorkflowNodeShell({
         className={`!right-0 !top-1/2 !w-2.5 !h-2.5 !rounded-full !border-2 !border-card !translate-x-1/2 !-translate-y-1/2 ${targetHandleVisible}`}
         style={showTargetHandles ? { background: 'hsl(var(--primary) / 0.5)' } : undefined}
       />
+      {/* biome-ignore lint/correctness/useUniqueElementIds: React Flow handle id, scoped to the node and matched by name when an edge is drawn. */}
       <Handle
         type="target"
         position={Position.Bottom}
@@ -121,6 +124,7 @@ export function WorkflowNodeShell({
         className={`!bottom-0 !left-1/2 !w-2.5 !h-2.5 !rounded-full !border-2 !border-card !-translate-x-1/2 !translate-y-1/2 ${targetHandleVisible}`}
         style={showTargetHandles ? { background: 'hsl(var(--primary) / 0.5)' } : undefined}
       />
+      {/* biome-ignore lint/correctness/useUniqueElementIds: React Flow handle id, scoped to the node and matched by name when an edge is drawn. */}
       <Handle
         type="target"
         position={Position.Left}

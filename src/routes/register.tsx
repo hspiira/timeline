@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { ArrowLeft, CheckCircle, Copy, KeyRound } from 'lucide-react'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { AuthCard } from '@/components/auth/AuthCard'
 import { AuthPageLayout } from '@/components/auth/AuthPageLayout'
 import { Button } from '@/components/ui/button'
@@ -26,6 +26,8 @@ interface TenantCreationResult {
 }
 
 function RegisterTenantPage() {
+  const tenantCodeId = useId()
+  const tenantNameId = useId()
   const navigate = useNavigate()
   const authState = useStore(authStore)
   const [tenantCode, setTenantCode] = useState('')
@@ -209,13 +211,13 @@ function RegisterTenantPage() {
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
           <div>
             <label
-              htmlFor="tenant-name"
+              htmlFor={tenantNameId}
               className="mb-1.5 block text-sm font-medium text-foreground"
             >
               Tenant name
             </label>
             <Input
-              id="tenant-name"
+              id={tenantNameId}
               type="text"
               value={tenantName}
               onChange={(e) => setTenantName(e.target.value)}
@@ -226,13 +228,13 @@ function RegisterTenantPage() {
 
           <div>
             <label
-              htmlFor="tenant-code"
+              htmlFor={tenantCodeId}
               className="mb-1.5 block text-sm font-medium text-foreground"
             >
               Tenant code
             </label>
             <Input
-              id="tenant-code"
+              id={tenantCodeId}
               type="text"
               value={tenantCode}
               onChange={(e) =>
