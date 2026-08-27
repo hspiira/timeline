@@ -1,5 +1,7 @@
 """Auth API schemas."""
 
+from datetime import datetime
+
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
@@ -83,3 +85,38 @@ class TokenResponse(BaseModel):
     expires_in: int | None = Field(
         default=None, description="Access token lifetime in seconds"
     )
+
+
+class AdminResetPasswordRequest(BaseModel):
+    """Request body for POST /auth/admin-reset-password."""
+
+    email: EmailStr = Field(..., description="Email of the person to reset")
+
+
+class AdminResetPasswordResponse(BaseModel):
+    """A one-time reset link for an administrator to pass to the person.
+
+    ``reset_url`` is filled in only when SET_PASSWORD_BASE_URL is configured;
+    ``token`` is always present so the link can be built without it.
+    """
+
+    user_id: str
+    username: str
+    token: str
+    reset_url: str | None = None
+    expires_at: datetime
+
+
+class ResetPasswordRequest(BaseModel):
+    """Request body for POST /auth/reset-password."""
+
+    token: str = Field(..., min_length=1, description="One-time token from the reset link")
+    password: str = Field(..., min_length=8, description="New password (min 8 characters)")
+    password_confirm: str = Field(..., min_length=8, description="Confirm new password")
+
+    @model_validator(mode="after")
+    def passwords_match(self) -> "ResetPasswordRequest":
+        """Reject a body whose two password fields differ."""
+        if self.password != self.password_confirm:
+            raise ValueError("password and password_confirm do not match")
+        return self

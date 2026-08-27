@@ -15,10 +15,12 @@ from app.api.v1.dependencies import (
     get_create_access_token,
     get_current_user,
     get_set_password_deps,
+    get_tenant_id,
     get_tenant_repo,
     get_user_repo,
     get_user_repo_for_write,
     get_user_service,
+    require_permission,
 )
 from app.application.dtos.user import UserResult
 from app.application.services.authorization_service import AuthorizationService
@@ -39,11 +41,14 @@ from app.infrastructure.persistence.repositories.password_set_token_repo import 
     PasswordSetTokenStore,
 )
 from app.schemas.auth import (
+    AdminResetPasswordRequest,
+    AdminResetPasswordResponse,
     LoginRequest,
+    OrganisationSummary,
     OrganisationsRequest,
     OrganisationsResponse,
-    OrganisationSummary,
     RegisterRequest,
+    ResetPasswordRequest,
     SetInitialPasswordRequest,
     TokenResponse,
 )
@@ -144,6 +149,33 @@ async def register(
     )
 
 
+async def _redeem_link_and_set_password(
+    token_store: PasswordSetTokenStore,
+    user_repo: UserRepository,
+    token: str,
+    password: str,
+) -> None:
+    """Redeem a one-time link and set the password on the person's identity.
+
+    Raises HTTPException(400) when the token is unknown, expired or already used.
+    """
+    redeemed = await token_store.redeem(token)
+    if not redeemed:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired link. Request a new link from your administrator.",
+        )
+    user_id, tenant_id = redeemed
+
+    # Nobody is signed in, so there is no tenant context and every tenant-scoped
+    # read below would come back empty. The redeemed token names the organisation.
+    await _use_tenant(user_repo, tenant_id)
+
+    updated = await user_repo.update_password(user_id, password)
+    if not updated:
+        raise HTTPException(status_code=400, detail="User not found")
+
+
 @router.post("/set-initial-password", status_code=204)
 @limit_auth
 async def set_initial_password(
@@ -160,22 +192,78 @@ async def set_initial_password(
     Requires PostgreSQL; returns 503 when database backend is not postgres.
     """
     token_store, user_repo = deps
-    redeemed = await token_store.redeem(body.token)
-    if not redeemed:
+    await _redeem_link_and_set_password(
+        token_store, user_repo, body.token, body.password
+    )
+    return None
+
+
+@router.post("/admin-reset-password", response_model=AdminResetPasswordResponse)
+@limit_writes
+async def admin_reset_password(
+    request: Request,
+    body: AdminResetPasswordRequest,
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    deps: Annotated[
+        tuple[PasswordSetTokenStore, UserRepository],
+        Depends(get_set_password_deps),
+    ],
+    _: Annotated[object, Depends(require_permission("user", "update"))] = None,
+) -> AdminResetPasswordResponse:
+    """Issue a one-time password reset link for someone in your own organisation.
+
+    The link is returned rather than emailed: this deployment has no outbound mail,
+    so an administrator passes it on. Requires the user:update permission.
+
+    The lookup is scoped to the caller's organisation, so an administrator of one
+    cannot mint a link for a person they do not administer. Because the password
+    lives on the identity, redeeming the link changes it everywhere that person
+    signs in, not only here.
+    """
+    token_store, user_repo = deps
+    user = await user_repo.get_by_email_and_tenant(body.email, tenant_id)
+    if not user:
         raise HTTPException(
-            status_code=400,
-            detail="Invalid or expired link. Request a new link from your administrator.",
+            status_code=404, detail="No member of this organisation has that email"
         )
-    user_id, tenant_id = redeemed
 
-    # Nobody is signed in yet, so there is no tenant context and every tenant-scoped
-    # read below would come back empty. The redeemed token tells us which
-    # organisation this is, so establish it before touching app_user.
-    await _use_tenant(user_repo, tenant_id)
+    token, expires_at = await token_store.create(user.id)
 
-    updated = await user_repo.update_password(user_id, body.password)
-    if not updated:
-        raise HTTPException(status_code=400, detail="User not found")
+    settings = get_settings()
+    reset_url = None
+    if settings.set_password_base_url:
+        base = settings.set_password_base_url.rstrip("/")
+        reset_url = f"{base}/set-password?token={token}"
+
+    return AdminResetPasswordResponse(
+        user_id=user.id,
+        username=user.username,
+        token=token,
+        reset_url=reset_url,
+        expires_at=expires_at,
+    )
+
+
+@router.post("/reset-password", status_code=204)
+@limit_auth
+async def reset_password(
+    request: Request,
+    body: ResetPasswordRequest,
+    deps: Annotated[
+        tuple[PasswordSetTokenStore, UserRepository],
+        Depends(get_set_password_deps),
+    ],
+):
+    """Set a new password using a one-time reset link.
+
+    Same one-time token as set-initial-password; separate route because the two are
+    different events for the person using them. Unauthenticated by design: whoever
+    holds a valid, unexpired, unused link may set the password.
+    """
+    token_store, user_repo = deps
+    await _redeem_link_and_set_password(
+        token_store, user_repo, body.token, body.password
+    )
     return None
 
 
