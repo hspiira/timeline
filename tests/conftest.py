@@ -6,10 +6,17 @@ for DB-dependent fixtures. All imports use app.*.
 
 import os
 import uuid
+from urllib.parse import urlsplit, urlunsplit
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.pool import NullPool
 
 from app.core.config import get_settings
 # Import the module, not the names: _ensure_engine() rebinds AsyncSessionLocal as a
@@ -21,6 +28,108 @@ from app.main import app
 # When CREATE_TENANT_SECRET is not set, tests that create tenants set this so
 # POST /api/v1/tenants succeeds. The app reads settings on each request.
 _TEST_CREATE_TENANT_SECRET = "test-create-tenant-secret"
+
+# Row-level security does not apply to superusers, to roles with BYPASSRLS, or (unless
+# forced) to a table's owner. The role that runs migrations is all three, so isolation
+# tests connected as it would pass with the policies dropped. These describe a
+# deliberately powerless role to check the policies against instead.
+RLS_TEST_ROLE = "timeline_rls_test"
+RLS_TEST_PASSWORD = "rls-test-only"
+
+
+def _restricted_dsn(database_url: str) -> str:
+    """The same database and options, connected as RLS_TEST_ROLE."""
+    parts = urlsplit(database_url)
+    netloc = f"{RLS_TEST_ROLE}:{RLS_TEST_PASSWORD}@{parts.hostname or 'localhost'}"
+    if parts.port:
+        netloc = f"{netloc}:{parts.port}"
+    return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+
+
+async def _provision_rls_role(engine) -> None:
+    """Create RLS_TEST_ROLE and grant it plain data access, idempotently.
+
+    Autocommit, because CREATE ROLE and GRANT would otherwise be rolled back with the
+    test transaction. Deliberately not granted BYPASSRLS, ownership, or superuser.
+    """
+    async with engine.connect() as conn:
+        await conn.execution_options(isolation_level="AUTOCOMMIT")
+        await conn.execute(
+            text(
+                f"""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_roles WHERE rolname = '{RLS_TEST_ROLE}'
+                    ) THEN
+                        CREATE ROLE {RLS_TEST_ROLE} LOGIN PASSWORD '{RLS_TEST_PASSWORD}';
+                    END IF;
+                END
+                $$;
+                """
+            )
+        )
+        # Re-applied every run: a role left over from an older checkout may have been
+        # created with different attributes, and a role that bypasses RLS would make
+        # these tests pass for the wrong reason.
+        await conn.execute(
+            text(f"ALTER ROLE {RLS_TEST_ROLE} NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE")
+        )
+        await conn.execute(text(f"ALTER ROLE {RLS_TEST_ROLE} PASSWORD '{RLS_TEST_PASSWORD}'"))
+        await conn.execute(text(f"GRANT USAGE ON SCHEMA public TO {RLS_TEST_ROLE}"))
+        await conn.execute(
+            text(
+                "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public "
+                f"TO {RLS_TEST_ROLE}"
+            )
+        )
+        await conn.execute(
+            text(f"GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO {RLS_TEST_ROLE}")
+        )
+
+
+@pytest.fixture
+async def rls_session():
+    """A session as a role row-level security actually applies to.
+
+    Setup still belongs on db_session: under these policies the restricted role cannot
+    insert a tenant at all, since the WITH CHECK on tenant requires
+    app.current_tenant_id to already equal the row's own id. That split mirrors
+    production, where migrations and admin scripts run privileged and the application
+    connects as a restricted role.
+    """
+    _ensure_engine()
+    if _database.AsyncSessionLocal is None or _database.engine is None:
+        pytest.skip(
+            "Postgres not configured: set DATABASE_URL and run: uv run alembic upgrade head"
+        )
+    try:
+        await _provision_rls_role(_database.engine)
+    except Exception as exc:  # insufficient privilege on a managed database
+        pytest.skip(f"Could not provision {RLS_TEST_ROLE}: {exc}")
+
+    engine = create_async_engine(
+        _restricted_dsn(get_settings().database_url), poolclass=NullPool
+    )
+    try:
+        maker = async_sessionmaker(engine, expire_on_commit=False)
+        async with maker() as session:
+            bypasses = (
+                await session.execute(
+                    text(
+                        "SELECT rolsuper OR rolbypassrls FROM pg_roles "
+                        "WHERE rolname = current_user"
+                    )
+                )
+            ).scalar()
+            assert bypasses is False, (
+                f"{RLS_TEST_ROLE} can bypass row-level security, so these tests would "
+                "pass even with the policies dropped"
+            )
+            yield session
+            await session.rollback()
+    finally:
+        await engine.dispose()
 
 
 @pytest.fixture(autouse=True)

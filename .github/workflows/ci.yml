@@ -87,6 +87,27 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://unused:unused@127.0.0.1:1/unused
         run: uv run pytest -m "not requires_db" -q
 
+      - name: Tenant isolation is actually verified
+        # These tests skip themselves when the connected role bypasses row-level
+        # security, and the role CI connects as is a superuser, so for their whole
+        # existence they reported green without running. The fixture now provisions a
+        # restricted role and connects as it. Treat a skip here as a failure: the one
+        # property this system must not get wrong cannot be allowed to go unchecked.
+        run: |
+          set +e
+          OUT=$(uv run pytest tests/integration/test_tenant_isolation.py -q -rs 2>&1)
+          RC=$?
+          set -e
+          echo "$OUT"
+          if [ "$RC" -ne 0 ]; then
+            echo "::error::Tenant isolation tests failed."
+            exit 1
+          fi
+          if echo "$OUT" | grep -qE '[0-9]+ skipped'; then
+            echo "::error::Tenant isolation tests skipped instead of running."
+            exit 1
+          fi
+
       - name: Lint must not get worse
         # Ratcheted rather than all-or-nothing: there is existing debt, and a check
         # that fails on day one gets ignored. Lower the baseline as it is paid down.
