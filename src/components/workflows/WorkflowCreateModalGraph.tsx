@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
 import { ErrorAlert } from '@/components/ui/ErrorAlert'
@@ -57,7 +57,10 @@ export function WorkflowCreateModalGraph({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
   const { execute, loading, error, setError } = useFormSubmit()
 
-  const triggerNode = workflow.nodes.find((n) => nodeRegistry.getOptional(n.type)?.isTrigger)
+  const triggerNode = useMemo(
+    () => workflow.nodes.find((n) => nodeRegistry.getOptional(n.type)?.isTrigger),
+    [workflow.nodes],
+  )
   const selectedTemplate = selectedTemplateId ? getWorkflowTemplate(selectedTemplateId) : null
 
   // Attio-style: when there is only the trigger node, auto-select it so the user starts by specifying the trigger
@@ -72,7 +75,7 @@ export function WorkflowCreateModalGraph({
       const eventType = (triggerNode.configuration?.eventType as string) ?? ''
       setTriggerEventType(eventType)
     }
-  }, [triggerNode?.id])
+  }, [triggerNode])
 
   const handleTriggerEventTypeChange = useCallback(
     (value: string) => {

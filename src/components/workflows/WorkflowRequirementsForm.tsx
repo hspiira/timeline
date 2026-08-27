@@ -116,7 +116,7 @@ export function WorkflowRequirementsForm({
       const tasks = (step.tasks ?? []).filter((_, i) => i !== taskIndex)
       updateStep(stepIndex, { tasks: tasks.length > 0 ? tasks : undefined })
     },
-    [updateStep],
+    [value, updateStep],
   )
 
   const setRequireDocument = useCallback(

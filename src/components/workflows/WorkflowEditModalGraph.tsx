@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SingleSelectCombobox } from '@/components/ui/combobox'
 import { ErrorAlert } from '@/components/ui/ErrorAlert'
@@ -58,14 +58,17 @@ export function WorkflowEditModalGraph({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const { execute, loading, error, setError } = useFormSubmit()
 
-  const triggerNode = workflow.nodes.find((n) => nodeRegistry.getOptional(n.type)?.isTrigger)
+  const triggerNode = useMemo(
+    () => workflow.nodes.find((n) => nodeRegistry.getOptional(n.type)?.isTrigger),
+    [workflow.nodes],
+  )
 
   useEffect(() => {
     if (triggerNode) {
       const eventType = (triggerNode.configuration?.eventType as string) ?? ''
       setTriggerEventType(eventType)
     }
-  }, [triggerNode?.id])
+  }, [triggerNode])
 
   const handleTriggerEventTypeChange = useCallback(
     (value: string) => {

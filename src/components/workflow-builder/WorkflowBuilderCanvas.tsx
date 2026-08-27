@@ -210,6 +210,7 @@ function WorkflowBuilderCanvasInner({
   }, [])
 
   // Re-fit view when workflow structure changes (e.g. template load) so model stays in view
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the two counts are the trigger; the fit reads the canvas, not them.
   useEffect(() => {
     const instance = flowInstanceRef.current
     if (!instance) return

@@ -82,10 +82,11 @@ export function DocumentUpload({
         setCategoriesLoading(false)
         if (!error && Array.isArray(data) && data.length > 0) {
           setCategories(data.filter((c) => c.is_active))
-          if (!selectedCategoryId && data.length > 0) {
+          setSelectedCategoryId((current) => {
+            if (current) return current
             const first = data.find((c) => c.is_active) ?? data[0]
-            setSelectedCategoryId(first.id)
-          }
+            return first.id
+          })
         }
       })
       .catch(() => {

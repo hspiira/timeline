@@ -76,7 +76,7 @@ export function EditSubjectModal({
       subject.attributes && typeof subject.attributes === 'object' ? { ...subject.attributes } : {},
     )
     setAttributeErrors({})
-  }, [subject.id, subject.external_ref, subject.display_name, subject.attributes])
+  }, [subject.external_ref, subject.display_name, subject.attributes])
 
   // Fetch subject type schema when modal is open and we have subject type
   useEffect(() => {

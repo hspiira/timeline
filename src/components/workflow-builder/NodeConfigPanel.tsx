@@ -27,6 +27,7 @@ function ConditionConfig({
   const ifAdvancedId = useId()
   const whenThenFollowId = useId()
   const [forceAdvanced, setForceAdvanced] = useState(false)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: nodeId is the trigger; selecting another node is what resets the panel.
   useEffect(() => {
     setForceAdvanced(false)
   }, [nodeId])

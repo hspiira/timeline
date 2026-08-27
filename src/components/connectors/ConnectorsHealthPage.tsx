@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { AlertCircle, ChevronDown, ChevronRight, RefreshCw, ShieldAlert } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, YAxis } from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -61,7 +61,7 @@ export function ConnectorsHealthPage() {
     refetchInterval: 15_000,
   })
 
-  const items = (data?.connectors ?? []) as ConnectorHealthItem[]
+  const items = useMemo(() => (data?.connectors ?? []) as ConnectorHealthItem[], [data])
 
   useEffect(() => {
     if (!items.length) return
@@ -80,7 +80,7 @@ export function ConnectorsHealthPage() {
       }
       return next
     })
-  }, [data?.connectors])
+  }, [items])
 
   const is403 =
     error &&
