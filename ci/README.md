@@ -24,7 +24,7 @@ model modules whose imports exist to register ORM metadata.
 
 `max-complexity = 5` in `pyproject.toml` is stricter than the usual 10. That is the
 intent: at 5 the check flags branching early enough to be a prompt for a second look,
-not a demand for a refactor. Most of the 79 functions currently over the line are fine
+not a demand for a refactor. Most of the 78 functions currently over the line are fine
 as they are; the ones worth attention sit far above it.
 
 The outliers have been dealt with. `create_lifespan` (was 26), `create_event` (16),
