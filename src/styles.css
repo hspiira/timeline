@@ -226,3 +226,214 @@ code {
   outline-offset: 2px;
   border-radius: 12px;
 }
+
+/* ── Landing page ──────────────────
+   Flat dark ground, no cards. The one light sits off to the right so it never
+   passes under the headline and lowers its contrast. Literal rgba rather than
+   theme tokens: --color-* comes from @theme inline and does not track .dark. */
+
+.landing-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.landing-glow {
+  position: absolute;
+  top: 4%;
+  right: -20%;
+  width: 62rem;
+  height: 44rem;
+  border-radius: 9999px;
+  background: radial-gradient(ellipse at center, rgba(36, 221, 123, 0.09), transparent 62%);
+  filter: blur(60px);
+}
+
+.landing-floor {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.018), transparent 34%);
+}
+
+/* ── Hero copy ────────────────── */
+
+.landing-accent {
+  color: #24dd7b;
+}
+
+/* ── Buttons ────────────────── */
+
+.landing-cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.6rem;
+  border-radius: 0.5rem;
+  background: #24dd7b;
+  color: #06210f;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.landing-cta:hover {
+  background: #3ce68d;
+  box-shadow: 0 8px 24px rgba(36, 221, 123, 0.2);
+}
+
+.landing-cta:focus-visible {
+  outline: 2px solid rgba(36, 221, 123, 0.6);
+  outline-offset: 3px;
+}
+
+.landing-ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.82);
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.landing-ghost-btn:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+}
+
+.landing-ghost-btn:focus-visible {
+  outline: 2px solid rgba(36, 221, 123, 0.6);
+  outline-offset: 3px;
+}
+
+/* ── Animated timeline band ──────────────────
+   Sits directly on the page: no card, no border, no shadow. The playhead steps
+   marker to marker like a carousel so the whole page stays inside the viewport. */
+
+.landing-band {
+  padding-top: 0.5rem;
+}
+
+.landing-ruler {
+  position: relative;
+  height: 3.4rem;
+}
+
+.landing-ticks {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 0.6rem;
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+  background-size: calc(100% / 96) 100%;
+}
+
+.landing-baseline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0.6rem;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.landing-progress {
+  position: absolute;
+  left: 0;
+  top: 0.6rem;
+  height: 1px;
+  background: rgba(36, 221, 123, 0.5);
+  transition: width 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-playhead {
+  position: absolute;
+  top: -0.45rem;
+  height: 1.75rem;
+  width: 1px;
+  background: linear-gradient(to bottom, rgba(36, 221, 123, 0.95), rgba(36, 221, 123, 0.12));
+  transition: left 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-marker {
+  position: absolute;
+  top: 1.05rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transform: translateX(-50%);
+}
+
+.landing-marker-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.2);
+  transition: background-color 0.4s ease, box-shadow 0.4s ease, transform 0.4s ease;
+}
+
+.landing-marker-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.28);
+  transition: color 0.4s ease;
+}
+
+.landing-marker.is-past .landing-marker-dot {
+  background: rgba(36, 221, 123, 0.55);
+}
+
+.landing-marker.is-active .landing-marker-dot {
+  background: #24dd7b;
+  box-shadow: 0 0 12px rgba(36, 221, 123, 0.6);
+  transform: scale(1.3);
+}
+
+.landing-marker.is-active .landing-marker-label {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.landing-marker:hover .landing-marker-label {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.landing-marker:focus-visible {
+  outline: 2px solid rgba(36, 221, 123, 0.6);
+  outline-offset: 4px;
+  border-radius: 0.25rem;
+}
+
+.landing-band-detail {
+  margin-top: 1.6rem;
+  min-height: 5rem;
+  max-width: 34rem;
+}
+
+.landing-detail-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.landing-detail-text {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.5);
+}
