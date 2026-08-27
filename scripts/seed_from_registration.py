@@ -33,7 +33,6 @@ from app.application.dtos.event import EventCreate
 from app.application.services.event_schema_validator import EventSchemaValidator
 from app.application.services.hash_service import HashService
 from app.application.use_cases.events.create_event import EventService
-from app.core.config import get_settings
 from app.domain.enums import TenantStatus
 from app.infrastructure.persistence import database as db_mod
 from app.infrastructure.persistence.database import _ensure_engine

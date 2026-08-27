@@ -26,7 +26,6 @@ from app.application.dtos.event import EventCreate
 from app.application.services.event_schema_validator import EventSchemaValidator
 from app.application.services.hash_service import HashService
 from app.application.use_cases.events.create_event import EventService
-from app.core.config import get_settings
 from app.domain.enums import TenantStatus
 from app.infrastructure.persistence.database import _ensure_engine
 from app.infrastructure.persistence.repositories.event_repo import EventRepository
@@ -165,35 +164,31 @@ async def _seed_event_schemas(
         print(f"  Event schema {es['event_type']}@v1 for {es['tenant_code']}")
 
 
-def _is_duplicate_error(exc: Exception, constraint: str) -> bool:
-    """Whether this exception is the unique-constraint violation we expect."""
-    text = str(exc)
-    return constraint in text or "unique" in text.lower()
-
-
 async def _seed_one_subject(
     session: AsyncSession,
     tenant_id: str,
     sub: dict,
     subject_ids: dict[tuple[str, str], str],
 ) -> None:
-    """Create one subject, tolerating one that is already present."""
+    """Create one subject, or record the one already there.
+
+    Checked before inserting rather than catching the unique violation. Letting the
+    insert fail aborts the surrounding transaction, so the recovery read that used to
+    live in the except branch could not run: a second seed of the same file died with
+    "Can't operate on closed transaction inside context manager" instead of skipping.
+    """
     ref = sub.get("external_ref")
     subject_repo = SubjectRepository(session, tenant_id=tenant_id, audit_service=None)
-    try:
-        created = await subject_repo.create_subject(
-            tenant_id=tenant_id,
-            subject_type=sub["subject_type"],
-            external_ref=ref,
-        )
-    except Exception as e:
-        if not _is_duplicate_error(e, "uq_subject_tenant_external_ref"):
-            raise
-        existing = await subject_repo.get_by_external_ref(tenant_id, ref or "")
-        if existing:
-            subject_ids[(tenant_id, ref or "")] = existing.id
+    existing = await subject_repo.get_by_external_ref(tenant_id, ref or "")
+    if existing:
+        subject_ids[(tenant_id, ref or "")] = existing.id
         print(f"  Subject {ref} already exists, skip")
         return
+    created = await subject_repo.create_subject(
+        tenant_id=tenant_id,
+        subject_type=sub["subject_type"],
+        external_ref=ref,
+    )
     subject_ids[(tenant_id, created.external_ref or "")] = created.id
     print(
         f"  Subject {created.external_ref} ({created.subject_type}) -> {created.id}"
@@ -225,27 +220,31 @@ async def _seed_one_user(
     role_repo: RoleRepository,
     user_role_repo: UserRoleRepository,
 ) -> None:
-    """Create one user and give them the agent role, tolerating a duplicate."""
-    try:
-        user = await user_repo.create_user(
-            tenant_id=tenant_id,
-            username=u["username"],
-            email=u["email"],
-            password=u["password"],
-        )
-        role = await role_repo.get_by_code_and_tenant("agent", tenant_id)
-        if role:
-            await user_role_repo.assign_role_to_user(
-                user_id=user.id,
-                role_id=role.id,
-                tenant_id=tenant_id,
-                assigned_by=user.id,
-            )
-        print(f"  User {u['username']} -> {user.id}")
-    except Exception as e:
-        if not _is_duplicate_error(e, "uq_tenant_username"):
-            raise
+    """Create one user and give them the agent role, or skip one already there.
+
+    Checked before inserting, for the same reason as _seed_one_subject: a failed
+    insert aborts the surrounding transaction, so every later statement in the seed
+    would fail even though this function swallowed the error.
+    """
+    existing = await user_repo.get_by_username_and_tenant(u["username"], tenant_id)
+    if existing:
         print(f"  User {u['username']} already exists, skip")
+        return
+    user = await user_repo.create_user(
+        tenant_id=tenant_id,
+        username=u["username"],
+        email=u["email"],
+        password=u["password"],
+    )
+    role = await role_repo.get_by_code_and_tenant("agent", tenant_id)
+    if role:
+        await user_role_repo.assign_role_to_user(
+            user_id=user.id,
+            role_id=role.id,
+            tenant_id=tenant_id,
+            assigned_by=user.id,
+        )
+    print(f"  User {u['username']} -> {user.id}")
 
 
 async def _seed_users(

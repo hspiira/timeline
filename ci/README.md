@@ -24,9 +24,25 @@ model modules whose imports exist to register ORM metadata.
 
 `max-complexity = 5` in `pyproject.toml` is stricter than the usual 10. That is the
 intent: at 5 the check flags branching early enough to be a prompt for a second look,
-not a demand for a refactor. Most of the 86 functions currently over the line are fine
-as they are. The ones worth attention sit far above it: `create_events_bulk` at 32 and
-`create_lifespan` at 26.
+not a demand for a refactor. Most of the 79 functions currently over the line are fine
+as they are; the ones worth attention sit far above it.
+
+The outliers have been dealt with. `create_lifespan` (was 26), `create_event` (16),
+`run_epoch_sealing_job` (17), both seed script `run` functions (26 and 25), and
+`Settings.validate_required_and_storage` (15) were each split into named steps, with no
+change in behaviour. `EventService.create_events_bulk` (32, the worst in the repository)
+was deleted instead: it had no callers and no tests, and the email sync it was written
+for does not exist yet. The repository and interface halves of it went with it.
+
+Nothing is left above 14. What remains over 10:
+
+| Function | Complexity | Note |
+|----------|-----------:|------|
+| `RequestSizeLimitMiddleware` / its `asgi_app` | 14 / 13 | Middleware closure; the two overlap. |
+| `GmailProvider.fetch_history_changes` | 14 | |
+| `EventTransitionValidator.validate_can_emit` | 13 | |
+| `run_rls_check` | 12 | |
+| `update_subject_type` | 12 | |
 
 The count is specific to ruff. The `mccabe` bundled with flake8 reports the same
 functions with somewhat higher numbers and misses nested functions such as the

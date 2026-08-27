@@ -15,11 +15,7 @@ from app.domain.enums import EventIntegrityStatus
 if TYPE_CHECKING:
     from app.application.dtos.audit_log import AuditLogEntryCreate, AuditLogResult
     from app.application.dtos.document import DocumentCreate, DocumentResult
-    from app.application.dtos.document_requirement import (
-        DocumentComplianceItem,
-        DocumentRequirementResult,
-        FlowDocumentComplianceResult,
-    )
+    from app.application.dtos.document_requirement import DocumentRequirementResult
     from app.application.dtos.document_category import DocumentCategoryResult
     from app.application.dtos.event import EventCreate, EventResult
     from app.application.dtos.flow import FlowResult, FlowSubjectResult
