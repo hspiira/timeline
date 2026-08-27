@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import asc, desc, func, select, text, tuple_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.application.dtos.event import EventCreate, EventResult, EventToPersist
+from app.application.dtos.event import EventCreate, EventResult
 from app.domain.enums import EventIntegrityStatus
 from app.infrastructure.persistence.models.event import Event
 from app.infrastructure.persistence.models.subject import Subject
@@ -463,37 +463,3 @@ class EventRepository(BaseRepository[Event]):
         )
         row = result.scalar_one_or_none()
         return _event_to_result(row) if row else None
-
-    async def create_events_bulk(
-        self, tenant_id: str, events: list[EventToPersist]
-    ) -> list[EventResult]:
-        if not events:
-            return []
-        objs = [
-            Event(
-                tenant_id=tenant_id,
-                subject_id=e.subject_id,
-                event_type=e.event_type,
-                schema_version=e.schema_version,
-                event_time=e.event_time,
-                payload=e.payload,
-                hash=e.hash,
-                previous_hash=e.previous_hash,
-                workflow_instance_id=e.workflow_instance_id,
-                correlation_id=e.correlation_id,
-                external_id=e.external_id,
-                source=e.source,
-                epoch_id=e.epoch_id,
-                integrity_status=EventIntegrityStatus(e.integrity_status),
-                merkle_leaf_hash=e.merkle_leaf_hash,
-            )
-            for e in events
-        ]
-        self.db.add_all(objs)
-        await self.db.flush()
-        # Load server-generated event_seq values for all inserted rows in one query.
-        result = await self.db.execute(
-            select(Event).where(Event.id.in_([o.id for o in objs]))
-        )
-        events_by_id = {event.id: event for event in result.scalars().all()}
-        return [_event_to_result(events_by_id[o.id]) for o in objs]

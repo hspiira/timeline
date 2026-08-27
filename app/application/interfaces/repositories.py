@@ -21,7 +21,7 @@ if TYPE_CHECKING:
         FlowDocumentComplianceResult,
     )
     from app.application.dtos.document_category import DocumentCategoryResult
-    from app.application.dtos.event import EventCreate, EventResult, EventToPersist
+    from app.application.dtos.event import EventCreate, EventResult
     from app.application.dtos.flow import FlowResult, FlowSubjectResult
     from app.application.dtos.event_schema import EventSchemaResult
     from app.application.dtos.naming_template import NamingTemplateResult
@@ -98,13 +98,6 @@ class IEventRepository(Protocol):
         merkle_leaf_hash: str | None = None,
     ) -> EventResult:
         """Create a new event with computed hash and optional integrity fields."""
-
-    async def create_events_bulk(
-        self,
-        tenant_id: str,
-        events: list[EventToPersist],
-    ) -> list[EventResult]:
-        """Bulk insert events (hashes precomputed)."""
 
     async def get_by_id(self, event_id: str) -> EventResult | None:
         """Return event by ID."""
