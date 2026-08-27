@@ -178,12 +178,8 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    @model_validator(mode="after")
-    def validate_required_and_storage(self) -> "Settings":
-        """Validate required env and storage backend.
-
-        DATABASE_URL is required (PostgreSQL). Storage backend validated below.
-        """
+    def _validate_required_env(self) -> None:
+        """The three settings the application cannot start without."""
         if not self.database_url:
             raise ValueError(
                 "DATABASE_URL is required. Set in environment or .env file "
@@ -199,6 +195,9 @@ class Settings(BaseSettings):
                 "ENCRYPTION_SALT is required. Generate with: openssl rand -hex 16. "
                 "On Vercel: set in Project → Settings → Environment Variables."
             )
+
+    def _validate_storage_backend(self) -> None:
+        """The storage backend must be one we implement, and s3 needs a bucket."""
         if self.storage_backend == "s3":
             if not self.s3_bucket:
                 raise ValueError(
@@ -210,6 +209,9 @@ class Settings(BaseSettings):
                 f"Invalid storage_backend '{self.storage_backend}'. "
                 "Must be one of: 'local', 's3'"
             )
+
+    def _validate_production_safety(self) -> None:
+        """Settings that are merely inadvisable in development but unsafe in production."""
         # Production: do not run with debug=True (leaks stack traces in 500 responses).
         if self.telemetry_environment == "production" and self.debug:
             raise ValueError(
@@ -223,28 +225,55 @@ class Settings(BaseSettings):
                 "allowed_origins must not be '*' (use explicit origins, e.g. "
                 "ALLOWED_ORIGINS=https://app.example.com)."
             )
-        # Connectors: fail fast when enabled but required config is missing.
-        if self.connector_email_enabled and not self.connector_email_tenant_id:
-            raise ValueError(
-                "CONNECTOR_EMAIL_TENANT_ID is required when CONNECTOR_EMAIL_ENABLED=true."
-            )
-        if self.connector_file_watch_enabled and not self.connector_file_watch_path:
-            raise ValueError(
-                "CONNECTOR_FILE_WATCH_PATH is required when CONNECTOR_FILE_WATCH_ENABLED=true."
-            )
-        if self.connector_cdc_postgres_enabled and not self.connector_cdc_postgres_dsn:
-            raise ValueError(
-                "CONNECTOR_CDC_POSTGRES_DSN is required when CONNECTOR_CDC_POSTGRES_ENABLED=true."
-            )
-        if self.connector_kafka_enabled:
-            if not self.connector_kafka_bootstrap_servers:
-                raise ValueError(
-                    "CONNECTOR_KAFKA_BOOTSTRAP_SERVERS is required when CONNECTOR_KAFKA_ENABLED=true."
-                )
-            if not self.connector_kafka_topics:
-                raise ValueError(
-                    "CONNECTOR_KAFKA_TOPICS is required when CONNECTOR_KAFKA_ENABLED=true."
-                )
+
+    def _connector_requirements(self) -> list[tuple[bool, object, str]]:
+        """(enabled, required value, message) for each connector setting, in report order."""
+        return [
+            (
+                self.connector_email_enabled,
+                self.connector_email_tenant_id,
+                "CONNECTOR_EMAIL_TENANT_ID is required when CONNECTOR_EMAIL_ENABLED=true.",
+            ),
+            (
+                self.connector_file_watch_enabled,
+                self.connector_file_watch_path,
+                "CONNECTOR_FILE_WATCH_PATH is required when CONNECTOR_FILE_WATCH_ENABLED=true.",
+            ),
+            (
+                self.connector_cdc_postgres_enabled,
+                self.connector_cdc_postgres_dsn,
+                "CONNECTOR_CDC_POSTGRES_DSN is required when CONNECTOR_CDC_POSTGRES_ENABLED=true.",
+            ),
+            (
+                self.connector_kafka_enabled,
+                self.connector_kafka_bootstrap_servers,
+                "CONNECTOR_KAFKA_BOOTSTRAP_SERVERS is required when CONNECTOR_KAFKA_ENABLED=true.",
+            ),
+            (
+                self.connector_kafka_enabled,
+                self.connector_kafka_topics,
+                "CONNECTOR_KAFKA_TOPICS is required when CONNECTOR_KAFKA_ENABLED=true.",
+            ),
+        ]
+
+    def _validate_connectors(self) -> None:
+        """Connectors: fail fast when enabled but required config is missing."""
+        for enabled, value, message in self._connector_requirements():
+            if enabled and not value:
+                raise ValueError(message)
+
+    @model_validator(mode="after")
+    def validate_required_and_storage(self) -> "Settings":
+        """Validate required env and storage backend.
+
+        DATABASE_URL is required (PostgreSQL). Storage backend validated below.
+        Checks run in the order the messages are most useful: missing secrets first,
+        then storage, then production safety, then connectors.
+        """
+        self._validate_required_env()
+        self._validate_storage_backend()
+        self._validate_production_safety()
+        self._validate_connectors()
         return self
 
 

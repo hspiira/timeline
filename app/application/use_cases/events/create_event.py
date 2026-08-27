@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.exc import IntegrityError
 
@@ -164,6 +164,124 @@ class EventService:
         if self.db.in_transaction():
             await self.db.rollback()
 
+    async def _find_existing_by_external_id(
+        self, tenant_id: str, data: EventCreate
+    ) -> EventEntity | None:
+        """Return the already-ingested event for this external_id, if there is one."""
+        if not data.external_id:
+            return None
+        existing = await self.event_repo.get_by_subject_and_external_id(
+            data.subject_id, tenant_id, data.external_id
+        )
+        return _event_result_to_entity(existing) if existing else None
+
+    async def _load_subject_or_raise(self, tenant_id: str, subject_id: str) -> Any:
+        """Fetch the subject, or raise if it does not belong to this tenant."""
+        subject = await self.subject_repo.get_by_id_and_tenant(subject_id, tenant_id)
+        if not subject:
+            raise ResourceNotFoundException("subject", subject_id)
+        return subject
+
+    async def _validate_event_type_allowed(
+        self, tenant_id: str, subject_type: str, event_type: str
+    ) -> None:
+        """Reject an event type the subject type does not permit."""
+        if not self.subject_type_repo:
+            return
+        type_config = await self.subject_type_repo.get_by_tenant_and_type(
+            tenant_id, subject_type
+        )
+        if not (type_config and type_config.allowed_event_types):
+            return
+        if event_type not in type_config.allowed_event_types:
+            raise ValidationException(
+                f"Event type '{event_type}' is not allowed for subject type '{subject_type}'. "
+                f"Allowed: {', '.join(type_config.allowed_event_types)}",
+                field="event_type",
+            )
+
+    async def _apply_enrichers(
+        self, data: EventCreate, enrichment_context: EnrichmentContext | None
+    ) -> EventCreate:
+        """Run the configured enrichers over one event, in order."""
+        if not (enrichment_context and self.enrichers):
+            return data
+        for enricher in self.enrichers:
+            data = await enricher.enrich(data, enrichment_context)
+        return data
+
+    async def _run_post_create_hooks(
+        self,
+        tenant_id: str,
+        entity: EventEntity,
+        created: EventResult,
+        subject_type: str,
+        trigger_workflows: bool,
+    ) -> None:
+        """Notify the post-create hooks about one persisted event."""
+        context = PostCreateContext(
+            tenant_id=tenant_id,
+            entity=entity,
+            event_result=created,
+            subject_type=subject_type,
+            trigger_workflows=trigger_workflows,
+        )
+        for hook in self._post_create_hooks:
+            await hook.after_event(context)
+
+    async def _append_one(self, tenant_id: str, data: EventCreate) -> EventResult:
+        """Append one event inside an already-open transaction with tenant context set."""
+        await self.event_repo.lock_subject_for_update(data.subject_id)
+        prev_event = await self.event_repo.get_last_event(data.subject_id, tenant_id)
+        prev_hash = prev_event.hash if prev_event else None
+
+        EventEntity.validate_event_time_after_previous(
+            data.event_time,
+            prev_event.event_time if prev_event else None,
+        )
+
+        event_hash = self.hash_service.compute_hash(
+            subject_id=data.subject_id,
+            event_type=data.event_type,
+            schema_version=data.schema_version,
+            event_time=data.event_time,
+            payload=data.payload,
+            previous_hash=prev_hash,
+        )
+
+        if not self.epoch_service:
+            return await self.event_repo.create_event(
+                tenant_id, data, event_hash, prev_hash
+            )
+
+        _, created = await self.epoch_service.with_open_epoch(
+            tenant_id,
+            data.subject_id,
+            lambda a: self._append_one_for_epoch(
+                a, tenant_id, data, event_hash, prev_hash
+            ),
+        )
+        return created
+
+    async def _append_with_retry(self, tenant_id: str, data: EventCreate) -> EventResult:
+        """Append one event, retrying the whole transaction on a chain fork."""
+        for attempt in range(MAX_RETRIES):
+            try:
+                await self._release_ambient_transaction()
+                async with self.db.begin():
+                    # SET LOCAL did not survive the release above; set it again so
+                    # row-level security applies inside this transaction.
+                    await self.event_repo.apply_tenant_context(tenant_id)
+                    return await self._append_one(tenant_id, data)
+            except IntegrityError as exc:
+                if attempt == MAX_RETRIES - 1:
+                    raise ChainForkError(
+                        "Could not append event after retries.",
+                        data.subject_id,
+                    ) from exc
+                await asyncio.sleep(0.05 * (2**attempt))
+        raise AssertionError("unreachable: the final attempt either returns or raises")
+
     async def create_event(
         self,
         tenant_id: str,
@@ -181,30 +299,14 @@ class EventService:
         # the same session: the first call committed, taking its SET LOCAL with it.
         # Setting it here makes this method self-sufficient and repeatable.
         await self.event_repo.apply_tenant_context(tenant_id)
-        if data.external_id:
-            existing = await self.event_repo.get_by_subject_and_external_id(
-                data.subject_id, tenant_id, data.external_id
-            )
-            if existing:
-                return _event_result_to_entity(existing)
 
-        subject = await self.subject_repo.get_by_id_and_tenant(
-            data.subject_id, tenant_id
-        )
-        if not subject:
-            raise ResourceNotFoundException("subject", data.subject_id)
+        already_ingested = await self._find_existing_by_external_id(tenant_id, data)
+        if already_ingested:
+            return already_ingested
 
-        if self.subject_type_repo:
-            type_config = await self.subject_type_repo.get_by_tenant_and_type(
-                tenant_id, subject.subject_type.value
-            )
-            if type_config and type_config.allowed_event_types:
-                if data.event_type not in type_config.allowed_event_types:
-                    raise ValidationException(
-                        f"Event type '{data.event_type}' is not allowed for subject type '{subject.subject_type.value}'. "
-                        f"Allowed: {', '.join(type_config.allowed_event_types)}",
-                        field="event_type",
-                    )
+        subject = await self._load_subject_or_raise(tenant_id, data.subject_id)
+        subject_type = subject.subject_type.value
+        await self._validate_event_type_allowed(tenant_id, subject_type, data.event_type)
 
         if not skip_schema_validation and self.schema_validator:
             await self.schema_validator.validate_payload(
@@ -212,7 +314,7 @@ class EventService:
                 data.event_type,
                 data.schema_version,
                 data.payload,
-                subject_type=subject.subject_type.value,
+                subject_type=subject_type,
             )
 
         if not skip_transition_validation and self.transition_validator:
@@ -223,68 +325,13 @@ class EventService:
                 workflow_instance_id=data.workflow_instance_id,
             )
 
-        if enrichment_context and self.enrichers:
-            for enricher in self.enrichers:
-                data = await enricher.enrich(data, enrichment_context)
+        data = await self._apply_enrichers(data, enrichment_context)
 
-        for attempt in range(MAX_RETRIES):
-            try:
-                await self._release_ambient_transaction()
-                async with self.db.begin():
-                    # SET LOCAL did not survive the release above; set it again so
-                    # row-level security applies inside this transaction.
-                    await self.event_repo.apply_tenant_context(tenant_id)
-                    await self.event_repo.lock_subject_for_update(data.subject_id)
-                    prev_event = await self.event_repo.get_last_event(
-                        data.subject_id, tenant_id
-                    )
-                    prev_hash = prev_event.hash if prev_event else None
-
-                    EventEntity.validate_event_time_after_previous(
-                        data.event_time,
-                        prev_event.event_time if prev_event else None,
-                    )
-
-                    event_hash = self.hash_service.compute_hash(
-                        subject_id=data.subject_id,
-                        event_type=data.event_type,
-                        schema_version=data.schema_version,
-                        event_time=data.event_time,
-                        payload=data.payload,
-                        previous_hash=prev_hash,
-                    )
-
-                    if self.epoch_service:
-                        _, created = await self.epoch_service.with_open_epoch(
-                            tenant_id,
-                            data.subject_id,
-                            lambda a: self._append_one_for_epoch(
-                                a, tenant_id, data, event_hash, prev_hash
-                            ),
-                        )
-                    else:
-                        created = await self.event_repo.create_event(
-                            tenant_id, data, event_hash, prev_hash
-                        )
-                break
-            except IntegrityError as exc:
-                if attempt == MAX_RETRIES - 1:
-                    raise ChainForkError(
-                        "Could not append event after retries.",
-                        data.subject_id,
-                    ) from exc
-                await asyncio.sleep(0.05 * (2**attempt))
-
+        created = await self._append_with_retry(tenant_id, data)
         entity = _event_result_to_entity(created)
-        context = PostCreateContext(
-            tenant_id=tenant_id,
-            entity=entity,
-            event_result=created,
-            subject_type=subject.subject_type.value,
-            trigger_workflows=trigger_workflows,
+        await self._run_post_create_hooks(
+            tenant_id, entity, created, subject_type, trigger_workflows
         )
-        for hook in self._post_create_hooks:
-            await hook.after_event(context)
         return entity
 
     async def create_events_bulk(
