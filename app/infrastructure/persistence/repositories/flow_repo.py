@@ -86,7 +86,7 @@ class FlowRepository(BaseRepository[Flow]):
             workflow_id=workflow_id,
             hierarchy_values=hierarchy_values,
         )
-        flow = await self.create(flow)
+        flow = await self.create_entity(flow)
         if subject_ids:
             subject_roles = subject_roles or {}
             for sid in subject_ids:
@@ -112,7 +112,7 @@ class FlowRepository(BaseRepository[Flow]):
             flow.name = name
         if hierarchy_values is not None:
             flow.hierarchy_values = hierarchy_values
-        await self.update(flow)
+        await self.update_entity(flow)
         return _flow_to_result(flow)
 
     async def list_subjects_for_flow(

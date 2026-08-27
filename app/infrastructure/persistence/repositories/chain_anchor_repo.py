@@ -88,7 +88,7 @@ class ChainAnchorRepository(BaseRepository[ChainAnchor]):
                     tsa_url=tsa_url,
                     status=ChainAnchorStatus.PENDING,
                 )
-                created = await self.create(anchor)
+                created = await self.create_entity(anchor)
                 return _to_result(created)
         except IntegrityError:
             existing = await self.get_by_tenant_and_tip(

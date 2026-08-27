@@ -178,8 +178,8 @@ class TenantScopedRepository(AuditableRepository[ModelType]):
                 field="tenant_id",
             )
 
-    async def get_by_id(self, entity_id: str) -> ModelType | None:
-        """Return a single record by primary key and tenant_id, or None."""
+    async def get_entity_by_id(self, entity_id: str) -> ModelType | None:
+        """Return a single ORM record by primary key and tenant_id, or None."""
         model: Any = self.model
         result = await self.db.execute(
             select(self.model).where(
@@ -200,19 +200,19 @@ class TenantScopedRepository(AuditableRepository[ModelType]):
         )
         return list(result.scalars().all())
 
-    async def create(self, obj: ModelType) -> ModelType:
+    async def create_entity(self, obj: ModelType) -> ModelType:
         """Persist and run hooks; ensure obj.tenant_id matches this repo."""
         self._assert_tenant(obj, "create")
-        return await super().create(obj)
+        return await super().create_entity(obj)
 
-    async def update(
+    async def update_entity(
         self, obj: ModelType, *, skip_existence_check: bool = False
     ) -> ModelType:
         """Update only if obj belongs to this tenant."""
         self._assert_tenant(obj, "update")
-        return await super().update(obj, skip_existence_check=skip_existence_check)
+        return await super().update_entity(obj, skip_existence_check=skip_existence_check)
 
-    async def delete(self, obj: ModelType) -> None:
+    async def delete_entity(self, obj: ModelType) -> None:
         """Delete only if obj belongs to this tenant."""
         self._assert_tenant(obj, "delete")
-        await super().delete(obj)
+        await super().delete_entity(obj)

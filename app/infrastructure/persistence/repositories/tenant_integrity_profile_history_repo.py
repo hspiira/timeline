@@ -41,7 +41,7 @@ class TenantIntegrityProfileHistoryRepository(
             effective_from_seq=effective_from_seq,
             cooling_off_ends_at=cooling_off_ends_at,
         )
-        created = await self.create(obj)
+        created = await self.create_entity(obj)
         return created
 
     async def get_latest_for_tenant(

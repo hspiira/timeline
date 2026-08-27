@@ -73,5 +73,5 @@ class SubjectSnapshotRepository(BaseRepository[SubjectSnapshot]):
             state_json=state_json,
             event_count_at_snapshot=event_count_at_snapshot,
         )
-        created = await self.create(snapshot)
+        created = await self.create_entity(snapshot)
         return _to_result(created)

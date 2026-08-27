@@ -67,7 +67,7 @@ class OAuthStateRepository(BaseRepository[OAuthState]):
             consumed=False,
             return_url=return_url,
         )
-        await self.create(state)
+        await self.create_entity(state)
         return state, signed_state
 
     async def consume(
@@ -82,5 +82,5 @@ class OAuthStateRepository(BaseRepository[OAuthState]):
         state.consumed = True
         state.consumed_at = utc_now()
         state.callback_received_at = utc_now()
-        await self.update(state)
+        await self.update_entity(state)
         return state

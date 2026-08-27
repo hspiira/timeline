@@ -62,7 +62,7 @@ class SubjectTypeRepository(AuditableRepository[SubjectType]):
         }
 
     async def get_by_id(self, subject_type_id: str) -> SubjectTypeResult | None:
-        row = await super().get_by_id(subject_type_id)
+        row = await super().get_entity_by_id(subject_type_id)
         return _to_result(row) if row else None
 
     async def get_by_tenant_and_type(
@@ -121,7 +121,7 @@ class SubjectTypeRepository(AuditableRepository[SubjectType]):
             allowed_event_types=allowed_event_types,
             created_by=created_by,
         )
-        created = await self.create(entity)
+        created = await self.create_entity(entity)
         return _to_result(created)
 
     async def update_subject_type(
@@ -130,7 +130,7 @@ class SubjectTypeRepository(AuditableRepository[SubjectType]):
         **updates: Any,
     ) -> SubjectTypeResult | None:
         """Update subject type; only provided keys are applied (None clears optional fields)."""
-        entity = await super().get_by_id(subject_type_id)
+        entity = await super().get_entity_by_id(subject_type_id)
         if not entity:
             return None
         allowed = {
@@ -148,14 +148,14 @@ class SubjectTypeRepository(AuditableRepository[SubjectType]):
             if key in updates:
                 setattr(entity, key, updates[key])
         entity.version = (entity.version or 0) + 1
-        updated = await self.update(entity, skip_existence_check=True)
+        updated = await self.update_entity(entity, skip_existence_check=True)
         return _to_result(updated)
 
     async def delete_subject_type(
         self, subject_type_id: str, tenant_id: str
     ) -> bool:
-        entity = await super().get_by_id(subject_type_id)
+        entity = await super().get_entity_by_id(subject_type_id)
         if not entity or entity.tenant_id != tenant_id:
             return False
-        await self.delete(entity)
+        await self.delete_entity(entity)
         return True

@@ -42,7 +42,7 @@ class MerkleNodeRepository(BaseRepository[MerkleNode]):
             position=position,
             is_root=is_root,
         )
-        return await self.create(node)
+        return await self.create_entity(node)
 
     async def get_leaf_nodes(
         self,

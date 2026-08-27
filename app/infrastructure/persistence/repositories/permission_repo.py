@@ -69,7 +69,7 @@ class PermissionRepository(AuditableRepository[Permission]):
             action=action,
             description=description,
         )
-        created = await self.create(perm)
+        created = await self.create_entity(perm)
         return _permission_to_result(created)
 
     async def get_by_code_and_tenant(

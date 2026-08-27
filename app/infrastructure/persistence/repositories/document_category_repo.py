@@ -60,7 +60,7 @@ class DocumentCategoryRepository(TenantScopedRepository[DocumentCategory]):
         }
 
     async def get_by_id(self, category_id: str) -> DocumentCategoryResult | None:
-        row = await super().get_by_id(category_id)
+        row = await super().get_entity_by_id(category_id)
         return _to_result(row) if row else None
 
     async def get_by_tenant_and_name(
@@ -119,7 +119,7 @@ class DocumentCategoryRepository(TenantScopedRepository[DocumentCategory]):
             is_active=is_active,
             created_by=created_by,
         )
-        created = await self.create(entity)
+        created = await self.create_entity(entity)
         return _to_result(created)
 
     async def update_document_category(
@@ -132,7 +132,7 @@ class DocumentCategoryRepository(TenantScopedRepository[DocumentCategory]):
         default_retention_days: int | None = None,
         is_active: bool | None = None,
     ) -> DocumentCategoryResult | None:
-        entity = await super().get_by_id(category_id)
+        entity = await super().get_entity_by_id(category_id)
         if not entity:
             return None
         if display_name is not None:
@@ -145,7 +145,7 @@ class DocumentCategoryRepository(TenantScopedRepository[DocumentCategory]):
             entity.default_retention_days = default_retention_days
         if is_active is not None:
             entity.is_active = is_active
-        updated = await self.update(entity, skip_existence_check=True)
+        updated = await self.update_entity(entity, skip_existence_check=True)
         return _to_result(updated)
 
     async def delete_document_category(
@@ -154,8 +154,8 @@ class DocumentCategoryRepository(TenantScopedRepository[DocumentCategory]):
         """Delete category by id. tenant_id must match repo scope (interface compatibility)."""
         if tenant_id != self._tenant_id:
             return False
-        entity = await super().get_by_id(category_id)
+        entity = await super().get_entity_by_id(category_id)
         if not entity:
             return False
-        await self.delete(entity)
+        await self.delete_entity(entity)
         return True

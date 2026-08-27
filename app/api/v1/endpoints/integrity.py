@@ -172,7 +172,7 @@ async def get_merkle_proof_for_event(
             detail="Event is not associated with an integrity epoch",
         )
 
-    epoch = await epoch_repo.get_by_id(epoch_id)
+    epoch = await epoch_repo.get_entity_by_id(epoch_id)
     if not epoch:
         raise HTTPException(status_code=404, detail="Epoch not found")
     if IntegrityProfile(epoch.profile_snapshot) is not IntegrityProfile.LEGAL_GRADE:
@@ -231,7 +231,7 @@ async def initiate_chain_repair(
     _: Annotated[object, Depends(require_permission("tenant", "update"))] = None,
 ):
     """Initiate a chain repair request for a specific epoch."""
-    epoch = await epoch_repo.get_by_id(body.epoch_id)
+    epoch = await epoch_repo.get_entity_by_id(body.epoch_id)
     if not epoch or epoch.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Epoch not found")
     profile = IntegrityProfile(epoch.profile_snapshot)

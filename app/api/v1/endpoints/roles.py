@@ -115,7 +115,7 @@ async def update_role(
         role.description = body.description
     if body.is_active is not None:
         role.is_active = body.is_active
-    updated = await role_repo.update(role)
+    updated = await role_repo.update_entity(role)
     return RoleResponse.model_validate(updated)
 
 

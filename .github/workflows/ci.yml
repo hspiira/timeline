@@ -141,6 +141,22 @@ jobs:
             echo "::notice::Complexity improved to $COUNT. Update ci/complexity-baseline.txt to lock it in."
           fi
 
+      - name: Types must not get worse
+        # Ratcheted like the lint check. mypy is configured in pyproject.toml but was
+        # never run in CI.
+        run: |
+          BASELINE=$(cat ci/mypy-baseline.txt)
+          COUNT=$(uv run mypy app 2>&1 | grep -c 'error:' || true)
+          echo "mypy errors: $COUNT (baseline $BASELINE)"
+          if [ "$COUNT" -gt "$BASELINE" ]; then
+            uv run mypy app || true
+            echo "::error::Type errors rose from $BASELINE to $COUNT."
+            exit 1
+          fi
+          if [ "$COUNT" -lt "$BASELINE" ]; then
+            echo "::notice::Types improved to $COUNT. Update ci/mypy-baseline.txt to lock it in."
+          fi
+
       - name: Known-vulnerable dependencies
         continue-on-error: true
         run: uv run pip-audit

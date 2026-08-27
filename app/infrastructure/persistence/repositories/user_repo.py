@@ -153,7 +153,7 @@ class UserRepository(AuditableRepository[User]):
         return user
 
     async def get_by_id(self, user_id: str) -> UserResult | None:
-        user = await super().get_by_id(user_id)
+        user = await super().get_entity_by_id(user_id)
         return _user_to_result(user) if user else None
 
     async def create_user(
@@ -197,7 +197,7 @@ class UserRepository(AuditableRepository[User]):
         # Set before create() so the identity is present for result mapping.
         user.identity = identity
         try:
-            created = await self.create(user)
+            created = await self.create_entity(user)
         except IntegrityError:
             raise UserAlreadyExistsException()
         return _user_to_result(created)
@@ -207,7 +207,7 @@ class UserRepository(AuditableRepository[User]):
     ) -> User:
         """Update user; raise DuplicateEmailException on unique constraint (e.g. duplicate email)."""
         try:
-            return await super().update(obj, skip_existence_check=skip_existence_check)
+            return await super().update_entity(obj, skip_existence_check=skip_existence_check)
         except IntegrityError:
             raise DuplicateEmailException()
 
@@ -217,7 +217,7 @@ class UserRepository(AuditableRepository[User]):
         Because the credential lives on the identity, this changes their password
         everywhere at once rather than in one organisation only.
         """
-        user = await super().get_by_id(user_id)
+        user = await super().get_entity_by_id(user_id)
         if not user:
             return None
         user.identity.hashed_password = await asyncio.to_thread(

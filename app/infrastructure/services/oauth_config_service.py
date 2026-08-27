@@ -223,5 +223,5 @@ class OAuthConfigService:
             config.default_scopes = default_scopes
         if tenant_configured_scopes is not None:
             config.tenant_configured_scopes = tenant_configured_scopes
-        await self._oauth_repo.update(config)
+        await self._oauth_repo.update_entity(config)
         return config

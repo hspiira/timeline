@@ -37,7 +37,7 @@ class EmailAccountRepository(BaseRepository[EmailAccount]):
             is_active=True,
             sync_status="idle",
         )
-        return await self.create(account)
+        return await self.create_entity(account)
 
     async def get_by_tenant(
         self,

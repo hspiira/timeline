@@ -14,6 +14,7 @@ Lower a baseline whenever CI says you can. Do not raise one to make a build pass
 |------|-------|------|
 | `flake8-baseline.txt` | `flake8 app tests scripts` | 0, then drop the ratchet and fail on any issue |
 | `complexity-baseline.txt` | `ruff check --select C901` at `max-complexity = 5` | 0, then drop the ratchet |
+| `mypy-baseline.txt` | `mypy app` | 0, then drop the ratchet |
 
 Most of the current count is long lines, unused imports, and trailing whitespace.
 `black` and `isort` are already dev dependencies and would clear most of it, but that
@@ -52,3 +53,14 @@ flake8.
 
 Alembic migrations are excluded (`extend-exclude` in `pyproject.toml`). They are
 written once and never refactored, so a complexity number for them is noise.
+
+## Types
+
+`mypy app` reports 145 errors. `[override]` is at zero: the repository base class used
+to name its ORM-level CRUD `get_by_id`, `create`, `update` and `delete`, and about
+fifteen subclasses redefined those names with different parameters or return types.
+The base methods are now `get_entity_by_id`, `create_entity`, `update_entity` and
+`delete_entity`, so the domain-shaped methods sit alongside them instead of clashing.
+
+Biggest remaining groups: `arg-type` (38), `dict-item` (31), `attr-defined` (19),
+`no-any-return` (16), `union-attr` (15).

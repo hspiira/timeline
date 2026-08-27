@@ -121,7 +121,7 @@ async def update_email_account(
         account.is_active = body.is_active
     if body.sync_status is not None:
         account.sync_status = body.sync_status
-    await email_account_repo.update(account)
+    await email_account_repo.update_entity(account)
     return EmailAccountResponse.model_validate(account)
 
 
@@ -141,7 +141,7 @@ async def delete_email_account(
     account = await email_account_repo.get_by_id_and_tenant(account_id, tenant_id)
     if not account:
         raise HTTPException(status_code=404, detail="Email account not found")
-    await email_account_repo.delete(account)
+    await email_account_repo.delete_entity(account)
     return None
 
 

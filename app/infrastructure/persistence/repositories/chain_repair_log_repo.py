@@ -43,7 +43,7 @@ class ChainRepairLogRepository(BaseRepository[ChainRepairLog]):
                 else ChainRepairStatus.APPROVED.value
             ),
         )
-        created = await self.create(obj)
+        created = await self.create_entity(obj)
         return created
 
     async def list_with_count(

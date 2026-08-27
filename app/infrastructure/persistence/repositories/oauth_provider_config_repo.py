@@ -164,11 +164,11 @@ class OAuthProviderConfigRepository(AuditableRepository[OAuthProviderConfig]):
                 token_endpoint=_token_endpoint(provider_type),
                 created_by=created_by,
             )
-        await self.create(new_config)
+        await self.create_entity(new_config)
         if current:
             current.is_active = False
             current.superseded_by_id = new_config.id
-            await self.update(current)
+            await self.update_entity(current)
             await self.emit_custom_audit(
                 new_config,
                 AuditAction.STATUS_CHANGED,
@@ -219,5 +219,5 @@ class OAuthProviderConfigRepository(AuditableRepository[OAuthProviderConfig]):
             return None
         config.deleted_at = utc_now()
         # OAuthProviderConfig has no deleted_by column; keep param for API compatibility
-        await self.update(config)
+        await self.update_entity(config)
         return config

@@ -70,7 +70,7 @@ class TenantRepository(AuditableRepository[Tenant]):
 
     async def get_entity_by_id(self, tenant_id: str) -> Tenant | None:
         """Get tenant ORM by ID for update/delete (bypasses cache, reads from DB)."""
-        return await super().get_by_id(tenant_id)
+        return await super().get_entity_by_id(tenant_id)
 
     async def get_by_id(self, tenant_id: str) -> TenantResult | None:
         """Get tenant by ID, from cache if available."""
@@ -79,7 +79,7 @@ class TenantRepository(AuditableRepository[Tenant]):
             if cached is not None:
                 tenant = _tenant_from_cached(cached)
                 return _tenant_to_result(tenant)
-        tenant = await super().get_by_id(tenant_id)
+        tenant = await super().get_entity_by_id(tenant_id)
         if tenant and self.cache and self.cache.is_available():
             d = _tenant_to_dict(tenant)
             await self.cache.set(tenant_key(tenant_id), d, ttl=self.cache_ttl)
@@ -108,7 +108,7 @@ class TenantRepository(AuditableRepository[Tenant]):
         )
         tenant = Tenant(id=tenant_id, code=code, name=name, status=status.value)
         try:
-            created = await self.create(tenant)
+            created = await self.create_entity(tenant)
             return _tenant_to_result(created)
         except IntegrityError:
             raise TenantAlreadyExistsException(code)
@@ -147,7 +147,7 @@ class TenantRepository(AuditableRepository[Tenant]):
         status: TenantStatus | None = None,
     ) -> TenantResult | None:
         """Update tenant name and/or status; return updated result or None if not found."""
-        tenant = await super().get_by_id(tenant_id)
+        tenant = await super().get_entity_by_id(tenant_id)
         if not tenant:
             return None
         old_status = tenant.status

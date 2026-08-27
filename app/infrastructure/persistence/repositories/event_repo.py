@@ -49,10 +49,12 @@ class EventRepository(BaseRepository[Event]):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(db, Event)
 
-    async def update(self, obj: Event) -> Event:
+    async def update_entity(
+        self, obj: Event, *, skip_existence_check: bool = False
+    ) -> Event:
         raise NotImplementedError("Events are immutable and cannot be updated")
 
-    async def delete(self, obj: Event) -> None:
+    async def delete_entity(self, obj: Event) -> None:
         raise NotImplementedError("Events are immutable and cannot be deleted")
 
     async def lock_subject_for_update(self, subject_id: str) -> None:
@@ -188,7 +190,7 @@ class EventRepository(BaseRepository[Event]):
             ),
             merkle_leaf_hash=merkle_leaf_hash,
         )
-        created = await self.create(event)
+        created = await self.create_entity(event)
         return _event_to_result(created)
 
     async def get_by_subject(
