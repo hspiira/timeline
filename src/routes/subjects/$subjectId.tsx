@@ -156,12 +156,130 @@ export function SubjectDetailPage() {
     }
   }, [authState.isLoading, authState.user, navigate])
 
+  // Shared: fetch full details and document counts for a page of list items
+  const setEventsAndDocumentCounts = useCallback(async (pageItems: EventListResponse[]) => {
+    const fullEvents = await Promise.all(
+      pageItems.map(async (item: EventListResponse) => {
+        const { data } = await timelineApi.events.get(item.id)
+        return data
+      }),
+    )
+    setEvents(fullEvents.filter((e): e is EventResponse => e != null))
+    const documentPromises = pageItems.map(async (item: EventListResponse) => {
+      try {
+        const { data: docs, error } = await timelineApi.documents.listByEvent(item.id)
+        if (error) return { eventId: item.id, count: 0 }
+        return { eventId: item.id, count: Array.isArray(docs) ? docs.length : 0 }
+      } catch {
+        return { eventId: item.id, count: 0 }
+      }
+    })
+    const documentResults = await Promise.all(documentPromises)
+    const counts: Record<string, number> = {}
+    documentResults.forEach(({ eventId, count }: { eventId: string; count: number }) => {
+      counts[eventId] = count
+    })
+    setDocumentCounts(counts)
+  }, [])
+
+  const fetchSubject = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Fetch subject details
+      const { data: subjectData, error: subjectError } = await timelineApi.subjects.get(subjectId)
+
+      if (subjectError) {
+        // @ts-expect-error - openapi-fetch error handling
+        const errorMessage = subjectError?.message || 'Unable to load subject'
+        setError(errorMessage)
+        setLoading(false)
+        return
+      }
+
+      if (subjectData) {
+        setSubject(subjectData)
+      }
+    } catch (err) {
+      setError('An unexpected error occurred')
+      console.error('Error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [subjectId])
+
+  const fetchEvents = useCallback(async () => {
+    try {
+      const hasFilters = filterEventType !== '' || filterDateFrom !== '' || filterDateTo !== ''
+
+      if (hasFilters) {
+        // Full list then client-side filter + paginate. Full filter+server-side parity requires backend event_type/from/to query params.
+        const { data: eventsList, error: eventsError } = await timelineApi.events.list(subjectId)
+        if (eventsError) {
+          // @ts-expect-error - openapi-fetch error handling
+          const errorMessage = eventsError?.message || 'Unable to load events'
+          setError(errorMessage)
+          return
+        }
+        if (!eventsList) return
+
+        let filtered = eventsList as EventListResponse[]
+        if (filterEventType !== '') {
+          filtered = filtered.filter((item) => item.event_type === filterEventType)
+        }
+        if (filterDateFrom !== '') {
+          const fromDate = filterDateFrom
+          filtered = filtered.filter((item) => (item.event_time?.slice(0, 10) ?? '') >= fromDate)
+        }
+        if (filterDateTo !== '') {
+          const toDate = filterDateTo
+          filtered = filtered.filter((item) => (item.event_time?.slice(0, 10) ?? '') <= toDate)
+        }
+
+        setTotalEvents(filtered.length)
+        const start = currentPage * PAGE_SIZE
+        const pageItems = filtered.slice(start, start + PAGE_SIZE)
+        await setEventsAndDocumentCounts(pageItems)
+        return
+      }
+
+      // No filters: server-side pagination (skip/limit)
+      const { data: eventsList, error: eventsError } = await timelineApi.events.list(subjectId, {
+        skip: currentPage * PAGE_SIZE,
+        limit: PAGE_SIZE,
+      })
+      if (eventsError) {
+        // @ts-expect-error - openapi-fetch error handling
+        const errorMessage = eventsError?.message || 'Unable to load events'
+        setError(errorMessage)
+        return
+      }
+      if (!eventsList) return
+
+      const list = eventsList as EventListResponse[]
+      setTotalEvents(-1) // unknown total when using server-side pagination
+      await setEventsAndDocumentCounts(list)
+    } catch (err) {
+      setError('An unexpected error occurred')
+      console.error('Error:', err)
+    }
+  }, [
+    subjectId,
+    currentPage,
+    filterEventType,
+    filterDateFrom,
+    filterDateTo,
+    setEventsAndDocumentCounts,
+  ])
+
   useEffect(() => {
     if (authState.user) {
       fetchSubject()
     }
-  }, [subjectId, authState.user])
+  }, [authState.user, fetchSubject])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: subjectId is the trigger; moving to another subject is what clears the count.
   useEffect(() => {
     setSubjectDocumentCount(null)
   }, [subjectId])
@@ -174,6 +292,7 @@ export function SubjectDetailPage() {
   }, [searchEventType, searchFrom, searchTo])
 
   // Reset to first page when filters change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the filters are the trigger; a change to them is what resets the page.
   useEffect(() => {
     setCurrentPage(0)
   }, [filterEventType, filterDateFrom, filterDateTo])
@@ -183,7 +302,7 @@ export function SubjectDetailPage() {
     if (authState.user && subject) {
       fetchEvents()
     }
-  }, [currentPage, subject, filterEventType, filterDateFrom, filterDateTo])
+  }, [authState.user, subject, fetchEvents])
 
   // Deep-link: open event drawer when URL has event_id
   useEffect(() => {
@@ -242,116 +361,6 @@ export function SubjectDetailPage() {
       return
     fetchSubjectDocumentCount()
   }, [activeTab, subjectId, authState.user, subjectDocumentCount, fetchSubjectDocumentCount])
-
-  const fetchSubject = async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      // Fetch subject details
-      const { data: subjectData, error: subjectError } = await timelineApi.subjects.get(subjectId)
-
-      if (subjectError) {
-        // @ts-expect-error - openapi-fetch error handling
-        const errorMessage = subjectError?.message || 'Unable to load subject'
-        setError(errorMessage)
-        setLoading(false)
-        return
-      }
-
-      if (subjectData) {
-        setSubject(subjectData)
-      }
-    } catch (err) {
-      setError('An unexpected error occurred')
-      console.error('Error:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchEvents = useCallback(async () => {
-    try {
-      const hasFilters = filterEventType !== '' || filterDateFrom !== '' || filterDateTo !== ''
-
-      if (hasFilters) {
-        // Full list then client-side filter + paginate. Full filter+server-side parity requires backend event_type/from/to query params.
-        const { data: eventsList, error: eventsError } = await timelineApi.events.list(subjectId)
-        if (eventsError) {
-          // @ts-expect-error - openapi-fetch error handling
-          const errorMessage = eventsError?.message || 'Unable to load events'
-          setError(errorMessage)
-          return
-        }
-        if (!eventsList) return
-
-        let filtered = eventsList as EventListResponse[]
-        if (filterEventType !== '') {
-          filtered = filtered.filter((item) => item.event_type === filterEventType)
-        }
-        if (filterDateFrom !== '') {
-          const fromDate = filterDateFrom
-          filtered = filtered.filter((item) => (item.event_time?.slice(0, 10) ?? '') >= fromDate)
-        }
-        if (filterDateTo !== '') {
-          const toDate = filterDateTo
-          filtered = filtered.filter((item) => (item.event_time?.slice(0, 10) ?? '') <= toDate)
-        }
-
-        setTotalEvents(filtered.length)
-        const start = currentPage * PAGE_SIZE
-        const pageItems = filtered.slice(start, start + PAGE_SIZE)
-        await setEventsAndDocumentCounts(pageItems)
-        return
-      }
-
-      // No filters: server-side pagination (skip/limit)
-      const { data: eventsList, error: eventsError } = await timelineApi.events.list(subjectId, {
-        skip: currentPage * PAGE_SIZE,
-        limit: PAGE_SIZE,
-      })
-      if (eventsError) {
-        // @ts-expect-error - openapi-fetch error handling
-        const errorMessage = eventsError?.message || 'Unable to load events'
-        setError(errorMessage)
-        return
-      }
-      if (!eventsList) return
-
-      const list = eventsList as EventListResponse[]
-      setTotalEvents(-1) // unknown total when using server-side pagination
-      await setEventsAndDocumentCounts(list)
-    } catch (err) {
-      setError('An unexpected error occurred')
-      console.error('Error:', err)
-    }
-  }, [subjectId, currentPage, filterEventType, filterDateFrom, filterDateTo])
-
-  // Shared: fetch full details and document counts for a page of list items
-  const setEventsAndDocumentCounts = useCallback(async (pageItems: EventListResponse[]) => {
-    const fullEvents = await Promise.all(
-      pageItems.map(async (item: EventListResponse) => {
-        const { data } = await timelineApi.events.get(item.id)
-        return data
-      }),
-    )
-    setEvents(fullEvents.filter((e): e is EventResponse => e != null))
-    const documentPromises = pageItems.map(async (item: EventListResponse) => {
-      try {
-        const { data: docs, error } = await timelineApi.documents.listByEvent(item.id)
-        if (error) return { eventId: item.id, count: 0 }
-        return { eventId: item.id, count: Array.isArray(docs) ? docs.length : 0 }
-      } catch {
-        return { eventId: item.id, count: 0 }
-      }
-    })
-    const documentResults = await Promise.all(documentPromises)
-    const counts: Record<string, number> = {}
-    documentResults.forEach(({ eventId, count }: { eventId: string; count: number }) => {
-      counts[eventId] = count
-    })
-    setDocumentCounts(counts)
-  }, [])
 
   const goToPage = (page: number) => {
     if (page < 0) return

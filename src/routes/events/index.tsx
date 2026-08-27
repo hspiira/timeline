@@ -120,6 +120,7 @@ function EventsPage() {
   }, [authState.isLoading, authState.user, navigate])
 
   // Reset table page when filter changes (table view)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: filterEventType is the trigger; a change to it is what resets the page.
   useEffect(() => {
     if (viewMode === 'table') setTablePage(0)
   }, [filterEventType, viewMode])

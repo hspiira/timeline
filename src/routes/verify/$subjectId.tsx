@@ -169,6 +169,7 @@ function VerifyPage() {
     return filteredEvents.slice(start, start + VERIFY_PAGE_SIZE)
   }, [filteredEvents, detailPage])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: filterStatus is the trigger; a change to it is what resets the page.
   useEffect(() => {
     setDetailPage(0)
   }, [filterStatus])

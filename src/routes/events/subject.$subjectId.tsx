@@ -131,19 +131,7 @@ function SubjectEventsPage() {
     [subjectId],
   )
 
-  useEffect(() => {
-    if (authState.user) {
-      fetchData()
-    }
-  }, [subjectId, authState.user])
-
-  useEffect(() => {
-    if (authState.user && subject) {
-      fetchEvents(currentPage)
-    }
-  }, [currentPage, authState.user, subject, fetchEvents])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -168,7 +156,19 @@ function SubjectEventsPage() {
       setError('An unexpected error occurred')
       console.error('Error:', err)
     }
-  }
+  }, [subjectId])
+
+  useEffect(() => {
+    if (authState.user) {
+      fetchData()
+    }
+  }, [authState.user, fetchData])
+
+  useEffect(() => {
+    if (authState.user && subject) {
+      fetchEvents(currentPage)
+    }
+  }, [currentPage, authState.user, subject, fetchEvents])
 
   if (authState.isLoading) {
     return (

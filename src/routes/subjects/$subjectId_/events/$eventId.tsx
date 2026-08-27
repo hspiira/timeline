@@ -17,7 +17,7 @@ import {
   Network,
   Play,
 } from 'lucide-react'
-import { useEffect, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { DocumentList } from '@/components/documents/DocumentList'
 import { PayloadModernView } from '@/components/events'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
@@ -181,17 +181,7 @@ function EventDetailPage() {
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [documentCount, setDocumentCount] = useState<number | null>(null)
 
-  useEffect(() => {
-    if (authState.user) {
-      fetchData()
-    }
-  }, [eventId, subjectId, authState.user])
-
-  useEffect(() => {
-    setDocumentCount(null)
-  }, [eventId])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -224,7 +214,18 @@ function EventDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [eventId, subjectId])
+
+  useEffect(() => {
+    if (authState.user) {
+      fetchData()
+    }
+  }, [authState.user, fetchData])
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: eventId is the trigger; moving to another event is what clears the count.
+  useEffect(() => {
+    setDocumentCount(null)
+  }, [eventId])
 
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text)
