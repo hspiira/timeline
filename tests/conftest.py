@@ -23,6 +23,21 @@ from app.main import app
 _TEST_CREATE_TENANT_SECRET = "test-create-tenant-secret"
 
 
+@pytest.fixture(autouse=True)
+def _isolate_rate_limits():
+    """Clear the rate limit windows between tests.
+
+    Limits are keyed on client IP and every test shares one, so without this the
+    sixth test to create a tenant spends the fifth one's budget and gets a 429.
+    Reset rather than disable, so the limits stay exercised.
+    """
+    from app.core import limiter as limiter_mod
+
+    limiter_mod.limiter.reset()
+    limiter_mod._auth_per_tenant.clear()
+    yield
+
+
 @pytest.fixture
 async def client() -> AsyncClient:
     """Async HTTP client against the FastAPI app (ASGI)."""
@@ -85,7 +100,9 @@ async def auth_headers(client: AsyncClient) -> dict[str, str] | None:
         get_settings.cache_clear()
     secret = os.environ.get("CREATE_TENANT_SECRET", _TEST_CREATE_TENANT_SECRET)
 
-    code = f"test-{uuid.uuid4().hex[:12]}"
+    # 15 characters exactly: the tenant code column caps at 15 (app/schemas/tenant.py).
+    # A longer code made every test using this fixture skip on a 422 instead of running.
+    code = f"test-{uuid.uuid4().hex[:10]}"
     admin_password = "TestAdminPassword123!"
     create_resp = await client.post(
         "/api/v1/tenants",
@@ -96,21 +113,29 @@ async def auth_headers(client: AsyncClient) -> dict[str, str] | None:
         },
         headers={"X-Create-Tenant-Secret": secret},
     )
-    if create_resp.status_code != 201:
-        pytest.skip(f"Could not create test tenant: {create_resp.status_code} {create_resp.text}")
+    # Fail rather than skip: a fixture that cannot build its tenant is broken, and
+    # skipping here hid eleven security tests that had never run.
+    assert create_resp.status_code == 201, (
+        f"Could not create test tenant: {create_resp.status_code} {create_resp.text}"
+    )
     data = create_resp.json()
     tenant_id = data["tenant_id"]
     assert "admin_password" not in data
+    # Sign in by email, which is what LoginRequest takes since the email-signin work.
+    # tenant_id is sent explicitly rather than relying on the email resolving to one
+    # organisation, so the fixture keeps working once a test creates a second tenant
+    # for the same address.
     login_resp = await client.post(
         "/api/v1/auth/login",
         json={
-            "tenant_code": code,
-            "username": "admin",
+            "email": data["admin_email"],
             "password": admin_password,
+            "tenant_id": tenant_id,
         },
     )
-    if login_resp.status_code != 200:
-        pytest.skip(f"Could not login as admin: {login_resp.status_code} {login_resp.text}")
+    assert login_resp.status_code == 200, (
+        f"Could not login as admin: {login_resp.status_code} {login_resp.text}"
+    )
     token = login_resp.json()["access_token"]
     return {
         "Authorization": f"Bearer {token}",

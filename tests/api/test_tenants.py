@@ -140,10 +140,14 @@ async def test_create_tenant_with_wrong_secret_returns_401(client: AsyncClient) 
 @pytest.mark.requires_db
 async def test_create_tenant_with_correct_secret_returns_201(client: AsyncClient) -> None:
     """POST /api/v1/tenants with correct X-Create-Tenant-Secret returns 201 (requires Postgres)."""
-    from app.infrastructure.persistence.database import AsyncSessionLocal, _ensure_engine
+    from app.infrastructure.persistence import database as _database
+    from app.infrastructure.persistence.database import _ensure_engine
 
     _ensure_engine()
-    if AsyncSessionLocal is None:
+    # Read the module attribute, not a name bound at import time: _ensure_engine sets
+    # database.AsyncSessionLocal, so a direct "from ... import AsyncSessionLocal" keeps
+    # the None it was bound to and skips the test unconditionally.
+    if _database.AsyncSessionLocal is None:
         pytest.skip("Postgres not configured")
     if "CREATE_TENANT_SECRET" not in os.environ:
         os.environ["CREATE_TENANT_SECRET"] = _TEST_CREATE_TENANT_SECRET

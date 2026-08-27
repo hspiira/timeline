@@ -1,6 +1,7 @@
 """Security hardening tests: cross-tenant 403, invalid tenant ID 400, 500 no traceback, CORS/config."""
 
 import os
+import uuid
 from unittest.mock import patch
 
 import pytest
@@ -21,13 +22,17 @@ async def test_protected_endpoint_rejects_when_tenant_header_mismatches_jwt(
     from tests.conftest import _TEST_CREATE_TENANT_SECRET
 
     secret = os.environ.get("CREATE_TENANT_SECRET", _TEST_CREATE_TENANT_SECRET)
+    # Unique and within the 15 character cap: the previous fixed 17 character code
+    # was rejected, and the skip below turned that into a silent pass.
+    code_b = f"tb-{uuid.uuid4().hex[:10]}"
     create_b = await client.post(
         "/api/v1/tenants",
-        json={"code": "tenant-b-sec-test", "name": "Tenant B"},
+        json={"code": code_b, "name": "Tenant B"},
         headers={"X-Create-Tenant-Secret": secret},
     )
-    if create_b.status_code != 201:
-        pytest.skip(f"Could not create second tenant: {create_b.status_code}")
+    assert create_b.status_code == 201, (
+        f"Could not create second tenant: {create_b.status_code} {create_b.text}"
+    )
     tenant_b_id = create_b.json()["tenant_id"]
     tenant_a_id = auth_headers["X-Tenant-ID"]
     if tenant_b_id == tenant_a_id:

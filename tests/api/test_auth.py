@@ -127,10 +127,14 @@ async def test_set_initial_password_invalid_token_returns_400(client: AsyncClien
 
     Requires Postgres (token store).
     """
-    from app.infrastructure.persistence.database import AsyncSessionLocal, _ensure_engine
+    from app.infrastructure.persistence import database as _database
+    from app.infrastructure.persistence.database import _ensure_engine
 
     _ensure_engine()
-    if AsyncSessionLocal is None:
+    # Read the module attribute, not a name bound at import time: _ensure_engine sets
+    # database.AsyncSessionLocal, so a direct "from ... import AsyncSessionLocal" keeps
+    # the None it was bound to and skips the test unconditionally.
+    if _database.AsyncSessionLocal is None:
         pytest.skip("Postgres not configured")
     response = await client.post(
         "/api/v1/auth/set-initial-password",
@@ -143,4 +147,5 @@ async def test_set_initial_password_invalid_token_returns_400(client: AsyncClien
     # 400 when token invalid; 503 when DB not configured (e.g. DATABASE_URL unset)
     assert response.status_code in (400, 503)
     if response.status_code == 400:
-        assert "Invalid or expired link" in response.json().get("detail", "")
+        # The error envelope is {"error": ..., "message": ...}; there is no "detail" key.
+        assert "Invalid or expired link" in response.json().get("message", "")
