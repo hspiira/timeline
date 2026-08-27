@@ -100,7 +100,7 @@ class SubjectRepository(TenantScopedRepository[Subject]):
             .where(Subject.tenant_id == self._tenant_id)
             .group_by(Subject.subject_type)
         )
-        return dict(result.all())
+        return {row[0]: row[1] for row in result.all()}
 
     async def get_by_type(
         self,

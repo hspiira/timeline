@@ -131,7 +131,7 @@ class InputSanitizer:
         """
         if max_depth <= 0:
             raise ValueError("Maximum recursion depth exceeded or invalid max_depth")
-        sanitized = []
+        sanitized: list[Any] = []
         for item in data:
             if isinstance(item, str):
                 sanitized.append(cls.sanitize_html(item))

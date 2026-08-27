@@ -74,36 +74,36 @@ class RouteDoc:
 # Define once, reference by unpacking into responses={} below.
 # Keep descriptions short — they appear in Swagger/Redoc as tooltips.
 
-_401 = {
+_401: dict[int, dict[str, Any]] = {
     401: {
         "description": "Missing or invalid bearer token.",
         "content": {"application/json": {"example": {"detail": "Not authenticated"}}},
     }
 }
-_403 = {
+_403: dict[int, dict[str, Any]] = {
     403: {
         "description": "Token lacks the required scope for this tenant.",
         "content": {"application/json": {"example": {"detail": "Insufficient permissions"}}},
     }
 }
-_404 = {
+_404: dict[int, dict[str, Any]] = {
     404: {
         "description": "Resource not found.",
         "content": {"application/json": {"example": {"detail": "Not found"}}},
     }
 }
-_409 = {
+_409: dict[int, dict[str, Any]] = {
     409: {
         "description": "Conflict — resource with that identity already exists.",
         "content": {"application/json": {"example": {"detail": "Already exists"}}},
     }
 }
-_422 = {
+_422: dict[int, dict[str, Any]] = {
     422: {
         "description": "Request body or query parameter failed schema validation.",
     }
 }
-_429 = {
+_429: dict[int, dict[str, Any]] = {
     429: {
         "description": "Rate limit exceeded.",
         "content": {"application/json": {"example": {"detail": "Rate limit exceeded"}}},
@@ -111,9 +111,9 @@ _429 = {
 }
 
 # Convenience bundles
-_STD     = {**_401, **_403, **_422}           # auth + validation only
-_STD_429 = {**_STD, **_429}                   # auth + validation + rate-limit
-_STD_404 = {**_STD, **_404}                   # auth + validation + not-found
+_STD: dict[int, dict[str, Any]] = {**_401, **_403, **_422}      # auth + validation only
+_STD_429: dict[int, dict[str, Any]] = {**_STD, **_429}          # auth + validation + rate-limit
+_STD_404: dict[int, dict[str, Any]] = {**_STD, **_404}          # auth + validation + not-found
 
 
 # ─── Tag descriptions (rendered in Swagger UI sidebar) ────────────────────────

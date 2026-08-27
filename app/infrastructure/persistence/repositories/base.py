@@ -1,6 +1,6 @@
 """Base repository: generic CRUD and lifecycle hooks (cache invalidation)."""
 
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import and_, inspect as sa_inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -57,23 +57,25 @@ class BaseRepository[ModelType: Base]:
         the entity in this session).
         """
         mapper = sa_inspect(self.model)
-        pk_attrs = mapper.primary_key
-        for col in pk_attrs:
-            if getattr(obj, col.key) is None:
+        # Mapped columns always have a key; the stub types it optional for the
+        # unmapped Column case.
+        pk_keys = [cast(str, col.key) for col in mapper.primary_key]
+        for key in pk_keys:
+            if getattr(obj, key) is None:
                 raise ValueError(
-                    f"Cannot update: primary key '{col.key}' is missing on "
+                    f"Cannot update: primary key '{key}' is missing on "
                     f"{self.model.__name__} instance."
                 )
         attached = object_session(obj) is self.db.sync_session
         if not attached and not skip_existence_check:
             stmt = select(self.model).where(
                 and_(
-                    *(getattr(self.model, c.key) == getattr(obj, c.key) for c in pk_attrs)
+                    *(getattr(self.model, k) == getattr(obj, k) for k in pk_keys)
                 )
             )
             result = await self.db.execute(stmt)
             if result.scalar_one_or_none() is None:
-                pk_str = ",".join(str(getattr(obj, c.key)) for c in pk_attrs)
+                pk_str = ",".join(str(getattr(obj, k)) for k in pk_keys)
                 raise ResourceNotFoundException(self.model.__name__, pk_str)
             obj = await self.db.merge(obj)
         elif not attached and skip_existence_check:

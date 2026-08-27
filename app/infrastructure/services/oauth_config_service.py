@@ -101,13 +101,14 @@ class OAuthConfigService:
         state_row = await self._state_repo.consume(state_id, tenant_id)
         if not state_row:
             raise ValidationException("State already used or expired")
+        config_id = state_row.provider_config_id
+        if not config_id:
+            raise ValidationException("State has no provider config")
         config = await self._oauth_repo.get_by_id_and_tenant(
-            state_row.provider_config_id, state_row.tenant_id or ""
+            config_id, state_row.tenant_id or ""
         )
         if not config:
-            raise ResourceNotFoundException(
-                "oauth_config", state_row.provider_config_id
-            )
+            raise ResourceNotFoundException("oauth_config", config_id)
         if provider_type is not None:
             expected = provider_type.strip().lower()
             if config.provider_type != expected:

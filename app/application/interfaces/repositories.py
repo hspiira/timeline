@@ -729,6 +729,9 @@ class IEpochRepository(Protocol):
     ) -> None:
         """Increment event_count and set last_event_seq; if is_first, set first_event_seq."""
 
+    async def get_entity_by_id(self, entity_id: str) -> Any:
+        """Return the epoch ORM row by id, or None."""
+
     async def mark_epoch_failed(self, epoch_id: str) -> None:
         """Mark epoch as FAILED so it is skipped by get_sealable_epochs."""
 
@@ -746,10 +749,9 @@ class IUserRepository(Protocol):
     async def get_by_id(self, user_id: str) -> UserResult | None:
         """Return user by ID."""
 
-    async def get_by_id_and_tenant(
-        self, user_id: str, tenant_id: str
-    ) -> UserResult | None:
-        """Return user by ID if they belong to the tenant."""
+    async def get_by_id_and_tenant(self, user_id: str, tenant_id: str) -> Any:
+        """Return the user ORM row for this organisation, or None. Callers mutate it,
+        so this is not the DTO."""
 
     async def create_user(
         self,
@@ -771,8 +773,9 @@ class IPasswordSetTokenStore(Protocol):
     async def create(self, user_id: str) -> tuple[str, datetime]:
         """Create a one-time token for user; return (raw_token, expires_at)."""
 
-    async def redeem(self, token: str) -> str | None:
-        """If token is valid and not expired/used, mark used and return user_id; else None."""
+    async def redeem(self, token: str) -> tuple[str, str] | None:
+        """If the token is valid and unused, mark it used and return
+        (user_id, tenant_id); else None."""
 
 
 # Document repository interface
@@ -899,7 +902,7 @@ class IRolePermissionRepository(Protocol):
 
     async def assign_permission_to_role(
         self, role_id: str, permission_id: str, tenant_id: str
-    ) -> None:
+    ) -> Any:
         """Assign a permission to a role in the tenant. Raises DuplicateAssignmentException if already assigned."""
 
 

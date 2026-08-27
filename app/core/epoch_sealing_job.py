@@ -206,7 +206,7 @@ def _can_run(session_factory: Callable[[], Any] | None, http_client: Any) -> boo
 
 async def run_epoch_sealing_job(
     http_client: Any,
-    session_factory: Callable[[], Any],
+    session_factory: Callable[[], Any] | None,
     settings: Any,
 ) -> None:
     """Loop: every SEAL_POLL_INTERVAL_SECONDS, seal due epochs and open next.
@@ -232,6 +232,7 @@ async def run_epoch_sealing_job(
     while True:
         try:
             if _can_run(session_factory, http_client):
+                assert session_factory is not None  # _can_run rejected None
                 await _seal_due_epochs(session_factory, tsa_client, settings)
         except asyncio.CancelledError:
             logger.info("Epoch sealing job cancelled, shutting down")

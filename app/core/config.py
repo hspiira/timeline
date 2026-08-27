@@ -6,6 +6,7 @@ validated at load time.
 """
 
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -46,7 +47,7 @@ class Settings(BaseSettings):
     # refresh_cookie_secure true in production; set false only for plain-http local dev.
     refresh_cookie_name: str = "timeline_refresh"
     refresh_cookie_secure: bool = True
-    refresh_cookie_samesite: str = "lax"
+    refresh_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     refresh_cookie_domain: str | None = None
     encryption_salt: SecretStr = SecretStr("")
     # Credential storage (email/OAuth): use a separate secret so JWT key rotation does not break stored credentials.

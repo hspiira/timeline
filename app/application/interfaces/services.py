@@ -160,8 +160,8 @@ class IAuditService(Protocol):
         actor_id: str | None = None,
         actor_type: ActorType | None = None,
         metadata: dict[str, Any] | None = None,
-    ) -> None:
-        """Emit one audit event."""
+    ) -> Any:
+        """Emit one audit event and return the stored row, or None if auditing is off."""
 
 
 # API audit log service interface (general audit log table, not event store)

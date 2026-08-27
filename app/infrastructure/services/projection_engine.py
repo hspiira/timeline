@@ -103,5 +103,7 @@ class ProjectionEngine:
                 state = await registration.handler(state, event)
             await self._projection_repo.upsert_state(defn.id, subject_id, state)
 
-        batch_max_seq = max(e.event_seq for e in sequenced_events)
+        batch_max_seq = max(
+            e.event_seq for e in sequenced_events if e.event_seq is not None
+        )
         await self._projection_repo.advance_watermark(defn.id, batch_max_seq)

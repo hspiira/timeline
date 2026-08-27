@@ -19,6 +19,7 @@ from app.application.services.document_category_metadata_validator import (
 from app.application.services.enrichment import (
     ActorEnricher,
     CorrelationEnricher,
+    IEventEnricher,
     SourceEnricher,
 )
 from app.application.services.event_schema_validator import EventSchemaValidator
@@ -134,7 +135,7 @@ def _get_storage_from_request(request: Request) -> StorageProtocol:
 # Event
 # ---------------------------------------------------------------------------
 
-DEFAULT_API_ENRICHERS = [
+DEFAULT_API_ENRICHERS: list[IEventEnricher] = [
     CorrelationEnricher(),
     ActorEnricher(),
     SourceEnricher(),

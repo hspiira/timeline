@@ -17,9 +17,9 @@ from app.infrastructure.persistence.repositories.base import BaseRepository
 def _to_result(a: ChainAnchor) -> ChainAnchorResult:
     """Map ORM to DTO."""
     status = (
-        a.status.value
+        a.status
         if isinstance(a.status, ChainAnchorStatus)
-        else a.status
+        else ChainAnchorStatus(a.status)
     )
     return ChainAnchorResult(
         id=a.id,

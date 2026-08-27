@@ -231,7 +231,7 @@ class ChainRepairService:
             return self._to_record(repair)
 
         # Load epoch to get subject and profile snapshot.
-        epoch = await self._epoch_repo.get_by_id(repair.epoch_id)
+        epoch = await self._epoch_repo.get_entity_by_id(repair.epoch_id)
         if not epoch:
             raise ValueError(f"Epoch id {repair.epoch_id!r} not found for repair")
         subject_id = epoch.subject_id

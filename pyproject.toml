@@ -82,7 +82,8 @@ warn_return_any = true
 warn_unused_ignores = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
-exclude = ["alembic/"]
+# Alembic revisions are generated and rewritten by autogenerate.
+exclude = ["alembic/", "app/infrastructure/persistence/migrations/"]
 
 [tool.ruff]
 line-length = 120

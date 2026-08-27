@@ -345,7 +345,7 @@ class EventRepository(BaseRepository[Event]):
             .where(Event.tenant_id == tenant_id)
             .group_by(Event.event_type)
         )
-        return dict(result.all())
+        return {row[0]: row[1] for row in result.all()}
 
     async def get_by_id(self, event_id: str) -> EventResult | None:
         result = await self.db.execute(select(Event).where(Event.id == event_id))
