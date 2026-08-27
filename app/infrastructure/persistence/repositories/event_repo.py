@@ -226,23 +226,36 @@ class EventRepository(BaseRepository[Event]):
         if as_of is not None:
             q = q.where(Event.event_time <= as_of)
         if after_event_id is not None:
-            after_event = await self.get_by_id_and_tenant(after_event_id, tenant_id)
-            if not after_event:
-                return []
-            if after_event.subject_id != subject_id:
-                raise ValueError(
-                    f"after_event_id {after_event_id!r} does not belong to subject_id={subject_id!r}, tenant_id={tenant_id!r}"
-                )
-            q = q.where(
-                (Event.event_time > after_event.event_time)
-                | (
-                    (Event.event_time == after_event.event_time)
-                    & (Event.id > after_event_id)
-                )
+            q = await self._filter_events_after(
+                q, subject_id, tenant_id, after_event_id
             )
+            if q is None:
+                return []
         q = q.order_by(asc(Event.event_time), asc(Event.id)).limit(limit)
         result = await self.db.execute(q)
         return [_event_to_result(e) for e in result.scalars().all()]
+
+    async def _filter_events_after(
+        self,
+        query,
+        subject_id: str,
+        tenant_id: str,
+        after_event_id: str,
+    ):
+        after_event = await self.get_by_id_and_tenant(after_event_id, tenant_id)
+        if not after_event:
+            return None
+        if after_event.subject_id != subject_id:
+            raise ValueError(
+                f"after_event_id {after_event_id!r} does not belong to subject_id={subject_id!r}, tenant_id={tenant_id!r}"
+            )
+        return query.where(
+            (Event.event_time > after_event.event_time)
+            | (
+                (Event.event_time == after_event.event_time)
+                & (Event.id > after_event_id)
+            )
+        )
 
     async def count_by_subject(self, subject_id: str, tenant_id: str) -> int:
         result = await self.db.execute(
