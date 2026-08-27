@@ -47,7 +47,7 @@ class CreateEventAction(BaseModel):
     """Action: create a follow-up event."""
 
     type: Literal["create_event"] = "create_event"
-    params: CreateEventParams = Field(default_factory=lambda: CreateEventParams())
+    params: CreateEventParams
 
 
 class NotifyAction(BaseModel):

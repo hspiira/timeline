@@ -11,7 +11,7 @@ import json
 import logging
 from collections.abc import Callable
 from functools import wraps
-from typing import Any
+from typing import Any, cast, Awaitable
 
 import redis.asyncio as redis
 
@@ -51,7 +51,7 @@ class CacheService:
                     socket_connect_timeout=5,
                     socket_keepalive=True,
                 )
-                await self.redis.ping()
+                await cast(Awaitable[bool], self.redis.ping())
                 self._connected = True
                 logger.info(
                     "Redis cache connected: %s:%s",
@@ -185,18 +185,21 @@ class CacheService:
 
     async def _do_delete_pattern(self, pattern: str, chunk_size: int = 500) -> int:
         """Perform SCAN + batched UNLINK for pattern. No retry; caller handles reconnect."""
+        redis = self.redis
+        if redis is None:
+            return 0
         deleted = 0
         chunk: list[str] = []
-        async for key in self.redis.scan_iter(match=pattern):
+        async for key in redis.scan_iter(match=pattern):
             chunk.append(key)
             if len(chunk) >= chunk_size:
-                async with self.redis.pipeline(transaction=False) as pipe:
+                async with redis.pipeline(transaction=False) as pipe:
                     pipe.unlink(*chunk)
                     results = await pipe.execute()
                 deleted += sum(int(r or 0) for r in results)
                 chunk = []
         if chunk:
-            async with self.redis.pipeline(transaction=False) as pipe:
+            async with redis.pipeline(transaction=False) as pipe:
                 pipe.unlink(*chunk)
                 results = await pipe.execute()
             deleted += sum(int(r or 0) for r in results)

@@ -77,8 +77,7 @@ class TenantRepository(AuditableRepository[Tenant]):
         if self.cache and self.cache.is_available():
             cached = await self.cache.get(tenant_key(tenant_id))
             if cached is not None:
-                tenant = _tenant_from_cached(cached)
-                return _tenant_to_result(tenant)
+                return _tenant_to_result(_tenant_from_cached(cached))
         tenant = await super().get_entity_by_id(tenant_id)
         if tenant and self.cache and self.cache.is_available():
             d = _tenant_to_dict(tenant)
@@ -118,8 +117,7 @@ class TenantRepository(AuditableRepository[Tenant]):
         if self.cache and self.cache.is_available():
             cached = await self.cache.get(tenant_code_key(code))
             if cached is not None:
-                tenant = _tenant_from_cached(cached)
-                return _tenant_to_result(tenant)
+                return _tenant_to_result(_tenant_from_cached(cached))
         result = await self.db.execute(select(Tenant).where(Tenant.code == code))
         tenant = result.scalar_one_or_none()
         if tenant and self.cache and self.cache.is_available():

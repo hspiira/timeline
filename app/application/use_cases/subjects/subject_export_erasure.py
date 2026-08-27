@@ -26,7 +26,7 @@ class ErasureStrategy(str, Enum):
 def _subject_to_export_dict(tenant_id: str, subject: Any) -> dict[str, Any]:
     """Build JSON-serializable subject dict for export."""
     st = getattr(subject, "subject_type", None)
-    type_val = st.value if hasattr(st, "value") else str(st)
+    type_val = st.value if st is not None and hasattr(st, "value") else str(st)
     return {
         "id": subject.id,
         "tenant_id": subject.tenant_id,

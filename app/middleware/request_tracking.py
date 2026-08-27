@@ -17,7 +17,8 @@ REQUEST_ID_ALLOWED_PATTERN = re.compile(
 def _get_header(scope: dict, name: str) -> str | None:
     """Return first header value for name (case-insensitive). Headers are (bytes, bytes)."""
     want = name.lower().encode()
-    for k, v in scope.get("headers", []):
+    headers: list[tuple[bytes, bytes]] = scope.get("headers", [])
+    for k, v in headers:
         if k.lower() == want:
             return v.decode("utf-8", errors="replace")
     return None

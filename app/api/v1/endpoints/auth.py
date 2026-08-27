@@ -26,6 +26,7 @@ from app.application.services.user_service import UserService
 from app.core.config import get_settings
 from app.core.tenant_validation import is_valid_tenant_id_format
 from app.core.limiter import check_auth_rate_per_tenant_code, limit_auth, limit_writes
+from app.infrastructure.persistence.models.user import User
 from app.infrastructure.security.jwt import (
     REFRESH_TOKEN_TYPE,
     create_access_token,
@@ -95,7 +96,7 @@ def _clear_refresh_cookie(response: Response) -> None:
     )
 
 
-def _issue_tokens(response: Response, user: UserResult | object) -> TokenResponse:
+def _issue_tokens(response: Response, user: User) -> TokenResponse:
     """Mint an access token, and set the refresh cookie, for a signed-in membership."""
     settings = get_settings()
     claims = {

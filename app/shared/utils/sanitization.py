@@ -99,7 +99,7 @@ class InputSanitizer:
         """
         if max_depth <= 0:
             raise ValueError("Maximum recursion depth exceeded or invalid max_depth")
-        sanitized = {}
+        sanitized: dict[str, Any] = {}
         for key, value in data.items():
             if isinstance(value, str):
                 sanitized[key] = cls.sanitize_html(value)

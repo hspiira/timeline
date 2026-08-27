@@ -2,7 +2,7 @@
 
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import httpx
 from msal import ConfidentialClientApplication
@@ -165,7 +165,7 @@ class OutlookProvider:
             response.raise_for_status()
             result = response.json()
         logger.info("Outlook webhook setup: %s", result)
-        return result
+        return cast(dict[str, Any], result)
 
     async def remove_webhook(self) -> None:
         """No-op (call Graph to delete subscription if needed)."""

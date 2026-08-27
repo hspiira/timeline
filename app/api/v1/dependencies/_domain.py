@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from contextlib import aclosing
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import Depends, FastAPI, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -128,7 +128,7 @@ def _get_storage_from_request(request: Request) -> StorageProtocol:
     storage = getattr(request.app.state, "storage", None)
     if storage is None:
         return StorageFactory.create_storage_service()
-    return storage
+    return cast(StorageProtocol, storage)
 
 
 # ---------------------------------------------------------------------------
@@ -916,7 +916,10 @@ async def get_event_stream_broadcaster() -> InMemoryEventStreamBroadcaster:
     # In production, lifespan wires this; here we ensure a singleton for DI/tests.
     if not hasattr(get_event_stream_broadcaster, "_instance"):
         setattr(get_event_stream_broadcaster, "_instance", _Broadcaster())
-    return getattr(get_event_stream_broadcaster, "_instance")
+    return cast(
+        InMemoryEventStreamBroadcaster,
+        getattr(get_event_stream_broadcaster, "_instance"),
+    )
 
 
 async def get_projection_repo(

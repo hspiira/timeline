@@ -140,7 +140,11 @@ class EventRepository(BaseRepository[Event]):
             )
         )
         rows = result.scalars().all()
-        return {(e.subject_id, e.external_id): _event_to_result(e) for e in rows}
+        return {
+            (e.subject_id, e.external_id): _event_to_result(e)
+            for e in rows
+            if e.external_id is not None
+        }
 
     async def get_by_tenant_and_seq(
         self, tenant_id: str, event_seq: int

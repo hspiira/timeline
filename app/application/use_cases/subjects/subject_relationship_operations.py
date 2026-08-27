@@ -131,6 +131,8 @@ class SubjectRelationshipService:
         relationship_kind: str,
     ) -> None:
         """Emit relationship_added or relationship_removed on one subject's timeline."""
+        if self.event_service is None:
+            return
         event_data = EventCreate(
             subject_id=subject_id,
             event_type=event_type,

@@ -122,10 +122,10 @@ def _safe_eval_condition(condition: str, context: dict[str, Any]) -> bool:
                 raise ValueError("Access to dunder names is not allowed")
             self.generic_visit(node)
 
-        def visit_Attribute(self, node: ast.Attribute) -> None:  # type: ignore[override]
+        def visit_Attribute(self, node: ast.Attribute) -> None:
             raise ValueError("Attribute access is not allowed")
 
-        def visit_Call(self, node: ast.Call) -> None:  # type: ignore[override]
+        def visit_Call(self, node: ast.Call) -> None:
             raise ValueError("Function calls are not allowed")
 
         def generic_visit(self, node: ast.AST) -> None:

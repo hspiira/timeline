@@ -663,6 +663,12 @@ class ITenantRepository(Protocol):
     async def get_by_id(self, tenant_id: str) -> TenantResult | None:
         """Return tenant by ID."""
 
+    async def get_entity_by_id(self, entity_id: str) -> Any:
+        """Return the tenant ORM row by id, or None. Callers mutate it."""
+
+    async def update_without_audit(self, obj: Any) -> Any:
+        """Persist changes to an ORM row without emitting an audit event."""
+
     async def get_by_code(self, code: str) -> TenantResult | None:
         """Return tenant by code."""
 
@@ -1052,19 +1058,6 @@ class IAuditLogRepository(Protocol):
 
     async def create(self, entry: AuditLogEntryCreate) -> AuditLogResult:
         """Append one audit log entry; return created record."""
-
-    async def list(
-        self,
-        tenant_id: str,
-        *,
-        skip: int = 0,
-        limit: int = 100,
-        resource_type: str | None = None,
-        user_id: str | None = None,
-        from_timestamp: datetime | None = None,
-        to_timestamp: datetime | None = None,
-    ) -> list[AuditLogResult]:
-        """List audit log entries for tenant with optional filters (paginated)."""
 
     async def list_with_count(
         self,

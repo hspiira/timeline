@@ -80,6 +80,8 @@ class IMAPProvider:
 
     async def _fetch_and_parse_message(self, msg_id: bytes) -> EmailMessage | None:
         """Fetch and parse a single message."""
+        if self._client is None:
+            return None
         _, msg_data = await self._client.fetch(msg_id, "(RFC822 FLAGS)")
         if not msg_data or not msg_data[1]:
             return None

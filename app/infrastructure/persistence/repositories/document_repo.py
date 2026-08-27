@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
-from sqlalchemy import and_, func, or_, select, update
+from sqlalchemy import CursorResult, and_, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.document import DocumentCreate, DocumentResult
@@ -166,7 +166,7 @@ class DocumentRepository(AuditableRepository[Document]):
             .values(is_latest_version=False)
         )
         result = await self.db.execute(stmt)
-        return result.rowcount == 1
+        return cast(CursorResult, result).rowcount == 1
 
     async def update(self, document: DocumentResult) -> DocumentResult:
         """Update document from DTO (e.g. is_latest_version, document_type); return updated DTO."""

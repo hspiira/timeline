@@ -1,5 +1,6 @@
 """RFC 3161 TSA client using rfc3161ng and shared httpx.AsyncClient."""
 
+from typing import cast
 import hashlib
 import logging
 import os
@@ -74,7 +75,7 @@ class TsaClient:
             hashname=CANONICAL_HASHNAME,
             nonce=nonce,
         )
-        return rfc3161ng.encode_timestamp_request(request)
+        return cast(bytes, rfc3161ng.encode_timestamp_request(request))
 
     async def timestamp(self, data_hash: bytes) -> bytes:
         """Submit data_hash (digest) to TSA. Returns raw DER TimeStampToken.
@@ -121,7 +122,7 @@ class TsaClient:
             raise rfc3161ng.TimestampingError(
                 "TSA token message imprint or signature does not match request"
             ) from exc
-        return token_bytes
+        return cast(bytes, token_bytes)
 
     def verify(self, receipt: bytes, data_hash: bytes) -> bool:
         """Verify a stored receipt (DER TimeStampToken) against the original data_hash.

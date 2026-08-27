@@ -179,8 +179,8 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
                 for key in ("created_at", "updated_at"):
                     if cached.get(key) and isinstance(cached[key], str):
                         cached[key] = datetime.fromisoformat(cached[key])
-                schema = EventSchema(**cached)
-                merged = await self.db.merge(schema)
+                cached_schema = EventSchema(**cached)
+                merged = await self.db.merge(cached_schema)
                 return _event_schema_to_result(merged)
         result = await self.db.execute(
             select(EventSchema)

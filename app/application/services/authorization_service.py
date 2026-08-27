@@ -19,6 +19,10 @@ class AuthorizationService:
         self.cache = cache
         self.cache_ttl = cache_ttl
 
+    def _usable_cache(self) -> "ICacheService | None":
+        """Return the cache if it is configured and reachable, else None."""
+        return self.cache if self.cache and self.cache.is_available() else None
+
     def _cache_available(self) -> bool:
         """True if cache is configured and connected."""
         return bool(self.cache and self.cache.is_available())
@@ -26,16 +30,17 @@ class AuthorizationService:
     async def get_user_permissions(self, user_id: str, tenant_id: str) -> set[str]:
         """Return set of permission codes (e.g. event:create, subject:read). Uses cache if available."""
         key = f"permission:{tenant_id}:{user_id}"
-        if self._cache_available():
-            cached = await self.cache.get(key)
+        cache = self._usable_cache()
+        if cache is not None:
+            cached = await cache.get(key)
             if cached is not None:
                 return set(cached)
 
         permissions = await self.permission_resolver.get_user_permissions(
             user_id, tenant_id
         )
-        if self._cache_available():
-            await self.cache.set(key, list(permissions), ttl=self.cache_ttl)
+        if cache is not None:
+            await cache.set(key, list(permissions), ttl=self.cache_ttl)
         return permissions
 
     async def check_permission(
@@ -67,10 +72,12 @@ class AuthorizationService:
 
     async def invalidate_user_cache(self, user_id: str, tenant_id: str) -> None:
         """Invalidate cached permissions for one user."""
-        if self._cache_available():
-            await self.cache.delete(f"permission:{tenant_id}:{user_id}")
+        cache = self._usable_cache()
+        if cache is not None:
+            await cache.delete(f"permission:{tenant_id}:{user_id}")
 
     async def invalidate_tenant_cache(self, tenant_id: str) -> None:
         """Invalidate all cached permissions for a tenant."""
-        if self._cache_available():
-            await self.cache.delete_pattern(f"permission:{tenant_id}:*")
+        cache = self._usable_cache()
+        if cache is not None:
+            await cache.delete_pattern(f"permission:{tenant_id}:*")

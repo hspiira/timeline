@@ -19,7 +19,7 @@ class StorageProtocol(Protocol):
         """Upload file with checksum verification. Idempotent if same checksum."""
         ...
 
-    async def download(self, storage_ref: str) -> AsyncIterator[bytes]:
+    def download(self, storage_ref: str) -> AsyncIterator[bytes]:
         """Stream file content."""
         ...
 

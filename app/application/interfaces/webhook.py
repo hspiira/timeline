@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Protocol, Any
 
 if TYPE_CHECKING:
     from app.domain.entities.event import EventEntity
@@ -15,4 +15,8 @@ class IWebhookDispatcher(Protocol):
         self, tenant_id: str, event: "EventEntity", subject_type: str
     ) -> None:
         """Notify matching subscriptions for this tenant/event. Fire-and-forget; logs errors."""
+        ...
+
+    async def send_test(self, sub: Any) -> bool:
+        """POST a test payload to the subscription URL; return True on a 2xx."""
         ...

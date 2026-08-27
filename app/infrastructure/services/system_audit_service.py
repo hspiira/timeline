@@ -130,7 +130,7 @@ class SystemAuditService:
                 Subject.external_ref == SYSTEM_AUDIT_SUBJECT_REF,
             )
         )
-        subject_id = result.scalar_one_or_none()
+        subject_id: str | None = result.scalar_one_or_none()
         if subject_id:
             self._subject_cache_set(tenant_id, subject_id)
         return subject_id
@@ -142,7 +142,8 @@ class SystemAuditService:
             .order_by(Event.event_time.desc())
             .limit(1)
         )
-        return result.scalar_one_or_none()
+        last_id: str | None = result.scalar_one_or_none()
+        return last_id
 
     def _build_audit_payload(
         self,

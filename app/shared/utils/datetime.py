@@ -6,6 +6,7 @@ Use these helpers instead of datetime.now() or datetime.utcnow().
 """
 
 from datetime import UTC, datetime
+from typing import overload
 
 
 def parse_aware_datetime(v: datetime | str) -> datetime:
@@ -39,6 +40,14 @@ def utc_now() -> datetime:
         Timezone-aware datetime in UTC
     """
     return datetime.now(UTC)
+
+
+@overload
+def ensure_utc(dt: datetime) -> datetime: ...
+
+
+@overload
+def ensure_utc(dt: None) -> None: ...
 
 
 def ensure_utc(dt: datetime | None) -> datetime | None:

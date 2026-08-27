@@ -1,6 +1,6 @@
 """Repository for MerkleNode persistence."""
 
-from sqlalchemy import asc, select
+from sqlalchemy import asc, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.persistence.models import MerkleNode
@@ -16,7 +16,7 @@ class MerkleNodeRepository(BaseRepository[MerkleNode]):
     async def delete_for_epoch(self, epoch_id: str) -> None:
         """Delete all Merkle nodes for the given epoch."""
         await self.db.execute(
-            self.model.__table__.delete().where(self.model.epoch_id == epoch_id)
+            delete(self.model).where(self.model.epoch_id == epoch_id)
         )
 
     async def create_node(

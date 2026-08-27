@@ -60,6 +60,9 @@ class GetSubjectStateUseCase:
                     f"Invalid as_of datetime: {as_of!r}. Expected ISO8601 (e.g. 2024-01-15T12:00:00Z)."
                 ) from e
 
+        state: dict[str, Any]
+        last_event_id: str | None
+
         # When scoping to a stream, do not use snapshot (snapshots are subject-scoped).
         snapshot = None
         if self._snapshot_repo and workflow_instance_id is None:
@@ -106,8 +109,8 @@ class GetSubjectStateUseCase:
             workflow_instance_id=workflow_instance_id,
         )
 
-        state: dict[str, Any] = {}
-        last_event_id: str | None = None
+        state = {}
+        last_event_id = None
         for event in events:
             _apply_event(state, event)
             last_event_id = event.id
