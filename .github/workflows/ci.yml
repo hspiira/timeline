@@ -103,6 +103,23 @@ jobs:
             echo "::notice::Lint improved to $COUNT. Update ci/flake8-baseline.txt to lock it in."
           fi
 
+      - name: Cyclomatic complexity must not get worse
+        # Same ratchet as the lint step. max-complexity is 5 in pyproject.toml, which
+        # is strict on purpose: the point is to notice branching as it arrives, not to
+        # force a refactor of every function already over the line. See ci/README.md.
+        run: |
+          BASELINE=$(cat ci/complexity-baseline.txt)
+          COUNT=$(uv run ruff check --select C901 app tests scripts --output-format concise 2>/dev/null | grep -c 'C901' || true)
+          echo "functions over max-complexity: $COUNT (baseline $BASELINE)"
+          if [ "$COUNT" -gt "$BASELINE" ]; then
+            uv run ruff check --select C901 app tests scripts || true
+            echo "::error::Complex functions rose from $BASELINE to $COUNT."
+            exit 1
+          fi
+          if [ "$COUNT" -lt "$BASELINE" ]; then
+            echo "::notice::Complexity improved to $COUNT. Update ci/complexity-baseline.txt to lock it in."
+          fi
+
       - name: Known-vulnerable dependencies
         continue-on-error: true
         run: uv run pip-audit
