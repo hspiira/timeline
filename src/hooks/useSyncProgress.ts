@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getApiBaseUrl, getAuthToken } from '@/lib/api-client'
+import { getApiOrigin, getAuthToken } from '@/lib/api-client'
 
 export type SyncStage =
   | 'started'
@@ -111,10 +111,11 @@ export function useSyncProgress({
     }
 
     try {
-      const apiUrl = getApiBaseUrl()
-      const wsProtocol = apiUrl.startsWith('https') ? 'wss:' : 'ws:'
-      const apiHost = new URL(apiUrl).host
-      const wsUrl = `${wsProtocol}//${apiHost}/api/v1/ws`
+      // A WebSocket URL cannot be relative, so this is the one place that needs
+      // an absolute origin rather than the empty same-origin base.
+      const origin = new URL(getApiOrigin())
+      const wsProtocol = origin.protocol === 'https:' ? 'wss:' : 'ws:'
+      const wsUrl = `${wsProtocol}//${origin.host}/api/v1/ws`
 
       // Subprotocol, not a query parameter, which proxies write to access logs.
       wsRef.current = new WebSocket(wsUrl, ['bearer', token])

@@ -1,11 +1,28 @@
 import createClient from 'openapi-fetch'
 import type { components, paths } from './timeline-api'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+/**
+ * Empty means same origin, which is the normal case: in production the API serves
+ * this bundle, and in development vite proxies /api to it. Requests are then
+ * byte-identical in both, so nothing can work in one and fail in the other.
+ *
+ * Set VITE_API_URL only to point a local build at an API somewhere else.
+ */
+const BASE_URL = import.meta.env.VITE_API_URL ?? ''
 
-/** API base URL for the backend. Single source of truth; use this instead of duplicating env/fallback. */
+/** API base for request paths. Empty string when same origin; safe to concatenate. */
 export function getApiBaseUrl(): string {
   return BASE_URL
+}
+
+/**
+ * Absolute origin of the API, for the one caller that cannot use a relative path:
+ * the WebSocket constructor requires a ws:// or wss:// URL.
+ */
+export function getApiOrigin(): string {
+  if (BASE_URL) return new URL(BASE_URL).origin
+  if (typeof window === 'undefined') return ''
+  return window.location.origin
 }
 
 const DEV_TOKEN_KEY = 'auth_token_dev'

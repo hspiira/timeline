@@ -14,7 +14,11 @@ export const env = createEnv({
 
   client: {
     VITE_APP_TITLE: z.string().min(1).optional(),
-    /** API base URL (e.g. https://api.example.com). Defaults to http://localhost:8000 in dev. */
+    /**
+     * Absolute API URL. Normally unset: the client calls /api relatively, which the
+     * dev proxy forwards and which production serves from the same origin. Set this
+     * only to point a local build at an API elsewhere.
+     */
     VITE_API_URL: z.string().url().optional(),
     /**
      * Tenant creation secret sent as X-Create-Tenant-Secret for POST /tenants.

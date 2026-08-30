@@ -50,8 +50,9 @@ function eagerVendorChunk(id: string): string | undefined {
  * here, and without it the two environments disagree about what is allowed —
  * which is where this class of bug hides.
  *
- * Vite injects its client over a websocket, hence ws:. There is no
- * script-src 'unsafe-inline': nothing inlines a bootstrap script any more.
+ * Vite injects its client over a websocket, hence ws:. The API needs no entry of
+ * its own: requests go through the proxy above, so they are same-origin here too.
+ * There is no script-src 'unsafe-inline': nothing inlines a bootstrap script now.
  */
 const DEV_CSP = [
   "default-src 'self'",
@@ -59,12 +60,22 @@ const DEV_CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data:",
-  "connect-src 'self' ws: wss: http://localhost:8000",
+  "connect-src 'self' ws: wss:",
   "frame-ancestors 'none'",
 ].join('; ')
 
 const config = defineConfig({
   server: {
+    // The client calls /api/... relatively; this points that at the API in
+    // development. In production the API serves this bundle and no proxy exists,
+    // so the request path is identical in both and cannot diverge.
+    proxy: {
+      '/api': {
+        target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:8000',
+        changeOrigin: true,
+        ws: true,
+      },
+    },
     headers: {
       'Content-Security-Policy': DEV_CSP,
       'X-Content-Type-Options': 'nosniff',
