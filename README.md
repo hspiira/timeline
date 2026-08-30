@@ -44,11 +44,57 @@ single environment, so keeping one file here means development cannot drift from
 production. Vite reads the same file but only exposes `VITE_`-prefixed values to the
 browser, so the API's secrets stay server-side.
 
+### Optional backend extras
+
+`uv sync` installs the API, auth, database, cache and observability. Add what you
+use:
+
+| Extra | For |
+|---|---|
+| `email` | Gmail, Outlook and IMAP ingestion |
+| `storage` | S3 document storage. The default `local` backend needs nothing extra |
+| `dev` | Tests, lint, type checking |
+
+```bash
+uv sync --extra storage        # one
+uv sync --all-extras           # everything, including dev
+```
+
 ## Checks
 
 ```bash
-cd apps/api && uv run pytest -m "not requires_db"   # no database needed
-cd apps/web && pnpm verify                          # what CI runs
+make test                                    # backend, no database needed
+cd apps/api && uv run pytest                 # backend, all of it; needs DATABASE_URL
+cd apps/web && pnpm verify                   # what CI runs for the client
+```
+
+## Working on it
+
+```bash
+# Database schema. Alembic lives in apps/api.
+cd apps/api && uv run alembic upgrade head
+cd apps/api && uv run alembic revision --autogenerate -m "what changed"
+
+# Regenerate the client's API types after changing a schema. With the API up:
+cd apps/web && pnpm run generate:api && git diff --exit-code src/lib/timeline-api.ts
+
+# Add a UI component. Always extend shadcn rather than building from scratch.
+cd apps/web && pnpm dlx shadcn@latest add button
+```
+
+`generate:api` writes `apps/web/src/lib/timeline-api.ts`, which is generated and
+should never be hand-edited. A non-empty diff after regenerating means the
+committed types had drifted from the API — the check that only became possible
+once the two lived in one repository.
+
+Operational scripts, all needing `DATABASE_URL`:
+
+```bash
+cd apps/api
+uv run python -m scripts.create_test_user <tenant_code> <username> [password]
+uv run python -m scripts.seed_dev_data    ../../packs/tenancy/pack.json
+uv run python -m scripts.seed_rbac        <tenant_id_or_code>
+uv run python -m scripts.reset_password   <user_id> <new_password>
 ```
 
 CI runs both, each scoped to its own directory. `apps/api/ci/` and `apps/web/ci/`
@@ -61,7 +107,7 @@ pass.
 - [`docs/MONOREPO-MIGRATION.md`](docs/MONOREPO-MIGRATION.md) — this layout, and how it deploys as one origin
 - [`docs/IMPLEMENTATION-ROADMAP.md`](docs/IMPLEMENTATION-ROADMAP.md) — sequenced work, remediation and platform merged
 - [`docs/CTO-TECHNICAL-AUDIT.md`](docs/CTO-TECHNICAL-AUDIT.md) — findings with `file:line` evidence
-- [`apps/api/README.md`](apps/api/README.md), [`apps/web/README.md`](apps/web/README.md) — per-application detail
+- [`docs/CI-RATCHETS.md`](docs/CI-RATCHETS.md) — how the baselines work and why the API runs two linters
 
 ### Before quoting the integrity guarantee
 

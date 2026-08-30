@@ -162,13 +162,7 @@ async def _start_connectors(app: FastAPI, settings: "Settings") -> None:
     app.state.connector_runner = None
     app.state.connector_runner_task = None
 
-    enabled = (
-        settings.connector_cdc_postgres_enabled
-        or settings.connector_kafka_enabled
-        or settings.connector_email_enabled
-        or settings.connector_file_watch_enabled
-    )
-    if not enabled:
+    if not settings.connector_email_enabled:
         return
 
     from app.infrastructure.persistence.database import AsyncSessionLocal
@@ -190,7 +184,7 @@ async def _start_connectors(app: FastAPI, settings: "Settings") -> None:
 
 
 def _register_connectors(runner: Any, settings: "Settings") -> None:
-    """Register the implemented connectors. CDC, Kafka, and file_watch are pending."""
+    """Register the connectors that exist. Email is currently the only one."""
     if settings.connector_email_enabled and settings.connector_email_tenant_id:
         from app.connectors.email.connector import EmailConnector
 

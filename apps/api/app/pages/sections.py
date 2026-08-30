@@ -404,11 +404,11 @@ def pillars() -> str:
     )
     p2 = pillar_card(
         "02", "plug-zap",
-        "Ingest events from any source without changing anything",
-        "The Connector framework maps any source — Kafka, PostgreSQL CDC, REST, inbound email, "
-        "file watchers — to the same immutable ledger. Your existing systems stay untouched. "
-        "Timeline watches what already happens and records it with idempotency guarantees.",
-        ["Kafka", "CDC / Debezium", "REST", "Email", "external_id"],
+        "Ingest events without changing the systems you already run",
+        "Record events through the API, or let a connector bring them in from a system that "
+        "already produces them. Inbound email is the connector that ships today; the framework "
+        "it plugs into is the extension point for the rest.",
+        ["REST API", "Email", "Connector framework"],
         accent="indigo",
     )
     p3 = pillar_card(
@@ -443,8 +443,8 @@ def how_it_works() -> str:
          "Register subject types (loan, policy, patient) and event types with optional JSON Schema "
          "payload validation. Your industry semantics; Timeline's engine."),
         ("02", "plug-zap",        "Connect your sources",
-         "Write events via REST, or attach a connector to your Kafka topic or PostgreSQL database. "
-         "Every source produces the same hash-chained ledger entry with idempotency and provenance."),
+         "Write events through the REST API, or connect a mailbox and let what arrives there "
+         "become entries. Either route produces the same hash-chained ledger entry."),
         ("03", "lock",            "Verify and timestamp",
          "The chain is anchored automatically via RFC 3161 TSA on a configurable schedule. "
          "Run chain verification at any time. The proof lives outside Timeline's own infrastructure."),

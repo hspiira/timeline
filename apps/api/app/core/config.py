@@ -153,20 +153,9 @@ class Settings(BaseSettings):
     cache_ttl_tenants: int = 900
 
     # Connectors (platform event ingestion)
-    connector_cdc_postgres_enabled: bool = False
-    connector_cdc_postgres_dsn: SecretStr | None = None
-    connector_cdc_postgres_slot_name: str = "timeline_cdc"
-    connector_cdc_postgres_publication: str = "timeline_pub"
-    connector_kafka_enabled: bool = False
-    connector_kafka_bootstrap_servers: str | None = None
-    connector_kafka_group_id: str = "timeline-consumer"
-    connector_kafka_topics: list[str] = Field(default_factory=list)
-    connector_kafka_auto_offset_reset: str = "earliest"
     connector_email_enabled: bool = False
     connector_email_tenant_id: str | None = None
     connector_email_poll_interval_seconds: float = 60.0
-    connector_file_watch_enabled: bool = False
-    connector_file_watch_path: str | None = None
 
     # Event rate limits (per-tenant, per minute)
     rate_limit_events_per_minute_per_tenant: int = 10_000
@@ -254,26 +243,6 @@ class Settings(BaseSettings):
                 self.connector_email_enabled,
                 self.connector_email_tenant_id,
                 "CONNECTOR_EMAIL_TENANT_ID is required when CONNECTOR_EMAIL_ENABLED=true.",
-            ),
-            (
-                self.connector_file_watch_enabled,
-                self.connector_file_watch_path,
-                "CONNECTOR_FILE_WATCH_PATH is required when CONNECTOR_FILE_WATCH_ENABLED=true.",
-            ),
-            (
-                self.connector_cdc_postgres_enabled,
-                self.connector_cdc_postgres_dsn,
-                "CONNECTOR_CDC_POSTGRES_DSN is required when CONNECTOR_CDC_POSTGRES_ENABLED=true.",
-            ),
-            (
-                self.connector_kafka_enabled,
-                self.connector_kafka_bootstrap_servers,
-                "CONNECTOR_KAFKA_BOOTSTRAP_SERVERS is required when CONNECTOR_KAFKA_ENABLED=true.",
-            ),
-            (
-                self.connector_kafka_enabled,
-                self.connector_kafka_topics,
-                "CONNECTOR_KAFKA_TOPICS is required when CONNECTOR_KAFKA_ENABLED=true.",
             ),
         ]
 
