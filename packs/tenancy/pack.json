@@ -1,0 +1,317 @@
+{
+  "_comment": "Tenancy pack (reference domain module). Lives on the timeline engine: subject_types + event_schemas + document_categories + workflows, seeded idempotently per tenant. Authoring guide: packs/README.md. Schema-compatible with scripts/seed-data.json for the sections the engine already processes (tenants, event_schemas, subjects, users, workflows, events); adds subject_types and document_categories.",
+  "pack": {
+    "name": "tenancy",
+    "version": "1.0.0",
+    "display_name": "Tenancy / Rental Proof",
+    "subject_type": "tenancy",
+    "description": "A tamper-proof rental record: one subject per tenancy, rent payments and deposits as hash-chained events, lease/ID/receipt documents with retention, and an eviction/dispute workflow. The free verification URL lets a tenant prove rent history to a landlord, bank, or court without trusting anyone."
+  },
+
+  "tenants": [
+    {
+      "code": "tenancy-demo",
+      "name": "Tenancy Demo (verifier-friendly)",
+      "status": "Active"
+    }
+  ],
+
+  "subject_types": [
+    {
+      "tenant_code": "tenancy-demo",
+      "type_name": "tenancy",
+      "display_name": "Tenancy",
+      "description": "One record per rental agreement between a tenant and a landlord/property.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tenant_name": { "type": "string" },
+          "landlord_name": { "type": "string" },
+          "property": { "type": "string" },
+          "monthly_rent_currency": { "type": "string", "enum": ["UGX", "USD"] },
+          "monthly_rent_amount": { "type": "number", "minimum": 1 },
+          "start_date": { "type": "string" }
+        },
+        "required": ["tenant_name", "landlord_name", "property", "monthly_rent_currency", "monthly_rent_amount"]
+      },
+      "is_active": true,
+      "has_timeline": true,
+      "allow_documents": true,
+      "allowed_event_types": ["rent_paid", "deposit_paid", "deposit_refunded", "lease_signed", "eviction_notice", "dispute_opened", "dispute_resolved"]
+    }
+  ],
+
+  "event_schemas": [
+    {
+      "tenant_code": "tenancy-demo",
+      "event_type": "lease_signed",
+      "version": 1,
+      "is_active": true,
+      "schema_definition": {
+        "type": "object",
+        "properties": {
+          "lease_ref": { "type": "string" },
+          "signed_on": { "type": "string" },
+          "rental_period_months": { "type": "integer", "minimum": 1 }
+        },
+        "required": ["lease_ref", "signed_on"]
+      }
+    },
+    {
+      "tenant_code": "tenancy-demo",
+      "event_type": "rent_paid",
+      "version": 1,
+      "is_active": true,
+      "schema_definition": {
+        "type": "object",
+        "properties": {
+          "for_month": { "type": "string" },
+          "amount": { "type": "number", "minimum": 1 },
+          "currency": { "type": "string", "enum": ["UGX", "USD"] },
+          "method": { "type": "string", "enum": ["mobile_money", "bank_transfer", "cash", "cheque"] },
+          "receipt_ref": { "type": "string" }
+        },
+        "required": ["for_month", "amount", "currency", "method"]
+      }
+    },
+    {
+      "tenant_code": "tenancy-demo",
+      "event_type": "deposit_paid",
+      "version": 1,
+      "is_active": true,
+      "schema_definition": {
+        "type": "object",
+        "properties": {
+          "amount": { "type": "number", "minimum": 1 },
+          "currency": { "type": "string", "enum": ["UGX", "USD"] },
+          "paid_on": { "type": "string" }
+        },
+        "required": ["amount", "currency"]
+      }
+    },
+    {
+      "tenant_code": "tenancy-demo",
+      "event_type": "deposit_refunded",
+      "version": 1,
+      "is_active": true,
+      "schema_definition": {
+        "type": "object",
+        "properties": {
+          "amount": { "type": "number", "minimum": 0 },
+          "currency": { "type": "string", "enum": ["UGX", "USD"] },
+          "refunded_on": { "type": "string" }
+        },
+        "required": ["amount", "currency"]
+      }
+    },
+    {
+      "tenant_code": "tenancy-demo",
+      "event_type": "eviction_notice",
+      "version": 1,
+      "is_active": true,
+      "schema_definition": {
+        "type": "object",
+        "properties": {
+          "reason": { "type": "string" },
+          "notice_date": { "type": "string" },
+          "effective_date": { "type": "string" }
+        },
+        "required": ["notice_date", "effective_date"]
+      }
+    },
+    {
+      "tenant_code": "tenancy-demo",
+      "event_type": "dispute_opened",
+      "version": 1,
+      "is_active": true,
+      "schema_definition": {
+        "type": "object",
+        "properties": {
+          "against": { "type": "string", "enum": ["landlord", "tenant"] },
+          "reason": { "type": "string" },
+          "opened_on": { "type": "string" }
+        },
+        "required": ["against", "reason"]
+      }
+    },
+    {
+      "tenant_code": "tenancy-demo",
+      "event_type": "dispute_resolved",
+      "version": 1,
+      "is_active": true,
+      "schema_definition": {
+        "type": "object",
+        "properties": {
+          "outcome": { "type": "string" },
+          "resolved_on": { "type": "string" }
+        },
+        "required": ["outcome"]
+      }
+    }
+  ],
+
+  "document_categories": [
+    {
+      "tenant_code": "tenancy-demo",
+      "category_name": "lease_agreement",
+      "display_name": "Lease agreement",
+      "description": "Signed tenancy contract.",
+      "metadata_schema": {
+        "type": "object",
+        "properties": {
+          "lease_ref": { "type": "string" },
+          "signed_on": { "type": "string" }
+        }
+      },
+      "default_retention_days": 3650,
+      "is_active": true
+    },
+    {
+      "tenant_code": "tenancy-demo",
+      "category_name": "id_proof",
+      "display_name": "ID proof",
+      "description": "Tenant / landlord national ID or passport page.",
+      "metadata_schema": {
+        "type": "object",
+        "properties": {
+          "holder": { "type": "string", "enum": ["tenant", "landlord"] }
+        }
+      },
+      "default_retention_days": 3650,
+      "is_active": true
+    },
+    {
+      "tenant_code": "tenancy-demo",
+      "category_name": "rent_receipt",
+      "display_name": "Rent receipt",
+      "description": "Proof-of-payment receipt for a month's rent.",
+      "metadata_schema": {
+        "type": "object",
+        "properties": {
+          "for_month": { "type": "string" },
+          "amount": { "type": "number" }
+        }
+      },
+      "default_retention_days": 3650,
+      "is_active": true
+    },
+    {
+      "tenant_code": "tenancy-demo",
+      "category_name": "notice",
+      "display_name": "Notice / correspondence",
+      "description": "Eviction notice or dispute correspondence.",
+      "metadata_schema": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["eviction", "dispute", "other"] }
+        }
+      },
+      "default_retention_days": 3650,
+      "is_active": true
+    }
+  ],
+
+  "subjects": [
+    {
+      "tenant_code": "tenancy-demo",
+      "subject_type": "tenancy",
+      "external_ref": "TEN-0001"
+    }
+  ],
+
+  "users": [],
+
+  "workflows": [
+    {
+      "tenant_code": "tenancy-demo",
+      "name": "On rent paid -> record receipt",
+      "description": "When a rent payment is recorded, prompt/append a receipt reference linkage (demonstration of a side-effect).",
+      "trigger_event_type": "rent_paid",
+      "is_active": true,
+      "trigger_conditions": null,
+      "actions": [
+        {
+          "type": "create_event",
+          "params": {
+            "event_type": "rent_paid",
+            "schema_version": 1,
+            "payload": {
+              "for_month": "",
+              "amount": 0,
+              "currency": "UGX",
+              "method": "mobile_money"
+            }
+          }
+        }
+      ],
+      "max_executions_per_day": null,
+      "execution_order": 0
+    }
+  ],
+
+  "events": [
+    {
+      "tenant_code": "tenancy-demo",
+      "subject_external_ref": "TEN-0001",
+      "event_type": "lease_signed",
+      "schema_version": 1,
+      "event_time": "2026-01-05T09:00:00Z",
+      "payload": {
+        "lease_ref": "L-2026-0001",
+        "signed_on": "2026-01-05",
+        "rental_period_months": 12
+      }
+    },
+    {
+      "tenant_code": "tenancy-demo",
+      "subject_external_ref": "TEN-0001",
+      "event_type": "deposit_paid",
+      "schema_version": 1,
+      "event_time": "2026-01-05T09:05:00Z",
+      "payload": {
+        "amount": 500000,
+        "currency": "UGX",
+        "paid_on": "2026-01-05"
+      }
+    },
+    {
+      "tenant_code": "tenancy-demo",
+      "subject_external_ref": "TEN-0001",
+      "event_type": "rent_paid",
+      "schema_version": 1,
+      "event_time": "2026-02-01T08:00:00Z",
+      "payload": {
+        "for_month": "2026-02",
+        "amount": 350000,
+        "currency": "UGX",
+        "method": "mobile_money"
+      }
+    },
+    {
+      "tenant_code": "tenancy-demo",
+      "subject_external_ref": "TEN-0001",
+      "event_type": "rent_paid",
+      "schema_version": 1,
+      "event_time": "2026-03-01T08:00:00Z",
+      "payload": {
+        "for_month": "2026-03",
+        "amount": 350000,
+        "currency": "UGX",
+        "method": "mobile_money"
+      }
+    },
+    {
+      "tenant_code": "tenancy-demo",
+      "subject_external_ref": "TEN-0001",
+      "event_type": "rent_paid",
+      "schema_version": 1,
+      "event_time": "2026-04-01T08:00:00Z",
+      "payload": {
+        "for_month": "2026-04",
+        "amount": 350000,
+        "currency": "UGX",
+        "method": "bank_transfer"
+      }
+    }
+  ]
+}

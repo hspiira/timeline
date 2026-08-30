@@ -1,13 +1,16 @@
-"""Seed dev data from docs/seed-data.json into Postgres.
+"""Seed dev data from a seed/pack JSON file into Postgres.
 
-Loads tenants (by code; creates if missing), event_schemas, subjects, users
-(with hashed password), workflows, and events (via EventService for hash chaining).
-References: docs/seed-data.json, docs/DATABASE_SCHEMA.md.
+Loads tenants (by code; creates if missing), subject_types, event_schemas,
+document_categories, subjects, users (with hashed password), workflows, and events
+(via EventService for hash chaining). The subject_types and document_categories
+sections are the domain-pack primitives that let a pack (e.g. packs/tenancy/pack.json)
+install a full domain in one run.
+References: scripts/seed-data.json, docs/DATABASE_SCHEMA.md.
 
 Usage:
-    uv run python -m scripts.seed_dev_data [path/to/seed-data.json]
+    uv run python -m scripts.seed_dev_data [path/to/seed-or-pack.json]
 
-Default path: docs/seed-data.json (relative to project root).
+Default path: scripts/seed-data.json (relative to project root).
 Requires: DATABASE_URL (Postgres), existing DB. Tenants are created if not found.
 """
 
@@ -28,6 +31,9 @@ from app.application.services.hash_service import HashService
 from app.application.use_cases.events.create_event import EventService
 from app.domain.enums import TenantStatus
 from app.infrastructure.persistence.database import _ensure_engine
+from app.infrastructure.persistence.repositories.document_category_repo import (
+    DocumentCategoryRepository,
+)
 from app.infrastructure.persistence.repositories.event_repo import EventRepository
 from app.infrastructure.persistence.repositories.event_schema_repo import (
     EventSchemaRepository,
@@ -35,6 +41,9 @@ from app.infrastructure.persistence.repositories.event_schema_repo import (
 from app.infrastructure.persistence.repositories.role_repo import RoleRepository
 from app.infrastructure.persistence.repositories.tenant_repo import TenantRepository
 from app.infrastructure.persistence.repositories.subject_repo import SubjectRepository
+from app.infrastructure.persistence.repositories.subject_type_repo import (
+    SubjectTypeRepository,
+)
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
 from app.infrastructure.persistence.repositories.user_role_repo import (
     UserRoleRepository,
@@ -68,7 +77,6 @@ def _parse_event_time(s: str) -> datetime:
 
 
 async def _get_or_create_tenant(
-    session: AsyncSession,
     tenant_repo: TenantRepository,
     init_svc: TenantInitializationService,
     code: str,
@@ -121,7 +129,6 @@ async def _seed_tenants(
     for t in tenants_data:
         code = t["code"]
         tenant_id = await _get_or_create_tenant(
-            session,
             tenant_repo,
             init_svc,
             code=code,
@@ -162,6 +169,70 @@ async def _seed_event_schemas(
             created_by=None,
         )
         print(f"  Event schema {es['event_type']}@v1 for {es['tenant_code']}")
+
+
+async def _seed_subject_types(
+    session: AsyncSession,
+    tenant_ids: dict[str, str],
+    subject_types_data: list[dict],
+) -> None:
+    """Create subject types (domain pack primitive) that do not exist yet."""
+    for st in subject_types_data:
+        tenant_id = tenant_ids.get(st["tenant_code"])
+        if not tenant_id:
+            continue
+        await use_tenant(session, tenant_id)
+        repo = SubjectTypeRepository(session, audit_service=None)
+        existing = await repo.get_by_tenant_and_type(tenant_id, st["type_name"])
+        if existing:
+            print(f"  Subject type {st['type_name']} already exists, skip")
+            continue
+        await repo.create_subject_type(
+            tenant_id=tenant_id,
+            type_name=st["type_name"],
+            display_name=st.get("display_name", st["type_name"]),
+            description=st.get("description"),
+            schema=st.get("schema"),
+            is_active=st.get("is_active", True),
+            icon=st.get("icon"),
+            color=st.get("color"),
+            has_timeline=st.get("has_timeline", True),
+            allow_documents=st.get("allow_documents", True),
+            allowed_event_types=st.get("allowed_event_types"),
+            created_by=None,
+        )
+        print(f"  Subject type {st['type_name']} for {st['tenant_code']}")
+
+
+async def _seed_document_categories(
+    session: AsyncSession,
+    tenant_ids: dict[str, str],
+    document_categories_data: list[dict],
+) -> None:
+    """Create document categories (domain pack primitive) that do not exist yet."""
+    for dc in document_categories_data:
+        tenant_id = tenant_ids.get(dc["tenant_code"])
+        if not tenant_id:
+            continue
+        await use_tenant(session, tenant_id)
+        repo = DocumentCategoryRepository(
+            session, tenant_id=tenant_id, audit_service=None
+        )
+        existing = await repo.get_by_tenant_and_name(tenant_id, dc["category_name"])
+        if existing:
+            print(f"  Document category {dc['category_name']} already exists, skip")
+            continue
+        await repo.create_document_category(
+            tenant_id=tenant_id,
+            category_name=dc["category_name"],
+            display_name=dc.get("display_name", dc["category_name"]),
+            description=dc.get("description"),
+            metadata_schema=dc.get("metadata_schema"),
+            default_retention_days=dc.get("default_retention_days"),
+            is_active=dc.get("is_active", True),
+            created_by=None,
+        )
+        print(f"  Document category {dc['category_name']} for {dc['tenant_code']}")
 
 
 async def _seed_one_subject(
@@ -403,8 +474,14 @@ async def run(path: Path) -> None:
             tenant_ids = await _seed_tenants(
                 session, tenant_repo, init_svc, data.get("tenants", [])
             )
+            await _seed_subject_types(
+                session, tenant_ids, data.get("subject_types", [])
+            )
             await _seed_event_schemas(
                 session, schema_repo, tenant_ids, data.get("event_schemas", [])
+            )
+            await _seed_document_categories(
+                session, tenant_ids, data.get("document_categories", [])
             )
             subject_ids = await _seed_subjects(
                 session, tenant_ids, data.get("subjects", [])
