@@ -21,10 +21,6 @@ jobs:
   backend:
     runs-on: ubuntu-latest
 
-    # Every run step inherits this; uses: steps are unaffected, which is correct.
-    defaults:
-      run:
-        working-directory: apps/api
 
     services:
       postgres:
@@ -56,7 +52,7 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --all-extras --frozen
+        run: uv sync --all-packages --all-extras --frozen
 
       - name: Application imports
         # Catches the stale __init__ exports that broke startup twice.
@@ -103,7 +99,7 @@ jobs:
         # property this system must not get wrong cannot be allowed to go unchecked.
         run: |
           set +e
-          OUT=$(uv run pytest tests/integration/test_tenant_isolation.py -q -rs 2>&1)
+          OUT=$(uv run pytest apps/api/tests/integration/test_tenant_isolation.py -q -rs 2>&1)
           RC=$?
           set -e
           echo "$OUT"
@@ -120,11 +116,11 @@ jobs:
         # Ratcheted rather than all-or-nothing: there is existing debt, and a check
         # that fails on day one gets ignored. Lower the baseline as it is paid down.
         run: |
-          BASELINE=$(cat ci/flake8-baseline.txt)
-          COUNT=$(uv run flake8 app tests scripts --count 2>/dev/null | tail -1)
+          BASELINE=$(cat apps/api/ci/flake8-baseline.txt)
+          COUNT=$(uv run flake8 apps/api/app apps/api/tests apps/api/scripts --count 2>/dev/null | tail -1)
           echo "flake8 issues: $COUNT (baseline $BASELINE)"
           if [ "$COUNT" -gt "$BASELINE" ]; then
-            uv run flake8 app tests scripts || true
+            uv run flake8 apps/api/app apps/api/tests apps/api/scripts || true
             echo "::error::Lint issues rose from $BASELINE to $COUNT."
             exit 1
           fi
@@ -137,11 +133,11 @@ jobs:
         # is strict on purpose: the point is to notice branching as it arrives, not to
         # force a refactor of every function already over the line. See ci/README.md.
         run: |
-          BASELINE=$(cat ci/complexity-baseline.txt)
-          COUNT=$(uv run ruff check --select C901 app tests scripts --output-format concise 2>/dev/null | grep -c 'C901' || true)
+          BASELINE=$(cat apps/api/ci/complexity-baseline.txt)
+          COUNT=$(uv run ruff check --select C901 apps/api/app apps/api/tests apps/api/scripts --output-format concise 2>/dev/null | grep -c 'C901' || true)
           echo "functions over max-complexity: $COUNT (baseline $BASELINE)"
           if [ "$COUNT" -gt "$BASELINE" ]; then
-            uv run ruff check --select C901 app tests scripts || true
+            uv run ruff check --select C901 apps/api/app apps/api/tests apps/api/scripts || true
             echo "::error::Complex functions rose from $BASELINE to $COUNT."
             exit 1
           fi
@@ -150,8 +146,8 @@ jobs:
           fi
 
       - name: Types
-        # No ratchet: mypy app is clean, so any new error fails the build.
-        run: uv run mypy app
+        # No ratchet: mypy is clean, so any new error fails the build.
+        run: uv run mypy
 
       - name: Known-vulnerable dependencies
         continue-on-error: true

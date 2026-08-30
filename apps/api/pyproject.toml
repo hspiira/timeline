@@ -2,7 +2,6 @@
 name = "timeline"
 version = "0.1.0"
 description = "Multi-tenant event sourcing system with FastAPI"
-readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     # Core Framework
@@ -72,37 +71,11 @@ dev = [
     "pip-audit>=2.7.0",
 ]
 
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-testpaths = ["tests"]
-markers = [
-    "requires_db: mark test as requiring PostgreSQL (skip when DATABASE_URL unset)",
-]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.mypy]
-python_version = "3.12"
-plugins = ["pydantic.mypy", "sqlalchemy.ext.mypy.plugin"]
-warn_return_any = true
-warn_unused_ignores = true
-disallow_untyped_defs = false
-ignore_missing_imports = true
-# Alembic revisions are generated and rewritten by autogenerate.
-exclude = ["alembic/", "app/infrastructure/persistence/migrations/"]
-
-[tool.ruff]
-line-length = 120
-target-version = "py312"
-extend-exclude = [".venv", "migrations", "app/infrastructure/persistence/migrations"]
-
-[tool.ruff.lint]
-# C901 only for now. The repository carries lint debt that flake8 already
-# ratchets (see ci/README.md); turning on ruff's default rule set here would
-# duplicate those findings under different codes.
-select = ["C901"]
-
-[tool.ruff.lint.mccabe]
-# Deliberately strict. Nothing at or below 5 branches needs a second look, so
-# anything above it is worth a glance even when the verdict is "fine as is".
-# The CI ratchet in ci/complexity-baseline.txt keeps the existing backlog from
-# failing the build while it is paid down.
-max-complexity = 5
+[tool.hatch.build.targets.wheel]
+# Installed into the workspace environment so `import app` and `python -m scripts.x`
+# resolve from anywhere in the repository, not only from this directory.
+packages = ["app", "scripts"]

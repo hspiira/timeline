@@ -9,7 +9,7 @@ from functools import lru_cache
 from typing import Literal
 
 from pathlib import Path
-from pydantic import Field, SecretStr, model_validator
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -75,7 +75,8 @@ class Settings(BaseSettings):
 
     # Storage
     storage_backend: str = "local"
-    storage_root: str = "./storage"  # Dev-friendly default; set STORAGE_ROOT for production (e.g. /var/timeline/storage)
+    # Dev-friendly default; set STORAGE_ROOT in production, e.g. /var/timeline/storage
+    storage_root: str = "./storage"
     storage_base_url: str | None = None
     s3_bucket: str | None = None
     s3_region: str = "us-east-1"

@@ -1,0 +1,59 @@
+# Workspace root. There is no package here: this exists so uv commands work from
+# the top of the repository rather than only from inside apps/api, mirroring what
+# pnpm-workspace.yaml does for the JavaScript side.
+[project]
+name = "timeline-workspace"
+version = "0.0.0"
+description = "Workspace root. The API lives in apps/api."
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["apps/api"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tool configuration for the whole repository, so every command runs from here
+# rather than only from inside apps/api. Paths are relative to this file.
+# ─────────────────────────────────────────────────────────────────────────────
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["apps/api/tests"]
+# The API is run from its source tree, not installed, so its root goes on the path.
+pythonpath = ["apps/api"]
+markers = [
+    "requires_db: mark test as requiring PostgreSQL (skip when DATABASE_URL unset)",
+]
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy", "sqlalchemy.ext.mypy.plugin"]
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+mypy_path = "apps/api"
+files = ["apps/api/app"]
+# Alembic revisions are generated and rewritten by autogenerate.
+exclude = ["apps/api/app/infrastructure/persistence/migrations/"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = ["apps/api"]
+extend-exclude = [".venv", "apps/api/app/infrastructure/persistence/migrations"]
+
+[tool.ruff.lint]
+# C901 only for now. The repository carries lint debt that flake8 already
+# ratchets (see docs/CI-RATCHETS.md); turning on ruff's default rule set here
+# would duplicate those findings under different codes.
+select = ["C901"]
+
+[tool.ruff.lint.mccabe]
+# Deliberately strict. Nothing at or below 5 branches needs a second look, so
+# anything above it is worth a glance even when the verdict is "fine as is".
+max-complexity = 5

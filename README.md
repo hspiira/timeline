@@ -30,9 +30,8 @@ Requires Python 3.12, Node 22, pnpm and PostgreSQL.
 
 ```bash
 cp .env.example .env          # then fill in SECRET_KEY, ENCRYPTION_SALT, DATABASE_URL
-cd apps/api && uv sync --all-extras && uv run alembic upgrade head && cd ../..
-cd apps/web && pnpm install && cd ../..
-
+make install                  # both applications
+make migrate                  # database schema
 make dev                      # starts both; one Ctrl-C stops both
 ```
 
@@ -44,10 +43,52 @@ single environment, so keeping one file here means development cannot drift from
 production. Vite reads the same file but only exposes `VITE_`-prefixed values to the
 browser, so the API's secrets stay server-side.
 
+## Commands
+
+Everything runs from this directory. There is one virtual environment at the root
+with the API installed into it, and one `pyproject.toml` here holding the tool
+configuration, so `uv run <anything>` works from the root as well as `make`.
+
+```
+make help        list every target
+make install     install both applications
+make dev         run the API and the web client together
+make test        backend tests that need no database
+make test-all    every backend test; needs DATABASE_URL
+make lint        flake8 and ruff over the API
+make typecheck   mypy over the API
+make check       lint, typecheck and test
+make web-check   the client's gate: build, types, lint, unit tests
+make migrate     apply database migrations
+make revision    create one:  make revision m="what changed"
+```
+
+Ad-hoc commands work the same way, with no directory changes:
+
+```bash
+uv run pytest apps/api/tests/unit/test_merkle_service.py -v
+uv run alembic downgrade -1
+uv run uvicorn app.main:app --reload
+uv run python -m scripts.create_test_user <tenant_code> <username> [password]
+uv run python -m scripts.seed_dev_data packs/tenancy/pack.json
+uv run python -m scripts.seed_rbac <tenant_id_or_code>
+uv run python -m scripts.reset_password <user_id> <new_password>
+```
+
+Scripts need `DATABASE_URL`. To regenerate the client's API types after a schema
+change, with the API running:
+
+```bash
+cd apps/web && pnpm run generate:api && git diff --exit-code src/lib/timeline-api.ts
+```
+
+That file is generated and should never be hand-edited. A non-empty diff means the
+committed types had drifted from the API — the check that only became possible once
+the two lived in one repository.
+
 ### Optional backend extras
 
-`uv sync` installs the API, auth, database, cache and observability. Add what you
-use:
+`make install` takes everything. For a narrower install:
 
 | Extra | For |
 |---|---|
@@ -56,51 +97,18 @@ use:
 | `dev` | Tests, lint, type checking |
 
 ```bash
-uv sync --extra storage        # one
-uv sync --all-extras           # everything, including dev
+uv sync --all-packages --extra storage
 ```
 
 ## Checks
 
-```bash
-make test                                    # backend, no database needed
-cd apps/api && uv run pytest                 # backend, all of it; needs DATABASE_URL
-cd apps/web && pnpm verify                   # what CI runs for the client
-```
+`make check` runs lint, types and tests. CI runs the same commands from this
+directory, plus the client's `pnpm verify`.
 
-## Working on it
-
-```bash
-# Database schema. Alembic lives in apps/api.
-cd apps/api && uv run alembic upgrade head
-cd apps/api && uv run alembic revision --autogenerate -m "what changed"
-
-# Regenerate the client's API types after changing a schema. With the API up:
-cd apps/web && pnpm run generate:api && git diff --exit-code src/lib/timeline-api.ts
-
-# Add a UI component. Always extend shadcn rather than building from scratch.
-cd apps/web && pnpm dlx shadcn@latest add button
-```
-
-`generate:api` writes `apps/web/src/lib/timeline-api.ts`, which is generated and
-should never be hand-edited. A non-empty diff after regenerating means the
-committed types had drifted from the API — the check that only became possible
-once the two lived in one repository.
-
-Operational scripts, all needing `DATABASE_URL`:
-
-```bash
-cd apps/api
-uv run python -m scripts.create_test_user <tenant_code> <username> [password]
-uv run python -m scripts.seed_dev_data    ../../packs/tenancy/pack.json
-uv run python -m scripts.seed_rbac        <tenant_id_or_code>
-uv run python -m scripts.reset_password   <user_id> <new_password>
-```
-
-CI runs both, each scoped to its own directory. `apps/api/ci/` and `apps/web/ci/`
-hold ratchet baselines: a check fails when its count rises and reports when the
-count falls so the baseline can be lowered. Neither may be raised to make a build
-pass.
+`apps/api/ci/` and `apps/web/ci/` hold ratchet baselines: a check fails when its
+count rises and reports when the count falls so the baseline can be lowered.
+Neither may be raised to make a build pass. See
+[`docs/CI-RATCHETS.md`](docs/CI-RATCHETS.md).
 
 ## Documentation
 
