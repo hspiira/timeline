@@ -6,39 +6,71 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.v1.dependencies import (
     ensure_audit_logged,
+    get_set_password_deps,
     get_tenant_id,
     get_user_repo,
-    get_user_repo_for_write,
     require_permission,
 )
+from app.core.config import get_settings
 from app.core.limiter import limit_writes
+from app.infrastructure.persistence.repositories.password_set_token_repo import (
+    PasswordSetTokenStore,
+)
 from app.infrastructure.persistence.repositories.user_repo import UserRepository
-from app.schemas.user import UserCreateRequest, UserResponse
+from app.infrastructure.security.password import generate_secure_password
+from app.schemas.user import UserCreateRequest, UserCreateResponse, UserResponse
 
 router = APIRouter()
 
 
-@router.post("", response_model=UserResponse, status_code=201)
+@router.post("", response_model=UserCreateResponse, status_code=201)
 @limit_writes
 async def create_user(
     request: Request,
     body: UserCreateRequest,
     tenant_id: Annotated[str, Depends(get_tenant_id)],
-    user_repo: UserRepository = Depends(get_user_repo_for_write),
+    set_password_deps: Annotated[
+        tuple[PasswordSetTokenStore, UserRepository], Depends(get_set_password_deps)
+    ],
     _: Annotated[object, Depends(require_permission("user", "create"))] = None,
     _audit: Annotated[object, Depends(ensure_audit_logged)] = None,
 ):
-    """Create a user (tenant-scoped)."""
+    """Add someone to this organisation, by invitation or with a set password.
+
+    Omit ``password`` to invite: the person is created with a password nobody knows
+    and the response carries a one-time link for them to choose their own. Supply
+    ``password`` only where an administrator genuinely must set it.
+    """
+    token_store, user_repo = set_password_deps
+    invited = body.password is None
+    password = body.password if body.password is not None else generate_secure_password()
     try:
         user = await user_repo.create_user(
             tenant_id=tenant_id,
             username=body.username,
             email=body.email,
-            password=body.password,
+            password=password,
         )
-        return UserResponse.model_validate(user)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+
+    response = UserCreateResponse.model_validate(user)
+    if not invited:
+        return response
+
+    token, expires_at = await token_store.create(user.id)
+    settings = get_settings()
+    invite_url = None
+    if settings.set_password_base_url:
+        base = settings.set_password_base_url.rstrip("/")
+        invite_url = f"{base}/set-password?token={token}"
+    return response.model_copy(
+        update={
+            "invite_token": token,
+            "invite_url": invite_url,
+            "invite_expires_at": expires_at,
+        }
+    )
 
 
 @router.get("/{user_id}", response_model=UserResponse)
