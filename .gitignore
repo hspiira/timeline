@@ -1,48 +1,50 @@
-# Python-generated files
-# (/docs/ was ignored here, which quietly broke every docs/ link in the README.)
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
+# Repository-wide. Anything specific to one package lives in that package's
+# .gitignore, which should stay short.
 
-# Environment files (never commit). Only .env.example is safe to track.
+# Secrets. Only .env.example is tracked, and there is one .env at this root
+# shared by both applications.
 .env
 .env.*
 !.env.example
-# Virtual environments
-.venv
-
-# Vercel
-.vercel/
-
-# Secrets directory and key files (never commit)
+.env*.local
 secrets/
 serviceAccountKey*.json
 *-firebase-adminsdk-*.json
-# Common GCP/Google key file names
 **/credentials.json
 **/gcp-key*.json
 **/google-credentials*.json
 **/*-service-account-*.json
-.env*.local
 
-# Local development files
-.vscode/
+# Operating system
+.DS_Store
+
+# Editors. settings.json is shared on purpose: it marks the generated route tree
+# read-only and picks the formatter. Everything else under .vscode is personal.
+.vscode/*
+!.vscode/settings.json
 .idea/
+
+# Python
+__pycache__/
+*.py[oc]
+*.egg-info
+.venv
+build/
+wheels/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
 .coverage
 .coverage.*
-.coverage.xml
-.coverage.json
-.coverage.json.gz
-.coverage.json.bz2
 
-# Storage
+# JavaScript
+node_modules/
+dist/
+dist-ssr/
+.tanstack/
+
+# Application data written at runtime
 storage/
 
-# graft's local graph cache — regenerable, not committed (run `graft build`).
+# graft's local graph cache — regenerable, run `graft build`.
 /graft/

@@ -18,6 +18,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # whatever directory a command happened to be run from.
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
+# The repository root, two levels above apps/api. One .env lives there and both
+# the API and the web client read it, because a deployment is a single process
+# with a single environment: two files in development would put back the
+# development/production split this layout exists to remove.
+_REPO_ROOT = _PROJECT_ROOT.parent.parent
+
 
 class Settings(BaseSettings):
     """Application settings loaded from environment and .env.
@@ -185,7 +191,9 @@ class Settings(BaseSettings):
         # run from, so the API picked up a different file (or none) depending on
         # whether you started it from the project root or a parent. That becomes a
         # silent failure once this package sits under apps/api in a monorepo.
-        env_file=_PROJECT_ROOT / ".env",
+        # Shared file first, app-local second: later entries win, so a private
+        # apps/api/.env can still override the shared one without editing it.
+        env_file=(_REPO_ROOT / ".env", _PROJECT_ROOT / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,

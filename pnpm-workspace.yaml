@@ -1,0 +1,7 @@
+# Declares where the JavaScript packages are. Without this the root is not a
+# workspace and pnpm has to be run from inside apps/web.
+packages:
+  - 'apps/web'
+
+allowBuilds:
+  esbuild: true

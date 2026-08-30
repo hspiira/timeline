@@ -1,123 +1,71 @@
-# timeline
+# Timeline
 
-Multi-tenant event sourcing API with FastAPI.
+A tamper-evident record engine. Each subject owns an append-only, hash-chained
+event log with documents, retention and an audit trail attached, so an
+organisation can prove to a third party both what happened and that the file is
+complete.
 
-## Install
+Domains are data, not code. A **pack** is a JSON manifest declaring subject types,
+event schemas, document categories with retention, and workflows; installing one
+turns the engine into something specific without a plugin or a deployment. See
+[`packs/`](packs/).
 
-Base install (API, auth, DB, cache, observability):
+Licensed under Apache 2.0. See [LICENSE](LICENSE).
+
+## Layout
+
+```
+apps/api/     FastAPI service. Also serves the built client and the public pages.
+apps/web/     React single-page client.
+packs/        Domain manifests. Data, installed per tenant.
+docs/         Assessments, the remediation plan, and the migration runbook.
+```
+
+Packs sit at the top level rather than inside the API because they belong to
+neither side: authoring one should not mean cloning a Python service.
+
+## Running it
+
+Requires Python 3.12, Node 22, pnpm and PostgreSQL.
 
 ```bash
-uv sync
+cp .env.example .env          # then fill in SECRET_KEY, ENCRYPTION_SALT, DATABASE_URL
+cd apps/api && uv sync --all-extras && uv run alembic upgrade head && cd ../..
+cd apps/web && pnpm install && cd ../..
+
+make dev                      # starts both; one Ctrl-C stops both
 ```
 
-Optional extras (install when you use these features):
+The API answers on `:8000`, the client on `:3000`, and the client's `/api` calls are
+proxied to the API so the request path matches production.
 
-| Extra | Use when |
-|-------|----------|
-| `email` | Gmail/Outlook/IMAP integration (`aioimaplib`, `google-api-python-client`, `msal`) |
-| `storage` | **S3** document storage (`boto3`). Default `local` backend uses `aiofiles` (in main deps). |
-| `dev` | Tests, lint, type-checking |
+**One `.env` at the root configures both.** A deployment is a single process with a
+single environment, so keeping one file here means development cannot drift from
+production. Vite reads the same file but only exposes `VITE_`-prefixed values to the
+browser, so the API's secrets stay server-side.
 
-Examples:
+## Checks
 
 ```bash
-uv sync --extra email --extra storage   # Email + storage
-uv sync --all-extras                   # Everything including dev
+cd apps/api && uv run pytest -m "not requires_db"   # no database needed
+cd apps/web && pnpm verify                          # what CI runs
 ```
 
-## Required environment variables
+CI runs both, each scoped to its own directory. `apps/api/ci/` and `apps/web/ci/`
+hold ratchet baselines: a check fails when its count rises and reports when the
+count falls so the baseline can be lowered. Neither may be raised to make a build
+pass.
 
-Copy `.env.example` to `.env` and set:
+## Documentation
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `SECRET_KEY` | Yes | Min 32 chars; e.g. `openssl rand -hex 32` |
-| `ENCRYPTION_SALT` | Yes | e.g. `openssl rand -hex 16` |
-| `DATABASE_URL` | Yes | PostgreSQL connection URL (e.g. `postgresql+asyncpg://user:pass@host:5432/db`) |
+- [`docs/MONOREPO-MIGRATION.md`](docs/MONOREPO-MIGRATION.md) — this layout, and how it deploys as one origin
+- [`docs/IMPLEMENTATION-ROADMAP.md`](docs/IMPLEMENTATION-ROADMAP.md) — sequenced work, remediation and platform merged
+- [`docs/CTO-TECHNICAL-AUDIT.md`](docs/CTO-TECHNICAL-AUDIT.md) — findings with `file:line` evidence
+- [`apps/api/README.md`](apps/api/README.md), [`apps/web/README.md`](apps/web/README.md) — per-application detail
 
-For database schema setup and migration commands, see [docs/MIGRATIONS.md](docs/MIGRATIONS.md).
+### Before quoting the integrity guarantee
 
-Optional: `REDIS_*` (cache), `ALLOWED_ORIGINS`, `REQUEST_TIMEOUT_SECONDS`, storage and telemetry settings. See `.env.example` and `app.core.config`.
-
-## Secrets and keys (do not commit)
-
-- **Never commit** `.env`, `.env.local`, `.env.development`, `.env.production`, or any file under `secrets/`.
-- The repo’s `.gitignore` ignores `secrets/`. Only `.env.example` is tracked.
-
-## Run
-
-```bash
-uv run uvicorn app.main:app --reload
-```
-
-- API: http://127.0.0.1:8000
-- API docs (Scalar): http://127.0.0.1:8000/docs
-
-## Project layout
-
-```
-app/
-├── main.py              # FastAPI app, lifespan, root route
-├── core/
-│   └── config.py        # Settings (pydantic-settings)
-├── api/
-│   └── v1/
-│       ├── router.py    # Aggregates v1 routes
-│       └── endpoints/   # Route modules (e.g. health)
-└── schemas/             # Pydantic request/response models
-```
-
-API routes are mounted at `/api/v1` (e.g. `/api/v1/health`).
-
-## Checking the build for Vercel
-
-To confirm the project builds and stays under Vercel’s serverless limits before deploying:
-
-**1. Simulate Vercel’s install and app load (no CLI)**
-
-```bash
-pip install uv && uv sync --frozen
-uv run python -c "from app.main import app; print('App load OK')"
-```
-
-This checks that dependencies install and the app module imports. It does **not** check the deployed bundle size.
-
-**2. Full local Vercel build (recommended)**
-
-Install the [Vercel CLI](https://vercel.com/docs/cli) (`npm i vercel`, or `pnpm i vercel` / `yarn add vercel`), then from the project root:
-
-```bash
-# Optional: link to your Vercel project so env vars and settings match
-vercel link
-
-# Run the same build Vercel runs (output in .vercel/output/)
-vercel build
-```
-
-If the build succeeds, the same steps will pass on Vercel. To see serverless function sizes in the logs (e.g. to confirm you’re under 250 MB):
-
-```bash
-VERCEL_BUILDER_DEBUG=1 vercel build
-```
-
-**3. Deploy a preview**
-
-```bash
-vercel
-```
-
-This deploys a preview and will fail at build time if the bundle is too large or the build breaks.
-
-## Development
-
-- **Guidelines for contributors and agents:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (§ Contributor guidelines)
-- **Architecture and operations:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SECURITY_AND_COMPLIANCE.md](docs/SECURITY_AND_COMPLIANCE.md)
-- **Run:** `uv run uvicorn app.main:app --reload`
-- **Tests:** `uv run pytest tests/ -v` (requires `uv sync --all-extras` or `--extra dev` for pytest, httpx, pytest-asyncio)
-- **Scripts:** `uv run python -m scripts.create_test_user <tenant_code> <username> [password]`, `scripts.seed_rbac <tenant_id_or_code>`, `scripts.reset_password <user_id> <new_password>`. Scripts require Postgres (`DATABASE_URL`).
-- **Lint/format:** `uv run black app tests scripts`, `uv run isort app tests scripts`, `uv run flake8 app tests scripts` (or ruff).
-
-## Database (PostgreSQL)
-
-The app uses PostgreSQL; schema is managed by Alembic. For migration procedures and commands, see [docs/MIGRATIONS.md](docs/MIGRATIONS.md).
-
+It is not yet true as shipped. Anchoring is off by default, documents are outside
+the chain, and the verification page requires a login. `docs/CTO-TECHNICAL-AUDIT.md`
+sets out exactly what holds today and `docs/REMEDIATION-PLAN.md` sequences the fix.
+Do not put the broader claim in a proposal, a demo or a contract before then.

@@ -65,6 +65,10 @@ const DEV_CSP = [
 ].join('; ')
 
 const config = defineConfig({
+  // One .env at the repository root, shared with the API. Only VITE_-prefixed
+  // values ever reach the bundle, so the API's secrets sitting in the same file
+  // are not exposed by reading it here.
+  envDir: '../..',
   server: {
     // The client calls /api/... relatively; this points that at the API in
     // development. In production the API serves this bundle and no proxy exists,
@@ -117,7 +121,7 @@ const config = defineConfig({
   },
   test: {
     // Vitest's defaults match the Playwright specs in e2e/ and die on their import.
-    exclude: ['**/node_modules/**', '**/dist/**', '**/.output/**', 'e2e/**'],
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
     passWithNoTests: true,
   },
 })

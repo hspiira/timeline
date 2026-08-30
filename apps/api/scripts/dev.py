@@ -4,10 +4,10 @@
 One Ctrl-C stops both. If either exits on its own, the other is stopped too, so
 you never end up with half a stack running and a port still held.
 
-Works before and after the monorepo move: the web client is looked for under
-apps/web first, then at the sibling timeline-ui checkout.
+The web client is at apps/web, a sibling of this package under the repository
+root.
 
-    uv run python -m scripts.dev          # or: make dev
+    make dev                              # from the repository root
 """
 
 from __future__ import annotations
@@ -21,10 +21,8 @@ import time
 from pathlib import Path
 
 API_DIR = Path(__file__).resolve().parent.parent
-WEB_CANDIDATES = (
-    API_DIR / "apps" / "web",          # after the monorepo move
-    API_DIR.parent / "timeline-ui",    # separate checkouts, today
-)
+# apps/api -> repo root -> apps/web
+WEB_DIR = API_DIR.parent.parent / "apps" / "web"
 
 # Ports are overridable so a second stack can run beside one already up.
 API_PORT = os.environ.get("API_PORT", "8000")
@@ -44,8 +42,8 @@ Process = subprocess.Popen[str]
 
 
 def find_web_dir() -> Path | None:
-    """Return the web client directory, or None if neither location has one."""
-    return next((c for c in WEB_CANDIDATES if (c / "package.json").is_file()), None)
+    """Return the web client directory, or None if it is not there."""
+    return WEB_DIR if (WEB_DIR / "package.json").is_file() else None
 
 
 def stream(name: str, process: Process) -> None:
@@ -108,8 +106,7 @@ def main() -> int:
     """Start both, then stop both as soon as either one ends."""
     web_dir = find_web_dir()
     if web_dir is None:
-        looked = "\n  ".join(str(c) for c in WEB_CANDIDATES)
-        print(f"No web client found. Looked for a package.json in:\n  {looked}")
+        print(f"No web client found: expected a package.json in {WEB_DIR}")
         return 1
 
     print(f"api │ {API_DIR}  :{API_PORT}")

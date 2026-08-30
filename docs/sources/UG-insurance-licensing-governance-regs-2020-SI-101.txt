@@ -1,0 +1,1915 @@
+4877
+STATUTORY INSTRUMENTS
+2020 No. 101.
+THE INSURANCE (LICENSING AND GOVERNANCE) 
+REGULATIONS, 2020
+Part I— PrelImInary
+1. Title 
+2. Application of Regulations
+3. Interpretation
+4. Meaning of “connected person”
+5. Meaning of “independent director”
+6. Meaning of “bundled insurance product”
+7. Meaning of “group insurance contract”
+Part II — ClassIfICatIon of InsuranCe BusIness
+8.	 Classification	of	insurance	business
+Part III – lICensIng of Insurers, reInsurers and Hmos
+9. Application for licence
+10. Consideration of application
+11. Form of licence
+12. Commencement of business
+STATUTORY INSTRUMENTS
+SUPPLEMENT No. 28 14th August, 2020
+STATUTORY INSTRUMENTS SUPPLEMENT
+to The Uganda Gazette No. 48, Volume CXIII, dated14th August, 2020
+Printed by UPPC, Entebbe, by Order of the Government.
+4878
+Part IV— B oard  of lICensed  Insurer , reInsurer  and  Hmo
+13. Governance framework of licensed insurer, reinsurer and HMO
+14. Composition of board of licensed insurer, reinsurer and HMO
+15. Board of licensed insurer, reinsurer and HMO
+16. Board committees.
+17. Responsibilities of senior management 
+18.	 Principal	officer
+19.	 Chief	finance	officer
+Part V — Control funCtIons and related matters
+20. Control functions 
+21. Combined control functions
+22. Key person in control function
+23. Key person in risk management function
+24. Underwriting and pricing strategy, policies, procedures and controls
+25. Internal controls
+26. Compliance function
+27. Compliance procedures and controls
+28. Actuarial function
+29. Internal audit function
+30. Internal audit reports to be submitted to Authority
+31. Whistle blowing policy
+32. Responsibility for outsourced activities
+33. Requirements for outsourcing of activities
+34. Outsourcing policy
+35. Outsourcing to be governed by written agreement
+36. Costs of supervision of outsourced activities outside Uganda
+37. Business continuity plans
+4879
+38. Remuneration policy 
+39. Additional strategies, policies, procedures and controls
+40. Risk management strategy
+41. Group strategies, policies, procedures and controls 
+Part VI — ConduCt of InsuranCe BusIness
+42. Application of this Part
+43. Objectives of this Part
+44. Business conduct policies, procedures and controls
+45. Requirements relating to the development of insurance products
+46. Approval by Authority of text or format of policy of insurance product 
+47. Application for approval of text or format of policy of insurance 
+product
+48. Variation, suspension, and revocation of approval of text or format of 
+policy of insurance product
+49. Cancellation of insurance contracts during cooling-off period
+50. Requirements relating to marketing of insurance products
+51. Key features statement
+52. Promotional material
+53. Policy to be given to policyholder
+54. Policy servicing requirements
+55. Insurance claims handling
+56. Complaints policy and procedures
+57.	 Notification	of	appointment	of	insurance	agents
+58. Training obligations 
+4880
+Part VII— general
+59. Group insurance product
+60. Bundled insurance products
+61. Electronic communications
+62. Revocation of SI.66 of 2002
+4881
+STATUTORY INSTRUMENTS
+2020 No. 101.
+The Insurance (Licensing and Governance) Regulations, 2020
+ (Under section 151 of the Insurance Act, 2017, Act 6 of 2017)
+ In exerCIse of the powers conferred upon the Minister, and 
+in consultation with the Insurance Regulatory Authority of Uganda, 
+these Regulations are made this 17th day of June, 2020.
+Part I— PrelImInary
+1. Title 
+These Regulations may be cited as the Insurance (Licensing and 
+Governance) Regulations, 2020.
+2. Application of Regulations
+Unless expressly provided otherwise, these Regulations apply to 
+licensed insurers, reinsurers and HMOs.
+3. Interpretation
+In these Regulations, unless the context otherwise requires—
+“Act” means the Insurance Act, 2017;
+“actuary” means a person appointed as an actuary by a licensed 
+insurer or HMO in accordance with section 113 of the Act;
+“Authority” means the Insurance Regulatory Authority of 
+Uganda established by section 10 of the Act; 
+“beneficiary”	in	relation	to	an	insurance	contract,	means	a	person	
+other than the policyholder—
+(a)	 who	 is	entitled	to	a	payment	or	a	benefit	under	the	
+insurance contract; or
+4882
+(b) who, on the occurrence of the insured event, is 
+entitled to make a claim against the licensed insurer 
+under the insurance contract;
+“board” means the board of directors of a licensed insurer, 
+reinsurer or HMO;
+“bundled	 insurance	 product”	 has	 the	 meaning	 specified	 in	
+regulation 6;
+“Companies Act” means the Companies Act, 2012; 
+“connected	person”	has	the	meaning	specified	in	regulation	4;
+“control function” means—
+(a)	 in	 relation	to	a	licensed	insurer,	a	function	specified	
+in section 61(1) of the Act;
+(b) in relation to a health membership organisation, a 
+function	specified	in	section	61(2)	of	the	Act;
+“customer” means—
+(a) in the case of a licensed insurer, a policyholder of the 
+licensed	insurer	or	a	beneficiary	under	an	insurance	
+contract entered into by the licensed insurer, as 
+licensed insurer;
+(b) in the case of a health membership organisation, a 
+member of the health membership organisation; 
+“distribute” means the soliciting of applications for, negotiating 
+or concluding of insurance contracts by a licensed insurer 
+or HMO;
+“executive director” means a director of a licensed insurer, 
+reinsurer or HMO who—
+4883
+(a) is an employee of the licensed insurer, reinsurer or 
+HMO;
+(b) not being an employee of the licensed insurer, 
+reinsurer or HMO, has day to day managerial or 
+operational responsibilities;
+“group	 insurance	 contract”	 has	 the	 meaning	 specified	 in	
+regulation 7; 
+“health membership organisation” or “HMO”” has the meaning 
+assigned to it in the Act;
+“holding company” has the meaning assigned to it in the 
+Companies Act, 2012;
+“key person in a control function” means an individual appointed 
+to undertake, or have responsibility for, and oversight of, 
+a control function;
+“licenced insurer” means a person who holds a insurers licence 
+issued under section 35(1)(a) of the Act; 
+“life insurance contract” means an insurance contract that falls 
+within any class of life insurance business;
+“master policyholder” means the policyholder under a group 
+insurance contract;
+“non-executive director” means a director who is not an executive 
+director;
+“outsourcing arrangement” means an arrangement between a 
+licensed insurer, reinsurer or HMO and a service provider 
+under which the service provider, or another person 
+acting for the service provider, undertakes an activity on a 
+continuing basis that would normally be undertaken by the 
+licensed insurer, reinsurer or HMO;
+4884
+“policyholder” in relation to an insurance contract, means a 
+person who entered into the insurance contract with the 
+licensed insurer or HMO, if the rights of that person under 
+the contract have been assigned or transferred, the person 
+who has those rights;
+“principal	officer”	in	relation	to	a	licensed	insurer,	reinsurer	or	
+HMO, means an individual who, under the immediate 
+authority of the directors, either jointly with others or 
+alone, is responsible for the conduct of the whole of the 
+business of the licensed insurer, reinsurer or HMO;
+“promotional material” includes any explanatory, advertising or 
+publicity material, in any form; 
+“reinsurer” means a person holding a reinsurers licence;
+“senior management” in relation to a licensed insurer, reinsurer 
+or HMO, means—
+(a) the senior managers of the licensed insurer, reinsurer 
+or HMO who have collective responsibility for day-
+to-day management; or
+(b) where the context requires, those senior managers 
+having responsibility for particular functions relating 
+to the day-to-day management;
+“service provider” in relation to an outsourcing arrangement, 
+means a person who undertakes an activity for a 
+licensed insurer, reinsurer or HMO under an outsourcing 
+arrangement with the licensed insurer, reinsurer or HMO; 
+“significant	owner”	means	a	person	who	exercises	control	over	
+a licensed insurer, reinsurer or HMO.
+“subsidiary” has the meaning assigned to it in the Companies 
+Act. 
+4885
+4. Meaning of “connected person”
+	 (1)	 A	 person,	 hereinafter	 referred	 to	 as	 the	 “first	 person”	 is	
+connected to another person, hereinafter referred to as the “second 
+person” in the following circumstances—
+(a)	 where	 the	 first	 person	 and	 second	 person	 are	 associated	
+companies; 
+(b) where the second person is a company, a partnership or 
+limited liability partnership—
+(i)	 the	 first	person	is	a	significant	owner	of	the	second	
+person; or
+(ii)	 the	 first	person	is	a	director,	senior	manager	or	key	
+person in a control function of the second person;
+(c)	 where	 first	person	and	second	person	are	partners	of	the	
+same partnership;
+(d)	 where	the	first	person 	is	a	close	family	member	of—
+(i) the second person, where that person is an individual; 
+(ii)	 an	 individual	 who	 is	 a	 significant	 owner	 of	 the	
+second person; or
+(iii) an individual who is a director, senior manager or 
+key person in control function of the second person.
+ (2) For the purposes of subregulation (1), a “close family 
+member”, in relation to an individual, means the individual’s—
+(a) spouse or former spouse;
+(b) children;
+(c) parents, including step parents;
+(d) legal guardian or former legal guardian;
+4886
+(e) brothers and sisters; 
+(f) grandchildren;
+(g) grandparents;
+(h)	 first	cousin;
+(i) uncles and aunts. 
+5. Meaning of “independent director”
+“Independent director” in relation to a licensed insurer, reinsurer or 
+HMO means a non-executive director who—
+(a) does not represent or is not nominated by a major 
+shareholder;
+(b) has not been employed by the licensed insurer, reinsurer or 
+HMO	in	the	past	three	financial	years;
+(c) is not an immediate close family member of a person who 
+is,	or	was	in	the	past	three	financial	years,	employed	in	an	
+executive capacity;
+(d) is not a professional advisor;
+(e)	 is	not	a	significant	supplier	to,	or	customer	of	the	group;
+(f)	 has	no	significant	contractual	relationship	with	the	group;	
+(g) is not a connected person in relation to the licensed insurer, 
+reinsurer or HMO; 
+(h) does not receive any remuneration, commission or 
+compensation from the licensed insurer, reinsurer or HMO 
+other than remuneration as a director; and
+(i) is free from any business or other relationship, which 
+could materially interfere with his or her ability to act 
+independently;
+4887
+6. Meaning of “bundled insurance product”
+ (1) Subject to subregulations (1) and (2), a bundled insurance 
+product is an insurance product that comprises two or more insurance 
+products sold as a single insurance product regardless of the category 
+or class of the insurance business.
+ (2) A non-life insurance product that forms part of a bundled 
+product shall be underwritten by a licensed insurer authorised to carry 
+on non-life insurance business.
+ (3) A life insurance product that forms part of a bundled product 
+shall be underwritten by a licensed insurer that is authorised to carry 
+on life insurance business. 
+7. Meaning of “group insurance contract”
+A group insurance contract is an insurance contract where— 
+(a) the master policyholder purchases the insurance contract 
+on his or her behalf and on behalf of other persons 
+who, although not policyholders, are or will become, 
+beneficiaries	under	the	contract;	
+(b)	 the	 beneficiaries	are	members	of	an	identifiable	group	that	
+exists independently of the insurance contract;
+(c) the risks insured under the contract are related to the 
+common	interests	or	activities	of	the	beneficiaries.
+Part II— ClassIfICatIon of InsuranCe BusIness
+8.	 Classification	of	insurance	business.	
+ (1) In accordance with the Act, insurance business comprises 
+two categories of insurance business, that is to say, life insurance 
+business and non-life insurance business.
+ (2) Life insurance shall comprise the classes and sub-classes 
+of	 insurance	 business	 specified	 in	 Part	 I	 of	 Schedule	 1	 to	 these	
+Regulations.
+4888
+ (3) Non life insurance shall comprise the classes and sub-
+classes	 of	 insurance	 business	 specified	 in	 Part	 II	 of	 Schedule	 1	 to	
+these Regulations. 
+Part III — lICensIng of Insurers , reInsurers  and Hmos
+9. Application for licence
+ (1) For the purposes of section 41(1) of the Act, an applicant 
+for a licence to carry on insurance business shall indicate the class of 
+insurance business the applicant intends to engage in. 
+ (2) An application for an insurers licence, reinsurers licence or 
+HMO licence shall be in Form 1 in Schedule 2. 
+ (3) The application under subregulation (1) shall be accompanied 
+by the following —
+(a) the prescribed fee;
+(b)	 a	 certified	copy	of	the	applicant’s	certificate	of	incorporation	
+or other document by which the applicant is constituted; 
+(c) an organogram, in the case of an applicant associated with 
+other companies or entities, showing—
+(i) all its associated companies and entities and the 
+position of each associated company and the 
+relationship between the associated companies or 
+entities;
+(ii) the shareholding held by each of the associated 
+companies or entities; and 
+(iii) a general description of the activities of each of the 
+associated companies or entities;
+(d)	 the	details	of	significant	owners;
+4889
+(e) the details of proposed directors, senior managers, key 
+persons in control functions, auditors, actuaries; 
+(f) a draft business plan;
+(g)	 the	 most	 recent	 audited	 financial	 statements	 of	 the	
+applicant	including	the	audited	financial	statements	of	the	
+applicant’s holding company and the consolidated group 
+financial	statements,	if	any;	
+(h) details of the proposed reinsurance arrangements 
+or, in the case of a reinsurer, proposed retrocession 
+arrangements; and
+(i) proof of adequate funds to meet the minimum capital and 
+security deposit requirements.  
+ (4) The Authority may— 
+(a) require an applicant to provide it with such information 
+and	 documents,	 in	 addition	 to	 those	 specified	 in	
+subregulation (2), as it reasonably requires to determine 
+the application; and 
+(b) specify— 
+(i) the form in which the information or documents are 
+to be provided; and
+(ii) the period within which the information or documents 
+are to be provided; and
+(c) require any information or documents provided to be 
+verified	in	such	manner	as	it	may	specify.	
+10. Consideration of application
+ (1) For the purposes of section 43(1) of the Act, the Authority 
+receives a complete application where it receives—
+(a) a fully and properly completed written application; and
+4890
+(b) all the documents and information— 
+(i)	 specified	by	the	 Act	and	these	Regulations;	and
+(ii) that the Authority may require to be provided to it in 
+accordance with section 42(g) of the Act.
+ (2) In considering an application, the Authority shall, in addition 
+to	the	matters	specified	in	section	42	of	the	Act,	satisfy	itself	that—
+(a) the applicant will, on the issuance of a licence, be able to 
+comply with any conditions the Authority may attach to 
+grant of the licence;
+(b) the applicant’s ownership, corporate and management 
+structure, governance framework, procedures and controls 
+or	 proposed	 procedures	 and	 controls,	 financial	 resources	
+and its proposed reinsurance or retrocession arrangements, 
+are appropriate having regard to the proposed insurance 
+business of the applicant; 
+(c)	 the	 applicant’s	significant	owners,	directors	and	proposed	
+senior managers and key persons in control functions are 
+fit	persons	who	satisfy	the	criteria	specified	in	Schedule	2	
+of the Act. 
+11. Form of licence
+For the purposes of section 44(1)(a) of the Act, an insurer’s, reinsurers 
+or HMO licence shall be in Form 2 in Schedule 2 to these Regulations. 
+12. Commencement of business
+ ( 1) An applicant granted a licence shall commence business 
+within one hundred and eighty days of obtaining the licence. 
+ (2) Where an applicant granted a licence does not commence 
+business	within	the	period	specified	in	subregulation	(1),	the	Authority	
+may vary, suspend or revoke the licence in accordance with section 45 
+of the Act.
+4891
+Part IV— Board of lICensed  Insurer , reInsurer  and Hmo 
+13. Governance framework of licensed insurer, reinsurer and 
+HMO
+ (1) The governance framework of a licensed insurer, reinsurer 
+or HMO established and maintained under section 58 of the Act shall 
+provide for—
+(a) the apportionment of responsibilities between directors, 
+senior management and key persons in control functions; 
+and
+(b) oversight of senior management. 
+ (2) The procedures and controls established and maintained by 
+a licensed insurer, reinsurer or HMO under section 58(2) of the Act 
+shall—
+(a) provide for— 
+(i) the prudent management of its licensed business in 
+accordance with sound insurance principles; and
+(ii) the effective oversight of its senior management and 
+key persons in control functions; and
+(b) protect the interests of it’s customers.
+ (3) Where a licensed insurer, reinsurer or HMO carries on 
+business through one or more subsidiaries incorporated outside 
+Uganda, the licensed insurer, reinsurer or HMO shall ensure that the 
+subsidiary has an appropriate and effective corporate governance 
+framework.
+ (4) A licensed insurer, reinsurer or HMO shall maintain an up-
+to-date written record of its governance framework including—
+(a) the details of reporting lines including reporting lines for 
+key persons in control functions who shall report to the 
+board; and
+4892
+(b) the responsibilities of different members of senior 
+management.
+14. Composition of board of licensed insurer, reinsurer and 
+HMO
+ (1) Subject to the Companies Act, 2012, a licensed insurer, 
+reinsurer or HMO shall have an adequate number of directors— 
+(a)	 who	 are	 fit	 persons	 and	 satisfy	 the	 criteria	 specified	 in	
+Schedule 2 to the Act;
+(b) capable of exercising independent judgment; and
+(c)	 who	 collectively,	as	 a	 board,	 have	 a	 sufficient	 spread	 of	
+knowledge, skills, experience and understanding of its 
+business, and the risks to which it is exposed to ensure that 
+the	board	is	able	to	fulfil	its	responsibilities.
+ (2) Without limiting the general effect of subregulation (1), a 
+licensed insurer, reinsurer or HMO, shall, at all times, have—
+(a)	 a	 minimum	of	five	directors,	at	least	half	of	whom	shall	be	
+resident in Uganda; and
+(b)	 sufficient	 non-executive	directors	to	ensure	that	more	than	
+half the members are non-executive directors.  
+ (3) A licensed insurer, reinsurer or HMO shall ensure that—
+(a) the majority of its directors are independent directors; and
+(b) the majority of its directors have experience in one or more 
+of	the	following	fields—
+(i) insurance;
+(ii) actuarial studies;
+(iii) law;
+(iv)	 banking	or	finance;	
+4893
+(v) economics; or
+(vi)	 such	 other	 field	 as	 the	 Authority	 may,	 in	 writing,	
+approve.
+	 (4)	 Only	 an	 independent	 director	 qualifies	 to	 be	 appointed	 as	
+chairperson of the board of a licensed insurer, reinsurer or HMO. 
+ (5) Where a licensed insurer, reinsurer or HMO contravenes this 
+regulation, the Authority may issue a written directive to the licensed 
+insurer, reinsurer or HMO to comply or take such action as shall be 
+required by the Authority.
+ (6) Where a licensed insurer, reinsurer or HMO fails to comply 
+with a written directive issued by the Authority under subregulation 
+(5), the licensed insurer, reinsurer or HMO shall be subject to the 
+penalty set out in section 121(2) of the Act. 
+15. Board of licensed insurer, reinsurer or HMO
+ (1) Subject to the Companies Act, 2012, the board of a licensed 
+insurer, reinsurer or HMO is accountable for the performance and affairs 
+of the licensed insurer, reinsurer or HMO, and in the performance of 
+its duties is expected to act in good faith, with due diligence and care 
+and in the interests of the licensed insurer, reinsurer or HMO.
+ (2) It is the responsibility of the board of a licensed insurer, 
+reinsurer or HMO to—
+(a) provide strategic direction;
+(b) retain full and effective control;
+(c) comply with laws and regulations;
+(d)	 define	levels	of	materiality;
+(e) identify and monitor key risks and key performance areas;
+(f)	 identify	and	monitor	 non-financial	aspects;
+4894
+(g) explain the effect of all proposed resolutions to be passed 
+at shareholder’s meetings;
+(h) encourage shareholders to attend general meetings;
+(i) have a board charter setting out its responsibilities which 
+shall be published in the annual report and should, at least, 
+make the board responsible for strategic plans, monitoring 
+operational performance, monitoring performance of 
+management, determining policies and procedures, risk 
+management, internal controls, communications policy, 
+director selection, induction of directors and evaluation of 
+directors.
+(j) determine a balance between governance constraints and 
+entrepreneurial performance;
+(k) review major plans of action;
+(l) review and guide annual budget and business plans;
+(m) oversee major capital expenditures, acquisitions and 
+divestiture;
+(n) ensure the integrity of the company’s accounting and 
+financial	reporting	systems.	
+16. Board committees.
+ (1) Subject to subregulation (2) and the Companies Act, 2012, the 
+board may establish committees to assist the board in the performance 
+of its duties. 
+ (2) All licensed insurers, reinsurers and HMOs shall have-
+(a) an audit committee; 
+(b) a risk management committee; 
+(c) a remuneration committee; and 
+(d) an investment committee. 
+4895
+ (3) An audit committee shall be composed of a chairperson and 
+at least three other persons of reputable integrity not being members 
+of the board.
+ (4) Board committees, with the exception of operational 
+committees, shall be chaired by independent directors.
+ (5) The annual report shall state—
+(a) the members of board committees;
+(b) the number of meetings held;
+(c) the attendance by directors. 
+ (6) Chairpersons of board committees shall attend the annual 
+general meetings.
+17. Responsibilities of senior management 
+ (1) The responsibilities of senior management of a licensed 
+insurer, reinsurer or HMO are—
+(a) to carry out the day-to-day operations of the licensed 
+insurer, reinsurer or HMO in accordance with—
+(i) its business objectives, corporate culture and risk 
+appetite;
+(ii) the strategies and policies established by the board; 
+and
+(iii)	 the	 long	term	and	financial	soundness	of	the	licensed	
+insurer, reinsurer or HMO; 
+(b)  to provide the board with recommendations for its review 
+and approval on the strategy, business plans and policies 
+of the licensed insurer, reinsurer or HMO; 
+(c) to provide the board with timely and accurate information, 
+including	financial	information,	that	is	adequate	to	enable	
+the	board	to	fulfil	its	responsibilities;	and
+4896
+(d) to maintain accurate and clear records of the internal 
+organisation of the licensed insurer, reinsurer or HMO.
+ (2) Senior management shall ensure that it promotes a culture 
+of sound risk management, compliance and the fair treatment of 
+customers and potential customers.
+18.	 Principal	officer
+ (1) Every licensed insurer, reinsurer or HMO shall have at least 
+one	principal	officer	who	shall	be	the	chief	executive	officer	and	a	full	
+time employee.
+	 (2)	 A	person	shall	not	be	appointed	a	principal	officer	unless—
+(a)	 the	 person	satisfies	the	criteria	specified	in	Schedule	2	of	
+the Act; 
+(b)	 the	 person	has	the	qualification	and	experience	specified	in	
+subregulation (3); and 
+(c) the Authority has given its written approval for the 
+appointment of that person under section 103(1) of the 
+Act. 
+	 (3)	 A	principal	officer	shall—
+(a) possess a recognised university degree and a professional 
+qualification	in	the	field	of	insurance;	and
+(b)	 have	 at	least	eight	years’	working	experience	in	the	field	of	
+insurance.
+19.	 Chief	finance	officer
+ (1) Every licensed insurer, reinsurer or HMO shall have at least 
+one	chief	finance	officer	who	is	a	full-time	employee.
+	 (2)	 A	 person	 shall	 not	 be	 appointed	 a	 chief	 finance	 officer	
+unless—
+4897
+(a)	 the	 person	satisfies	the	criteria	specified	in	Schedule	2	of	
+the Act; 
+(b) the person—
+(i)  possesses a recognised relevant university degree;
+(ii)	 is	 a	 member	 of	 the	 Institute	 of	 Certified	 Public	
+Accountants of Uganda;
+(iii) has least four years’ working experience as an 
+accountant; and 
+(c) the Authority has given its written approval for the appointment 
+of that person under section 103(1) of the Act.  
+Part V— Control funCtIons and related matters
+20. Control functions
+ (1) The board of a licensed insurer, reinsurer or HMO shall 
+ensure that a person in a control function—
+(a) is not involved in the performance of services or activities 
+which he or she is responsible for monitoring; 
+(b) is not placed in a position where he or she is expected to 
+undertake	duties	that	conflict	with	the	duties	of	the	control	
+function; 
+(c)	 is	 not	subjected	 to	 any	undue	influence	or	 pressure	 with	
+respect to carrying out his or her duties;  
+(d) has access to employees, service providers, customers 
+and documents and information relating to the licensed 
+business, in order perform his or her duties effectively;
+(e)	 has	 sufficient	human	and	non-human	resources	to	perform	
+the control function effectively. 
+4898
+ (2) The powers and responsibilities of each control function of a 
+licensed insurer, reinsurer or HMO, and the key person in the control 
+function shall be set out in writing. 
+ (3) The board of a licensed insurer, reinsurer or HMO shall 
+ensure that the performance of each control function is assessed at 
+such intervals as the board considers appropriate.
+ (4) Where a control function is to be undertaken in full or in 
+part at a group level, the licensed insurer, reinsurer or HMO shall, 
+on seeking approval for the appointment, provide the Authority with 
+details of all fees, costs and charges to be paid by the licensed insurer, 
+reinsurer or HMO in respect of the performance of the control function.
+21. Combined control functions
+ (1) Subject to subregulations (2) and (3), a licensed insurer, 
+reinsurer or HMO may combine one or more control functions. 
+ (2) An actuarial function and the internal audit function shall not 
+be combined with each other or with any other control function. 
+ (3) Control functions shall not be combined unless the board 
+is	satisfied	that	the	combination	of	the	functions	shall	not	affect	the	
+independence, objectivity or effectiveness of the functions.
+22. Key person in control function
+(1) Every licensed insurer, reinsurer and HMO shall ensure that a 
+key person in a control function appointed under section 61(3)(b) of 
+the Act—
+(a)	 satisfies	the	criteria	specified	in	Schedule	2	of	the	 Act;	
+(b)	 has	 the	necessary	qualifications	and	experience	to	perform	
+the control function;
+(c) is approved by the Authority in accordance with section 
+103(1) of the Act. 
+4899
+ (2) Where any control functions are combined in accordance 
+with these Regulations, the licensed insurer, reinsurer or HMO shall 
+appoint an individual to undertake the responsibilities of, or have 
+overall responsibility for and oversight of, the combined control 
+function and the individual appointed is regarded as the key person in 
+each of the combined control functions. 
+23. Key person in risk management function
+ (1) The duties of a key person in the risk management function 
+are—
+(a) to assist the licensed insurer, reinsurer or HMO to identify, 
+assess, monitor, manage and report on its key risks in a 
+timely manner; and
+(b) to promote and sustain a sound risk management culture 
+within the licensed insurer, reinsurer or HMO.
+ (2) A key person in the risk management function shall—
+(a) possess a relevant degree and professional diploma in the 
+field	of	risk	management	or	actuarial	science;	and
+(b) have at least three years’ relevant working experience.
+24. Underwriting and pricing strategy, policies, procedures and 
+controls
+ (1) Every licensed insurer, reinsurer and HMO shall develop 
+and implement — 
+(a) an underwriting and pricing strategy and policies; and
+(b)	 procedures	 and	controls	that	are	sufficient	to	ensure	that	
+the underwriting and pricing strategy and policies are 
+effectively implemented. 
+ (2) Underwriting and pricing strategies referred to in 
+subregulation (1) may provide for—
+(a) the evaluation of risks underwritten or to be underwritten;
+4900
+(b) the establishment of adequate premium levels, subject to 
+any minimum premium rates prescribed by the Authority 
+under section 64(2) of the Act; 
+(c) the control of expenses related to premiums and claims;
+(d)	 the	mitigation	and	diversification	of	risks	by—
+(i)	 defining	limits	on	the	amount	of	risk	retained;	and	
+(ii) in the case of a licensed insurer, providing for the 
+transfer of appropriate levels of risk away from the 
+licensed insurer through adequate and appropriate 
+reinsurance arrangements. 
+ (3) The underwriting and pricing strategy and policies shall be 
+reviewed periodically.
+ (4) Every licensed insurer, reinsurer or HMO shall develop 
+measures to monitor the procedures and controls established in 
+accordance with subregulation (1)(b).
+25. Internal controls
+ (1) Every licensed insurer, reinsurer and HMO shall develop 
+and maintain adequate and effective internal controls appropriate for 
+the nature, scale, complexity and diversity of its business and the 
+risks to which it is exposed.
+ (2) A licensed insurer, reinsurer or HMO shall develop internal 
+controls in such a manner as to ensure that—
+(a) the business of the licensed insurer, reinsurer or HMO is 
+planned and conducted properly and in accordance with 
+the strategies and policies of the licensed insurer, reinsurer 
+or HMO; 
+(b) the business of the licensed insurer, reinsurer or HMO 
+is operated in compliance with the Act and other laws of 
+Uganda;
+4901
+(c) the assets of the licensed insurer, reinsurer or HMO are 
+appropriately safeguarded through measures designed to 
+minimise the risk of loss from irregularities, error, fraud 
+and physical damage, and to identify such occurrences 
+promptly should they occur;
+(d) the liabilities of the licensed insurer, reinsurer or HMO are 
+subject to appropriate controls;
+(e) there are appropriate arrangements in place for the 
+delegation of authority and responsibility and for the 
+segregation of duties; 
+(f) the accounting and other records of the licensed insurer, 
+reinsurer or HMO are complete, accurate and timely and can 
+be	used	to	compile	financial	statements	as	required	by	law;
+(g) the licensed insurer, reinsurer or HMO is able to assess and 
+monitor the adequacy of the capital resources, in relation 
+to its business;
+(h) the licensed insurer, reinsurer or HMO is able to identify 
+and regularly assess all relevant risks in the conduct of 
+its	business	so	that	the	identified	risks	can	be	measured,	
+monitored and controlled appropriately and any losses can 
+be monitored and controlled on a regular and timely basis;
+(i) the licensed insurer, reinsurer or HMO is able to guard 
+against	 involvement	 in	 financial	 crime	 and	 comply	 with	
+anti–money	laundering	and	terrorist	financing	legislation;	
+(j) adequate business resumption, disaster recovery and 
+other contingency arrangements are in place and tested at 
+appropriate intervals; and 
+(k) adequate controls are in place in relation to information 
+technology systems, including controls. 
+ (3) The internal control policies shall require that any 
+deficiencies	 identified	 in	the	internal	control	system	be	reported	in	a	
+timely manner. 
+4902
+ (4) The internal controls shall operate at all levels of a licensed 
+insurer, reinsurer or HMO and shall apply to any outsourced functions. 
+ (5) Where a licensed insurer, reinsurer or HMO also operates 
+through branches or subsidiaries, its internal controls shall apply to 
+those operations.
+ (6) The internal controls of a licensed insurer, reinsurer or HMO 
+shall provide for persons responsible for ensuring that adequate and 
+effective internal controls are established and maintained.
+26. Compliance function
+ (1) The duties of a key person in a compliance function of a 
+licensed insurer, reinsurer or HMO are—  
+(a) to assist the licensed insurer, reinsurer or HMO to comply 
+with the Act and other laws of Uganda; and 
+(b) to promote and sustain a compliance culture.
+ (2) A key person in a compliance function shall—
+(a) maintain a register of compliance breaches containing 
+information on the date, nature and extent of each 
+compliance breach;
+(b) ensure that employees are aware of the need for and the 
+objectives of compliance and of their responsibilities 
+under the compliance procedures manual;
+(c) establish and maintain procedures to monitor and handle 
+complaints. 
+ (3) A key person in a compliance function shall—
+(a) possess a bachelor’s degree in insurance, actuarial science, 
+law,	banking	or	finance	or	relevant	discipline;	and
+(b) at least three years working experience relating to 
+compliance in any relevant area.
+4903
+27. Compliance procedures and controls
+ (1) Every licensed insurer, reinsurer or HMO shall develop and 
+maintain compliance procedures and controls that—
+(a) are appropriate for the nature, scale, complexity and 
+diversity of its business;
+(b) ensure compliance—
+(i) with its policies, the Act and other laws of Uganda;
+(ii) by the board, senior management and employees 
+with its policies; and
+(iii) with its internal controls;
+(c) are adequate to identify compliance breaches; and
+(d) are effectively implemented.
+ (2) Every licensed insurer, reinsurer and HMO shall, at least 
+once every year, review the effectiveness of compliance procedures 
+and controls in managing compliance risk.
+28. Actuarial function
+ (1) A key person in an actuarial function of a licensed insurer, 
+reinsurer or HMO shall be responsible for providing advice on—
+(a) capital adequacy;
+(b) technical provisions;
+(c) premiums and pricing; 
+(d) reinsurance; and
+(e)	 compliance	 with	 the	 matters	 specified	 in	 paragraphs	 (a)	
+to (d).
+ (2) For purposes of subregulation (1), a key person in an 
+actuarial function shall provide advice on—
+4904
+(a)	 actuarial	and	financial	risks;	
+(b) investment policies and valuation of assets; 
+(c) solvency position; 
+(d) risk assessment and management policies and controls 
+relevant	to	actuarial	matters	or	to	financial	condition;	
+(e)	 distribution	 to	policyholders	and	beneficiaries	of	payments	
+and	other	benefits	on	participating	policies;	
+(f) underwriting of policies;
+(g) design of reinsurance programmes; 
+(h) product development and design; 
+(i)	 the	 sufficiency	and	quality	of	data	used	in	the	calculation	
+of technical provisions;
+(j) risk modelling, where applicable;
+(k)	 experience	reviews	and	profit	testing;	and
+(l)	 distribution	 of	dividends	and	other	benefits	to	be	paid	to	
+shareholders.
+ (3) A key person in an actuarial function shall—
+(a)	 possess	 a	 degree	 in	 actuarial	 science	 or	 a	 related	 field	
+and—
+(i)	 successfully	 completed	at	least	five	exams	leading	to	
+a	full	actuarial	qualification;	or
+(ii)	 possess	 a	 qualification	 equivalent	 to	 certified	
+actuarial analyst awarded by an actuarial society 
+or body recognised by the International Actuarial 
+Association; or
+(iii) a post graduate diploma in actuarial science;
+4905
+(b) have working experience in the insurance sector; and
+(c) be a member of the Actuarial Association of Uganda. 
+29. Internal audit function
+ (1) A key person in the internal audit function shall provide a 
+licensed insurer, reinsurer or HMO with independent assurance of 
+the	quality	of	financial	information	 and	statements	and	effectiveness 	
+of the governance framework. 
+ (2) For purposes of subregulation (1), a key person in the 
+internal audit function shall— 
+(a) assess whether the existing risk management strategy, 
+policies,	procedures	and	controls	are	sufficient,	effective	
+and appropriate for the business; 
+(b) assess whether the risk management strategy, policies, 
+procedures and controls, including internal controls, are 
+being implemented and complied with;
+(c) assess whether the procedures and controls for monitoring 
+and assessing the on-going capital and solvency 
+requirements are effective and are being implemented; 
+(d) assess the reliability, integrity and completeness of the 
+accounting,	financial	reporting,	management	information	
+and information technology systems;
+(e) review, periodically, the risk management function and the 
+compliance function; and
+(f) monitor the information systems. 
+ (3) Subregulation (1) applies to all the activities of a licensed 
+insurer, reinsurer or HMO, including outsourced activities and 
+activities carried out by branches or subsidiaries of the licensed 
+insurer, reinsurer or HMO.
+4906
+ (4) The internal audit function shall be subject to independent 
+review by the audit committee and the external auditor.
+ (5) A licensed insurer, reinsurer or HMO shall ensure that the 
+internal audit function- 
+(a) is independent from management and shall not be involved 
+in the operation of the business of the licensed insurer, 
+reinsurer or HMO; and
+(b) report directly to the board, through the key person in the 
+control function.  
+ (6) A key person in the internal audit function shall be given 
+the authority—
+(a) to undertake, on the internal audit function’s initiative, a 
+review of any department, unit or function;
+(b) to require management to respond to any internal audit 
+report, including on remediation or mitigation plans; and
+(c) to carry out any task requested as long as it is not inconsistent 
+with the functions of the internal audit function. 
+ (7) A key person in the internal audit function shall—
+(a)	 possess	a	bachelor’s	degree	in	the	relevant	field;
+(b)	 be	 a	member	of	the	Institute	of	Certified	Public	Accountants	
+of Uganda; and
+(c) have at least three years’ relevant working experience.
+30. Internal audit reports to be submitted to Authority
+Every licensed insurer, reinsurer and HMO shall—
+(a) within twenty-one days after the last day of each calendar 
+quarter, provide the Authority with a list of reports that 
+have been prepared by the person in the internal audit 
+4907
+function during that calendar quarter, with a summary of 
+the areas covered by each report; or
+(b) on the written request of the Authority, submit to the 
+Authority	copies	of	the	internal	audit	reports	specified	in	
+the	Authority’s	request,	within	the	time	period	specified	in	
+the request.
+31. Whistleblowing policy
+Every licensed insurer, reinsurer and HMO shall establish, maintain 
+and implement an effective whistleblowing policy.  
+32. Responsibility for outsourced activities
+ (1) Where a licensed insurer, reinsurer or HMO outsources an 
+activity, the licensed insurer, reinsurer or HMO —
+(a) shall oversee the performance of the activity by the service 
+provider; and
+(b) remains responsible for the performance of the activity by 
+the service provider. 
+ (2) A licensed insurer, reinsurer or HMO shall not outsource— 
+(a) any duties of the compliance function;
+(b) any activity if the outsourcing of that activity would—
+(i) impair the Authority’s ability to supervise the 
+licensed insurer, reinsurer or HMO; or
+(ii) affect the rights of a customer or potential customer 
+against the licensed insurer, reinsurer or HMO.  
+ (3) A licensed insurer, reinsurer or HMO shall not, without the 
+prior written approval of the Authority, outsource any of the duties 
+of the risk management function, the internal audit function or the 
+actuarial function.
+4908
+33. Requirements for outsourcing of activities
+A licensed insurer, reinsurer or HMO shall not enter into an outsourcing 
+arrangement in relation to any activity unless the licensed insurer, 
+reinsurer or HMO —
+(a) has undertaken an assessment of the outsourcing 
+arrangement regarding—
+(i) the reasonableness of the charges, fees and costs to 
+be paid under the outsourcing contract taking into 
+account the activities to be undertaken by the service 
+provider;
+(ii) the capacity and ability of the service provider to 
+undertake the outsourced activity; 
+(iii) the risks associated with outsourcing the proposed 
+activity to a   service provider
+(b)	 is	 satisfied	 that	 the	 outsourcing	 will	 be	 subject	 to	
+appropriate controls; 
+(c) obtains the approval of the Authority to outsource the activity. 
+34. Outsourcing policy
+ (1) Every licensed insurer, reinsurer and HMO shall have an 
+outsourcing policy which shall be kept up-to-date.
+ (2) For the purposes of subregulation (1), an outsourcing policy 
+shall— 
+(a) specify activities appropriate for outsourcing; 
+(b) set out procedures and controls to manage outsourcing risk;
+(c) set out the internal review and approvals required for 
+outsourcing; and
+(d) specify the criteria for making outsourcing decisions. 
+4909
+ (3)  A licensed insurer, reinsurer or HMO shall ensure that 
+its outsourcing arrangements are operated in accordance with the 
+outsourcing policy.
+35. Outsourcing to be governed by written agreement
+ (1) The outsourcing of any activity shall be governed by a 
+service level agreement with the service provider which— 
+(a)	 clearly	 specifies	 all	 material	 aspects	 of	 the	 outsourcing,	
+including— 
+(i) the duration of the agreement;
+(ii) the activities to be outsourced;
+(iii) the rights and responsibilities of the parties; 
+(iv)	 the	 protection	by	the	service	provider	of	confidential	
+information; 
+(v) provisions for monitoring and assessing the 
+outsourcing; 
+(vi) provisions for the termination of the agreement; 
+(vii) an agreed mechanism for resolving disputes; 
+(viii) access to all documents and information relevant to 
+the outsourced activity; and
+(b) provides that the governing law of the outsourcing 
+agreement is the law of Uganda.  
+ (2) Every licensed insurer, reinsurer and HMO shall develop and 
+maintain a contingency plan for each outsourcing agreement entered into.
+36. Costs of supervision of outsourced activities outside Uganda
+Where the Authority, under section 115(2)(b) of the Act, inspects the 
+business or the premises of a service provider to whom a licensed 
+4910
+insurer, reinsurer or HMO has outsourced activities and the business 
+or premises of the service provider are situated outside Uganda, the 
+Authority may require the licensed insurer, reinsurer or HMO to pay 
+its reasonable costs of undertaking the inspection.   
+37. Business continuity plan
+ (1) Every licensed insurer, reinsurer and HMO shall develop 
+and maintain a business continuity plan which shall make provision 
+for the continued operations of the licensed insurer, reinsurer or 
+HMO in the event of unforeseen interruptions or disruptions.  
+ (2) A business continuity plan shall be— 
+(a) appropriate for the nature, scale, complexity and diversity 
+of	 the	 business	 and	 risk	 profile	 of	 a	 licensed	 insurer,	
+reinsurer or HMO; and
+(b) regularly reviewed, tested and updated.
+ (3) Without limiting the general effect of subregulation (1), 
+a business continuity plan shall provide for mechanisms to enable 
+the licensed insurer, reinsurer or HMO —
+(a) to carry on its insurance business and to comply with the 
+Act;
+(b) to minimise losses to functions, systems or data and 
+recover losses in a timely manner; and 
+(c) to resume business in a timely manner, where the severity 
+of the interruption or disruption results in the ceasing of 
+licensed insurance business or any part of it.  
+ (4) For purposes of subregulation (1), the unforeseen 
+interruptions and disruptions include—
+(a) the loss or failure of internal or external resources including 
+human resources, systems and other assets;
+4911
+(b) the loss or corruption of data or other information; and
+(c) external events such as criminal acts, weather events and 
+other natural disasters.
+38. Remuneration policy 
+ (1) Every licensed insurer, reinsurer and HMO shall develop 
+and implement a remuneration policy. 
+ (2) The remuneration policy of a licensed insurer, reinsurer or 
+HMO shall—
+(a) take full account of—
+(i) its business objectives and corporate culture, strategy 
+and risk appetite; and
+(ii)	 its	long	term	interests 	and	financial	soundness;
+(b) cover the remuneration of directors, senior management, 
+key persons in control functions and any other employees. 
+(c) not provide incentives that are likely to induce imprudent, 
+unnecessary, inappropriate or excessive risk-taking; 
+(d) not provide incentives that are likely to result in the unfair 
+treatment of customers or potential customers. 
+ (3) Where a control function is outsourced, the remuneration 
+payable to the service provider shall be consistent with remuneration 
+policy of the licensed insurer, reinsurer or HMO. 
+39. Additional strategies, policies, procedures and controls
+The Authority may –
+(a) require a licensed insurer, reinsurer and HMO to develop 
+and maintain any other strategies, policies, procedures or 
+controls as are appropriate taking into consideration the 
+nature, scale, complexity and diversity of the licensed 
+4912
+business and the degree of risk associated with the 
+business; and
+(b) ensure that the strategies, policies, procedures or controls 
+established in accordance with paragraph (a) are fully 
+and clearly documented and communicated to relevant 
+persons. 
+40. Risk management strategy
+ (1) The risk management strategy and policy of a licensed 
+insurer, reinsurer and HMO required to be established by section 62 of 
+the Act shall—
+(a) set the level of risk that a licensed insurer, reinsurer and 
+HMO is prepared to accept for each type of risk;
+(b) be reviewed periodically;
+(c) be fully and clearly documented and effectively 
+communicated and readily available to the directors, 
+relevant members of senior management, employees 
+and service providers, who have responsibility for 
+implementing the policy; and 
+(d) specify risks covered by the policy including –
+(i)	 the	risks	specified	in	section	62(2)(d)	of	the	 Act;
+(ii) legal risk;
+(iii) conduct of business risk; 
+(iv) contagion risk;
+(v) related party risk;
+(vi) pricing and product design risk; 
+(vii) reinsurance risk; 
+(viii) outsourcing risk; 
+4913
+(ix) foreign exchange risk; and
+(x) cyber risk. 
+ (2) A licensed insurer, reinsurer or HMO may make provision in 
+its risk management strategy for additional risks which are reasonably 
+foreseeable	 and	 not	 specified	 in	 subregulation	 (1)	 after	 taking	 into	
+consideration the nature, scale, complexity and diversity of its business. 
+41. Group strategies, policies, procedures and controls 
+A licensed insurer, reinsurer and HMO which is part of a group of 
+companies shall, in addition, to the strategies, policies, procedures and 
+controls required to be established by the Act or these Regulations, 
+submit the strategies, policies, procedures and controls of the group 
+companies.
+Part VI— ConduCt of InsuranCe BusIness
+42. Application of this Part
+This Part applies only to licensed insurers and HMOs. 
+43. Objectives of this Part
+The objective of this Part is to ensure that licensed insurers and 
+HMOs —
+(a) conduct business with integrity and with due skill, care 
+and diligence;
+(b) observe good conduct of business standards and practices 
+and be transparent in business arrangements;
+(c) have due regard for the interests and needs of customers;
+(d) treat customers and potential customers fairly;
+(e)	 manage	conflict	of	interest	fairly;	
+(f) pay due regard to the information needs of customers and 
+potential customers;
+4914
+(g) take reasonable steps to ensure that information 
+communicated to customers and potential customers is 
+clear, fair, accurate and not misleading; and
+(h) ensure that customer information is adequately protected 
+and used appropriately.
+44. Business conduct policies, procedures and controls
+ (1) Every licensed insurer and HMO shall develop and implement 
+business conduct policies, procedures and controls for the purpose of 
+complying with these Regulations.
+ (2) Without prejudice to subregulation (1), business conduct 
+policies, procedures and controls shall –
+(a) take account of the circumstances of different customers 
+and potential customers;
+(b) make provision for the development, marketing and sale 
+of insurance products;
+(c) provide for the giving of clear information to customers 
+and potential customers at the point of sale and before and 
+after an insurance contract is entered into;
+(d) provide measures to minimise the sale of insurance 
+products that are inappropriate for customers;
+(e) provide measures aimed at ensuring that insurance advice 
+given to customers and potential customers is of high 
+quality;
+(f) make provision for procedures to deal with customer 
+claims, complaints and disputes in a fair and timely 
+manner;
+(g) provide for the protection and appropriate use of customer 
+information; and
+(h) provide for the management of the reasonable expectations 
+of customers.
+4915
+45. Requirements relating to the development of insurance 
+products
+Every licensed insurer and HMO shall, when designing and developing 
+insurance products—
+(a) take account of any product development criteria issued 
+by the Authority; and
+(b) have regard to the interests of different types of customers 
+and potential customers. 
+46. Approval by Authority of text or format of policy of insurance 
+product 
+ (1) No licensed insurer or HMO shall issue a text or format of a 
+policy or a proposal form unless the text or format of the policy or the 
+proposal form has been approved by the Authority in accordance with 
+section 65 of the Act. 
+ (2) Where a licensed insurer or HMO contravenes this regulation, 
+the Authority shall issue a written directive to the licensed insurer 
+or HMO to comply or take such action as may be required by the 
+Authority.
+ (3) Where a licensed insurer or HMO fails to comply with a 
+written directive issued by the Authority under subregulation (2), 
+the licensed insurer or HMO shall be subject to the penalty set out in 
+section 121(2) of the Act
+47. Application for approval of text or format of policy of 
+insurance product
+ (1) An application for the approval of a text or format of a policy 
+or a proposal form shall be in Form 3 in Schedule 2. 
+ (2) Where an application is in respect to a bundled insurance 
+product, the application in subregulation (1) shall be made by the 
+licensed insurer or HMO that will take the larger percentage of 
+the risk.
+4916
+ (3) The application shall be accompanied by the documents 
+specified	 in	 Form	 3	 in	 Schedule	 2	 or	 such	 other	 information	 and	
+documentation as the Authority may require. 
+ (4) Upon receipt of an application, the Authority shall review the 
+application to ensure that all the relevant documents are available to 
+enable the processing of the application.
+	 (5)	 The	 Authority	 may,	 before	 making	 a	 final	 determination	
+on the application, require the licensed insurer or HMO to provide 
+additional information and documentation including reports from 
+actuaries and other specialists. 
+ (6) After considering the application, the Authority may approve 
+the text or format of the policy or the proposal form with or without 
+conditions. 
+ (7) The decision to approve the text or format of the policy or the 
+proposal	form	shall	be	made	within	forty-five	days	after	receipt	of	the	
+complete application. 
+ (8) Where the Authority approves the text or format of the policy 
+or	the	proposal	form,	the	Authority	shall	issue	an	approval	certificate	
+in Form 4 in Schedule 2. 
+ (9) Where the Authority refuses to approve the text or format of 
+the policy or the proposal form, the decision shall include the reasons 
+for the refusal.
+ (10) Where the Authority does not approve or reject the text or 
+format of a policy or proposal form, or an amendment in the text or 
+format	within	forty	five	days,	the	licensed	insurer	or	HMO	shall	treat	
+the text or format of the policy or the proposal form or amendment as 
+approved.  
+48. Variation, suspension, and revocation of approval of text or 
+format of policy of insurance product
+ (1) The Authority may vary, suspend or revoke an approval 
+where— 
+4917
+(a)	 the	 approval	no	longer	satisfies	the	design	criteria	specified	
+in these Regulations; 
+(b) the text or format of a policy or proposal form no longer 
+meets	the	requirements	specified	in	these	Regulations;
+(c) the licensed insurer or HMO is marketing or selling the 
+insurance product contrary to any requirements of the Act; 
+or
+(d) the policy is unfair to policyholders or prospective 
+policyholders or any class of policyholders or prospective 
+policyholders. 
+ (2) The Authority shall, before varying, suspending or revoking 
+an approval, give the licensed insurer or HMO a right to be heard. 
+ (3) Where the Authority varies, suspends or revokes approval, 
+the Authority shall give reasons in writing for the variation, suspension 
+or revocation.
+ (4) Where the Authority varies, suspends or revokes approval, 
+the licensed insurer or HMO concerned shall cease to market or sell 
+the policy with effect from the date on which it receives the notice of 
+suspension or revocation. 
+ (5) The variation, suspension or revocation of approval does not 
+affect—
+(a) the legal status of the contract; or
+(b) the rights of any policyholder who purchased, or acquired 
+rights under, the insurance contract, prior to the date when 
+the variation, suspension or revocation takes effect.
+49. Cancellation of insurance contracts during cooling-off 
+period
+ (1) Subject to subregulation (2), every insurance contract shall 
+provide the policyholder with a right to cancel the contract without 
+4918
+giving any reason and without the payment of any fee or penalty 
+within 30 days—
+(a) after the date the contract is entered into; or
+(b) after the date on which the policyholder receives the policy.
+ (2) Subregulation (1) does not apply— 
+(a)	 where	 the	policyholder	or	a	beneficiary	has	made	a	claim	
+under the contract; 
+(b) to an index insurance contract.
+ (3) An insurance contract shall specify the procedures for effecting 
+cancellation	within	the	thirty-day	period	specified	in	subregulation	(1)	
+and where the policyholder complies with those procedures—
+(a) the contract is terminated; and
+(b) the amount required to be paid by the policyholder shall be 
+no more than the cost of the insurance cover provided, on 
+a strictly proportionate basis, for the period.
+ (4) Where a customer exercises his or her right to cancel an 
+insurance contract under this regulation, the licensed insurer or HMO 
+shall repay the balance of the premium paid by the customer. 
+50. Requirements relating to marketing of insurance products
+A licensed insurer or HMO shall—
+(a) take into account the interests of different types of 
+customers and potential customers when marketing an 
+insurance product;
+(b) take reasonable steps to ensure that its products are 
+promoted to customers and potential customers in a way 
+that—
+ (i) is clear and fair and that is not inaccurate or 
+misleading; and 
+4919
+ (ii) takes account of the knowledge and experience 
+of an ordinary customer for the insurance product 
+being marketed; 
+(c) take reasonable steps to ensure that—
+(i)  a customer or potential customer knows whether or 
+not advice is being provided;
+ (ii) any advice that the licensed insurer or HMO provides 
+to a customer or potential customer is appropriate, 
+taking into account the circumstances disclosed to it 
+by that person; and
+ (iii) a person only purchases an insurance product if 
+the	 person	 is	 eligible	 to	 obtain	 benefits	 under	 the	
+product; 
+(d) provide relevant information to its sales staff and any 
+insurance intermediaries through which it distributes the 
+products, so as to ensure that they understand the target 
+market and the characteristics of the product; and
+(e) monitor the performance of the product, and its 
+distribution, after marketing has commenced, including 
+in relation to—
+(i) its suitability for the consumers for whom it was 
+developed and to whom it is marketed;
+(ii) whether the product is continuing to deliver the 
+expected	benefits;
+(iii) whether the proposed distribution channels are 
+appropriate for the product; and
+(iii) compliance with paragraphs (b), (c) and (d).
+4920
+51. Key features statement
+ (1) Every licensed insurer and HMO shall prepare a statement 
+containing key features of every insurance product that it markets or 
+sells. 
+ (2) The statement referred to in subregulation (1) shall—
+(a) be written in simple language; and 
+(b) contain a summary of the cover provided by, and the key 
+features of, the insurance product including-
+(i)  the name of the licensed insurer or HMO and the 
+address	of	its	principal	office	in	Uganda;
+(ii)  the type of insurance product; 
+(iii) a description of the risks insured by the contract and 
+any	significant	or	unusual	exclusions	or	limitations;
+(iv) the duration of the policy, stating whether it is a non-
+life or a life policy;
+(v)	 	 the	policy	benefits;
+ (vi) the details of the policyholder’s cancellation rights;
+ (vii) the consequences for early termination by the 
+policyholder;
+ (viii) the contact details for notifying a claim under the 
+policy and a brief summary of the claims procedure;
+ (ix) the obligations on a prospective customer to disclose 
+material facts;
+ (x) where appropriate, a statement that the policyholder 
+may need to review and update the cover periodically 
+to ensure that it remains adequate;
+4921
+ (xi) the right to complain and the method of lodging a 
+complaint; 
+ (xii) a statement that the key features statement does 
+not contain the full terms of the insurance product, 
+which are to be found in the policy document; and
+ (xiii) in the case of an insurance product with an investment 
+component, specify the customer’s commitments and 
+all	charges	and	benefits	associated	with	the	product.	
+ (3) The statement shall be signed by the prospective policy 
+holder at the point of sale and before inception of the policy. 
+ (4) A statement may contain information concerning the premium 
+payable under the insurance product. 
+ (5) A statement shall not contain any information other than the 
+information	specified	in	this	regulation.
+ (6) A licensed insurer or HMO shall provide the customer or 
+prospective	 customer	 with	 the	 statement	 in	 sufficient	 time	 for	 the	
+customer or prospective customer to make an informed decision about 
+whether to enter into, or renew, the insurance contract.
+ (7) Where a statement does not contain details of the premium 
+payable, the licensed insurer or HMO shall provide the details of the 
+premium payable including the date when the premium is required to 
+be paid and the consequences of non–payment of the premium. 
+52. Promotional material
+ (1) Any promotional material used by a licensed insurer or HMO 
+to sell or market an insurance product shall—
+(a) state the underwriter of the product;
+(b)	 state	 prominently	 the	 basis	 for	 any	 claimed	 benefits	 and	
+limitations; 
+4922
+(c) state the coverage provided by the product; and
+(d) not contain false, misleading, inaccurate, unclear, unfair or 
+misleading statements. 
+ (2) The promotional material referred to in subregulation (1) 
+shall be easily understandable by those persons to whom the product 
+or the promotional material is targeted.
+53. Policy to be given to policyholder
+A prospective policy holder shall on payment of the premium be issued 
+with an insurance policy by the licensed insurer or HMO.
+54. Policy servicing requirements
+ (1) Every licensed insurer and HMO shall— 
+(a) service insurance products sold appropriately throughout 
+until the point at which all its obligations under the 
+insurance	product	have	been	satisfied;
+(b) during the period in which an insurance product is in force, 
+disclose to the policyholder information on— 
+(i) any contractual changes to an insurance product; 
+and
+(ii) any relevant changes to the licensed insurer or HMO.
+ (2) Where a licensed insurer discloses contractual changes to an 
+insurance product , the licensed insurer shall also notify the policyholder 
+of his or her rights and obligations in relation to the change.
+55. Insurance claims handling
+ (1) Every licensed insurer and HMO shall—
+(a) handle claims promptly, fairly and in a transparent manner;
+(b) provide reasonable guidance to help a customer make a 
+claim;
+4923
+(c) provide a customer with information concerning the status 
+of the claim on an ongoing basis;
+(d) not reject a claim unreasonably including by terminating 
+or avoiding a policy; and where a claim is rejected, provide 
+information relating to the rejection or partial rejection of 
+the claim; 
+(e) settle claims promptly once settlement terms are agreed; 
+and
+(f) maintain a claims register in which the details of every 
+insurance claim made are recorded.
+ (2) Without limiting subregulation (1), a licensed insurer and 
+HMO shall develop and publish service level standards covering the 
+claims handling process.
+56. Complaints policy and procedures
+Every licensed insurer and HMO shall —
+(a) develop and maintain a complaints policy and procedures 
+which provide for the effective consideration and proper 
+handling of any complaints made to it and for appropriate 
+remedial action to be taken, where appropriate; and
+(b) maintain a complaints register in which shall be recorded 
+any complaints received together with details of how the 
+complaint has been, or is being, dealt with.
+57.	 Notification	of	appointment	of	insurance	agents
+ (1) Where a licensed insurer or HMO appoints an insurance agent, 
+the licensed insurer or HMO shall, in writing, notify the Authority of 
+the appointment. 
+	 (2)	 The	 notification	 referred	 to	 in	 subregulation	 (1)	 shall	 be	
+accompanied by a copy of the instrument appointing the agent. 
+4924
+ (3) A licensed insurer and HMO to whom subregulation (1) 
+applies shall keep a register of all its insurance agents. 
+58. Training obligations 
+ (1) Every licensed insurer and HMO shall provide appropriate 
+training to any insurance agent appointed to act in relation to the 
+distribution of its insurance products.
+ (2) The training provided in accordance with subregulation (1) 
+shall include appropriate and relevant training relating— 
+(a) to the duties and responsibilities of the agent in relation to 
+the distribution of insurance products;
+(b)	 to	 the	 specific	 insurance	 products	 that	 the	 agent	 will	 be	
+authorised to distribute;
+(c) to consumer protection and the fair treatment of customers 
+and potential customers; 
+ (3) The training referred to in subregulation (1) shall be provided 
+to an agent as soon as practicable after the appointment of the agent, 
+and on a regular basis. 
+Part VII— general
+59. Group insurance policy
+ (1) A group insurance policy shall state the insurable interest of 
+the master policyholder.
+ (2) The terms of a group insurance policy shall require the master 
+policyholder	to	maintain	a	register	of	beneficiaries	under	the	product  
+which shall—
+(a)	 adequately	identify	each	beneficiary;
+(b)	 state	 the	date	upon	which	the	person	became	a	beneficiary;
+4925
+(c)	 state	 the	date	on	which	the	beneficiary	was	provided	with	
+a copy of the statement containing key features of the 
+policy;
+(d) provide details of any other persons who are entitled 
+to	 benefits	 under	 the	 contract	 by	 virtue	 of	 the	 person	
+becoming	a	beneficiary;	and
+(e)	 summarise	 the	 cover	 provided	 to	 the	 beneficiary	 by	 the	
+policy;
+(f)	 provide	 each	person	who	becomes	a	beneficiary	under	a	
+group insurance policy with— 
+(i) a schedule setting out the details of the cover 
+provided	to	the	beneficiary,	where	applicable;	
+(ii) the name and contact details of an employee 
+or representative of the policyholder whom the 
+beneficiary	may	contact	for	further	information	in	
+relation to the policy;
+(iii)	 details	 as	to	how	the	beneficiary	may	access	a	copy	
+of the policy document.
+ (3) Every licensed insurer and HMO shall take reasonable steps 
+to ensure that the master policyholder complies with the obligations 
+specified	in	sub	regulation	(2).	
+60. Bundled insurance products
+ (1) Where a licensed insurer or HMO proposes to offer a bundled 
+insurance product, the licensed insurer or HMO shall enter into a 
+written agreement which shall—
+(a) state the lead licensed insurer or HMO and the 
+responsibilities of the lead licensed insurer or HMO;
+(b) the basis on which premiums and responsibility for claims 
+will be allocated; 
+4926
+(c) any commission, charges or other consideration to be paid 
+to the lead licensed insurer or HMO.
+(2) The responsibilities of the lead licensed insurer or HMO 
+shall include— 
+(a) the receipt of all premiums payable under the product and 
+the payment of the agreed allocation of the premium to the 
+other licensed insurer or HMO;
+(b) the receipt, management, settlement and payment of 
+claims made under the product.  
+61. Electronic communications
+ (1) A licensed insurer or HMO may communicate with, and 
+provide documents to, an insured person by electronic means but 
+only if the insured person has given his or her consent to the use of 
+electronic communication. 
+ (2) For the purposes of subregulation (1), consent may be given 
+by an insured person through a SMS message or any other type of 
+electronic communication or by signifying consent through the use of 
+an application or program.
+62. Revocation of SI.66 of 2002
+The Insurance Regulations, 2002, S.I. 66 of 2002 is revoked. 
+4927
+Regulation 8(1), (2)
+SCHEDULE 1
+Categories and Classes of Insurance Business
+Part I — lIfe InsuranCe BusIness
+Class 
+No. Class Name Description Subclasses (if any)
+1. Annuity business Contracts to pay annuities on 
+human life that guarantee a 
+fixed	or	variable	payment	to	the	
+annuitant at some future time 
+(but excluding any contract 
+falling within Class 3).
+(a) Annuity certain
+(b) Temporary annuity
+(c) Guaranteed annuity
+(d) Capital protected annuity
+2. Ordinary Life 
+Insurance
+Contracts of insurance 
+on human life, including 
+contracts	 that	 pay	 a	 benefit	 to	
+a	 beneficiary	 at	 the	 end	 of	 the	
+policy term or if the insured 
+dies (but excluding any contract 
+falling within Class 3).
+(a) Term life assurance
+(b) Whole life assurance
+(c) Endowments
+(d) Income protection
+3 Group Life & 
+Superannuation 
+policies
+Contracts to pay Lump Sums to 
+employees/ former- employees, 
+creditors or other individuals 
+that relate to the issuing of or 
+the undertaking of liability 
+under superannuation, Group 
+term or Group Credit policies.
+(a) Group Life
+(b) Group Term
+(c) Group Credit
+(d) Guaranteed investment 
+Funds
+4. Investment-linked 
+life insurance
+Contracts to pay annuities or 
+contracts of insurance on hu -
+man life under which the ben -
+efits	are	wholly or partly to be 
+determined by references to the 
+value of, or the income from, 
+property of any description 
+(whether	or	not	specified	in	the	
+contracts) or by reference to 
+fluctuations	 in,	 or	 in	 an	 index	
+of, the value of property of any 
+description (whether or not so 
+specified).
+(a) Pure endowments
+(b) Unit-linked and linked 
+investment contracts
+(c) Non-linked investments
+  
+4928
+5. Permanent Health 
+Insurance
+Contracts of insurance 
+providing	 specified	 benefits	
+against risks of persons 
+becoming incapacitated as 
+a result of sustaining injury 
+through an accident or of 
+sickness	or	infirmity,	including 
+critical illness and long-term 
+care insurance.
+6. Other Life 
+Insurance 
+Contracts of insurance, not 
+included in classes 1 to 5 that the 
+Authority determines constitute 
+life insurance business.
+Part II — non-lIfe InsuranCe BusIness
+Class 
+No.
+Class Name Brief Description of Class Sub–Classes (if any)
+7. Fire insurance Contracts of insurance against 
+loss or damage to property, and 
+consequential losses, due to 
+fire,	explosion,	storm	and	other	
+natural perils and other perils 
+customarily	 included	 in	 fire	
+insurance policies.
+Excluding insurance of a type 
+described above which is 
+incidental to some other class of 
+insurance business. 
+(a) Fire insurance 
+domestic (including 
+house owners and 
+householders)
+(b) Fire insurance 
+industrial and 
+commercial
+8. Theft insurance Contracts of insurance against 
+loss or damage to property due 
+to theft or any other cause not 
+covered under any other class, 
+including consequential losses.
+(a) Burglary, all risks 
+and other theft insur-
+ance
+(b) Fidelity guarantee
+4929
+9. Personal Ac-
+cident, Health 
+and Medical 
+Insurance
+Contracts of insurance that pro -
+vide	 fixed	 pecuniary	 benefits	
+or	 benefits	 in	 the	 nature	 of	 an	
+indemnity (or a combination of 
+both) against risks of the person 
+insured—
+(a) sustaining accidental in -
+jury,
+(b) dying as a result of an ac-
+cident,
+(c) becoming incapacitated 
+as a result of disease,
+(d) attributable to sickness or 
+infirmity,
+Contracts of insurance that pro -
+vide cover against medical ex -
+penses. 
+This class excludes any contract 
+of insurance that falls within a 
+class of life insurance business.
+(a) Personal accident 
+insurance 
+(b) Health/medical 
+expenses insurance 
+(where separate poli-
+cies are issued)
+10. Employer’s Lia-
+bility Insurance
+Contracts of insurance against 
+the liability of an employer to 
+the employer’s employees in 
+relation to any injury or disease 
+arising out of, or in the course 
+of, their employment. 
+11. Liability Insur-
+ance 
+Contracts of insurance against 
+risks of the persons insured in -
+curring liability to third parties 
+(excluding any risk to which 
+any other class of non-life insur-
+ance relates).   
+(a) Public liability
+(b) Professional indemnity
+(c) Product liability
+(d) Liability insurance, 
+others
+4930
+12. Marine Insur-
+ance
+Contracts of insurance against—
+(a) loss of or damage to 
+marine craft or the 
+equipment	 or	 fittings	 of	
+marine craft;
+ (b) loss or damage arising 
+out of or in connection 
+with the freight, use, 
+construction or repair of 
+marine craft, including 
+third party risks, carrier’s 
+liability and medical 
+expenses for the injury 
+of occupants of a marine 
+craft, including crew.
+(a) Marine hull
+(b) Marine cargo
+13. Aviation Insur-
+ance
+Contracts of insurance against—
+(a) loss of or damage to 
+aircraft or aircraft 
+equipment	or	fittings;
+(b) loss or damage arising 
+out of or in connection 
+with the use of aircraft, or 
+the construction or repair 
+of aircraft, including 
+third party risks, carrier’s 
+liability, airport owner’s 
+liability and medical 
+expenses for the injury or 
+loss of life of occupants 
+of an aircraft, including 
+aircrew.
+14. Motor Insurance Contracts of insurance against—
+(a) loss of or damage to 
+motor vehicles; 
+(b) loss or damage arising 
+out of or in connection 
+with the use of, motor 
+vehicles, including third 
+party risks, carrier’s 
+liability and medical 
+expenses for the injury 
+of occupants of a motor 
+vehicle.
+4931
+15. Agricultural 
+Insurance 
+(including 
+horticultural 
+and	fisheries	
+insurance)
+Contracts of insurance against— 
+(a) loss of or damage to ag -
+ricultural produce, live -
+stock, agricultural stocks 
+and consumables and 
+buildings, temporary 
+structures, plant, machin -
+ery and vehicles used in 
+connection with agricul -
+ture;
+ (b) loss or damage arising 
+out of or in connection 
+with the use or operation 
+of buildings, temporary 
+structures, plant, machin-
+ery and vehicles used in 
+connection with agricul -
+ture, including loss of or 
+damage to surrounding 
+property of the insured, 
+liability to third parties 
+for damage to property, 
+injury or loss of life;
+(c) loss or damage arising 
+out of contract work in 
+relation to buildings, tem-
+porary structures, plant, 
+machinery and vehicles 
+used in connection with 
+agriculture, including 
+damage to property on 
+site and third party risks.
+For the purposes of this class—
+(i) agriculture includes 
+horticulture and 
+fisheries;	and
+(ii) livestock includes 
+poultry,	 fish,	 bees	
+and working 
+animals.
+4932
+16. Financial Loss 
+Insurance
+Contracts of insurance against 
+the	 risk	 of	 financial	 and	 other	
+losses to the person insured—
+(a) arising from the failure of 
+debtors to pay their debts 
+when due, whether by 
+reason of their insolvency 
+or otherwise (credit 
+insurance);
+(b) arising from the person 
+insured having to perform 
+contracts of guarantee 
+entered by them, 
+including performance 
+bonds,	 fidelity	 bonds,	
+administration bonds and 
+other similar contracts of 
+guarantee (suretyship);
+(c) attributable to the person 
+insured incurring legal 
+expenses, including the 
+cost of litigation (legal 
+expenses insurance);
+(d) attributable to the person 
+insured incurring other 
+unforeseen expenses 
+(not falling within any 
+other class of non-life 
+insurance), including 
+fidelity	 and	 kidnap	
+and ransom insurance 
+(miscellaneous	 financial	
+loss insurance).
+4933
+17. Engineering 
+Insurance
+Contracts of insurance against—
+(a) loss or damage to plant 
+and machinery;
+(b) loss or damage arising 
+out of the use or operation 
+of plant and machinery, 
+including loss of or 
+damage to surrounding 
+property of the insured, 
+liability to third parties 
+for damage to property, 
+injury or loss of life;
+(c) loss or damage arising 
+out of contract work 
+in relation to plant and 
+machinery, including 
+damage to property on 
+site and third party risks. 
+(a) Contractor’s all risks
+(b) Engineering 
+insurance, others
+18. Goods in Transit Contracts of insurance 
+against loss of or damage to 
+merchandise, baggage and 
+all other goods in transit, 
+irrespective of the form of 
+transport.
+19. Other Non-life 
+Insurance
+Contracts of insurance, not 
+included in classes 6 to 18 
+that the Authority determines 
+constitute non-life insurance 
+business.
+4934
+Regulation 9(2)
+SCHEDULE 2 
+Form 1 
+Application for Licensed Insurer / Reinsurer/HMO Licence1
+ 1. Name of applicant: …………………………..…………………………
+ 2. Postal	address	(Head	Office):	……………………………………….
+3. Telephone Nos.………………………………………….......…………….
+4. E-Mail: ………………............................…..............………………………..
+Website: …………………………........................……………………......…
+5. Physical	address:	(Head	Office)….…………………….........………………
+6. No.	of	Branch/Agency	Offices	………………………………........…………
+7. Date of Incorporation ………………………………………….......………..
+8. Proposed date for Commencement of business.………….……........………
+9. Bankers:
+Name
+Address
+Location, Postal Address, Email, etc.
+10. Note: Please give details of commitment with the bank.
+11. Total number of all classes of employees ………………… 
+Managerial…………. 
+Officers	…………………….	
+Support Staff ……………….. (give details)
+12. Insurance Agents ……………………………… (Total Number)
+13. Name and address of reinsures/retrocessionaires and their current ratings.
+………………………………
+14. Share Capital -
+1 Choose whichever is applicable
+4935
+15. (a) Authorised share capital: ………………………............…………….
+(b) Paid up share capital: ………………………………………………....
+(c) Net worth/Shareholders funds. ………………………...……………..
+(d) Composition of paid up capital and insurance funds…….....…………
+16. Deposits made under section 38 of the Act: …………………………….....
+17. Insurance business intended to be transacted: state whether life or non-life or
+Health Membership Organisations………....................................................
+18. Please	 fill	 in	 the	 personal	 questionnaire	 form	 which	 is	 downloaded	 from	
+our website on www.ira.go.ug	 (for	 each	 of	 the	 Directors,	 Senior	 Officer	
+and	Principal	Officer)	and	Significant	Shareholders	to	be	filled	at	least	once	
+every three years.
+19. (a) Has	any	member	of	Staff	in	the	past	five	years	been	convicted	of	any	
+offence involving fraud or dishonesty?    …………….....................
+(b) If yes give full details on a separate paper.
+20. (a)
+(b)
+Has any member of staff been adjudged to be bankrupt or com-
+pounded with Creditors?…..
+If yes give full details on a separate paper.
+21. (a) Has any member of staff been involved in the management of any 
+insurance	institution	or	financial	institution	which	has	been	wound	
+up	in	the	last	five	years?………………………….
+(b) If yes give full details on a separate paper.
+22. Indicate the nature of interest (if any) of any member of staff in any 
+institution licensed under the Act.
+(i) Date of last valuation ………………….…………………
+(ii) Date of submission of the valuation report …………........
+Annual Accounts
+(i) Date of submission of accounts to IRA……………………..
+(ii) Date of last annual meeting of shareholders…………….....
+(iii) Date of submission of minutes of the above meeting to the IRA
+(iv) Date of when accounts were published (indicate the news -
+papers) …………................................................................
+23. List all brokers who you intend to place business with……..…………….....
+24. List	and	attach	information	on	contracts	with	affiliates	(see	Appendix	..…..)
+25. List and attaché information on contracts with any outsourcing arrangements
+4936
+26. I, the undersigned, (name) ………………………………………………...
+being	the	Chief	Executive	Officer	confirm	that	I	have	carefully	studied	all	
+the information hereinabove and hereby certify that the information con -
+tained herein and documents submitted are true and accurate to the best of 
+my knowledge and belief.
+Name ……………………….
+Signature …………………..
+Date …………………………
+ENCLOSURES TO THE APPLICATION FORM
+1.	 	Certified	copy	of	the	applicant	constitutes	documents	and	certificate	of	
+incorporation, or other document by which the applicant is constituted.
+2. If the applicant is associated with other companies or entities, an 
+organogram showing the relationship with the associated companies 
+and entities, together with any parallel companies; the position of 
+each associated company and the relationship between the associated 
+companies or entities; the shareholdings held by each of the associated 
+companies or entities and a general description of the activities of each 
+of the associated companies or entities.
+3. Written consent to act for the person appointed, or proposed to be appointed, 
+as the applicant’s auditor; and if applicable, the person appointed, or 
+proposed to be appointed, as the applicant’s appointed actuary.
+4.	 A 	business	plan	signed	by	the	Chief	Executive	Officer	and	the	Chair	
+of the board that complies with the Schedule and any Guidance issued 
+by the Authority.
+5.	 The	 most	 recent	 audited	 financial	 statements	 of	 the	 applicant,	 the	
+applicant’s	 holding	 company	 and	 consolidated	 group	 financial	
+statements, if any.
+6. Details of the reinsurance arrangements proposed by the applicant or, 
+in the case of a relicensed insurer, proposed retrocession arrangements 
+(To be submitted annually for Non-life Companies); and
+7. Evidence that the security deposit required by section 38 of the Act 
+has been placed with a commercial bank.
+4937
+Regulation 11
+Form 2
+Licence to transact insurance business
+The Insurance Regulatory Authority of Uganda pursuant to its Authority 
+under Section 35 of the Insurance Act 2017, hereby grants this licence to
+Company Name:  ……………………………………………...........
+Address:  ……………………………………………………..……
+Category of Licence: .…………………………………………………………
+Date of Issue:  ………………………………………………........
+This licence is subject to the provisions of the Insurance Act, 2017 the 
+Regulations thereunder and the Conditions hereby given and shall remain 
+valid from the date of issue unless varied, suspended or revoked. 
+CONDITIONS
+1……………………………………………………………………………
+2……………………………………………………………………………
+3……………………………………………………………………………
+…………………………………. 
+Chief	Executive	Officer
+4938
+Regulation 47(1), (3)
+Form 3
+Application for approval of text or format of the policy or the proposal 
+form for insurance product
+1. Company Name
+2. Product Name
+Licensed insurer policy form 
+number
+3. Product status New
+Revamped / Redesigned
+Whether Bundled Product
+4. Need the product addresses
+5. Product target market
+6. Product Marketing strategy
+7. Date of submission of this Application 
+to the Authority
+Additional / Support Documents Submitted
+8. Indicate additional / Support documents attached to this application (tick were 
+applicable)
+The policy (wording) Document   
+The Proposal form
+The Claim form
+The Key Features Statement
+The Marketing / Product brochure.
+The Premium rating structure clearly showing 
+expenses and commissions for both reinsurance and 
+others payable to intermediaries.
+The Actuarial Report for life insurance products. 
+Service Level Agreement between an intermediary 
+and	an	licensed	insurer	where	there	is	significant	
+collaboration in product design, pricing and market-
+ing of an insurance product
+The Reinsurance agreement/statement. 
+Copy of agreement on proposed arrangement be-
+tween underwriters (for a bundled product)
+The Product Business plan (for at least three years.) 
+4939
+Statement	of	Compliance	and	sign	off	by	the	Chief	Executive	Officer	of	the	applicant
+9. I,	affirm	that	this	product	has	been	internally	reviewed	by	the	Company,	and	is	in	
+compliance with the Authority’s guidance on insurance products, the Insurance Act 
+and the Regulations thereunder.
+Name …………………………………………….................……………………
+Signature ………………………………………....................................................
+Date …………………………………………........................................................
+4940
+Regulation 47(8)
+Form 4 
+Approval	Certificate	of	text	or	format	of	the	policy	or	proposal	form
+The Insurance Regulatory Authority of Uganda pursuant to its powers under 
+section 65 of the Insurance Act 2017, and the Regulations made thereunder 
+hereby approves the the text or format of the policy or the proposal form: 
+Product :  ……………………………………….............……
+Company:  …………………………………….........…………
+Category of Business: .…………………………………………............……..
+Date of approval: ……………….………………………………......
+This approval is subject to the following conditions and shall remain valid 
+from the date of issue unless varied, suspended or revoked. 
+CONDITIONS
+1……………………………………………………………………………
+2……………………………………………………………………………
+3…………………………………………………………………................
+…………………………………
+Chief	Executive	Officer	
+…………………......…………….
+MATIA KASAIJA (M.P)
+Minister of Finance, Planning and Economic Development.
