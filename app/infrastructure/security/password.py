@@ -7,6 +7,8 @@ change for any existing bcrypt hashes stored without pre-hash.
 
 import base64
 import hashlib
+import secrets
+import string
 
 import bcrypt
 
@@ -33,3 +35,30 @@ def get_password_hash(password: str) -> str:
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(_prehash(password), salt)
     return hashed.decode("utf-8")
+
+
+def generate_secure_password(length: int = 16) -> str:
+    """Return a cryptographically secure password with guaranteed complexity.
+
+    Guarantees at least one lowercase, one uppercase, one digit and one special
+    character; remaining positions come from the full alphabet, then the whole
+    string is shuffled so the guaranteed characters are not always first.
+
+    Used where the system must set a password nobody is meant to know (operator
+    tenant provisioning, invited members): the account is reached through a
+    one-time token instead.
+    """
+    if length < 8:
+        raise ValueError("Generated passwords must be at least 8 characters")
+    special = "!@#$%^&*-_=+"
+    alphabet = string.ascii_letters + string.digits + special
+    rng = secrets.SystemRandom()
+    chars = [
+        rng.choice(string.ascii_lowercase),
+        rng.choice(string.ascii_uppercase),
+        rng.choice(string.digits),
+        rng.choice(special),
+    ]
+    chars += [rng.choice(alphabet) for _ in range(length - len(chars))]
+    rng.shuffle(chars)
+    return "".join(chars)
