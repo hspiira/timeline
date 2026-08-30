@@ -41,7 +41,36 @@ function eagerVendorChunk(id: string): string | undefined {
   return EAGER_VENDORS.find(([, match]) => match.test(pkg))?.[0]
 }
 
+/**
+ * CSP for the dev server only.
+ *
+ * In production the API serves these files and its SecurityHeadersMiddleware sets
+ * the real policy as a response header, which is the stronger form: a meta tag
+ * cannot carry frame-ancestors. Dev needs its own because vite serves the files
+ * here, and without it the two environments disagree about what is allowed —
+ * which is where this class of bug hides.
+ *
+ * Vite injects its client over a websocket, hence ws:. There is no
+ * script-src 'unsafe-inline': nothing inlines a bootstrap script any more.
+ */
+const DEV_CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data:",
+  "connect-src 'self' ws: wss: http://localhost:8000",
+  "frame-ancestors 'none'",
+].join('; ')
+
 const config = defineConfig({
+  server: {
+    headers: {
+      'Content-Security-Policy': DEV_CSP,
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+    },
+  },
   plugins: [
     devtools(),
     // this is the plugin that enables path aliases
