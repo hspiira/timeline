@@ -124,3 +124,164 @@ a failing check.
   needs every contributor's agreement.
 - `git log --follow` works across the move for API files. The subtree gives the web
   history a second root, which is expected and harmless.
+
+---
+
+# Deployment: one origin, one process
+
+The API serves the web client rather than the two running on separate ports. This
+is a decision about what sits at `/`, not about demoting the API: `/api/v1/*` stays
+a first-class, documented surface, because the Embedded model and the planned MCP
+surface both need it directly addressable.
+
+## What it buys
+
+| | |
+|---|---|
+| **CORS stops existing** | `allowed_origins` becomes dead configuration, and the CORS troubleshooting section in the web README stops being needed |
+| **Cookies stop being fragile** | `_set_refresh_cookie` currently needs `SameSite=None; Secure` to survive a cross-origin request, which browsers restrict further every year. Same-origin it works with `SameSite=Lax` |
+| **CSP collapses** | `connect-src 'self'`, with no per-environment origin list |
+| **One container** | The point of self-host as a product. A district office runs one thing, not two |
+
+## The path split
+
+`app/pages/` already serves `/` today through `render_root_page` (`app/main.py:77`).
+Keep it and give it the rest of the public surface.
+
+| Path | Served by | Why there |
+|---|---|---|
+| `/`, `/verify/*` | `app/pages/` | Public and crawlable, works without JavaScript, and a third party verifying a record does not wait on a bundle. The verify page is the one thing that must work for someone who does not trust you |
+| `/app/*` | the built SPA | Everything behind a login, where server rendering buys nothing |
+| `/api/v1/*` | `api_router` | Unchanged |
+| `/docs`, `/openapi.json` | Scalar | See the gating note below |
+
+This settles a contradiction in the audit. `CTO-TECHNICAL-AUDIT.md` lists `app/pages/`
+as a delete-unconditionally candidate on the grounds that the React client already
+renders these screens. Once the client is purely client-rendered, that reasoning
+inverts and `app/pages/` becomes the right home for the public surface. Deleting it
+today would remove the handler for `/`.
+
+## Route ordering — the trap
+
+Starlette matches routes in the order they are registered. A catch-all for client
+routing must therefore be registered **after** everything else in `create_app`:
+after `include_router(api_router, prefix="/api/v1")` at `app/main.py:75`, after `/`,
+after `/docs`, and after `/openapi.json`.
+
+Register it earlier and API requests return **200 with an HTML body** instead of
+JSON. Nothing raises, no log line looks wrong, and the client simply receives
+nonsense. It is the most expensive mistake available here because it does not
+announce itself.
+
+```python
+# LAST in create_app(), after every other route is registered.
+from fastapi.responses import FileResponse
+
+SPA_DIR = Path(__file__).resolve().parent.parent / "web"   # built dist/, copied in
+SPA_INDEX = SPA_DIR / "index.html"
+
+app.mount("/app/assets", StaticFiles(directory=SPA_DIR / "assets"), name="spa-assets")
+
+@app.get("/app/{spa_path:path}", include_in_schema=False)
+def spa(spa_path: str) -> FileResponse:
+    """Hand every client route the shell; the router resolves it in the browser."""
+    return FileResponse(
+        SPA_INDEX,
+        headers={"Cache-Control": "no-cache, must-revalidate"},
+    )
+```
+
+Scoping the catch-all under `/app/` rather than `/` is what makes the ordering safe
+by construction instead of by discipline. A future route added below it cannot be
+shadowed.
+
+**Health endpoints must not fall through.** A catch-all at `/` would answer a
+mistyped health path with 200 HTML, and an orchestrator would call that healthy.
+Under `/app/` this cannot happen, which is a second reason to scope it.
+
+## Cache headers — the one that will bite
+
+This is the same failure the SPA rebuild fixed at build time, arriving again at
+deploy time.
+
+| Asset | Header | Consequence of getting it wrong |
+|---|---|---|
+| `index.html` | `Cache-Control: no-cache, must-revalidate` | A cached shell keeps naming chunk files that the next deploy deleted. The browser requests a hashed file that no longer exists and the app fails with "Failed to fetch dynamically imported module" — the exact symptom this project already spent time on |
+| `assets/*.js`, `assets/*.css` | `Cache-Control: public, max-age=31536000, immutable` | Safe because the filenames are content-hashed. Without it every navigation refetches the whole bundle, which matters on a slow connection |
+
+`StaticFiles` does not do this by default. The `FileResponse` above sets the shell's
+header explicitly; give the mounted assets theirs in the same middleware that
+already sets security headers, keyed on the path prefix. Both halves are required:
+an immutable `index.html` breaks deploys, and a `no-cache` bundle wastes bandwidth
+on exactly the connections that can least afford it.
+
+## Keep development and production identical
+
+The remaining asymmetry: in development vite serves the client on 3000 and the API
+answers on 8000; in production they are one origin. Anything that only works in one
+of those will ship.
+
+Remove the difference rather than documenting it:
+
+1. Have the client call **relative** `/api/v1/...` always. `VITE_API_URL` stops existing.
+2. Add a dev proxy so the relative path resolves:
+
+```ts
+// vite.config.ts
+server: {
+  proxy: { '/api': { target: 'http://localhost:8000', changeOrigin: true } },
+}
+```
+
+The request path is then byte-identical in both environments, and no code branches
+on which one it is running in. Worth doing whether or not the repositories merge.
+
+## Gate the API documentation
+
+`docs_url` and `redoc_url` are already `None` (`app/main.py:45-46`) and Scalar is
+mounted at `/docs`. Once the application answers on a public origin, so does the
+full API surface, and `openapi.json` is served unauthenticated by default.
+
+For a product sold to institutions that run vendor due diligence, an open API
+reference is a finding. Require authentication in production, or disable both and
+publish the reference separately.
+
+There is a second reason. `SecurityHeadersMiddleware` currently carries
+`script-src 'unsafe-inline'` and `cdn.jsdelivr.net` **only** so Scalar renders.
+Dropping documentation from the production image lets the policy tighten to
+`script-src 'self'`, which is what the client rebuild made possible by removing the
+last inline bootstrap.
+
+## Build and release
+
+Multi-stage, so Node is a build dependency and never a runtime one:
+
+```dockerfile
+FROM node:22-slim AS web
+WORKDIR /web
+COPY apps/web/package.json apps/web/pnpm-lock.yaml ./
+RUN corepack enable && pnpm install --frozen-lockfile
+COPY apps/web/ ./
+RUN pnpm build                      # -> /web/dist
+
+FROM python:3.12-slim
+WORKDIR /srv
+COPY apps/api/ ./
+RUN pip install uv && uv sync --frozen --extra storage
+COPY --from=web /web/dist ./web     # what SPA_DIR points at
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+**Releases become atomic**, which removes client/API version skew — half the reason
+the `generate:api` drift check exists. The cost is that a client-only change
+restarts the API, so use a rolling restart: this system takes writes that must not
+be interrupted mid-transaction.
+
+## Known costs, accepted
+
+- **Python serves static files more slowly than a dedicated proxy.** Fine at current
+  scale. If the public verify pages ever take real traffic, put a reverse proxy in
+  front rather than adding workers.
+- **CI gets slower**, because the image build now needs a Node stage.
+- **`vercel.json` becomes meaningless.** Delete it with the Phase 2 re-platform, not
+  during this move. One change at a time.
