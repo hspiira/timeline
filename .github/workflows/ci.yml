@@ -18,6 +18,13 @@ jobs:
   backend:
     runs-on: ubuntu-latest
 
+    # Monorepo move: change this one line to apps/api and add a paths filter to
+    # the triggers above. Every run step inherits it, so no step needs editing.
+    # (uses: steps are unaffected by working-directory, which is correct here.)
+    defaults:
+      run:
+        working-directory: .
+
     services:
       postgres:
         image: postgres:16

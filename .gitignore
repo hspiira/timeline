@@ -1,10 +1,10 @@
 # Python-generated files
+# (/docs/ was ignored here, which quietly broke every docs/ link in the README.)
 __pycache__/
 *.py[oc]
 build/
 dist/
 wheels/
-/docs/
 *.egg-info
 
 # Environment files (never commit). Only .env.example is safe to track.

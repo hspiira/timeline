@@ -8,8 +8,15 @@ validated at load time.
 from functools import lru_cache
 from typing import Literal
 
+from pathlib import Path
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+# Directory holding pyproject.toml: this file is app/core/config.py, so three
+# parents up. Used to resolve files that belong to the project rather than to
+# whatever directory a command happened to be run from.
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 class Settings(BaseSettings):
@@ -173,7 +180,12 @@ class Settings(BaseSettings):
     telemetry_environment: str = "development"
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        # Anchored to the project directory rather than the process working
+        # directory. A relative ".env" resolves against wherever the command was
+        # run from, so the API picked up a different file (or none) depending on
+        # whether you started it from the project root or a parent. That becomes a
+        # silent failure once this package sits under apps/api in a monorepo.
+        env_file=_PROJECT_ROOT / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,

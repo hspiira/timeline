@@ -1,7 +1,11 @@
 # Timeline project Makefile (optional)
 # Run: make <target>
 
-.PHONY: audit-deps test
+.PHONY: dev audit-deps test test-all
+
+# Start the API and the web client together. One Ctrl-C stops both.
+dev:
+	uv run python -m scripts.dev
 
 # Run pip-audit to check for known vulnerabilities (install: uv add --dev pip-audit).
 audit-deps:
