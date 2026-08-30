@@ -1,0 +1,19 @@
+node_modules
+.DS_Store
+dist
+dist-ssr
+*.local
+count.txt
+.env
+.nitro
+.tanstack
+.wrangler
+.output
+.vinxi
+todos.json
+.cursor
+*.cursor/*
+docs/
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/

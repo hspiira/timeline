@@ -1,0 +1,325 @@
+/* @import must come first (before Tailwind expands) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cascadia+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+@import 'tailwindcss';
+
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+html,
+body {
+  @apply m-0 overflow-x-hidden;
+  width: 100%;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: 'Cascadia Mono', ui-monospace, source-code-pro, Menlo, Monaco, Consolas, monospace;
+}
+
+:root {
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.15 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0 0);
+  --primary: oklch(0.20 0 0);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0 0);
+  --secondary-foreground: oklch(0.20 0 0);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.50 0 0);
+  --accent: oklch(0.95 0 0);
+  --accent-foreground: oklch(0.20 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.92 0 0);
+  --input: oklch(0.90 0 0);
+  --ring: oklch(0.40 0 0);
+  --chart-1: oklch(0.50 0 0);
+  --chart-2: oklch(0.60 0 0);
+  --chart-3: oklch(0.40 0 0);
+  --chart-4: oklch(0.70 0 0);
+  --chart-5: oklch(0.55 0 0);
+  --radius: 0;
+  --radius-xs: 0;
+  --sidebar: oklch(0.97 0 0);
+  --sidebar-foreground: oklch(0.15 0 0);
+  --sidebar-primary: oklch(0.20 0 0);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.95 0 0);
+  --sidebar-accent-foreground: oklch(0.20 0 0);
+  --sidebar-border: oklch(0.92 0 0);
+  --sidebar-ring: oklch(0.40 0 0);
+  --dashboard-accent: oklch(0.55 0.12 195);
+  --dashboard-accent-muted: oklch(0.92 0.04 195);
+  /* Semantic status (integrity badges, connector status) */
+  --status-ok: oklch(0.55 0.15 145);
+  --status-ok-foreground: oklch(0.99 0 0);
+  --status-warn: oklch(0.65 0.15 70);
+  --status-warn-foreground: oklch(0.20 0.05 70);
+  --status-error: oklch(0.55 0.22 27);
+  --status-error-foreground: oklch(0.99 0 0);
+  --status-repair: oklch(0.55 0.15 270);
+  --status-repair-foreground: oklch(0.99 0 0);
+}
+
+.dark {
+  --background: #13120a;
+  --foreground: oklch(0.95 0 0);
+  --card: oklch(0.12 0 0);
+  --card-foreground: oklch(0.95 0 0);
+  --popover: oklch(0.12 0 0);
+  --popover-foreground: oklch(0.95 0 0);
+  --primary: oklch(0.95 0 0);
+  --primary-foreground: oklch(0.15 0 0);
+  --secondary: oklch(0.20 0 0);
+  --secondary-foreground: oklch(0.95 0 0);
+  --muted: oklch(0.20 0 0);
+  --muted-foreground: oklch(0.60 0 0);
+  --accent: oklch(0.18 0 0);
+  --accent-foreground: oklch(0.95 0 0);
+  --destructive: oklch(0.50 0.20 27);
+  --destructive-foreground: oklch(0.95 0 0);
+  --border: oklch(0.25 0 0);
+  --input: oklch(0.22 0 0);
+  --ring: oklch(0.50 0 0);
+  --chart-1: oklch(0.50 0 0);
+  --chart-2: oklch(0.60 0 0);
+  --chart-3: oklch(0.40 0 0);
+  --chart-4: oklch(0.70 0 0);
+  --chart-5: oklch(0.55 0 0);
+  /* Sidebar darker than content, with trace of warmth to match --background */
+  --sidebar: oklch(0.07 0.008 100);
+  --sidebar-foreground: oklch(0.95 0 0);
+  --sidebar-primary: oklch(0.30 0 0);
+  --sidebar-primary-foreground: oklch(0.95 0 0);
+  --sidebar-accent: oklch(0.20 0 0);
+  --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-border: oklch(0.16 0.005 100);
+  --sidebar-ring: oklch(0.50 0 0);
+  --dashboard-accent: oklch(0.70 0.10 195);
+  --dashboard-accent-muted: oklch(0.22 0.04 195);
+  --status-ok: oklch(0.60 0.18 145);
+  --status-ok-foreground: oklch(0.99 0 0);
+  --status-warn: oklch(0.70 0.16 70);
+  --status-warn-foreground: oklch(0.15 0.05 70);
+  --status-error: oklch(0.55 0.22 27);
+  --status-error-foreground: oklch(0.99 0 0);
+  --status-repair: oklch(0.60 0.18 270);
+  --status-repair-foreground: oklch(0.99 0 0);
+}
+
+.font-display {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+@theme inline {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Cascadia Mono', ui-monospace, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-xs: var(--radius-xs);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-status-ok: var(--status-ok);
+  --color-status-ok-foreground: var(--status-ok-foreground);
+  --color-status-warn: var(--status-warn);
+  --color-status-warn-foreground: var(--status-warn-foreground);
+  --color-status-error: var(--status-error);
+  --color-status-error-foreground: var(--status-error-foreground);
+  --color-status-repair: var(--status-repair);
+  --color-status-repair-foreground: var(--status-repair-foreground);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ── Workflow builder React Flow overrides ────────────────── */
+
+.workflow-canvas .react-flow__handle {
+  transition: opacity 0.15s ease, transform 0.15s ease, background-color 0.15s ease;
+}
+.workflow-canvas .react-flow__handle:hover {
+  opacity: 1 !important;
+  transform: scale(1.4);
+}
+
+.workflow-canvas .react-flow__edge-path {
+  stroke: var(--color-foreground);
+  stroke-opacity: 0.5;
+  transition: stroke-opacity 0.15s ease;
+}
+.workflow-canvas .react-flow__edge:hover .react-flow__edge-path,
+.workflow-canvas .react-flow__edge.selected .react-flow__edge-path {
+  stroke-opacity: 0.85;
+}
+
+.workflow-canvas .react-flow__edge .react-flow__edge-textwrapper {
+  pointer-events: none;
+}
+.workflow-canvas .react-flow__edge-text {
+  font-size: 10px;
+  font-weight: 500;
+  fill: var(--color-muted-foreground);
+}
+
+.workflow-canvas .react-flow__connection-path {
+  stroke: var(--color-muted-foreground);
+  stroke-width: 1.5;
+  opacity: 0.5;
+}
+
+/* Arrow marker on edges */
+.workflow-canvas .react-flow__arrowhead polyline,
+.workflow-canvas .react-flow__arrowhead polygon {
+  fill: var(--color-foreground);
+  stroke: var(--color-foreground);
+  stroke-opacity: 0.5;
+}
+
+/* Subtle node focus ring */
+.workflow-canvas .react-flow__node:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+/* ── Landing page ──────────────────
+   Flat dark ground, no cards. The one light sits off to the right so it never
+   passes under the headline and lowers its contrast. Literal rgba rather than
+   theme tokens: --color-* comes from @theme inline and does not track .dark. */
+
+.landing-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.landing-glow {
+  position: absolute;
+  top: 4%;
+  right: -20%;
+  width: 62rem;
+  height: 44rem;
+  border-radius: 9999px;
+  background: radial-gradient(ellipse at center, rgba(36, 221, 123, 0.09), transparent 62%);
+  filter: blur(60px);
+}
+
+.landing-floor {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.018), transparent 34%);
+}
+
+/* ── Hero copy ────────────────── */
+
+.landing-accent {
+  color: #24dd7b;
+}
+
+/* ── Buttons ────────────────── */
+
+.landing-cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.6rem;
+  border-radius: 0.5rem;
+  background: #24dd7b;
+  color: #06210f;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.landing-cta:hover {
+  background: #3ce68d;
+  box-shadow: 0 8px 24px rgba(36, 221, 123, 0.2);
+}
+
+.landing-cta:focus-visible {
+  outline: 2px solid rgba(36, 221, 123, 0.6);
+  outline-offset: 3px;
+}
+
+.landing-ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.82);
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.landing-ghost-btn:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+}
+
+.landing-ghost-btn:focus-visible {
+  outline: 2px solid rgba(36, 221, 123, 0.6);
+  outline-offset: 3px;
+}
+
+/* Packs / how-it-works section rows */
+.landing-step {
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.landing-step:hover {
+  border-color: rgba(36, 221, 123, 0.28);
+  background: rgba(255, 255, 255, 0.035);
+}
