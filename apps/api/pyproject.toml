@@ -64,6 +64,10 @@ dev = [
     "autoflake>=2.3.1",
     "flake8>=7.0.0",
     "mypy>=1.11.0",
+    # aiofiles ships no types. This was installed ad hoc in a local venv and never
+    # declared, so `mypy app` was clean locally and would have failed on a fresh
+    # checkout, where CI runs it with no ratchet.
+    "types-aiofiles>=24.1.0",
     # Security
     "pip-audit>=2.7.0",
 ]
