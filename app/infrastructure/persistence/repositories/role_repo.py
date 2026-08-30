@@ -75,7 +75,7 @@ class RoleRepository(AuditableRepository[Role]):
             is_system=is_system,
             is_active=is_active,
         )
-        created = await self.create(role)
+        created = await self.create_entity(role)
         return _role_to_result(created)
 
     async def get_by_code_and_tenant(
@@ -124,7 +124,7 @@ class RoleRepository(AuditableRepository[Role]):
         if not role or role.is_system:
             return None
         role.is_active = False
-        updated = await self.update(role)
+        updated = await self.update_entity(role)
         await self.emit_custom_audit(updated, AuditAction.DEACTIVATED)
         return _role_to_result(updated)
 
@@ -134,7 +134,7 @@ class RoleRepository(AuditableRepository[Role]):
         if not role or role.is_system:
             return None
         role.is_active = True
-        updated = await self.update(role)
+        updated = await self.update_entity(role)
         await self.emit_custom_audit(updated, AuditAction.ACTIVATED)
         return _role_to_result(updated)
 

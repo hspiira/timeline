@@ -6,7 +6,7 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.persistence.models.password_set_token import PasswordSetToken
@@ -46,19 +46,24 @@ class PasswordSetTokenStore:
         await self._session.flush()
         return (raw, expires_at)
 
-    async def redeem(self, token: str) -> str | None:
-        """If token is valid and not expired/used, mark used and return user_id; else None."""
-        token_hash = self._hash_token(token)
-        now = utc_now()
+    async def redeem(self, token: str) -> tuple[str, str] | None:
+        """Claim a valid, unused, unexpired token. Return (user_id, tenant_id) or None.
+
+        Goes through the ``redeem_password_set_token`` database function (migration
+        h6i7j8k9l0m1) rather than querying directly. Setting an initial password
+        happens before sign-in, so there is no tenant context, and
+        ``password_set_token`` is behind row-level security — a direct read finds
+        nothing and a valid link looks expired.
+
+        The function also claims the token in one statement, so two simultaneous
+        redemptions cannot both succeed. The tenant id comes back so the caller can
+        establish tenant context for the password write that follows.
+        """
         result = await self._session.execute(
-            select(PasswordSetToken)
-            .where(PasswordSetToken.token_hash == token_hash)
-            .where(PasswordSetToken.used_at.is_(None))
-            .where(PasswordSetToken.expires_at > now)
+            text(
+                "SELECT user_id, tenant_id FROM redeem_password_set_token(:token_hash)"
+            ),
+            {"token_hash": self._hash_token(token)},
         )
-        row = result.scalar_one_or_none()
-        if not row:
-            return None
-        row.used_at = now
-        await self._session.flush()
-        return row.user_id
+        row = result.first()
+        return (row[0], row[1]) if row else None

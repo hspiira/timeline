@@ -6,7 +6,7 @@ database sessions can run SET LOCAL app.current_tenant_id and RLS policies apply
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Awaitable, Callable
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -37,7 +37,11 @@ def TenantContextMiddleware(app: Callable) -> Callable:
     """Set tenant context (for RLS) from header or JWT before route runs."""
 
     class _Middleware(BaseHTTPMiddleware):
-        async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        async def dispatch(
+            self,
+            request: Request,
+            call_next: Callable[[Request], Awaitable[Response]],
+        ) -> Response:
             tenant_id = _tenant_id_from_request(request)
             set_tenant_id(tenant_id)
             try:

@@ -7,7 +7,7 @@ import hashlib
 from collections.abc import AsyncIterator
 from datetime import timedelta
 from io import BytesIO
-from typing import Any, BinaryIO
+from typing import Any, BinaryIO, cast
 
 import boto3
 from botocore.exceptions import ClientError
@@ -154,7 +154,7 @@ class S3StorageService:
         def _get() -> bytes:
             try:
                 resp = self._client.get_object(Bucket=self.bucket, Key=storage_ref)
-                return resp["Body"].read()
+                return cast(bytes, resp["Body"].read())
             except ClientError as e:
                 if e.response["Error"]["Code"] == "NoSuchKey":
                     raise StorageNotFoundError(f"File not found: {storage_ref}") from e
@@ -243,11 +243,12 @@ class S3StorageService:
                 if e.response["Error"]["Code"] == "404":
                     raise StorageNotFoundError(f"File not found: {storage_ref}") from e
                 raise StorageDownloadError(storage_ref, str(e)) from e
-            return self._client.generate_presigned_url(
+            url: str = self._client.generate_presigned_url(
                 "get_object",
                 Params={"Bucket": self.bucket, "Key": storage_ref},
                 ExpiresIn=int(expiration.total_seconds()),
             )
+            return url
 
         try:
             return await asyncio.to_thread(_presign)

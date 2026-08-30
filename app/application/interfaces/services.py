@@ -97,16 +97,6 @@ class IEventService(Protocol):
     ) -> EventEntity:
         """Create a new event with cryptographic chaining and optional schema validation."""
 
-    async def create_events_bulk(
-        self,
-        tenant_id: str,
-        events: list[EventCreate],
-        *,
-        skip_schema_validation: bool = False,
-        trigger_workflows: bool = False,
-    ) -> list[EventEntity]:
-        """Bulk create events (e.g. email sync)."""
-
 
 # Workflow engine interface
 class IWorkflowEngine(Protocol):
@@ -170,8 +160,8 @@ class IAuditService(Protocol):
         actor_id: str | None = None,
         actor_type: ActorType | None = None,
         metadata: dict[str, Any] | None = None,
-    ) -> None:
-        """Emit one audit event."""
+    ) -> Any:
+        """Emit one audit event and return the stored row, or None if auditing is off."""
 
 
 # API audit log service interface (general audit log table, not event store)

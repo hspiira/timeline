@@ -10,7 +10,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import update
+from typing import cast
+
+from sqlalchemy import CursorResult, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -52,7 +54,7 @@ async def purge_oauth_audit_pii(
         .values(ip_address=None, user_agent=None)
     )
     result = await db.execute(stmt)
-    count = result.rowcount
+    count = cast(CursorResult, result).rowcount
     if count:
         logger.info(
             "OAuth audit PII purge: anonymized %s row(s) older than %s days",

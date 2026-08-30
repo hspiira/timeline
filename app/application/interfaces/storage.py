@@ -23,8 +23,9 @@ class IStorageService(Protocol):
     ) -> dict[str, Any]:
         """Upload file with checksum verification. Idempotent if same checksum."""
 
-    async def download(self, storage_ref: str) -> AsyncIterator[bytes]:
-        """Stream file content."""
+    def download(self, storage_ref: str) -> AsyncIterator[bytes]:
+        """Stream file content. Not ``async def``: implementations are async
+        generators, so this returns the iterator rather than a coroutine."""
 
     async def delete(self, storage_ref: str) -> bool:
         """Delete file. Returns True if deleted, False if not found."""

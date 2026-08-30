@@ -3,5 +3,9 @@
     "allow": [
       "Bash(npx tsc:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "graft"
+  ],
+  "enableAllProjectMcpServers": true
 }

@@ -12,6 +12,7 @@ from app.application.dtos.event import EventCreate
 from app.connectors.base import ConnectorEvent, ConnectorHealth, IConnector
 
 if TYPE_CHECKING:
+    from fastapi import FastAPI
     from app.application.use_cases.events import EventService
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -123,7 +124,7 @@ class ConnectorRunner:
 
 def make_event_service_factory(
     session_factory: "async_sessionmaker[AsyncSession]",
-    app: object | None = None,
+    app: "FastAPI | None" = None,
 ) -> Callable[[str], AbstractAsyncContextManager["EventService"]]:
     """Build an async context manager factory that yields EventService per tenant_id.
 

@@ -43,7 +43,11 @@ async def run_rls_check(
     if not app_role:
         parsed = urlparse(database_url)
         if parsed.username:
-            app_role = parsed.username
+            # Connection poolers route by appending the project reference to the
+            # username, e.g. Supabase's "postgres.abcdefgh" for the role "postgres".
+            # Taking the username verbatim looked up a role that does not exist and
+            # reported "Role not found" against a perfectly healthy database.
+            app_role = parsed.username.split(".", 1)[0]
         else:
             return RLSCheckResult(
                 ok=False,

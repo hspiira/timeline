@@ -41,7 +41,7 @@ class TsaAnchorRepository(BaseRepository[TsaAnchor]):
             tsa_reported_time=tsa_reported_time,
             verification_status=TsaVerificationStatus.PENDING,
         )
-        return await self.create(anchor)
+        return await self.create_entity(anchor)
 
     async def update_verification_status(
         self,
@@ -51,7 +51,7 @@ class TsaAnchorRepository(BaseRepository[TsaAnchor]):
         verified_at: datetime | None = None,
     ) -> TsaAnchor | None:
         """Update verification_status (and optionally verified_at). Returns updated row or None."""
-        row = await self.get_by_id(anchor_id)
+        row = await self.get_entity_by_id(anchor_id)
         if not row:
             return None
         row.verification_status = (

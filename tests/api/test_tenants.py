@@ -81,8 +81,16 @@ async def test_create_tenant_admin_initial_password_too_short_returns_422(
 async def test_create_tenant_when_secret_not_configured_returns_503(
     client: AsyncClient,
 ) -> None:
-    """POST /api/v1/tenants returns 503 when CREATE_TENANT_SECRET is not set."""
-    env_prev = os.environ.pop("CREATE_TENANT_SECRET", None)
+    """POST /api/v1/tenants returns 503 when CREATE_TENANT_SECRET is not set.
+
+    Sets the variable to empty rather than removing it: settings also load from a
+    local .env file, so simply popping the environment variable leaves a value in
+    place on any machine whose .env defines one. An explicit empty environment
+    variable overrides the file, which keeps this test independent of the developer's
+    setup.
+    """
+    env_prev = os.environ.get("CREATE_TENANT_SECRET")
+    os.environ["CREATE_TENANT_SECRET"] = ""
     get_settings.cache_clear()
     try:
         response = await client.post(
@@ -94,6 +102,8 @@ async def test_create_tenant_when_secret_not_configured_returns_503(
     finally:
         if env_prev is not None:
             os.environ["CREATE_TENANT_SECRET"] = env_prev
+        else:
+            os.environ.pop("CREATE_TENANT_SECRET", None)
         get_settings.cache_clear()
 
 
@@ -130,10 +140,14 @@ async def test_create_tenant_with_wrong_secret_returns_401(client: AsyncClient) 
 @pytest.mark.requires_db
 async def test_create_tenant_with_correct_secret_returns_201(client: AsyncClient) -> None:
     """POST /api/v1/tenants with correct X-Create-Tenant-Secret returns 201 (requires Postgres)."""
-    from app.infrastructure.persistence.database import AsyncSessionLocal, _ensure_engine
+    from app.infrastructure.persistence import database as _database
+    from app.infrastructure.persistence.database import _ensure_engine
 
     _ensure_engine()
-    if AsyncSessionLocal is None:
+    # Read the module attribute, not a name bound at import time: _ensure_engine sets
+    # database.AsyncSessionLocal, so a direct "from ... import AsyncSessionLocal" keeps
+    # the None it was bound to and skips the test unconditionally.
+    if _database.AsyncSessionLocal is None:
         pytest.skip("Postgres not configured")
     if "CREATE_TENANT_SECRET" not in os.environ:
         os.environ["CREATE_TENANT_SECRET"] = _TEST_CREATE_TENANT_SECRET

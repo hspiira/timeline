@@ -103,4 +103,4 @@ async def delete_permission(
     perm = await permission_repo.get_by_id_and_tenant(permission_id, tenant_id)
     if not perm:
         raise HTTPException(status_code=404, detail="Permission not found")
-    await permission_repo.delete(perm)
+    await permission_repo.delete_entity(perm)

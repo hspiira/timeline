@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.api.v1.dependencies import (
     get_chain_repair_service,
@@ -16,7 +16,7 @@ from app.api.v1.dependencies import (
     require_permission,
 )
 from app.application.services.merkle_service import MerkleService
-from app.domain.enums import IntegrityEpochStatus, IntegrityProfile
+from app.domain.enums import ChainRepairStatus, IntegrityEpochStatus, IntegrityProfile
 from app.infrastructure.persistence.repositories import (
     EventRepository,
     IntegrityEpochRepository,
@@ -24,6 +24,7 @@ from app.infrastructure.persistence.repositories import (
 )
 from app.schemas.integrity import (
     ChainRepairCreateRequest,
+    ChainRepairListResponse,
     ChainRepairResponse,
     IntegrityEpochItem,
     IntegrityVerificationDetail,
@@ -171,7 +172,7 @@ async def get_merkle_proof_for_event(
             detail="Event is not associated with an integrity epoch",
         )
 
-    epoch = await epoch_repo.get_by_id(epoch_id)
+    epoch = await epoch_repo.get_entity_by_id(epoch_id)
     if not epoch:
         raise HTTPException(status_code=404, detail="Epoch not found")
     if IntegrityProfile(epoch.profile_snapshot) is not IntegrityProfile.LEGAL_GRADE:
@@ -230,7 +231,7 @@ async def initiate_chain_repair(
     _: Annotated[object, Depends(require_permission("tenant", "update"))] = None,
 ):
     """Initiate a chain repair request for a specific epoch."""
-    epoch = await epoch_repo.get_by_id(body.epoch_id)
+    epoch = await epoch_repo.get_entity_by_id(body.epoch_id)
     if not epoch or epoch.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Epoch not found")
     profile = IntegrityProfile(epoch.profile_snapshot)
@@ -271,6 +272,35 @@ async def approve_chain_repair(
         raise HTTPException(status_code=404, detail=str(e)) from e
 
     return _to_chain_repair_response(record)
+
+
+@router.get(
+    "/integrity/repair",
+    response_model=ChainRepairListResponse,
+)
+async def list_chain_repairs(
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    chain_repair_svc=Depends(get_chain_repair_service),
+    _: Annotated[object, Depends(require_permission("tenant", "read"))] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    repair_status: ChainRepairStatus | None = Query(
+        None, description="Filter by repair status, e.g. Pending Approval"
+    ),
+):
+    """List the tenant's chain repair records, newest break first."""
+    records, total = await chain_repair_svc.list_repairs(
+        tenant_id,
+        skip=skip,
+        limit=limit,
+        repair_status=repair_status,
+    )
+    return ChainRepairListResponse(
+        items=[_to_chain_repair_response(r) for r in records],
+        skip=skip,
+        limit=limit,
+        total=total,
+    )
 
 
 @router.get(

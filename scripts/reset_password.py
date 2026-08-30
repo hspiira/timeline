@@ -8,8 +8,8 @@ All imports use app.*.
 import asyncio
 import sys
 
-from app.infrastructure.persistence.database import AsyncSessionLocal, _ensure_engine
 from app.infrastructure.persistence.repositories import UserRepository
+from scripts._session import open_session, resolve_tenant_for_user
 
 
 async def main() -> None:
@@ -23,13 +23,9 @@ async def main() -> None:
     user_id = sys.argv[1]
     new_password = sys.argv[2]
 
-    _ensure_engine()
-    if AsyncSessionLocal is None:
-        print("AsyncSessionLocal not configured", file=sys.stderr)
-        sys.exit(1)
-
-    async with AsyncSessionLocal() as session:
+    async with open_session() as session:
         async with session.begin():
+            await resolve_tenant_for_user(session, user_id)
             user_repo = UserRepository(session, audit_service=None)
             user = await user_repo.update_password(user_id, new_password)
             if not user:

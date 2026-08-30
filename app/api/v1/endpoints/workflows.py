@@ -151,7 +151,7 @@ async def update_workflow(
         workflow.max_executions_per_day = body.max_executions_per_day
     if body.execution_order is not None:
         workflow.execution_order = body.execution_order
-    updated = await workflow_repo.update(workflow)
+    updated = await workflow_repo.update_entity(workflow)
     return WorkflowResponse.model_validate(updated)
 
 

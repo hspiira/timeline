@@ -56,7 +56,7 @@ class EmailAccountService:
         account.sync_status = "pending"
         account.sync_started_at = utc_now()
         account.sync_error = None
-        await self._repo.update(account)
+        await self._repo.update_entity(account)
 
     async def run_sync_now(self, account_id: str, tenant_id: str) -> None:
         """Run sync for the account (mark pending and execute sync). Use for in-process or background task.

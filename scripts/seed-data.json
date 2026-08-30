@@ -1,9 +1,9 @@
 {
   "_comment": "Dev seed data for Timeline. References: docs/DATABASE_SCHEMA.md. Use tenant_code and subject external_ref for references.",
   "tenants": [
-    { "code": "timeline", "name": "Timeline", "status": "active" },
-    { "code": "globex", "name": "Globex Inc", "status": "active" },
-    { "code": "initech", "name": "Initech LLC", "status": "active" }
+    { "code": "timeline", "name": "Timeline", "status": "Active" },
+    { "code": "globex", "name": "Globex Inc", "status": "Active" },
+    { "code": "initech", "name": "Initech LLC", "status": "Active" }
   ],
   "event_schemas": [
     {

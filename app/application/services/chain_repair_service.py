@@ -27,7 +27,7 @@ CHAIN_REPAIR_EVENT_TYPE = "CHAIN_REPAIR"
 
 
 class IChainRepairLogRepository(Protocol):
-    """Protocol for chain_repair_log persistence (initiate, approve)."""
+    """Protocol for chain_repair_log persistence (list, initiate, approve)."""
 
     async def create_log(
         self,
@@ -41,6 +41,14 @@ class IChainRepairLogRepository(Protocol):
         repair_reference: str | None,
     ) -> Any: ...
     async def get_by_id(self, repair_id: str) -> Any: ...
+    async def list_with_count(
+        self,
+        tenant_id: str,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        repair_status: ChainRepairStatus | None = None,
+    ) -> tuple[list[Any], int]: ...
     async def update_status(
         self,
         repair_id: str,
@@ -223,7 +231,7 @@ class ChainRepairService:
             return self._to_record(repair)
 
         # Load epoch to get subject and profile snapshot.
-        epoch = await self._epoch_repo.get_by_id(repair.epoch_id)
+        epoch = await self._epoch_repo.get_entity_by_id(repair.epoch_id)
         if not epoch:
             raise ValueError(f"Epoch id {repair.epoch_id!r} not found for repair")
         subject_id = epoch.subject_id
@@ -317,6 +325,26 @@ class ChainRepairService:
         if not row:
             raise ValueError(f"Repair id {repair_id!r} not found")
         return self._to_record(row)
+
+    async def list_repairs(
+        self,
+        tenant_id: str,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        repair_status: ChainRepairStatus | None = None,
+    ) -> tuple[list[ChainRepairRecord], int]:
+        """Return a page of a tenant's repair records and the unpaginated total.
+
+        Filter by ``PENDING_APPROVAL`` for the approval queue.
+        """
+        rows, total = await self._repair_repo.list_with_count(
+            tenant_id,
+            skip=skip,
+            limit=limit,
+            repair_status=repair_status,
+        )
+        return [self._to_record(row) for row in rows], total
 
     @staticmethod
     def _to_record(row: Any) -> ChainRepairRecord:

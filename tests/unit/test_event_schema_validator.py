@@ -24,6 +24,8 @@ def _schema(
         version=version,
         is_active=is_active,
         created_by=None,
+        # None = schema applies to any subject type, which is what these tests assume.
+        allowed_subject_types=None,
     )
 
 

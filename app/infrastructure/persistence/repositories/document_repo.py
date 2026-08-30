@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
-from sqlalchemy import and_, func, or_, select, update
+from sqlalchemy import CursorResult, and_, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dtos.document import DocumentCreate, DocumentResult
@@ -146,7 +146,7 @@ class DocumentRepository(AuditableRepository[Document]):
     async def create_document(self, document: DocumentCreate) -> DocumentResult:
         """Create document from write-model DTO; return read-model."""
         orm = _create_to_document(document)
-        created = await super().create(orm)
+        created = await super().create_entity(orm)
         return _document_to_result(created)
 
     async def mark_parent_not_latest_if_current(
@@ -166,7 +166,7 @@ class DocumentRepository(AuditableRepository[Document]):
             .values(is_latest_version=False)
         )
         result = await self.db.execute(stmt)
-        return result.rowcount == 1
+        return cast(CursorResult, result).rowcount == 1
 
     async def update(self, document: DocumentResult) -> DocumentResult:
         """Update document from DTO (e.g. is_latest_version, document_type); return updated DTO."""
@@ -176,7 +176,7 @@ class DocumentRepository(AuditableRepository[Document]):
         orm.is_latest_version = document.is_latest_version
         orm.deleted_at = document.deleted_at
         orm.document_type = document.document_type
-        updated = await super().update(orm, skip_existence_check=True)
+        updated = await super().update_entity(orm, skip_existence_check=True)
         return _document_to_result(updated)
 
     async def count_by_subjects_and_document_type(
@@ -306,6 +306,6 @@ class DocumentRepository(AuditableRepository[Document]):
         if not orm:
             return None
         orm.deleted_at = utc_now()
-        updated = await super().update(orm, skip_existence_check=True)
+        updated = await super().update_entity(orm, skip_existence_check=True)
         await self.emit_custom_audit(updated, AuditAction.DELETED)
         return _document_to_result(updated)

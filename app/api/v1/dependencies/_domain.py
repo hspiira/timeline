@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from contextlib import aclosing
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import Depends, FastAPI, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +19,7 @@ from app.application.services.document_category_metadata_validator import (
 from app.application.services.enrichment import (
     ActorEnricher,
     CorrelationEnricher,
+    IEventEnricher,
     SourceEnricher,
 )
 from app.application.services.event_schema_validator import EventSchemaValidator
@@ -98,9 +99,11 @@ from app.infrastructure.persistence.repositories import (
     ChainRepairLogRepository,
 )
 from app.infrastructure.services import (
-    InMemoryEventStreamBroadcaster,
     SystemAuditService,
     WorkflowEngine,
+)
+from app.infrastructure.services.event_stream_broadcaster import (
+    InMemoryEventStreamBroadcaster,
 )
 from app.infrastructure.services.post_create_hooks import (
     EventStreamBroadcastHook,
@@ -125,14 +128,14 @@ def _get_storage_from_request(request: Request) -> StorageProtocol:
     storage = getattr(request.app.state, "storage", None)
     if storage is None:
         return StorageFactory.create_storage_service()
-    return storage
+    return cast(StorageProtocol, storage)
 
 
 # ---------------------------------------------------------------------------
 # Event
 # ---------------------------------------------------------------------------
 
-DEFAULT_API_ENRICHERS = [
+DEFAULT_API_ENRICHERS: list[IEventEnricher] = [
     CorrelationEnricher(),
     ActorEnricher(),
     SourceEnricher(),
@@ -913,7 +916,10 @@ async def get_event_stream_broadcaster() -> InMemoryEventStreamBroadcaster:
     # In production, lifespan wires this; here we ensure a singleton for DI/tests.
     if not hasattr(get_event_stream_broadcaster, "_instance"):
         setattr(get_event_stream_broadcaster, "_instance", _Broadcaster())
-    return getattr(get_event_stream_broadcaster, "_instance")
+    return cast(
+        InMemoryEventStreamBroadcaster,
+        getattr(get_event_stream_broadcaster, "_instance"),
+    )
 
 
 async def get_projection_repo(

@@ -55,7 +55,7 @@ class TsaService:
 
     async def verify(self, anchor_id: str) -> bool:
         """Verify stored TSA token against payload_hash; update verification_status. Return True if valid."""
-        anchor = await self._repo.get_by_id(anchor_id)
+        anchor = await self._repo.get_entity_by_id(anchor_id)
         if not anchor:
             return False
         try:

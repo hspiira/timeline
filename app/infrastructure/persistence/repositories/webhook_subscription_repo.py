@@ -91,7 +91,7 @@ class WebhookSubscriptionRepository(BaseRepository[WebhookSubscription]):
             secret=data.secret,
             active=True,
         )
-        created = await super().create(row)
+        created = await super().create_entity(row)
         return _to_result(created)  # read model: no secret, secret_present=True
 
     async def get_by_id(
@@ -153,7 +153,7 @@ class WebhookSubscriptionRepository(BaseRepository[WebhookSubscription]):
             row.secret = data.secret
         if data.active is not None:
             row.active = data.active
-        updated = await super().update(row, skip_existence_check=True)
+        updated = await super().update_entity(row, skip_existence_check=True)
         return _to_result(updated)
 
     async def delete(self, tenant_id: str, subscription_id: str) -> None:
@@ -169,4 +169,4 @@ class WebhookSubscriptionRepository(BaseRepository[WebhookSubscription]):
             raise ResourceNotFoundException(
                 WebhookSubscription.__tablename__, subscription_id
             )
-        await super().delete(row)
+        await super().delete_entity(row)

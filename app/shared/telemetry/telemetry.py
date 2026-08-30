@@ -16,7 +16,11 @@ from opentelemetry.instrumentation.redis import RedisInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.sdk.resources import SERVICE_NAME, SERVICE_VERSION, Resource
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+from opentelemetry.sdk.trace.export import (
+    BatchSpanProcessor,
+    ConsoleSpanExporter,
+    SpanExporter,
+)
 from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -84,7 +88,7 @@ class TelemetryConfig:
             self.tracer_provider = TracerProvider(resource=resource, sampler=sampler)
 
             if exporter_type == "console":
-                exporter = ConsoleSpanExporter()
+                exporter: SpanExporter = ConsoleSpanExporter()
                 logger.info("Using Console span exporter (development mode)")
             elif exporter_type == "otlp" and otlp_endpoint:
                 use_insecure = otlp_endpoint.startswith("http://")

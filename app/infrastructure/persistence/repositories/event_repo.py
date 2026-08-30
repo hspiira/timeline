@@ -5,11 +5,12 @@ from datetime import datetime
 from sqlalchemy import asc, desc, func, select, text, tuple_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.application.dtos.event import EventCreate, EventResult, EventToPersist
+from app.application.dtos.event import EventCreate, EventResult
 from app.domain.enums import EventIntegrityStatus
 from app.infrastructure.persistence.models.event import Event
 from app.infrastructure.persistence.models.subject import Subject
 from app.infrastructure.persistence.repositories.base import BaseRepository
+from app.core.tenant_validation import is_valid_tenant_id_format
 
 
 def _event_to_result(e: Event) -> EventResult:
@@ -48,10 +49,12 @@ class EventRepository(BaseRepository[Event]):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(db, Event)
 
-    async def update(self, obj: Event) -> Event:
+    async def update_entity(
+        self, obj: Event, *, skip_existence_check: bool = False
+    ) -> Event:
         raise NotImplementedError("Events are immutable and cannot be updated")
 
-    async def delete(self, obj: Event) -> None:
+    async def delete_entity(self, obj: Event) -> None:
         raise NotImplementedError("Events are immutable and cannot be deleted")
 
     async def lock_subject_for_update(self, subject_id: str) -> None:
@@ -59,6 +62,20 @@ class EventRepository(BaseRepository[Event]):
         await self.db.execute(
             text("SELECT id FROM subject WHERE id = :sid FOR UPDATE"),
             {"sid": subject_id},
+        )
+
+    async def apply_tenant_context(self, tenant_id: str) -> None:
+        """Set the tenant context for row-level security on the current transaction.
+
+        ``SET LOCAL`` does not outlive the transaction it was issued in, so a caller
+        that opens its own transaction (event creation does, to lock the subject row
+        and retry on a chain fork) has to set it again inside that transaction or
+        every policy evaluates against nothing.
+        """
+        if not is_valid_tenant_id_format(tenant_id):
+            raise ValueError(f"Malformed tenant id: {tenant_id!r}")
+        await self.db.execute(
+            text(f"SET LOCAL app.current_tenant_id = '{tenant_id}'")
         )
 
     async def get_last_event(self, subject_id: str, tenant_id: str) -> EventResult | None:
@@ -108,19 +125,6 @@ class EventRepository(BaseRepository[Event]):
         row = result.scalar_one_or_none()
         return _event_to_result(row) if row else None
 
-    async def get_by_tenant_and_seq(
-        self, tenant_id: str, event_seq: int
-    ) -> EventResult | None:
-        """Return single event for tenant by global event_seq, or None."""
-        result = await self.db.execute(
-            select(Event).where(
-                Event.tenant_id == tenant_id,
-                Event.event_seq == event_seq,
-            )
-        )
-        row = result.scalar_one_or_none()
-        return _event_to_result(row) if row else None
-
     async def get_by_external_ids(
         self, tenant_id: str, subject_external_pairs: set[tuple[str, str]]
     ) -> dict[tuple[str, str], EventResult]:
@@ -136,7 +140,11 @@ class EventRepository(BaseRepository[Event]):
             )
         )
         rows = result.scalars().all()
-        return {(e.subject_id, e.external_id): _event_to_result(e) for e in rows}
+        return {
+            (e.subject_id, e.external_id): _event_to_result(e)
+            for e in rows
+            if e.external_id is not None
+        }
 
     async def get_by_tenant_and_seq(
         self, tenant_id: str, event_seq: int
@@ -159,7 +167,10 @@ class EventRepository(BaseRepository[Event]):
         previous_hash: str | None,
         *,
         epoch_id: str | None = None,
-        integrity_status: str = "VALID",
+        # EventIntegrityStatus.VALID is "Valid"; the literal "VALID" used here
+        # before was not a member, so any caller relying on the default failed
+        # with 'VALID' is not a valid EventIntegrityStatus.
+        integrity_status: str = EventIntegrityStatus.VALID.value,
         merkle_leaf_hash: str | None = None,
     ) -> EventResult:
         event = Event(
@@ -183,7 +194,7 @@ class EventRepository(BaseRepository[Event]):
             ),
             merkle_leaf_hash=merkle_leaf_hash,
         )
-        created = await self.create(event)
+        created = await self.create_entity(event)
         return _event_to_result(created)
 
     async def get_by_subject(
@@ -221,23 +232,36 @@ class EventRepository(BaseRepository[Event]):
         if as_of is not None:
             q = q.where(Event.event_time <= as_of)
         if after_event_id is not None:
-            after_event = await self.get_by_id_and_tenant(after_event_id, tenant_id)
-            if not after_event:
-                return []
-            if after_event.subject_id != subject_id:
-                raise ValueError(
-                    f"after_event_id {after_event_id!r} does not belong to subject_id={subject_id!r}, tenant_id={tenant_id!r}"
-                )
-            q = q.where(
-                (Event.event_time > after_event.event_time)
-                | (
-                    (Event.event_time == after_event.event_time)
-                    & (Event.id > after_event_id)
-                )
+            q = await self._filter_events_after(
+                q, subject_id, tenant_id, after_event_id
             )
+            if q is None:
+                return []
         q = q.order_by(asc(Event.event_time), asc(Event.id)).limit(limit)
         result = await self.db.execute(q)
         return [_event_to_result(e) for e in result.scalars().all()]
+
+    async def _filter_events_after(
+        self,
+        query,
+        subject_id: str,
+        tenant_id: str,
+        after_event_id: str,
+    ):
+        after_event = await self.get_by_id_and_tenant(after_event_id, tenant_id)
+        if not after_event:
+            return None
+        if after_event.subject_id != subject_id:
+            raise ValueError(
+                f"after_event_id {after_event_id!r} does not belong to subject_id={subject_id!r}, tenant_id={tenant_id!r}"
+            )
+        return query.where(
+            (Event.event_time > after_event.event_time)
+            | (
+                (Event.event_time == after_event.event_time)
+                & (Event.id > after_event_id)
+            )
+        )
 
     async def count_by_subject(self, subject_id: str, tenant_id: str) -> int:
         result = await self.db.execute(
@@ -325,7 +349,7 @@ class EventRepository(BaseRepository[Event]):
             .where(Event.tenant_id == tenant_id)
             .group_by(Event.event_type)
         )
-        return dict(result.all())
+        return {row[0]: row[1] for row in result.all()}
 
     async def get_by_id(self, event_id: str) -> EventResult | None:
         result = await self.db.execute(select(Event).where(Event.id == event_id))
@@ -445,37 +469,3 @@ class EventRepository(BaseRepository[Event]):
         )
         row = result.scalar_one_or_none()
         return _event_to_result(row) if row else None
-
-    async def create_events_bulk(
-        self, tenant_id: str, events: list[EventToPersist]
-    ) -> list[EventResult]:
-        if not events:
-            return []
-        objs = [
-            Event(
-                tenant_id=tenant_id,
-                subject_id=e.subject_id,
-                event_type=e.event_type,
-                schema_version=e.schema_version,
-                event_time=e.event_time,
-                payload=e.payload,
-                hash=e.hash,
-                previous_hash=e.previous_hash,
-                workflow_instance_id=e.workflow_instance_id,
-                correlation_id=e.correlation_id,
-                external_id=e.external_id,
-                source=e.source,
-                epoch_id=e.epoch_id,
-                integrity_status=EventIntegrityStatus(e.integrity_status),
-                merkle_leaf_hash=e.merkle_leaf_hash,
-            )
-            for e in events
-        ]
-        self.db.add_all(objs)
-        await self.db.flush()
-        # Load server-generated event_seq values for all inserted rows in one query.
-        result = await self.db.execute(
-            select(Event).where(Event.id.in_([o.id for o in objs]))
-        )
-        events_by_id = {event.id: event for event in result.scalars().all()}
-        return [_event_to_result(events_by_id[o.id]) for o in objs]

@@ -7,12 +7,14 @@ from typing import Protocol
 class IEventStreamBroadcaster(Protocol):
     """Protocol for broadcasting new events to SSE (and other) subscribers."""
 
-    async def subscribe(
+    def subscribe(
         self,
         tenant_id: str,
         subject_id: str | None = None,
     ) -> AsyncIterator[dict]:
-        """Subscribe to new events for tenant (and optionally one subject). Yields JSON-serializable event payloads."""
+        """Return an async iterator of event payloads for the tenant, optionally
+        filtered to one subject. Implementations are async generators, so this is not
+        ``async def``."""
         ...
 
     async def publish(

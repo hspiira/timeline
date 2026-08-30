@@ -153,7 +153,7 @@ class WorkflowRepository(AuditableRepository[Workflow]):
             max_executions_per_day=max_executions_per_day,
             execution_order=execution_order,
         )
-        return await self.create(workflow)
+        return await self.create_entity(workflow)
 
     async def soft_delete(self, workflow_id: str, tenant_id: str) -> Workflow | None:
         """Soft-delete workflow (set deleted_at). Returns updated workflow or None."""

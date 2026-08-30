@@ -86,7 +86,7 @@ class NamingTemplateRepository(BaseRepository[NamingTemplate]):
             template_string=template_string,
             placeholders=placeholders,
         )
-        created = await super().create(t)
+        created = await super().create_entity(t)
         return _to_result(created)
 
     async def update(

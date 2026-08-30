@@ -16,15 +16,17 @@ class TestTenantStatus:
 
     def test_values_returns_all_status_strings(self) -> None:
         got = TenantStatus.values()
-        assert "active" in got
-        assert "suspended" in got
-        assert "archived" in got
+        assert "Active" in got
+        assert "Suspended" in got
+        assert "Archived" in got
         assert len(got) == 3
 
     def test_member_values(self) -> None:
-        assert TenantStatus.ACTIVE.value == "active"
-        assert TenantStatus.SUSPENDED.value == "suspended"
-        assert TenantStatus.ARCHIVED.value == "archived"
+        # Capitalised on purpose: the tenant_status_check constraint in migration
+        # 6cb0887d08e6 expects these exact strings.
+        assert TenantStatus.ACTIVE.value == "Active"
+        assert TenantStatus.SUSPENDED.value == "Suspended"
+        assert TenantStatus.ARCHIVED.value == "Archived"
 
 
 class TestEventEntityValidateEventTimeAfterPrevious:

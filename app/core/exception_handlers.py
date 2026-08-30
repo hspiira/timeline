@@ -5,12 +5,13 @@ exceptions to HTTP responses (SRP, OCP for adding new handlers).
 """
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.types import ExceptionHandler
 
 from app.core.config import get_settings
 from app.domain.exceptions import TimelineException
@@ -108,7 +109,15 @@ def register_exception_handlers(app: FastAPI) -> None:
     Call once after creating the app. Handlers: TimelineException (and subclasses),
     RequestValidationError, StarletteHTTPException, generic Exception.
     """
-    app.add_exception_handler(TimelineException, _timeline_exception_handler)
-    app.add_exception_handler(RequestValidationError, _validation_exception_handler)
-    app.add_exception_handler(StarletteHTTPException, _http_exception_handler)
+    # Starlette types handlers as taking bare Exception, so the narrower signatures
+    # here need a cast at registration.
+    app.add_exception_handler(
+        TimelineException, cast(ExceptionHandler, _timeline_exception_handler)
+    )
+    app.add_exception_handler(
+        RequestValidationError, cast(ExceptionHandler, _validation_exception_handler)
+    )
+    app.add_exception_handler(
+        StarletteHTTPException, cast(ExceptionHandler, _http_exception_handler)
+    )
     app.add_exception_handler(Exception, _generic_exception_handler)

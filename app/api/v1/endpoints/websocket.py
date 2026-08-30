@@ -1,7 +1,8 @@
 """WebSocket endpoint: single /ws and GET /status.
 
 Uses only the ConnectionManager on app.state (set in lifespan); no manual construction.
-Requires a valid JWT via query param ?token=... before registering the connection.
+Requires a valid JWT before registering the connection. The token travels in the
+Sec-WebSocket-Protocol header, not the query string, which proxies write to access logs.
 """
 
 from typing import Annotated
@@ -27,9 +28,33 @@ async def websocket_status(
     return WebSocketStatusResponse(total_connections=total_connections)
 
 
-async def _reject_websocket(websocket: WebSocket, reason: str, code: int = 1008) -> None:
-    """Accept then immediately close with code/reason so client gets a proper close frame."""
-    await websocket.accept()
+BEARER_SUBPROTOCOL = "bearer"
+
+
+def _token_from_subprotocol(websocket: WebSocket) -> str | None:
+    """Extract the token from Sec-WebSocket-Protocol: bearer, <jwt>."""
+    header = websocket.headers.get("sec-websocket-protocol")
+    if not header:
+        return None
+    offered = [part.strip() for part in header.split(",") if part.strip()]
+    if len(offered) != 2 or offered[0] != BEARER_SUBPROTOCOL:
+        return None
+    return offered[1]
+
+
+async def _reject_websocket(
+    websocket: WebSocket,
+    reason: str,
+    code: int = 1008,
+    *,
+    subprotocol: str | None = None,
+) -> None:
+    """Accept then immediately close with code/reason so client gets a proper close frame.
+
+    Echoes the subprotocol even when rejecting; a browser fails the handshake outright
+    if the server selects none, hiding the reason.
+    """
+    await websocket.accept(subprotocol=subprotocol)
     await websocket.close(code=code, reason=reason)
 
 
@@ -37,11 +62,11 @@ async def _reject_websocket(websocket: WebSocket, reason: str, code: int = 1008)
 async def websocket_endpoint(websocket: WebSocket):
     """Accept WebSocket only after validating token; register with manager and handle disconnect.
 
-    Token must be provided as query param (e.g. ?token=<jwt>). Connection manager is on
+    The client offers Sec-WebSocket-Protocol: bearer, <jwt>. Connection manager is on
     app.state.ws_manager (set in lifespan).
     """
     manager = websocket.app.state.ws_manager
-    token = websocket.query_params.get("token")
+    token = _token_from_subprotocol(websocket)
     if not token:
         await _reject_websocket(websocket, "Missing token")
         return
@@ -52,13 +77,19 @@ async def websocket_endpoint(websocket: WebSocket):
         user_id = payload.get("sub")
         tenant_id = payload.get("tenant_id")
         if not user_id or not tenant_id:
-            await _reject_websocket(websocket, "Invalid token")
+            await _reject_websocket(
+                websocket, "Invalid token", subprotocol=BEARER_SUBPROTOCOL
+            )
             return
     except ValueError:
-        await _reject_websocket(websocket, "Invalid token")
+        await _reject_websocket(
+            websocket, "Invalid token", subprotocol=BEARER_SUBPROTOCOL
+        )
         return
 
-    await manager.connect(websocket, tenant_id=tenant_id)
+    await manager.connect(
+        websocket, tenant_id=tenant_id, subprotocol=BEARER_SUBPROTOCOL
+    )
     try:
         while True:
             await websocket.receive_text()

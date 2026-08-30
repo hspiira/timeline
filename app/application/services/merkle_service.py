@@ -57,6 +57,14 @@ class MerkleProofStep:
     is_left_sibling: bool
 
 
+class EpochRow(Protocol):
+    """The epoch fields build_and_store reads."""
+
+    id: str
+    terminal_hash: str | None
+    genesis_hash: str | None
+
+
 class MerkleService:
     """Builds and stores Merkle trees per epoch and generates proofs.
 
@@ -135,7 +143,7 @@ class MerkleService:
             current_pos = parent_pos
         return path
 
-    async def build_and_store(self, tenant_id: str, epoch: object) -> str:
+    async def build_and_store(self, tenant_id: str, epoch: EpochRow) -> str:
         """Build Merkle tree for all events in epoch and persist nodes (with child hashes).
 
         Args:
@@ -150,7 +158,7 @@ class MerkleService:
             epoch_id=epoch.id,
         )
         if not events:
-            return epoch.terminal_hash or epoch.genesis_hash
+            return epoch.terminal_hash or epoch.genesis_hash or ""
 
         # Use merkle_leaf_hash when present; fall back to event hash.
         leaves: list[tuple[int, str]] = []
@@ -161,7 +169,7 @@ class MerkleService:
             leaves.append((ev.event_seq, leaf_hash))
 
         if not leaves:
-            return epoch.terminal_hash or epoch.genesis_hash
+            return epoch.terminal_hash or epoch.genesis_hash or ""
 
         leaves.sort(key=lambda p: p[0])
 

@@ -85,8 +85,13 @@ def event_service_mocks():
     event_repo.create_event = AsyncMock(
         return_value=_event_result(event_hash="a" * 64, previous_hash=None)
     )
+    event_repo.apply_tenant_context = AsyncMock(return_value=None)
     db = MagicMock()
     db.begin.return_value = _async_ctx()
+    # create_event releases any transaction it did not open before starting its own,
+    # so the fake session has to answer this. False = nothing ambient to release.
+    db.in_transaction.return_value = False
+    db.rollback = AsyncMock(return_value=None)
 
     svc = EventService(
         event_repo=event_repo,

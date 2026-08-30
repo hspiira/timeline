@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import Callable
 from functools import wraps
+from types import TracebackType
 from typing import Any, TypeVar
 
 from opentelemetry import trace
@@ -166,7 +167,10 @@ class TracedOperation:
         return self
 
     def __exit__(
-        self, exc_type: type | None, exc_val: BaseException | None, exc_tb: object
+        self,
+        exc_type: type | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         if self.span is None:
             return
@@ -184,6 +188,6 @@ class TracedOperation:
         self,
         exc_type: type | None,
         exc_val: BaseException | None,
-        exc_tb: object,
+        exc_tb: TracebackType | None,
     ) -> None:
         self.__exit__(exc_type, exc_val, exc_tb)

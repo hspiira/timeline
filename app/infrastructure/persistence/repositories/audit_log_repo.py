@@ -81,35 +81,6 @@ class AuditLogRepository:
         await self.db.refresh(row)
         return _orm_to_result(row)
 
-    async def list(
-        self,
-        tenant_id: str,
-        *,
-        skip: int = 0,
-        limit: int = 100,
-        resource_type: str | None = None,
-        user_id: str | None = None,
-        from_timestamp: datetime | None = None,
-        to_timestamp: datetime | None = None,
-    ) -> list[AuditLogResult]:
-        """List audit log entries for tenant with optional filters (newest first)."""
-        conditions = _audit_list_conditions(
-            tenant_id,
-            resource_type=resource_type,
-            user_id=user_id,
-            from_timestamp=from_timestamp,
-            to_timestamp=to_timestamp,
-        )
-        stmt = (
-            select(AuditLog)
-            .where(and_(*conditions))
-            .order_by(AuditLog.timestamp.desc())
-            .offset(skip)
-            .limit(limit)
-        )
-        result = await self.db.execute(stmt)
-        return [_orm_to_result(r) for r in result.scalars().all()]
-
     async def list_with_count(
         self,
         tenant_id: str,

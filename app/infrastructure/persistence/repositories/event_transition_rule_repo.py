@@ -39,7 +39,7 @@ class EventTransitionRuleRepository(BaseRepository[EventTransitionRule]):
 
     async def get_by_id(self, rule_id: str) -> EventTransitionRuleResult | None:
         """Return rule by id."""
-        row = await super().get_by_id(rule_id)
+        row = await super().get_entity_by_id(rule_id)
         return _to_result(row) if row else None
 
     async def get_by_id_and_tenant(
@@ -119,7 +119,7 @@ class EventTransitionRuleRepository(BaseRepository[EventTransitionRule]):
             max_occurrences_per_stream=max_occurrences_per_stream,
             fresh_prior_event_type=fresh_prior_event_type,
         )
-        created = await self.create(rule)
+        created = await self.create_entity(rule)
         return _to_result(created)
 
     async def update_rule(
@@ -147,7 +147,7 @@ class EventTransitionRuleRepository(BaseRepository[EventTransitionRule]):
             rule.max_occurrences_per_stream = max_occurrences_per_stream
         if fresh_prior_event_type is not None:
             rule.fresh_prior_event_type = fresh_prior_event_type
-        updated = await super().update(rule, skip_existence_check=True)
+        updated = await super().update_entity(rule, skip_existence_check=True)
         return _to_result(updated)
 
     async def delete_rule(self, rule_id: str, tenant_id: str) -> bool:
@@ -155,11 +155,11 @@ class EventTransitionRuleRepository(BaseRepository[EventTransitionRule]):
         rule = await self._get_orm_by_id_and_tenant(rule_id, tenant_id)
         if not rule:
             return False
-        await self.delete(rule)
+        await self.delete_entity(rule)
         return True
 
     async def update(
         self, obj: EventTransitionRule, *, skip_existence_check: bool = False
     ) -> EventTransitionRule:
         """Update rule. Returns updated ORM (caller may convert to result)."""
-        return await super().update(obj, skip_existence_check=skip_existence_check)
+        return await super().update_entity(obj, skip_existence_check=skip_existence_check)

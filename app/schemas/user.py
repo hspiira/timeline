@@ -28,3 +28,4 @@ class UserResponse(BaseModel):
     username: str
     email: str
     is_active: bool
+    permissions: list[str] = []

@@ -6,7 +6,7 @@ import asyncio
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
@@ -187,7 +187,7 @@ class GmailProvider:
         request = self._service.users().watch(userId="me", body=body)
         response = await asyncio.to_thread(request.execute)
         logger.info("Gmail webhook setup: %s", response)
-        return response
+        return cast(dict[str, Any], response)
 
     async def remove_webhook(self) -> None:
         """Stop Gmail watch."""

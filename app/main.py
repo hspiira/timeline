@@ -7,12 +7,15 @@ Settings are loaded inside create_app() so that tests can set env (and optionall
 clear get_settings cache) before importing or calling create_app().
 """
 
+from typing import cast
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from scalar_fastapi import get_scalar_api_reference
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from starlette.types import ExceptionHandler
 
 from app.api._openapi import TAGS_METADATA
 from app.api.v1 import api_router
@@ -45,7 +48,9 @@ def create_app() -> FastAPI:
     )
 
     app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_exception_handler(
+        RateLimitExceeded, cast(ExceptionHandler, _rate_limit_exceeded_handler)
+    )
 
     register_exception_handlers(app)
 

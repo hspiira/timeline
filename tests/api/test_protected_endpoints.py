@@ -87,4 +87,6 @@ async def test_upload_document_with_nonexistent_subject_returns_404(
         files=files,
     )
     assert response.status_code == 404
-    assert "subject" in response.json().get("detail", "").lower()
+    # The error envelope is {"error": ..., "message": ...}; there is no "detail" key,
+    # so the previous assertion read "" and could never have held.
+    assert "subject" in response.json().get("message", "").lower()

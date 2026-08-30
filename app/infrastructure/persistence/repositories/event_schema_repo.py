@@ -137,7 +137,7 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
                         allowed_subject_types=allowed_subject_types,
                         created_by=created_by,
                     )
-                    created = await self.create(schema)
+                    created = await self.create_entity(schema)
                     if is_active:
                         # Deactivate any other active schema for this (tenant_id, event_type)
                         other = await self.db.execute(
@@ -152,7 +152,7 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
                         )
                         for other_schema in other.scalars().all():
                             other_schema.is_active = False
-                            await self.update(other_schema)
+                            await self.update_entity(other_schema)
                             await self.emit_custom_audit(
                                 other_schema, AuditAction.DEACTIVATED
                             )
@@ -179,8 +179,8 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
                 for key in ("created_at", "updated_at"):
                     if cached.get(key) and isinstance(cached[key], str):
                         cached[key] = datetime.fromisoformat(cached[key])
-                schema = EventSchema(**cached)
-                merged = await self.db.merge(schema)
+                cached_schema = EventSchema(**cached)
+                merged = await self.db.merge(cached_schema)
                 return _event_schema_to_result(merged)
         result = await self.db.execute(
             select(EventSchema)
@@ -280,7 +280,7 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
             schema.is_active = is_active
         if allowed_subject_types is not None:
             schema.allowed_subject_types = allowed_subject_types
-        updated = await self.update(schema)
+        updated = await self.update_entity(schema)
         await _invalidate_schema_cache(
             self.cache, updated.tenant_id, updated.event_type
         )
@@ -293,21 +293,21 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
             return False
         tenant_id_val = schema.tenant_id
         event_type_val = schema.event_type
-        await self.delete(schema)
+        await self.delete_entity(schema)
         await _invalidate_schema_cache(self.cache, tenant_id_val, event_type_val)
         return True
 
     async def deactivate_schema(self, schema_id: str) -> EventSchema | None:
-        schema = await super().get_by_id(schema_id)
+        schema = await super().get_entity_by_id(schema_id)
         if not schema:
             return None
         schema.is_active = False
-        updated = await self.update(schema)
+        updated = await self.update_entity(schema)
         await self.emit_custom_audit(updated, AuditAction.DEACTIVATED)
         return updated
 
     async def activate_schema(self, schema_id: str) -> EventSchema | None:
-        schema = await super().get_by_id(schema_id)
+        schema = await super().get_entity_by_id(schema_id)
         if not schema:
             return None
         # Deactivate any currently active schema for the same (tenant_id, event_type)
@@ -324,10 +324,10 @@ class EventSchemaRepository(AuditableRepository[EventSchema]):
         current_active = result.scalar_one_or_none()
         if current_active:
             current_active.is_active = False
-            await self.update(current_active)
+            await self.update_entity(current_active)
             await self.emit_custom_audit(current_active, AuditAction.DEACTIVATED)
         schema.is_active = True
-        updated = await self.update(schema)
+        updated = await self.update_entity(schema)
         await self.emit_custom_audit(updated, AuditAction.ACTIVATED)
         return updated
 

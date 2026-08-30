@@ -1,6 +1,6 @@
 """Repository for chain_repair_log records."""
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.enums import ChainRepairStatus
@@ -43,8 +43,32 @@ class ChainRepairLogRepository(BaseRepository[ChainRepairLog]):
                 else ChainRepairStatus.APPROVED.value
             ),
         )
-        created = await self.create(obj)
+        created = await self.create_entity(obj)
         return created
+
+    async def list_with_count(
+        self,
+        tenant_id: str,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        repair_status: ChainRepairStatus | None = None,
+    ) -> tuple[list[ChainRepairLog], int]:
+        """List a tenant's repair records and the unpaginated total (window count)."""
+        conditions = [ChainRepairLog.tenant_id == tenant_id]
+        if repair_status is not None:
+            conditions.append(ChainRepairLog.repair_status == repair_status)
+        stmt = (
+            select(ChainRepairLog, func.count(ChainRepairLog.id).over().label("total"))
+            .where(*conditions)
+            .order_by(ChainRepairLog.break_detected_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        rows = (await self.db.execute(stmt)).all()
+        if not rows:
+            return [], 0
+        return [row[0] for row in rows], rows[0][1]
 
     async def get_by_id(self, repair_id: str) -> ChainRepairLog | None:
         result = await self.db.execute(

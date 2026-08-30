@@ -1,6 +1,6 @@
 """Email provider factory: creates Gmail, IMAP, or Outlook provider from config."""
 
-from typing import ClassVar
+from typing import ClassVar, Any, cast
 
 import httpx
 
@@ -56,7 +56,9 @@ class EmailProviderFactory:
             )
         logger.debug("Creating %s for %s", provider_class.__name__, config.email_address)
         if provider_class.__name__ == "OutlookProvider" and http_client is not None:
-            return provider_class(http_client=http_client)
+            return cast(
+                IEmailProvider, cast(Any, provider_class)(http_client=http_client)
+            )
         return provider_class()
 
     @classmethod

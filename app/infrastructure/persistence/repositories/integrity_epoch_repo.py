@@ -124,7 +124,7 @@ class IntegrityEpochRepository(BaseRepository[IntegrityEpoch]):
             profile_snapshot=profile_snapshot,
             status=IntegrityEpochStatus.OPEN,
         )
-        created = await self.create(epoch)
+        created = await self.create_entity(epoch)
         return _epoch_to_assignment(created)
 
     async def get_sealable_epochs(self, limit: int = 50) -> list[IntegrityEpoch]:

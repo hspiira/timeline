@@ -35,14 +35,18 @@ class ConnectionManager:
             if not conns:
                 del self._connections_by_tenant[tid]
 
-    async def connect(self, websocket: WebSocket, tenant_id: str) -> None:
+    async def connect(
+        self, websocket: WebSocket, tenant_id: str, *, subprotocol: str | None = None
+    ) -> None:
         """Accept and register a new connection for the given tenant.
 
         Args:
             websocket: The WebSocket instance to accept and track.
             tenant_id: Tenant ID from JWT; used to isolate broadcasts.
+            subprotocol: Subprotocol to echo in the handshake; a browser that offered
+                one fails the connection unless the server selects it.
         """
-        await websocket.accept()
+        await websocket.accept(subprotocol=subprotocol)
         async with self._lock:
             if tenant_id not in self._connections_by_tenant:
                 self._connections_by_tenant[tenant_id] = set()

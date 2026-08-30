@@ -118,7 +118,7 @@ class ProjectionRepository(BaseRepository[ProjectionDefinition]):
             last_event_seq=0,
             active=True,
         )
-        created = await super().create(obj)
+        created = await super().create_entity(obj)
         return _definition_to_result(created)
 
     async def advance_watermark(self, projection_id: str, new_seq: int) -> None:

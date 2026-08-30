@@ -62,10 +62,10 @@ class SubjectRepository(TenantScopedRepository[Subject]):
         """Get subject ORM by id and tenant for update/delete. Asserts tenant matches scope."""
         if tenant_id != self._tenant_id:
             return None
-        return await super().get_by_id(subject_id)
+        return await super().get_entity_by_id(subject_id)
 
     async def get_by_id(self, subject_id: str) -> SubjectResult | None:
-        orm = await super().get_by_id(subject_id)
+        orm = await super().get_entity_by_id(subject_id)
         return _subject_to_result(orm) if orm else None
 
     async def count_by_tenant(self, tenant_id: str) -> int:
@@ -100,7 +100,7 @@ class SubjectRepository(TenantScopedRepository[Subject]):
             .where(Subject.tenant_id == self._tenant_id)
             .group_by(Subject.subject_type)
         )
-        return dict(result.all())
+        return {row[0]: row[1] for row in result.all()}
 
     async def get_by_type(
         self,
@@ -180,7 +180,7 @@ class SubjectRepository(TenantScopedRepository[Subject]):
             display_name=resolved_display_name or None,
             attributes=attributes if attributes is not None else {},
         )
-        created = await self.create(subject)
+        created = await self.create_entity(subject)
         return _subject_to_result(created)
 
     async def update_subject(
@@ -201,7 +201,7 @@ class SubjectRepository(TenantScopedRepository[Subject]):
             entity.display_name = display_name
         if attributes is not None:
             entity.attributes = attributes
-        updated = await self.update(entity, skip_existence_check=True)
+        updated = await self.update_entity(entity, skip_existence_check=True)
         return _subject_to_result(updated)
 
     async def delete_subject(self, tenant_id: str, subject_id: str) -> bool:
@@ -209,5 +209,5 @@ class SubjectRepository(TenantScopedRepository[Subject]):
         entity = await self.get_entity_by_id_and_tenant(subject_id, tenant_id)
         if not entity:
             return False
-        await self.delete(entity)
+        await self.delete_entity(entity)
         return True

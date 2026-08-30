@@ -12,7 +12,7 @@ import logging
 from collections.abc import AsyncIterator
 from dataclasses import asdict, dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, cast, Awaitable
 
 import redis.asyncio as redis
 
@@ -85,7 +85,7 @@ class _RedisPubSubBase:
                     decode_responses=True,
                     socket_connect_timeout=5,
                 )
-                await self.redis.ping()
+                await cast(Awaitable[bool], self.redis.ping())
                 self._connected = True
                 logger.info("Redis pub/sub connected")
             except (redis.ConnectionError, redis.TimeoutError) as e:

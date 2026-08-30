@@ -2,7 +2,9 @@
 
 from datetime import datetime
 
-from sqlalchemy import select, update
+from typing import cast
+
+from sqlalchemy import CursorResult, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import desc
@@ -17,9 +19,9 @@ from app.infrastructure.persistence.repositories.base import BaseRepository
 def _to_result(a: ChainAnchor) -> ChainAnchorResult:
     """Map ORM to DTO."""
     status = (
-        a.status.value
+        a.status
         if isinstance(a.status, ChainAnchorStatus)
-        else a.status
+        else ChainAnchorStatus(a.status)
     )
     return ChainAnchorResult(
         id=a.id,
@@ -88,7 +90,7 @@ class ChainAnchorRepository(BaseRepository[ChainAnchor]):
                     tsa_url=tsa_url,
                     status=ChainAnchorStatus.PENDING,
                 )
-                created = await self.create(anchor)
+                created = await self.create_entity(anchor)
                 return _to_result(created)
         except IntegrityError:
             existing = await self.get_by_tenant_and_tip(
@@ -124,7 +126,7 @@ class ChainAnchorRepository(BaseRepository[ChainAnchor]):
                 error_message=None,
             )
         )
-        if result.rowcount != 1:
+        if cast(CursorResult, result).rowcount != 1:
             return None
         await self.db.flush()
         row_result = await self.db.execute(select(ChainAnchor).where(ChainAnchor.id == anchor_id))
@@ -141,7 +143,7 @@ class ChainAnchorRepository(BaseRepository[ChainAnchor]):
             )
             .values(status=ChainAnchorStatus.FAILED, error_message=error_message)
         )
-        if result.rowcount != 1:
+        if cast(CursorResult, result).rowcount != 1:
             return None
         await self.db.flush()
         row_result = await self.db.execute(select(ChainAnchor).where(ChainAnchor.id == anchor_id))
@@ -158,7 +160,7 @@ class ChainAnchorRepository(BaseRepository[ChainAnchor]):
             )
             .values(status=ChainAnchorStatus.PENDING, error_message=None)
         )
-        if result.rowcount != 1:
+        if cast(CursorResult, result).rowcount != 1:
             return None
         await self.db.flush()
         row_result = await self.db.execute(select(ChainAnchor).where(ChainAnchor.id == anchor_id))

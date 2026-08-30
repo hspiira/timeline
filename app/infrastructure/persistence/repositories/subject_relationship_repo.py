@@ -102,7 +102,7 @@ class SubjectRelationshipRepository(TenantScopedRepository[SubjectRelationship])
             relationship_kind=relationship_kind,
             payload=payload,
         )
-        created = await super().create(rel)
+        created = await super().create_entity(rel)
         return _to_result(created)
 
     async def delete(
@@ -126,7 +126,7 @@ class SubjectRelationshipRepository(TenantScopedRepository[SubjectRelationship])
         row = result.scalar_one_or_none()
         if not row:
             return False
-        await super().delete(row)
+        await super().delete_entity(row)
         return True
 
     async def list_for_subject(

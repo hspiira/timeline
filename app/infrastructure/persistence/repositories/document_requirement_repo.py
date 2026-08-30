@@ -82,7 +82,7 @@ class DocumentRequirementRepository(BaseRepository[DocumentRequirement]):
             min_count=min_count,
             step_definition_id=step_definition_id,
         )
-        created = await super().create(r)
+        created = await super().create_entity(r)
         return _to_result(created)
 
     async def delete(self, requirement_id: str, tenant_id: str) -> bool:

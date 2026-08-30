@@ -10,17 +10,14 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol
 
 from app.domain.enums import TenantStatus
+from app.domain.enums import EventIntegrityStatus
 
 if TYPE_CHECKING:
     from app.application.dtos.audit_log import AuditLogEntryCreate, AuditLogResult
     from app.application.dtos.document import DocumentCreate, DocumentResult
-    from app.application.dtos.document_requirement import (
-        DocumentComplianceItem,
-        DocumentRequirementResult,
-        FlowDocumentComplianceResult,
-    )
+    from app.application.dtos.document_requirement import DocumentRequirementResult
     from app.application.dtos.document_category import DocumentCategoryResult
-    from app.application.dtos.event import EventCreate, EventResult, EventToPersist
+    from app.application.dtos.event import EventCreate, EventResult
     from app.application.dtos.flow import FlowResult, FlowSubjectResult
     from app.application.dtos.event_schema import EventSchemaResult
     from app.application.dtos.naming_template import NamingTemplateResult
@@ -57,6 +54,13 @@ class IEventRepository(Protocol):
     async def lock_subject_for_update(self, subject_id: str) -> None:
         """Acquire a row-level exclusive lock on the subject for the duration of the transaction."""
 
+    async def apply_tenant_context(self, tenant_id: str) -> None:
+        """Set the tenant context for row-level security on the current transaction.
+
+        Needed by callers that open their own transaction: the context is set with
+        SET LOCAL, which does not outlive the transaction it was issued in.
+        """
+
     async def get_last_event(self, subject_id: str, tenant_id: str) -> EventResult | None:
         """Return the most recent event for subject in tenant."""
 
@@ -83,17 +87,13 @@ class IEventRepository(Protocol):
         previous_hash: str | None,
         *,
         epoch_id: str | None = None,
-        integrity_status: str = "VALID",
+        # EventIntegrityStatus.VALID is "Valid"; the literal "VALID" used here
+        # before was not a member, so any caller relying on the default failed
+        # with 'VALID' is not a valid EventIntegrityStatus.
+        integrity_status: str = EventIntegrityStatus.VALID.value,
         merkle_leaf_hash: str | None = None,
     ) -> EventResult:
         """Create a new event with computed hash and optional integrity fields."""
-
-    async def create_events_bulk(
-        self,
-        tenant_id: str,
-        events: list[EventToPersist],
-    ) -> list[EventResult]:
-        """Bulk insert events (hashes precomputed)."""
 
     async def get_by_id(self, event_id: str) -> EventResult | None:
         """Return event by ID."""
@@ -663,6 +663,12 @@ class ITenantRepository(Protocol):
     async def get_by_id(self, tenant_id: str) -> TenantResult | None:
         """Return tenant by ID."""
 
+    async def get_entity_by_id(self, entity_id: str) -> Any:
+        """Return the tenant ORM row by id, or None. Callers mutate it."""
+
+    async def update_without_audit(self, obj: Any) -> Any:
+        """Persist changes to an ORM row without emitting an audit event."""
+
     async def get_by_code(self, code: str) -> TenantResult | None:
         """Return tenant by code."""
 
@@ -729,6 +735,9 @@ class IEpochRepository(Protocol):
     ) -> None:
         """Increment event_count and set last_event_seq; if is_first, set first_event_seq."""
 
+    async def get_entity_by_id(self, entity_id: str) -> Any:
+        """Return the epoch ORM row by id, or None."""
+
     async def mark_epoch_failed(self, epoch_id: str) -> None:
         """Mark epoch as FAILED so it is skipped by get_sealable_epochs."""
 
@@ -746,10 +755,9 @@ class IUserRepository(Protocol):
     async def get_by_id(self, user_id: str) -> UserResult | None:
         """Return user by ID."""
 
-    async def get_by_id_and_tenant(
-        self, user_id: str, tenant_id: str
-    ) -> UserResult | None:
-        """Return user by ID if they belong to the tenant."""
+    async def get_by_id_and_tenant(self, user_id: str, tenant_id: str) -> Any:
+        """Return the user ORM row for this organisation, or None. Callers mutate it,
+        so this is not the DTO."""
 
     async def create_user(
         self,
@@ -771,8 +779,9 @@ class IPasswordSetTokenStore(Protocol):
     async def create(self, user_id: str) -> tuple[str, datetime]:
         """Create a one-time token for user; return (raw_token, expires_at)."""
 
-    async def redeem(self, token: str) -> str | None:
-        """If token is valid and not expired/used, mark used and return user_id; else None."""
+    async def redeem(self, token: str) -> tuple[str, str] | None:
+        """If the token is valid and unused, mark it used and return
+        (user_id, tenant_id); else None."""
 
 
 # Document repository interface
@@ -899,7 +908,7 @@ class IRolePermissionRepository(Protocol):
 
     async def assign_permission_to_role(
         self, role_id: str, permission_id: str, tenant_id: str
-    ) -> None:
+    ) -> Any:
         """Assign a permission to a role in the tenant. Raises DuplicateAssignmentException if already assigned."""
 
 
@@ -1049,19 +1058,6 @@ class IAuditLogRepository(Protocol):
 
     async def create(self, entry: AuditLogEntryCreate) -> AuditLogResult:
         """Append one audit log entry; return created record."""
-
-    async def list(
-        self,
-        tenant_id: str,
-        *,
-        skip: int = 0,
-        limit: int = 100,
-        resource_type: str | None = None,
-        user_id: str | None = None,
-        from_timestamp: datetime | None = None,
-        to_timestamp: datetime | None = None,
-    ) -> list[AuditLogResult]:
-        """List audit log entries for tenant with optional filters (paginated)."""
 
     async def list_with_count(
         self,

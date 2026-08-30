@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,7 +18,9 @@ from app.infrastructure.persistence.models.tenant import Tenant
 from app.infrastructure.persistence.repositories.auditable_repo import (
     AuditableRepository,
 )
+from app.core.tenant_validation import is_valid_tenant_id_format
 from app.shared.enums import AuditAction
+from app.shared.utils.generators import generate_cuid
 
 if TYPE_CHECKING:
     from app.infrastructure.services.system_audit_service import SystemAuditService
@@ -68,16 +70,15 @@ class TenantRepository(AuditableRepository[Tenant]):
 
     async def get_entity_by_id(self, tenant_id: str) -> Tenant | None:
         """Get tenant ORM by ID for update/delete (bypasses cache, reads from DB)."""
-        return await super().get_by_id(tenant_id)
+        return await super().get_entity_by_id(tenant_id)
 
     async def get_by_id(self, tenant_id: str) -> TenantResult | None:
         """Get tenant by ID, from cache if available."""
         if self.cache and self.cache.is_available():
             cached = await self.cache.get(tenant_key(tenant_id))
             if cached is not None:
-                tenant = _tenant_from_cached(cached)
-                return _tenant_to_result(tenant)
-        tenant = await super().get_by_id(tenant_id)
+                return _tenant_to_result(_tenant_from_cached(cached))
+        tenant = await super().get_entity_by_id(tenant_id)
         if tenant and self.cache and self.cache.is_available():
             d = _tenant_to_dict(tenant)
             await self.cache.set(tenant_key(tenant_id), d, ttl=self.cache_ttl)
@@ -88,11 +89,25 @@ class TenantRepository(AuditableRepository[Tenant]):
     ) -> TenantResult:
         """Create tenant from code/name/status; return created entity.
 
+        Creating a tenant is the one write with a bootstrap problem: the row-level
+        security policy on ``tenant`` is ``id = current_setting('app.current_tenant_id')``,
+        and there is no tenant context yet because this row is what defines it. So the
+        id is generated up front and the session's tenant context is set to it before
+        inserting. The insert then satisfies the existing policy rather than needing a
+        hole in it, and because ``SET LOCAL`` lasts for the transaction, the RBAC and
+        admin-user writes that follow are covered too.
+
         Raises TenantAlreadyExistsException on unique constraint violation (e.g. duplicate code).
         """
-        tenant = Tenant(code=code, name=name, status=status.value)
+        tenant_id = generate_cuid()
+        if not is_valid_tenant_id_format(tenant_id):  # pragma: no cover - defensive
+            raise ValueError("Generated tenant id failed format validation")
+        await self.db.execute(
+            text(f"SET LOCAL app.current_tenant_id = '{tenant_id}'")
+        )
+        tenant = Tenant(id=tenant_id, code=code, name=name, status=status.value)
         try:
-            created = await self.create(tenant)
+            created = await self.create_entity(tenant)
             return _tenant_to_result(created)
         except IntegrityError:
             raise TenantAlreadyExistsException(code)
@@ -102,8 +117,7 @@ class TenantRepository(AuditableRepository[Tenant]):
         if self.cache and self.cache.is_available():
             cached = await self.cache.get(tenant_code_key(code))
             if cached is not None:
-                tenant = _tenant_from_cached(cached)
-                return _tenant_to_result(tenant)
+                return _tenant_to_result(_tenant_from_cached(cached))
         result = await self.db.execute(select(Tenant).where(Tenant.code == code))
         tenant = result.scalar_one_or_none()
         if tenant and self.cache and self.cache.is_available():
@@ -131,7 +145,7 @@ class TenantRepository(AuditableRepository[Tenant]):
         status: TenantStatus | None = None,
     ) -> TenantResult | None:
         """Update tenant name and/or status; return updated result or None if not found."""
-        tenant = await super().get_by_id(tenant_id)
+        tenant = await super().get_entity_by_id(tenant_id)
         if not tenant:
             return None
         old_status = tenant.status

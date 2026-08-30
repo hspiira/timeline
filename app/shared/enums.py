@@ -6,6 +6,7 @@ in app.domain.enums.
 """
 
 from enum import Enum
+from typing import cast
 
 
 class _ValuesMixin:
@@ -14,7 +15,7 @@ class _ValuesMixin:
     @classmethod
     def values(cls) -> list[str]:
         """Return all valid values as strings."""
-        return [member.value for member in cls]
+        return [member.value for member in cast(type[Enum], cls)]
 
 
 class ActorType(_ValuesMixin, str, Enum):

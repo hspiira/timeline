@@ -159,6 +159,8 @@ class WorkflowEngine:
         try:
             for action in workflow.actions or []:
                 action_type = action.get("type")
+                if not action_type:
+                    continue
                 handler = self._handlers.get(action_type)
                 if handler:
                     executed_inc, failed_inc = await handler.execute(
