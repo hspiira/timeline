@@ -105,7 +105,13 @@ export const authActions = {
   },
 
   /** C2 only: no admin_initial_password. Backend returns set_password_url for admin to set password. */
-  async registerTenant(data: { code: string; name: string }) {
+  async registerTenant(data: {
+    code: string
+    name: string
+    admin_email?: string
+    admin_username?: string
+    admin_initial_password?: string
+  }) {
     authStore.setState((state) => ({ ...state, isLoading: true, error: null }))
 
     try {

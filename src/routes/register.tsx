@@ -28,10 +28,17 @@ interface TenantCreationResult {
 function RegisterTenantPage() {
   const tenantCodeId = useId()
   const tenantNameId = useId()
+  const adminEmailId = useId()
+  const passwordId = useId()
+  const confirmPasswordId = useId()
   const navigate = useNavigate()
   const authState = useStore(authStore)
   const [tenantCode, setTenantCode] = useState('')
   const [tenantName, setTenantName] = useState('')
+  const [adminEmail, setAdminEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [formError, setFormError] = useState<string | null>(null)
   const [createdTenant, setCreatedTenant] = useState<TenantCreationResult | null>(null)
   const [copied, setCopied] = useState(false)
 
@@ -40,12 +47,36 @@ function RegisterTenantPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     authActions.clearError()
+    setFormError(null)
+
+    const email = adminEmail.trim()
+    if (password !== confirmPassword) {
+      setFormError('The two passwords do not match.')
+      return
+    }
+    if (password.length < 8) {
+      setFormError('Choose a password of at least 8 characters.')
+      return
+    }
+
     try {
       const result = await authActions.registerTenant({
         code: tenantCode.trim(),
         name: tenantName.trim(),
+        admin_email: email,
+        admin_initial_password: password,
       })
-      setCreatedTenant(result)
+      // The creator set their own password, so sign them straight in rather than
+      // handing them a set-password link for an account they already control.
+      try {
+        await authActions.login(email, password, result?.tenant_id)
+        void navigate({ to: '/' })
+        return
+      } catch {
+        // Organisation exists and the password is set; only the sign-in leg failed.
+        // Fall through to the confirmation screen so the work is not lost.
+        setCreatedTenant(result)
+      }
     } catch (error) {
       console.error('Tenant registration failed:', error)
     }
@@ -201,9 +232,9 @@ function RegisterTenantPage() {
         </h1>
 
         {/* Error Message */}
-        {authState.error && (
+        {(authState.error || formError) && (
           <div className="mt-6 bg-destructive/10 px-3 py-2.5">
-            <p className="text-sm text-destructive">{authState.error}</p>
+            <p className="text-sm text-destructive">{formError ?? authState.error}</p>
           </div>
         )}
 
@@ -245,6 +276,65 @@ function RegisterTenantPage() {
               className="font-mono"
               pattern="[a-z0-9\-]+"
               title="3–15 characters: lowercase letters, numbers, and hyphens only"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor={adminEmailId}
+              className="mb-1.5 block text-sm font-medium text-foreground"
+            >
+              Your email
+            </label>
+            <Input
+              id={adminEmailId}
+              type="email"
+              value={adminEmail}
+              onChange={(e) => setAdminEmail(e.target.value)}
+              required
+              autoComplete="email"
+              placeholder="you@acme.com"
+            />
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              You sign in with this and it becomes the administrator account.
+            </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor={passwordId}
+              className="mb-1.5 block text-sm font-medium text-foreground"
+            >
+              Password
+            </label>
+            <Input
+              id={passwordId}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              autoComplete="new-password"
+              placeholder="At least 8 characters"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor={confirmPasswordId}
+              className="mb-1.5 block text-sm font-medium text-foreground"
+            >
+              Confirm password
+            </label>
+            <Input
+              id={confirmPasswordId}
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={8}
+              autoComplete="new-password"
+              placeholder="Repeat your password"
             />
           </div>
 

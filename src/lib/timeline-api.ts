@@ -4841,6 +4841,17 @@ export interface components {
        */
       name: string
       /**
+       * Admin Email
+       * Format: email
+       * @description Email of the first administrator. Supply on the self-serve path so the account is reachable.
+       */
+      admin_email?: string | null
+      /**
+       * Admin Username
+       * @description Username of the first administrator. Defaults to 'admin'.
+       */
+      admin_username?: string | null
+      /**
        * Admin Initial Password
        * @description Optional initial admin password (min 8 chars); if set, used and never returned in response
        */
@@ -4864,6 +4875,8 @@ export interface components {
       admin_username: string
       /** Admin Email */
       admin_email: string
+      /** Set Password Token */
+      set_password_token?: string | null
       /** Set Password Url */
       set_password_url?: string | null
       /** Set Password Expires At */
@@ -4983,8 +4996,11 @@ export interface components {
        * Format: email
        */
       email: string
-      /** Password */
-      password: string
+      /**
+       * Password
+       * @description Optional. Omit to invite the person instead: a one-time link is returned and they choose their own password.
+       */
+      password?: string | null
     }
     /**
      * UserResponse
@@ -5006,6 +5022,33 @@ export interface components {
        * @default []
        */
       permissions: string[]
+    }
+    /**
+     * UserCreateResponse
+     * @description Response after adding someone to an organisation. invite_token is present when the caller omitted password.
+     */
+    UserCreateResponse: {
+      /** Id */
+      id: string
+      /** Tenant Id */
+      tenant_id: string
+      /** Username */
+      username: string
+      /** Email */
+      email: string
+      /** Is Active */
+      is_active: boolean
+      /**
+       * Permissions
+       * @default []
+       */
+      permissions: string[]
+      /** Invite Token */
+      invite_token?: string | null
+      /** Invite Url */
+      invite_url?: string | null
+      /** Invite Expires At */
+      invite_expires_at?: string | null
     }
     /**
      * UserUpdate
