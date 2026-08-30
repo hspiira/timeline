@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field, SecretStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, SecretStr, field_validator
 
 from app.domain.enums import TenantStatus, IntegrityProfile
 
@@ -29,6 +29,20 @@ class TenantCreateRequest(BaseModel):
         description="Unique tenant code (normalized to lowercase, hyphen-separated slug)",
     )
     name: str = Field(..., min_length=1, max_length=255, description="Display name")
+    admin_email: EmailStr | None = Field(
+        default=None,
+        description=(
+            "Email of the first administrator. Supply this on the self-serve path so "
+            "the account is reachable. When omitted (operator provisioning) a "
+            "non-routable placeholder is derived from the tenant code."
+        ),
+    )
+    admin_username: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=128,
+        description="Username of the first administrator. Defaults to 'admin'.",
+    )
     admin_initial_password: SecretStr | None = Field(
         default=None,
         description="Optional initial admin password (min 8 chars); if set, used and never returned in response",
@@ -60,6 +74,10 @@ class TenantCreateResponse(BaseModel):
     tenant_name: str
     admin_username: str
     admin_email: str
+    # One-time token for the set-password page. Always present, so a tenant is never
+    # created without a way in even when SET_PASSWORD_BASE_URL is unconfigured.
+    # Null only when the caller supplied admin_initial_password and can already sign in.
+    set_password_token: str | None = None
     # Full URL for set-password page (C2). E.g. https://app.example.com/set-password?token=...
     set_password_url: str | None = None
     set_password_expires_at: datetime | None = None

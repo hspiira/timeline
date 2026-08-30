@@ -1,5 +1,6 @@
 """Tenant API: thin routes delegating to TenantCreationService and tenant repo (Postgres)."""
 
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -21,6 +22,7 @@ from app.infrastructure.persistence.database import get_db_transactional
 from app.infrastructure.persistence.repositories import (
     TenantIntegrityProfileHistoryRepository,
 )
+from app.application.dtos.tenant import TenantCreationResult
 from app.application.dtos.user import UserResult
 from app.application.interfaces.repositories import ITenantRepository
 from app.application.services.tenant_creation_service import TenantCreationService
@@ -41,6 +43,43 @@ from app.schemas.tenant import (
 )
 
 router = APIRouter()
+
+
+
+def _resolve_way_in(
+    result: TenantCreationResult,
+    admin_password: str | None,
+) -> tuple[str | None, str | None, datetime | None]:
+    """Return the (token, url, expires_at) by which the new admin first signs in.
+
+    A caller who supplied a password can already sign in, so no token is disclosed:
+    putting a live credential in the response would buy nothing. Everyone else must
+    get the token back, otherwise a tenant created without SET_PASSWORD_BASE_URL is
+    live and unenterable — the password was generated and never returned, and the
+    minted token would be disclosed nowhere.
+
+    Raises:
+        HTTPException: 503 when neither a password nor a token exists, so the caller
+            gets an error instead of a tenant nobody can enter. The surrounding
+            transactional session rolls the tenant back.
+    """
+    if admin_password is not None:
+        return (None, None, None)
+    token = result.set_password_token
+    if not token:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Tenant creation cannot issue a way in: no initial password was "
+                "supplied and no set-password token could be minted."
+            ),
+        )
+    settings = get_settings()
+    url = None
+    if settings.set_password_base_url:
+        base = settings.set_password_base_url.rstrip("/")
+        url = f"{base}/set-password?token={token}"
+    return (token, url, result.set_password_expires_at)
 
 
 @router.post("", response_model=TenantCreateResponse, status_code=201)
@@ -79,6 +118,8 @@ async def create_tenant(
             code=body.code,
             name=body.name,
             admin_initial_password=admin_password,
+            admin_email=body.admin_email,
+            admin_username=body.admin_username,
         )
         # API audit log: tenant creation has no JWT/tenant header; log in same transaction.
         request_id, ip_address, user_agent = get_audit_request_context(request)
@@ -97,18 +138,16 @@ async def create_tenant(
             success=True,
             error_message=None,
         )
-        set_password_url = None
-        if result.set_password_token and settings.set_password_base_url:
-            base = settings.set_password_base_url.rstrip("/")
-            set_password_url = f"{base}/set-password?token={result.set_password_token}"
+        token, url, expires_at = _resolve_way_in(result, admin_password)
         return TenantCreateResponse(
             tenant_id=result.tenant_id,
             tenant_code=result.tenant_code,
             tenant_name=result.tenant_name,
             admin_username=result.admin_username,
             admin_email=result.admin_email,
-            set_password_url=set_password_url,
-            set_password_expires_at=result.set_password_expires_at,
+            set_password_token=token,
+            set_password_url=url,
+            set_password_expires_at=expires_at,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

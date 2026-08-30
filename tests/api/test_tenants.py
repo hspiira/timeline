@@ -173,3 +173,108 @@ async def test_create_tenant_with_correct_secret_returns_201(client: AsyncClient
     # C2: set_password_url and set_password_expires_at when SET_PASSWORD_BASE_URL is set
     assert "set_password_url" in data
     assert "set_password_expires_at" in data
+
+
+async def test_create_tenant_rejects_invalid_admin_email(client: AsyncClient) -> None:
+    """POST /api/v1/tenants with a malformed admin_email fails validation."""
+    response = await client.post(
+        "/api/v1/tenants",
+        json={
+            "code": "acme-corp",
+            "name": "Acme Corp",
+            "admin_email": "not-an-email",
+            "admin_initial_password": "correct horse battery",
+        },
+    )
+    assert response.status_code == 422
+
+
+async def test_create_tenant_admin_username_cannot_be_empty(client: AsyncClient) -> None:
+    """POST /api/v1/tenants with an empty admin_username fails validation."""
+    response = await client.post(
+        "/api/v1/tenants",
+        json={
+            "code": "acme-corp",
+            "name": "Acme Corp",
+            "admin_username": "",
+        },
+    )
+    assert response.status_code == 422
+
+
+def test_tenant_create_response_can_carry_a_token() -> None:
+    """The response model has somewhere to put the one-time token.
+
+    Without this field a tenant created while SET_PASSWORD_BASE_URL is unset is
+    live and unenterable: the generated password is never returned and the minted
+    token has nowhere to go. Regression guard for that shape.
+    """
+    from app.schemas.tenant import TenantCreateResponse
+
+    response = TenantCreateResponse(
+        tenant_id="t1",
+        tenant_code="acme",
+        tenant_name="Acme",
+        admin_username="admin",
+        admin_email="admin@acme.example",
+        set_password_token="raw-token",
+    )
+    assert response.set_password_token == "raw-token"
+    assert response.set_password_url is None
+
+
+def test_resolve_way_in_returns_token_without_base_url() -> None:
+    """With no password supplied and no base URL, the raw token is still returned."""
+    from app.api.v1.endpoints.tenants import _resolve_way_in
+    from app.application.dtos.tenant import TenantCreationResult
+
+    result = TenantCreationResult(
+        tenant_id="t1",
+        tenant_code="acme",
+        tenant_name="Acme",
+        admin_username="admin",
+        admin_email="admin@acme.example",
+        set_password_token="raw-token",
+    )
+    with patch("app.api.v1.endpoints.tenants.get_settings") as mock_settings:
+        mock_settings.return_value.set_password_base_url = None
+        token, url, _expires = _resolve_way_in(result, admin_password=None)
+    assert token == "raw-token"
+    assert url is None
+
+
+def test_resolve_way_in_withholds_token_when_password_supplied() -> None:
+    """A caller who set the password can already sign in, so no token is disclosed."""
+    from app.api.v1.endpoints.tenants import _resolve_way_in
+    from app.application.dtos.tenant import TenantCreationResult
+
+    result = TenantCreationResult(
+        tenant_id="t1",
+        tenant_code="acme",
+        tenant_name="Acme",
+        admin_username="admin",
+        admin_email="admin@acme.example",
+        set_password_token="raw-token",
+    )
+    token, url, expires = _resolve_way_in(result, admin_password="chosen-password")
+    assert (token, url, expires) == (None, None, None)
+
+
+def test_resolve_way_in_refuses_to_leave_a_tenant_unenterable() -> None:
+    """No password and no token must raise, not return a tenant nobody can enter."""
+    from fastapi import HTTPException
+
+    from app.api.v1.endpoints.tenants import _resolve_way_in
+    from app.application.dtos.tenant import TenantCreationResult
+
+    result = TenantCreationResult(
+        tenant_id="t1",
+        tenant_code="acme",
+        tenant_name="Acme",
+        admin_username="admin",
+        admin_email="admin@acme.example",
+        set_password_token=None,
+    )
+    with pytest.raises(HTTPException) as exc_info:
+        _resolve_way_in(result, admin_password=None)
+    assert exc_info.value.status_code == 503

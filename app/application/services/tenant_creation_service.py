@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import secrets
-import string
 from typing import TYPE_CHECKING
 
 from app.application.dtos.tenant import TenantCreationResult
@@ -15,6 +13,7 @@ from app.application.interfaces.repositories import (
 from app.application.interfaces.services import ITenantInitializationService
 from app.domain.enums import TenantStatus
 from app.domain.exceptions import TenantAlreadyExistsException
+from app.infrastructure.security.password import generate_secure_password
 from app.shared.enums import ActorType, AuditAction
 
 if TYPE_CHECKING:
@@ -43,11 +42,20 @@ class TenantCreationService:
         code: str,
         name: str,
         admin_initial_password: str | None = None,
+        admin_email: str | None = None,
+        admin_username: str | None = None,
     ) -> TenantCreationResult:
         """Create tenant, init RBAC, create admin user, assign admin role.
 
         If admin_initial_password is provided, it is used for the admin user;
-        otherwise a password is generated (but never returned). Caller must run
+        otherwise a password is generated (but never returned) and the caller must
+        use the returned one-time token to set one.
+
+        admin_email and admin_username identify the first administrator. Supply them
+        on the self-serve path so the account is reachable. When omitted (operator
+        provisioning) they fall back to "admin" and a non-routable placeholder derived
+        from the tenant code, which cannot receive mail — so that path depends on the
+        returned token being handed over out of band. Caller must run
         this within a single DB transaction (e.g. use a transactional session
         dependency) so that tenant creation, RBAC init, user creation and role
         assignment are atomic.
@@ -74,14 +82,14 @@ class TenantCreationService:
         password = (
             admin_initial_password
             if admin_initial_password is not None
-            else self._generate_secure_password()
+            else generate_secure_password()
         )
-        admin_username = "admin"
-        admin_email = f"admin@{code}.timeline"
+        resolved_username = admin_username or "admin"
+        resolved_email = admin_email or f"admin@{code}.timeline"
         admin_user = await self.user_repo.create_user(
             tenant_id=tenant_id,
-            username=admin_username,
-            email=admin_email,
+            username=resolved_username,
+            email=resolved_email,
             password=password,
         )
 
@@ -123,32 +131,8 @@ class TenantCreationService:
             tenant_id=tenant_id,
             tenant_code=created_tenant.code,
             tenant_name=created_tenant.name,
-            admin_username=admin_username,
-            admin_email=admin_email,
+            admin_username=resolved_username,
+            admin_email=resolved_email,
             set_password_token=set_password_token,
             set_password_expires_at=set_password_expires_at,
         )
-
-    @staticmethod
-    def _generate_secure_password(length: int = 16) -> str:
-        """Generate cryptographically secure password with guaranteed complexity.
-
-        Ensures at least one lowercase, one uppercase, one digit, and one
-        special character; remaining positions filled from full alphabet,
-        then shuffled.
-        """
-        special = "!@#$%^&*-_=+"
-        alphabet = string.ascii_letters + string.digits + special
-        rng = secrets.SystemRandom()
-        # Guarantee one of each required class
-        chars = [
-            rng.choice(string.ascii_lowercase),
-            rng.choice(string.ascii_uppercase),
-            rng.choice(string.digits),
-            rng.choice(special),
-        ]
-        # Fill the rest from full alphabet
-        remaining = max(0, length - 4)
-        chars.extend(rng.choice(alphabet) for _ in range(remaining))
-        rng.shuffle(chars)
-        return "".join(chars)
